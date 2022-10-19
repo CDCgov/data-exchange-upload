@@ -20,6 +20,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+	implementation("com.azure:azure-storage-blob:12.7.0")
+	implementation("com.google.code.gson:gson")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
