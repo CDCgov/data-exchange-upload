@@ -22,6 +22,9 @@ dependencies {
 	implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 	implementation("com.azure:azure-storage-blob:12.7.0")
 	implementation("com.google.code.gson:gson")
+//	runtimeOnly("com.microsoft.azure:azure-keyvault-secrets-spring-boot-starter:2.3.5")
+	implementation("com.azure:azure-security-keyvault-secrets:4.5.0")
+	implementation("com.azure:azure-identity:1.6.1")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 }
 
@@ -37,9 +40,9 @@ tasks.withType<Test> {
 }
 
 azurewebapp {
-	subscription = "b4db128b-a40d-4306-9678-00aa10d43ff9"//'DDID-NCIRD-PRD-C1'
-	resourceGroup = "ncird-eipplus-dev"
-	appName = "as-data-exchange"
+	subscription = "01f9b1b1-a130-4031-ba25-71771007d3ca"//'OCIO-EDEDEV-C1'
+	resourceGroup = "ocio-ede-dev-moderate-hl7-rg"
+	appName = "as-bulk-upload"
 	pricingTier = "P1v2"
 	region = "eastus"
 	setRuntime(closureOf<com.microsoft.azure.gradle.configuration.GradleRuntimeConfig> {
