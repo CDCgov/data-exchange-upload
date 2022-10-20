@@ -1,0 +1,61 @@
+{
+	"info": {
+		"_postman_id": "3d0cc071-3c14-451b-9858-683ad5767f25",
+		"name": "Bulk Upload Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "608910"
+	},
+	"item": [
+		{
+			"name": "Health check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://as-bulk-upload.azurewebsites.net/",
+					"protocol": "https",
+					"host": [
+						"as-bulk-upload",
+						"azurewebsites",
+						"net"
+					],
+					"path": [
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Non-resumable multipart file upload",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "file",
+							"type": "file",
+							"src": "/Users/mkrystof/Downloads/1st-grade.jpg"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://as-bulk-upload.azurewebsites.net/upload/file",
+					"protocol": "https",
+					"host": [
+						"as-bulk-upload",
+						"azurewebsites",
+						"net"
+					],
+					"path": [
+						"upload",
+						"file"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
