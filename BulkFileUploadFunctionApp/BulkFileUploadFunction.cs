@@ -31,21 +31,27 @@ namespace BulkFileUploadFunctionApp
                 if (eventGridEvent.Data == null)
                     throw new Exception("event grid event data can not be null");
 
-                Uri sourceBlobUri = new Uri(eventGridEvent.Data.Url!);
+                var sourceBlobUri = new Uri(eventGridEvent.Data.Url!);
                 string tusPayloadFilename = sourceBlobUri.Segments.Last();
-                _logger.LogInformation("tusPayloadFilename is = {0}", tusPayloadFilename);
+                _logger.LogInformation($"tusPayloadFilename is = {tusPayloadFilename}");
 
                 var connectionString = "DefaultEndpointsProtocol=https;AccountName=dataexchangedev;AccountKey=lVvJbZ5J+SvLvWpUMwybFKnqYs57J4EF+HBvWTUo9GAHsLheFRWHOxXmVmy2Ojy7m/W8qBbgXIoe+AStzh0IdQ==;EndpointSuffix=core.windows.net";
                 var sourceContainerName = "bulkuploads";
                 var tusPayloadPathname = "/tus-prefix/" + tusPayloadFilename;
                 var tusInfoFile = await GetTusFileInfo(connectionString, sourceContainerName, tusPayloadPathname);
 
-                var destinationContainerName = "program1";
-                string? destinationBlobFilename = null;
-                _ = tusInfoFile?.MetaData?.TryGetValue("filename", out destinationBlobFilename);
-                if (destinationBlobFilename == null)
-                    destinationBlobFilename = tusPayloadFilename;
+                GetRequiredMetaData(tusInfoFile, out string filename, out string destinationId, out string extEvent);
 
+                // Partioning is part of the filename where slashes will create subfolders.
+                // Container name is "{meta_destination_id}-{extEvent}"
+                // Path inside of that is year / month / day / filename
+                var dateTimeNow = DateTime.UtcNow;
+
+                var destinationBlobFilename = $"{dateTimeNow.Year}/{dateTimeNow.Month.ToString().PadLeft(2, '0')}/{dateTimeNow.Day.ToString().PadLeft(2, '0')}/{filename}";
+
+                // There are some restrictions on container names -- underscores not allowed, must be all lowercase
+                var destinationContainerName = $"{destinationId.ToLower()}-{extEvent.ToLower()}";
+                
                 var tusFileMetadata = tusInfoFile?.MetaData ?? new Dictionary<string, string>();
                 tusFileMetadata.Add("tus_tguid", tusPayloadFilename);
                 tusFileMetadata.Remove("filename");
@@ -58,9 +64,9 @@ namespace BulkFileUploadFunctionApp
             }
         }
 
-        private async Task<TusInfoFile?> GetTusFileInfo(string connectionString, string sourceContainerName, string tusPayloadPathname)
+        private async Task<TusInfoFile> GetTusFileInfo(string connectionString, string sourceContainerName, string tusPayloadPathname)
         {
-            TusInfoFile? tusInfoFile = null;
+            TusInfoFile tusInfoFile;
 
             string tusInfoPathname = tusPayloadPathname + ".info";
 
@@ -73,28 +79,30 @@ namespace BulkFileUploadFunctionApp
             _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
 
             // Ensure that the source blob exists
-            if (await sourceBlob.ExistsAsync())
+            if (!await sourceBlob.ExistsAsync())
             {
-                _logger.LogInformation("File exists, getting lease on file");
-
-                BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
-
-                // Specifying -1 for the lease interval creates an infinite lease
-                await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
-
-                BlobDownloadResult download = await sourceBlob.DownloadContentAsync();
-                tusInfoFile = download.Content.ToObjectFromJson<TusInfoFile>();
-
-                BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
-
-                if (sourceProperties.LeaseState == LeaseState.Leased)
-                {
-                    // Release the lease on the source blob
-                    await lease.ReleaseAsync();
-                }
-                
-                _logger.LogInformation($"Info file metadata keys: {tusInfoFile.MetaData?.Keys}");
+                throw new TusInfoFileException("File is missing");
             }
+            
+            _logger.LogInformation("File exists, getting lease on file");
+
+            BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
+
+            // Specifying -1 for the lease interval creates an infinite lease
+            await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
+
+            BlobDownloadResult download = await sourceBlob.DownloadContentAsync();
+            tusInfoFile = download.Content.ToObjectFromJson<TusInfoFile>();
+
+            BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
+
+            if (sourceProperties.LeaseState == LeaseState.Leased)
+            {
+                // Release the lease on the source blob
+                await lease.ReleaseAsync();
+            }
+                
+            _logger.LogInformation($"Info file metadata keys: {tusInfoFile.MetaData?.Keys}");
             
             return tusInfoFile;
         }
@@ -174,6 +182,27 @@ namespace BulkFileUploadFunctionApp
             {
                 _logger.LogError(ex.Message);
             }
+        }
+
+        private static void GetRequiredMetaData(TusInfoFile tusInfoFile, out string filename, out string destinationId, out string extEvent)
+        {
+            if (tusInfoFile.MetaData == null)
+                throw new TusInfoFileException("tus info file required metadata is missing");
+            
+            var filenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("filename", null);
+            if (filenameFromMetaData == null)
+                throw new TusInfoFileException("filename is a required metadata field and is missing from the tus info file");
+            filename = filenameFromMetaData;
+
+            var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
+            if (metaDestinationId == null)
+                throw new TusInfoFileException("meta_destination_id is a required metadata field and is missing from the tus info file");
+            destinationId = metaDestinationId;
+
+            var metaExtEvent = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_event", null);
+            if (metaExtEvent == null)
+                throw new TusInfoFileException("meta_ext_event is a required metadata field and is missing from the tus info file");
+            extEvent = metaExtEvent;
         }
     }
 }
