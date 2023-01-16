@@ -47,7 +47,9 @@ namespace BulkFileUploadFunctionApp
                 // Path inside of that is year / month / day / filename
                 var dateTimeNow = DateTime.UtcNow;
 
-                var destinationBlobFilename = $"{dateTimeNow.Year}/{dateTimeNow.Month.ToString().PadLeft(2, '0')}/{dateTimeNow.Day.ToString().PadLeft(2, '0')}/{filename}";
+                var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
+                var fileExtension = Path.GetExtension(filename);
+                var destinationBlobFilename = $"{dateTimeNow.Year}/{dateTimeNow.Month.ToString().PadLeft(2, '0')}/{dateTimeNow.Day.ToString().PadLeft(2, '0')}/{fileNameWithoutExtension}_{dateTimeNow.Ticks}{fileExtension}";
 
                 // There are some restrictions on container names -- underscores not allowed, must be all lowercase
                 var destinationContainerName = $"{destinationId.ToLower()}-{extEvent.ToLower()}";
@@ -55,6 +57,7 @@ namespace BulkFileUploadFunctionApp
                 var tusFileMetadata = tusInfoFile?.MetaData ?? new Dictionary<string, string>();
                 tusFileMetadata.Add("tus_tguid", tusPayloadFilename);
                 tusFileMetadata.Remove("filename");
+                tusFileMetadata.Add("orig_filename", filename);
 
                 await CopyBlobAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
             }
