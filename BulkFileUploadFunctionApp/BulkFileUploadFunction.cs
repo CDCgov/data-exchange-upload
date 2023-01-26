@@ -7,8 +7,6 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using BulkFileUploadFunctionApp.Model;
-using Google.Protobuf.WellKnownTypes;
-using System.Security.Principal;
 using Azure.Identity;
 using Azure.Storage;
 using Azure.Storage.Sas;
@@ -19,15 +17,37 @@ namespace BulkFileUploadFunctionApp
     {
         private readonly ILogger _logger;
 
+        private string _deploymentPlatform;
+
+        private string _tusAzureObjectPrefix;
+
+        private string _tusAzureStorageContainer;
+
+        private string _dexAzureStorageAccountName;
+
+        private string _dexAzureStorageAccountKey;
+
+        public static string? GetEnvironmentVariable(string name)
+        {
+            return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
+        }
+
         public BulkFileUploadFunction(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
+            _deploymentPlatform = GetEnvironmentVariable("DEPLOYMENT_PLATFORM") ?? "dev";
+            _tusAzureObjectPrefix = GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX") ?? "tus-prefix";
+            _tusAzureStorageContainer = GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER") ?? "bulkuploads";
+            _dexAzureStorageAccountName = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME") ?? "dataexchangedev";
+            _dexAzureStorageAccountKey = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY") ?? "";
         }
 
         [Function("BulkFileUploadFunction")]
         public async Task Run([EventGridTrigger] StorageBlobCreatedEvent eventGridEvent)
         {
             _logger.LogInformation(eventGridEvent.Data?.ToString());
+
+            _logger.LogInformation($"DEPLOYMENT_PLATFORM={_deploymentPlatform}, TUS_AZURE_OBJECT_PREFIX={_tusAzureObjectPrefix}, TUS_AZURE_STORAGE_CONTAINER={_tusAzureStorageContainer}, DEX_AZURE_STORAGE_ACCOUNT_NAME={_dexAzureStorageAccountName}");
 
             try
             {
@@ -40,9 +60,9 @@ namespace BulkFileUploadFunctionApp
                 string tusPayloadFilename = sourceBlobUri.Segments.Last();
                 _logger.LogInformation($"tusPayloadFilename is = {tusPayloadFilename}");
 
-                var connectionString = "DefaultEndpointsProtocol=https;AccountName=dataexchangedev;AccountKey=lVvJbZ5J+SvLvWpUMwybFKnqYs57J4EF+HBvWTUo9GAHsLheFRWHOxXmVmy2Ojy7m/W8qBbgXIoe+AStzh0IdQ==;EndpointSuffix=core.windows.net";
-                var sourceContainerName = "bulkuploads";
-                var tusPayloadPathname = "/tus-prefix/" + tusPayloadFilename;
+                var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
+                var sourceContainerName = _tusAzureStorageContainer;
+                var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusPayloadFilename}";
                 var tusInfoFile = await GetTusFileInfo(connectionString, sourceContainerName, tusPayloadPathname);
 
                 GetRequiredMetaData(tusInfoFile, out string filename, out string destinationId, out string extEvent);
@@ -172,14 +192,14 @@ namespace BulkFileUploadFunctionApp
                     clientCred
                 );
 
-                string destinationContainerName = $"{sourceContainerName}-dev";
+                string destinationContainerName = $"{sourceContainerName}-{_deploymentPlatform}";
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
                 // Create the destination container if not exists
                 await edavContainerClient.CreateIfNotExistsAsync();
 
-                StorageSharedKeyCredential storageSharedKeyCredential = new("dataexchangedev", "lVvJbZ5J+SvLvWpUMwybFKnqYs57J4EF+HBvWTUo9GAHsLheFRWHOxXmVmy2Ojy7m/W8qBbgXIoe+AStzh0IdQ==");
-                Uri blobContainerUri = new($"https://dataexchangedev.blob.core.windows.net/{sourceContainerName}");
+                StorageSharedKeyCredential storageSharedKeyCredential = new(_dexAzureStorageAccountName, _dexAzureStorageAccountKey);
+                Uri blobContainerUri = new($"https://{_dexAzureStorageAccountName}.blob.core.windows.net/{sourceContainerName}");
                 BlobContainerClient dexCombinedSourceContainerClient = new(blobContainerUri, storageSharedKeyCredential);
 
                 string destinationBlobFilename = sourceBlobFilename;
