@@ -64,40 +64,11 @@ namespace BulkFileUploadFunctionApp
                 tusFileMetadata.Remove("filename");
                 tusFileMetadata.Add("orig_filename", filename);
 
-                // Copy the partitioned file to DeX storage account
+                // Copy the blob to the DeX storage account specific to the program, partitioned by date
                 await CopyBlobAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
-                // Now copy the partitioned file to the EDAV storage account
-                const string edavStorageAccount = "edavdevdatalakedex";
-                // Using Service Principal
-                const string appID = "bd468706-837d-49ff-8aa0-90ce81601291"; // OCIO-EDEEDAV-DEV
-                const string appSec = "";
-                const string tenantID = "9ce70869-60db-44fd-abe8-d2767077fc8f"; // same tenant for all of CDC including DeX and EDAV
-
-                var clientCred = new ClientSecretCredential(tenantID, appID, appSec);
-
-                var edavBlobServiceClient = new BlobServiceClient(
-                    new Uri($"https://{edavStorageAccount}.blob.core.windows.net"),
-                    clientCred
-                );
-
-                var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient($"{destinationContainerName}-dev");
-
-                StorageSharedKeyCredential storageSharedKeyCredential = new("dataexchangedev", "lVvJbZ5J+SvLvWpUMwybFKnqYs57J4EF+HBvWTUo9GAHsLheFRWHOxXmVmy2Ojy7m/W8qBbgXIoe+AStzh0IdQ==");
-                Uri blobContainerUri = new($"https://dataexchangedev.blob.core.windows.net/{destinationContainerName}");
-                BlobContainerClient dexCombinedSourceContainerClient = new(blobContainerUri, storageSharedKeyCredential);
-
-                BlobClient dexSourceBlob = dexCombinedSourceContainerClient.GetBlobClient(destinationBlobFilename);
-                var dexSasUri = GetServiceSasUriForBlob(dexSourceBlob);
-
-                BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
-
-                _logger.LogInformation("Starting blob copy to edav...");
-
-                // Start the copy operation.
-                await edavDestBlobClient.StartCopyFromUriAsync(dexSasUri, tusFileMetadata);
-
-                _logger.LogInformation("Finished blob copy to edav");
+                // Now copy the file from DeX to the EDAV storage account, also partitioned by date
+                await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
             }
             catch (Exception e)
             {
@@ -184,67 +155,42 @@ namespace BulkFileUploadFunctionApp
             }
         }
 
-        private async Task CopyBlobAsync(BlobContainerClient sourceContainerClient, string sourceBlobName, string destinationBlobName, BlobContainerClient destinationContainerClient, IDictionary<string, string> destinationMetadata)
+        private async Task CopyBlobFromDexToEdavAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
         {
             try
             {
-                _logger.LogInformation($"Starting dex > edav file copy with source uri {sourceContainerClient.Uri}, destination uri {destinationContainerClient.Uri}");
+                const string edavStorageAccount = "edavdevdatalakedex";
+                // Using Service Principal
+                const string appID = "bd468706-837d-49ff-8aa0-90ce81601291"; // OCIO-EDEEDAV-DEV
+                const string appSec = "";
+                const string tenantID = "9ce70869-60db-44fd-abe8-d2767077fc8f"; // same tenant for all of CDC including DeX and EDAV
 
-                // Create a BlobClient representing the source blob to copy.
-                BlobClient sourceBlob = sourceContainerClient.GetBlobClient(sourceBlobName);
+                var clientCred = new ClientSecretCredential(tenantID, appID, appSec);
 
-                _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
+                var edavBlobServiceClient = new BlobServiceClient(
+                    new Uri($"https://{edavStorageAccount}.blob.core.windows.net"),
+                    clientCred
+                );
 
-                // Ensure that the source blob exists.
-                if (await sourceBlob.ExistsAsync())
-                {
-                    _logger.LogInformation("File exists, getting lease on file");
+                string destinationContainerName = $"{sourceContainerName}-dev";
+                var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
-                    // Lease the source blob for the copy operation 
-                    // to prevent another client from modifying it.
-                    BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
+                StorageSharedKeyCredential storageSharedKeyCredential = new("dataexchangedev", "lVvJbZ5J+SvLvWpUMwybFKnqYs57J4EF+HBvWTUo9GAHsLheFRWHOxXmVmy2Ojy7m/W8qBbgXIoe+AStzh0IdQ==");
+                Uri blobContainerUri = new($"https://dataexchangedev.blob.core.windows.net/{sourceContainerName}");
+                BlobContainerClient dexCombinedSourceContainerClient = new(blobContainerUri, storageSharedKeyCredential);
 
-                    // Specifying -1 for the lease interval creates an infinite lease.
-                    await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
+                string destinationBlobFilename = sourceBlobFilename;
+                BlobClient dexSourceBlobClient = dexCombinedSourceContainerClient.GetBlobClient(destinationBlobFilename);
+                var dexSasUri = GetServiceSasUriForBlob(dexSourceBlobClient);
 
-                    // Get the source blob's properties and display the lease state.
-                    BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
-                    _logger.LogInformation($"Lease state: {sourceProperties.LeaseState}");
+                BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
 
-                    _logger.LogInformation($"edav destination filename = {destinationBlobName}");
+                _logger.LogInformation($"Starting dex to edav blob copy with source uri {dexSourceBlobClient.Uri}, destination uri {edavContainerClient.Uri}");
 
-                    // Get a BlobClient representing the destination blob with a unique name.
-                    BlobClient destBlob =
-                        destinationContainerClient.GetBlobClient(destinationBlobName);
+                // Start the copy operation.
+                await edavDestBlobClient.StartCopyFromUriAsync(dexSasUri, destinationMetadata);
 
-                    _logger.LogInformation($"Starting blob copy, destination blob name = {destinationBlobName}");
-
-                    // Start the copy operation.
-                    await destBlob.StartCopyFromUriAsync(sourceBlob.Uri, destinationMetadata);
-
-                    _logger.LogInformation("Finished blob copy");
-
-                    // Get the destination blob's properties and display the copy status.
-                    BlobProperties destProperties = await destBlob.GetPropertiesAsync();
-
-                    _logger.LogInformation($"Copy status: {destProperties.CopyStatus}");
-                    _logger.LogInformation($"Copy progress: {destProperties.CopyProgress}");
-                    _logger.LogInformation($"Completion time: {destProperties.CopyCompletedOn}");
-                    _logger.LogInformation($"Total bytes: {destProperties.ContentLength}");
-
-                    // Update the source blob's properties.
-                    sourceProperties = await sourceBlob.GetPropertiesAsync();
-
-                    if (sourceProperties.LeaseState == LeaseState.Leased)
-                    {
-                        // Release the lease on the source blob
-                        await lease.ReleaseAsync();
-
-                        // Update the source blob's properties to check the lease state.
-                        sourceProperties = await sourceBlob.GetPropertiesAsync();
-                        _logger.LogInformation($"Lease state: {sourceProperties.LeaseState}");
-                    }
-                }
+                _logger.LogInformation("Finished blob copy to edav");
             }
             catch (RequestFailedException ex)
             {
