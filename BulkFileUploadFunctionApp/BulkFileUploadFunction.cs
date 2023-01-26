@@ -175,6 +175,9 @@ namespace BulkFileUploadFunctionApp
                 string destinationContainerName = $"{sourceContainerName}-dev";
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
+                // Create the destination container if not exists
+                await edavContainerClient.CreateIfNotExistsAsync();
+
                 StorageSharedKeyCredential storageSharedKeyCredential = new("dataexchangedev", "lVvJbZ5J+SvLvWpUMwybFKnqYs57J4EF+HBvWTUo9GAHsLheFRWHOxXmVmy2Ojy7m/W8qBbgXIoe+AStzh0IdQ==");
                 Uri blobContainerUri = new($"https://dataexchangedev.blob.core.windows.net/{sourceContainerName}");
                 BlobContainerClient dexCombinedSourceContainerClient = new(blobContainerUri, storageSharedKeyCredential);
