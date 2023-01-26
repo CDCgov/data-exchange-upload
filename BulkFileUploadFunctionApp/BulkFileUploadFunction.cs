@@ -183,14 +183,38 @@ namespace BulkFileUploadFunctionApp
                 BlobClient dexSourceBlobClient = dexCombinedSourceContainerClient.GetBlobClient(destinationBlobFilename);
                 var dexSasUri = GetServiceSasUriForBlob(dexSourceBlobClient);
 
-                BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
+                _logger.LogInformation($"Checking if source blob with uri {dexSourceBlobClient.Uri} exists");
 
-                _logger.LogInformation($"Starting dex to edav blob copy with source uri {dexSourceBlobClient.Uri}, destination uri {edavContainerClient.Uri}");
+                // Ensure that the source blob exists.
+                if (await dexSourceBlobClient.ExistsAsync())
+                {
+                    _logger.LogInformation("File exists, getting lease on file");
 
-                // Start the copy operation.
-                await edavDestBlobClient.StartCopyFromUriAsync(dexSasUri, destinationMetadata);
+                    // Lease the source blob for the copy operation 
+                    // to prevent another client from modifying it.
+                    BlobLeaseClient lease = dexSourceBlobClient.GetBlobLeaseClient();
 
-                _logger.LogInformation("Finished blob copy to edav");
+                    // Specifying -1 for the lease interval creates an infinite lease.
+                    await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
+
+                    BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
+
+                    _logger.LogInformation($"Starting dex to edav blob copy with source uri {dexSourceBlobClient.Uri}, destination uri {edavContainerClient.Uri}");
+
+                    // Start the copy operation.
+                    await edavDestBlobClient.StartCopyFromUriAsync(dexSasUri, destinationMetadata);
+
+                    _logger.LogInformation("Finished blob copy to edav");
+
+                    // Update the source blob's properties.
+                    BlobProperties sourceProperties = await dexSourceBlobClient.GetPropertiesAsync();
+
+                    if (sourceProperties.LeaseState == LeaseState.Leased)
+                    {
+                        // Release the lease on the source blob
+                        await lease.ReleaseAsync();
+                    }
+                }
             }
             catch (RequestFailedException ex)
             {
