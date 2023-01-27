@@ -27,6 +27,8 @@ namespace BulkFileUploadFunctionApp
 
         private string _dexAzureStorageAccountKey;
 
+        private string _edavAzureStroageAccountName;
+
         public static string? GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
@@ -40,6 +42,7 @@ namespace BulkFileUploadFunctionApp
             _tusAzureStorageContainer = GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER") ?? "bulkuploads";
             _dexAzureStorageAccountName = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME") ?? "dataexchangedev";
             _dexAzureStorageAccountKey = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY") ?? "";
+            _edavAzureStroageAccountName = GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "edavdevdatalakedex";
         }
 
         [Function("BulkFileUploadFunction")]
@@ -179,10 +182,8 @@ namespace BulkFileUploadFunctionApp
         {
             try
             {
-                const string edavStorageAccount = "edavdevdatalakedex";
-                
                 var edavBlobServiceClient = new BlobServiceClient(
-                    new Uri($"https://{edavStorageAccount}.blob.core.windows.net"),
+                    new Uri($"https://{_edavAzureStroageAccountName}.blob.core.windows.net"),
                     new DefaultAzureCredential() // using Service Principal
                 );
 
