@@ -180,16 +180,10 @@ namespace BulkFileUploadFunctionApp
             try
             {
                 const string edavStorageAccount = "edavdevdatalakedex";
-                // Using Service Principal
-                const string appID = "bd468706-837d-49ff-8aa0-90ce81601291"; // OCIO-EDEEDAV-DEV
-                const string appSec = "";
-                const string tenantID = "9ce70869-60db-44fd-abe8-d2767077fc8f"; // same tenant for all of CDC including DeX and EDAV
-
-                var clientCred = new ClientSecretCredential(tenantID, appID, appSec);
-
+                
                 var edavBlobServiceClient = new BlobServiceClient(
                     new Uri($"https://{edavStorageAccount}.blob.core.windows.net"),
-                    clientCred
+                    new DefaultAzureCredential() // using Service Principal
                 );
 
                 string destinationContainerName = $"{sourceContainerName}-{_deploymentPlatform}";
