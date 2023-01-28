@@ -15,7 +15,7 @@ namespace BulkFileUploadFunctionApp
             _logger = logger;
         }
 
-        public async Task CopyBlobAsync(BlobClient sourceBlob, BlobClient destinationBlob, IDictionary<string, string> destinationMetadata)
+        public async Task CopyBlobAsync(BlobClient sourceBlob, BlobClient destinationBlob, IDictionary<string, string> destinationMetadata, Uri? sourceSasBlobUri = null)
         {
             try
             {
@@ -40,7 +40,8 @@ namespace BulkFileUploadFunctionApp
                     _logger.LogInformation("Starting blob copy");
 
                     // Start the copy operation.
-                    await destinationBlob.StartCopyFromUriAsync(sourceBlob.Uri, destinationMetadata);
+                    var sourceUriToUse = sourceSasBlobUri != null ? sourceSasBlobUri : sourceBlob.Uri;
+                    await destinationBlob.StartCopyFromUriAsync(sourceUriToUse, destinationMetadata);
 
                     _logger.LogInformation("Finished blob copy");
 

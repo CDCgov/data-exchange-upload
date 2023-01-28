@@ -205,38 +205,9 @@ namespace BulkFileUploadFunctionApp
                 BlobClient dexSourceBlobClient = dexCombinedSourceContainerClient.GetBlobClient(destinationBlobFilename);
                 var dexSasUri = GetServiceSasUriForBlob(dexSourceBlobClient);
 
-                _logger.LogInformation($"Checking if source blob with uri {dexSourceBlobClient.Uri} exists");
+                BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
 
-                // Ensure that the source blob exists.
-                if (await dexSourceBlobClient.ExistsAsync())
-                {
-                    _logger.LogInformation("File exists, getting lease on file");
-
-                    // Lease the source blob for the copy operation 
-                    // to prevent another client from modifying it.
-                    BlobLeaseClient lease = dexSourceBlobClient.GetBlobLeaseClient();
-
-                    // Specifying -1 for the lease interval creates an infinite lease.
-                    await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
-
-                    BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
-
-                    _logger.LogInformation($"Starting dex to edav blob copy with source uri {dexSourceBlobClient.Uri}, destination uri {edavContainerClient.Uri}");
-
-                    // Start the copy operation.
-                    await edavDestBlobClient.StartCopyFromUriAsync(dexSasUri, destinationMetadata);
-
-                    _logger.LogInformation("Finished blob copy to edav");
-
-                    // Update the source blob's properties.
-                    BlobProperties sourceProperties = await dexSourceBlobClient.GetPropertiesAsync();
-
-                    if (sourceProperties.LeaseState == LeaseState.Leased)
-                    {
-                        // Release the lease on the source blob
-                        await lease.ReleaseAsync();
-                    }
-                }
+                await _blobCopyHelper.CopyBlobAsync(dexSourceBlobClient, edavDestBlobClient, destinationMetadata, dexSasUri);
             }
             catch (RequestFailedException ex)
             {
@@ -263,8 +234,7 @@ namespace BulkFileUploadFunctionApp
                 BlobClient sourceBlob = sourceContainerClient.GetBlobClient(sourceBlobName);
 
                 // Get a BlobClient representing the destination blob with a unique name.
-                BlobClient destBlob =
-                    destinationContainerClient.GetBlobClient(destinationBlobName);
+                BlobClient destBlob = destinationContainerClient.GetBlobClient(destinationBlobName);
 
                 await _blobCopyHelper.CopyBlobAsync(sourceBlob, destBlob, destinationMetadata);
             }
