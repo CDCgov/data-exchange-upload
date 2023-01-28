@@ -17,17 +17,19 @@ namespace BulkFileUploadFunctionApp
     {
         private readonly ILogger _logger;
 
-        private string _deploymentPlatform;
+        private readonly BlobCopyHelper _blobCopyHelper;
 
-        private string _tusAzureObjectPrefix;
+        private readonly string _deploymentPlatform;
 
-        private string _tusAzureStorageContainer;
+        private readonly string _tusAzureObjectPrefix;
 
-        private string _dexAzureStorageAccountName;
+        private readonly string _tusAzureStorageContainer;
 
-        private string _dexAzureStorageAccountKey;
+        private readonly string _dexAzureStorageAccountName;
 
-        private string _edavAzureStroageAccountName;
+        private readonly string _dexAzureStorageAccountKey;
+
+        private readonly string _edavAzureStroageAccountName;
 
         public static string? GetEnvironmentVariable(string name)
         {
@@ -37,6 +39,8 @@ namespace BulkFileUploadFunctionApp
         public BulkFileUploadFunction(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
+            _blobCopyHelper = new(_logger);
+            
             _deploymentPlatform = GetEnvironmentVariable("DEPLOYMENT_PLATFORM") ?? "dev";
             _tusAzureObjectPrefix = GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX") ?? "tus-prefix";
             _tusAzureStorageContainer = GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER") ?? "bulkuploads";
@@ -88,7 +92,7 @@ namespace BulkFileUploadFunctionApp
                 tusFileMetadata.Add("orig_filename", filename);
 
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
-                await CopyBlobAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
                 // Now copy the file from DeX to the EDAV storage account, also partitioned by date
                 await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
@@ -240,7 +244,7 @@ namespace BulkFileUploadFunctionApp
             }
         }
 
-        private async Task CopyBlobAsync(string connectionString, string sourceContainerName, string sourceBlobName, string destinationContainerName,
+        private async Task CopyBlobFromTusToDexAsync(string connectionString, string sourceContainerName, string sourceBlobName, string destinationContainerName,
             string destinationBlobName, IDictionary<string, string> destinationMetadata)
         {
             try
@@ -258,58 +262,11 @@ namespace BulkFileUploadFunctionApp
                 // Create a BlobClient representing the source blob to copy.
                 BlobClient sourceBlob = sourceContainerClient.GetBlobClient(sourceBlobName);
 
-                _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
+                // Get a BlobClient representing the destination blob with a unique name.
+                BlobClient destBlob =
+                    destinationContainerClient.GetBlobClient(destinationBlobName);
 
-                // Ensure that the source blob exists.
-                if (await sourceBlob.ExistsAsync())
-                {
-                    _logger.LogInformation("File exists, getting lease on file");
-
-                    // Lease the source blob for the copy operation 
-                    // to prevent another client from modifying it.
-                    BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
-
-                    // Specifying -1 for the lease interval creates an infinite lease.
-                    await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
-
-                    // Get the source blob's properties and display the lease state.
-                    BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
-                    _logger.LogInformation($"Lease state: {sourceProperties.LeaseState}");
-
-                    _logger.LogInformation($"Creating destination blob client, blob filename: {destinationBlobName}");
-
-                    // Get a BlobClient representing the destination blob with a unique name.
-                    BlobClient destBlob =
-                        destinationContainerClient.GetBlobClient(destinationBlobName);
-
-                    _logger.LogInformation("Starting blob copy");
-
-                    // Start the copy operation.
-                    await destBlob.StartCopyFromUriAsync(sourceBlob.Uri, destinationMetadata);
-
-                    _logger.LogInformation("Finished blob copy");
-
-                    // Get the destination blob's properties and display the copy status.
-                    BlobProperties destProperties = await destBlob.GetPropertiesAsync();
-
-                    _logger.LogInformation($"Copy status: {destProperties.CopyStatus}");
-                    _logger.LogInformation($"Copy progress: {destProperties.CopyProgress}");
-                    _logger.LogInformation($"Completion time: {destProperties.CopyCompletedOn}");
-                    _logger.LogInformation($"Total bytes: {destProperties.ContentLength}");
-
-                    // Update the source blob's properties.
-                    sourceProperties = await sourceBlob.GetPropertiesAsync();
-
-                    if (sourceProperties.LeaseState == LeaseState.Leased)
-                    {
-                        // Release the lease on the source blob
-                        await lease.ReleaseAsync();
-
-                        // Update the source blob's properties to check the lease state.
-                        sourceProperties = await sourceBlob.GetPropertiesAsync();
-                        _logger.LogInformation($"Lease state: {sourceProperties.LeaseState}");
-                    }
-                }
+                await _blobCopyHelper.CopyBlobAsync(sourceBlob, destBlob, destinationMetadata);
             }
             catch (RequestFailedException ex)
             {
