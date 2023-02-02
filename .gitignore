@@ -1,0 +1,12 @@
+
+bulk-upload-service/bin/
+
+tus/file-hooks/metadata-verify/build/
+
+tus/file-hooks/metadata-verify/dist/
+
+tusdotnet/DEXTUSClient/obj/
+
+tusdotnet/DEXTUSServer/obj/
+
+tusdotnet/TUSTestHelpers/obj/

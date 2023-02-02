@@ -1,0 +1,15 @@
+[
+    {
+       "destination_id": "ndlp",
+       "ext_events": [
+        {
+            "name": "ri",
+            "definition_filename": "ndlp-ri-meta-definition.json"
+        },
+        {
+            "name": "event1",
+            "definition_filename": null
+        }
+       ]
+    }
+]
