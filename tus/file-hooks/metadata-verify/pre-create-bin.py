@@ -72,13 +72,20 @@ def checkProgramEventMetadata(program_event_meta_filename, metadata):
         schema_to_use = getSchemaVersionToUse(definitionObj, requested_schema_version)
         print("Using schema_version = " + schema_to_use.schema_version)
         missing_metadata_fields = []
+        validationError = False
         for fieldDef in schema_to_use.fields:
             if fieldDef.required != "false" and not fieldDef.fieldname in meta_json:
                 missing_metadata_fields.append(fieldDef)
+            if fieldDef.fieldname in meta_json:
+                fieldValue = meta_json[fieldDef.fieldname]
+                if len(fieldDef.allowed_values) > 0 and fieldValue not in fieldDef.allowed_values:
+                    print(fieldDef.fieldname + " = " + fieldValue + " is not one of the allowed values: " + json.dumps(fieldDef.allowed_values))
+                    validationError = True
         if len(missing_metadata_fields) > 0:
             for fieldDef in missing_metadata_fields:
                 print("Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
             print("Provided metadata: " + metadata)
+        if validationError:
             sys.exit(1)
             
 def checkMetadata(metadata):

@@ -4,7 +4,7 @@
         "fields": [
          {
              "fieldname": "meta_ext_source",
-             "allowed_values": "IZGW",
+             "allowed_values": ["IZGW"],
              "required": "true",
              "description": "Establishes where the data came from."
          }
@@ -15,19 +15,19 @@
        "fields": [
         {
             "fieldname": "meta_ext_source",
-            "allowed_values": "IZGW",
+            "allowed_values": ["IZGW"],
             "required": "true",
             "description": "Establishes where the data came from."
         },
         {
             "fieldname": "meta_ext_sourceversion",
-            "allowed_values": "V2022-12-31",
+            "allowed_values": ["V2022-12-31"],
             "required": "true",
             "description": "Aligns with version of the specification."
         },
         {
             "fieldname": "meta_ext_entity",
-            "allowed_values": "NYA,CV1,DD2",
+            "allowed_values": ["NYA","CV1","DD2"],
             "required": "true",
             "description": "Drives metrics for vaccine admin progress at entity grouping level."
         },
