@@ -45,7 +45,7 @@ def getSchemaVersionToUse(definitionObj, requested_schema_version):
             if requested_schema_version != None and requested_schema_version == fieldDef.schema_version:
                 # found requested schema version
                 return fieldDef
-            available_schemas.append(str(unicode(fieldDef.schema_version)))
+            available_schemas.append(str(fieldDef.schema_version))
         print("Requested schema version " + requested_schema_version + " not available.  Available schema versions: " + str(available_schemas))
         sys.exit(1)
     # provide the oldest found schema
