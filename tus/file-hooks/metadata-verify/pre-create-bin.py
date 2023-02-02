@@ -78,7 +78,7 @@ def checkProgramEventMetadata(program_event_meta_filename, metadata):
                 missing_metadata_fields.append(fieldDef)
             if fieldDef.fieldname in meta_json:
                 fieldValue = meta_json[fieldDef.fieldname]
-                if len(fieldDef.allowed_values) > 0 and fieldValue not in fieldDef.allowed_values:
+                if fieldDef.allowed_values != None and len(fieldDef.allowed_values) > 0 and fieldValue not in fieldDef.allowed_values:
                     print(fieldDef.fieldname + " = " + fieldValue + " is not one of the allowed values: " + json.dumps(fieldDef.allowed_values))
                     validationError = True
         if len(missing_metadata_fields) > 0:
