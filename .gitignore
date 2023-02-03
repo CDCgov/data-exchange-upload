@@ -10,3 +10,5 @@ tusdotnet/DEXTUSClient/obj/
 tusdotnet/DEXTUSServer/obj/
 
 tusdotnet/TUSTestHelpers/obj/
+
+.vscode/

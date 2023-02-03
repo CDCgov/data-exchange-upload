@@ -84,8 +84,9 @@ def checkProgramEventMetadata(program_event_meta_filename, metadata):
         if len(missing_metadata_fields) > 0:
             for fieldDef in missing_metadata_fields:
                 print("Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
-            print("Provided metadata: " + metadata)
+                validationError = True
         if validationError:
+            print("Provided metadata: " + metadata)
             sys.exit(1)
             
 def checkMetadata(metadata):
