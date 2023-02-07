@@ -24,7 +24,7 @@ def getVersionIntFromStr(version):
     version = sum(x * (100 ** i) for i, x in enumerate(l))
     return version
 
-def checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event, metadata):
+def checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event):
     allowed_programs_and_events_filename = "allowed_destination_and_events.json"
     with open(allowed_programs_and_events_filename, 'r') as file:
         definitions = file.read()
@@ -102,7 +102,7 @@ def checkMetadata(metadata):
     meta_destination_id = meta_json["meta_destination_id"]
     meta_ext_event = meta_json["meta_ext_event"]
     # check if the program/event type is on the list of allowed
-    filename = checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event, metadata)
+    filename = checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event)
     if filename != None:
         checkProgramEventMetadata(filename, metadata)
     
