@@ -1,0 +1,10 @@
+#!/bin/sh
+
+# upload data containing the metadata is in /dev/stdin
+data=$(</dev/stdin)
+
+# json query the metadata field of the upload data
+metadata=$(jq -c .Upload.MetaData `$data`)
+
+# run the python standalone binary to evaluate the metadata
+./pre-create-bin --metadata $metadata

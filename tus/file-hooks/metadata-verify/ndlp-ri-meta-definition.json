@@ -1,0 +1,54 @@
+[
+    {
+        "schema_version": "1.1",
+        "fields": [
+         {
+             "fieldname": "meta_ext_source",
+             "allowed_values": ["IZGW"],
+             "required": "true",
+             "description": "Establishes where the data came from."
+         }
+        ]
+    },
+    {
+       "schema_version": "1.0",
+       "fields": [
+        {
+            "fieldname": "meta_ext_source",
+            "allowed_values": ["IZGW"],
+            "required": "true",
+            "description": "Establishes where the data came from."
+        },
+        {
+            "fieldname": "meta_ext_sourceversion",
+            "allowed_values": ["V2022-12-31"],
+            "required": "true",
+            "description": "Aligns with version of the specification."
+        },
+        {
+            "fieldname": "meta_ext_entity",
+            "allowed_values": ["NYA","CV1","DD2"],
+            "required": "true",
+            "description": "Drives metrics for vaccine admin progress at entity grouping level."
+        },
+        {
+            "fieldname": "meta_username",
+            "allowed_values": null,
+            "required": "true",
+            "description": "Username of user who submitted the file to the IZGW.  If this is a system to system submission then this should be the service account."
+        },
+        {
+            "fieldname": "meta_ext_objectkey",
+            "allowed_values": null,
+            "required": "true",
+            "description": "This field is used to track back to the source filename/objectid."
+        },
+        {
+            "fieldname": "meta_ext_filename",
+            "allowed_values": null,
+            "required": "true",
+            "description": "The name of the file submitted to the IZGW.  File and extension should be named in accordance with guidelines outlined in the DUA."
+        }
+       ]
+    }
+]
