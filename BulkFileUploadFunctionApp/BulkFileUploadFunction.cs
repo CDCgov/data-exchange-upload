@@ -19,8 +19,6 @@ namespace BulkFileUploadFunctionApp
 
         private readonly BlobCopyHelper _blobCopyHelper;
 
-        private readonly string _deploymentPlatform;
-
         private readonly string _tusAzureObjectPrefix;
 
         private readonly string _tusAzureStorageContainer;
@@ -41,7 +39,6 @@ namespace BulkFileUploadFunctionApp
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
             _blobCopyHelper = new(_logger);
             
-            _deploymentPlatform = GetEnvironmentVariable("DEPLOYMENT_PLATFORM") ?? "dev";
             _tusAzureObjectPrefix = GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX") ?? "tus-prefix";
             _tusAzureStorageContainer = GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER") ?? "bulkuploads";
             _dexAzureStorageAccountName = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME") ?? "dataexchangedev";
@@ -54,7 +51,7 @@ namespace BulkFileUploadFunctionApp
         {
             _logger.LogInformation(eventGridEvent.Data?.ToString());
 
-            _logger.LogInformation($"DEPLOYMENT_PLATFORM={_deploymentPlatform}, TUS_AZURE_OBJECT_PREFIX={_tusAzureObjectPrefix}, TUS_AZURE_STORAGE_CONTAINER={_tusAzureStorageContainer}, DEX_AZURE_STORAGE_ACCOUNT_NAME={_dexAzureStorageAccountName}");
+            _logger.LogInformation($"TUS_AZURE_OBJECT_PREFIX={_tusAzureObjectPrefix}, TUS_AZURE_STORAGE_CONTAINER={_tusAzureStorageContainer}, DEX_AZURE_STORAGE_ACCOUNT_NAME={_dexAzureStorageAccountName}");
 
             try
             {
@@ -191,7 +188,7 @@ namespace BulkFileUploadFunctionApp
                     new DefaultAzureCredential() // using Service Principal
                 );
 
-                string destinationContainerName = $"{sourceContainerName}-{_deploymentPlatform}";
+                string destinationContainerName = sourceContainerName;
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
                 // Create the destination container if not exists
