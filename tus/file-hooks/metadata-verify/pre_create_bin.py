@@ -24,7 +24,7 @@ def getVersionIntFromStr(version):
     version = sum(x * (100 ** i) for i, x in enumerate(l))
     return version
 
-def checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event, metadata):
+def checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event):
     allowed_programs_and_events_filename = "allowed_destination_and_events.json"
     with open(allowed_programs_and_events_filename, 'r') as file:
         definitions = file.read()
@@ -35,8 +35,7 @@ def checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event, metadata)
                 for ext_event in definition.ext_events:
                     if ext_event.name == meta_ext_event:
                         return ext_event.definition_filename
-        print("Not a recognized combination of meta_destination_id (" + meta_destination_id + ") and meta_ext_event (" + meta_ext_event + ")")
-        sys.exit(1)
+        raise Exception("Not a recognized combination of meta_destination_id (" + meta_destination_id + ") and meta_ext_event (" + meta_ext_event + ")")
 
 def getSchemaVersionToUse(definitionObj, requested_schema_version):
     if requested_schema_version != None:
@@ -46,8 +45,7 @@ def getSchemaVersionToUse(definitionObj, requested_schema_version):
                 # found requested schema version
                 return fieldDef
             available_schemas.append(str(fieldDef.schema_version))
-        print("Requested schema version " + requested_schema_version + " not available.  Available schema versions: " + str(available_schemas))
-        sys.exit(1)
+        raise Exception("Requested schema version " + requested_schema_version + " not available.  Available schema versions: " + str(available_schemas))
     # provide the oldest found schema
     oldest_available_schema_version_int = None
     oldest_available_schema = None
@@ -60,34 +58,36 @@ def getSchemaVersionToUse(definitionObj, requested_schema_version):
     return oldest_available_schema
 
 def checkProgramEventMetadata(program_event_meta_filename, metadata):
-    meta_json = json.loads(metadata)
     # lookup remaining metadata fields specific to this meta_destination_id and meta_ext_event
     with open(program_event_meta_filename, 'r') as file:
         metadata_definition = file.read()
         definitionObj = json.loads(metadata_definition, object_hook=lambda d: Namespace(**d))
-        # check if the schema was provided and if not, default to the oldest schema
-        requested_schema_version = None
-        if "schema_version" in meta_json:
-            requested_schema_version = str(meta_json["schema_version"])
-        schema_to_use = getSchemaVersionToUse(definitionObj, requested_schema_version)
-        print("Using schema_version = " + schema_to_use.schema_version)
-        missing_metadata_fields = []
-        validationError = False
-        for fieldDef in schema_to_use.fields:
-            if fieldDef.required != "false" and not fieldDef.fieldname in meta_json:
-                missing_metadata_fields.append(fieldDef)
-            if fieldDef.fieldname in meta_json:
-                fieldValue = meta_json[fieldDef.fieldname]
-                if fieldDef.allowed_values != None and len(fieldDef.allowed_values) > 0 and fieldValue not in fieldDef.allowed_values:
-                    print(fieldDef.fieldname + " = " + fieldValue + " is not one of the allowed values: " + json.dumps(fieldDef.allowed_values))
-                    validationError = True
-        if len(missing_metadata_fields) > 0:
-            for fieldDef in missing_metadata_fields:
-                print("Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
+        checkMetadataAgainstDefinition(definitionObj, metadata)
+
+def checkMetadataAgainstDefinition(definitionObj, metadata):
+    # check if the schema was provided and if not, default to the oldest schema
+    meta_json = json.loads(metadata)
+    requested_schema_version = None
+    if "schema_version" in meta_json:
+        requested_schema_version = str(meta_json["schema_version"])
+    schema_to_use = getSchemaVersionToUse(definitionObj, requested_schema_version)
+    print("Using schema_version = " + schema_to_use.schema_version)
+    missing_metadata_fields = []
+    validationError = False
+    for fieldDef in schema_to_use.fields:
+        if fieldDef.required != "false" and not fieldDef.fieldname in meta_json:
+            missing_metadata_fields.append(fieldDef)
+        if fieldDef.fieldname in meta_json:
+            fieldValue = meta_json[fieldDef.fieldname]
+            if fieldDef.allowed_values != None and len(fieldDef.allowed_values) > 0 and fieldValue not in fieldDef.allowed_values:
+                print(fieldDef.fieldname + " = " + fieldValue + " is not one of the allowed values: " + json.dumps(fieldDef.allowed_values))
                 validationError = True
-        if validationError:
-            print("Provided metadata: " + metadata)
-            sys.exit(1)
+    if len(missing_metadata_fields) > 0:
+        for fieldDef in missing_metadata_fields:
+            print("Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
+            validationError = True
+    if validationError:
+        raise Exception("Provided metadata: " + metadata)
             
 def checkMetadata(metadata):
     meta_json = json.loads(metadata)
@@ -97,12 +97,11 @@ def checkMetadata(metadata):
         if not meta_field in meta_json:
             missing_metadata_fields.append(meta_field)
     if len(missing_metadata_fields) > 0:
-        print("Missing one or more required metadata fields: " + str(missing_metadata_fields) + ", metadata = " + metadata)
-        sys.exit(1)
+        raise Exception("Missing one or more required metadata fields: " + str(missing_metadata_fields) + ", metadata = " + metadata)
     meta_destination_id = meta_json["meta_destination_id"]
     meta_ext_event = meta_json["meta_ext_event"]
     # check if the program/event type is on the list of allowed
-    filename = checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event, metadata)
+    filename = checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event)
     if filename != None:
         checkProgramEventMetadata(filename, metadata)
     
@@ -115,7 +114,11 @@ def main(argv):
             sys.exit()
         elif opt in ("-m", "--metadata"):
             metadata = arg
-    checkMetadata(metadata)
+    try:
+        checkMetadata(metadata)
+    except Exception as e:
+        print(e)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main(sys.argv[1:])

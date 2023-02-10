@@ -9,7 +9,7 @@
 # cross-compile using the six8/pyinstaller-alpine linux docker image since
 # the target platform for the public tusd docker image is linux
 #
-# output of this step will be dest/pre-create-bin
+# output of this step will be dist/pre-create-bin
 docker run --rm \
     -v "${PWD}:/src" \
     six8/pyinstaller-alpine \
@@ -17,4 +17,7 @@ docker run --rm \
     --onefile \
     --log-level DEBUG \
     --clean \
-    pre-create-bin.py
+    pre_create_bin.py
+
+# copy the output file and rename
+cp dist/pre_create_bin pre-create-bin
