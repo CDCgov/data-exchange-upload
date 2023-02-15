@@ -1,13 +1,15 @@
 #!/bin/sh
 
+# get the tus id (tguid), current byte offset and total size of the upload
 id="$TUS_ID"
 offset="$TUS_OFFSET"
 size="$TUS_SIZE"
 
-#latest_offset=$(<$id.txt)
-latest_offset=`cat /tmp/$id.txt`
-
+# read the latest offset (for debug purposes)
+read -rd '' latest_offset </tmp/$id.txt || :
 echo "INFO: BASH offset = $offset, latest offset = $latest_offset"
+
+# update the latest offset in the temporary file
 echo $offset > /tmp/$id.txt
 
 # run the python standalone binary to update the upload status
