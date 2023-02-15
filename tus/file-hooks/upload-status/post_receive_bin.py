@@ -66,25 +66,11 @@ def init_db():
         # setup database for this sample
         db = client.create_database_if_not_exists(id=DATABASE_ID)
         # setup container for this sample
-        container = db.create_container_if_not_exists(id=CONTAINER_ID, partition_key=PartitionKey(path='/partitionKey', kind='Hash'))
-
-        # setup container
-        # try:
-        #     container = db.create_container(id=CONTAINER_ID, partition_key=PartitionKey(path='/partitionKey'))
-        #     print('Container with id \'{0}\' created'.format(CONTAINER_ID))
-
-        # except exceptions.CosmosResourceExistsError:
-        #     container = db.get_container_client(CONTAINER_ID)
-        #     print('Container with id \'{0}\' was found'.format(CONTAINER_ID))
-
-        # scale_container(container)
-        
-        return container
+        return db.create_container_if_not_exists(id=CONTAINER_ID, partition_key=PartitionKey(path='/partitionKey', kind='Hash'))
 
     except exceptions.CosmosHttpResponseError as e:
-        print('\nrun_sample has caught an error. {0}'.format(e.message))
+        print('Error: {0}'.format(e.message))
 
-#def main():
 def post_receive(tguid, offset, size):
     try:
         env_tguid = os.getenv('TUS_ID')
