@@ -1,0 +1,14 @@
+#!/bin/sh
+
+id="$TUS_ID"
+offset="$TUS_OFFSET"
+size="$TUS_SIZE"
+
+#latest_offset=$(<$id.txt)
+latest_offset=`cat /tmp/$id.txt`
+
+echo "INFO: BASH offset = $offset, latest offset = $latest_offset"
+echo $offset > /tmp/$id.txt
+
+# run the python standalone binary to update the upload status
+./post-receive-bin --id $id --offset $offset --size $size
