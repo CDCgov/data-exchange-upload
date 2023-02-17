@@ -5,12 +5,30 @@ id="$TUS_ID"
 offset="$TUS_OFFSET"
 size="$TUS_SIZE"
 
+first_update=false
+if test -f "/tmp/$id.txt"; then
+    echo "****** Offset file EXISTS"
+else
+    echo "****** Offset file NOT found"
+    first_update=true
+fi
+
 # read the latest offset (for debug purposes)
 read -rd '' latest_offset </tmp/$id.txt || :
-echo "INFO: BASH offset = $offset, latest offset = $latest_offset"
 
-# update the latest offset in the temporary file
-echo $offset > /tmp/$id.txt
+# calculate elapsed seconds since last modified timestamp of latest offset file
+last_modified_epoch=`stat -c %Y /tmp/$id.txt`
+now_epoch=`date +%s`
+elapsed_seconds=$(expr \( $now_epoch - $last_modified_epoch \))
 
-# run the python standalone binary to update the upload status
-./post-receive-bin --id $id --offset $offset --size $size
+echo "INFO: BASH offset = $offset, latest offset = $latest_offset, now = $now_epoch, last modified = $last_modified_epoch, elapsed = $elapsed_seconds"
+
+if [ "$first_update" == true ] || [ $elapsed_seconds -ge "1" ] || [ "$offset" -eq "$size" ]; then
+    # update the latest offset in the temporary file
+    echo $offset > /tmp/$id.txt
+
+    # run the python standalone binary to update the upload status
+    ./post-receive-bin --id $id --offset $offset --size $size
+else
+    echo "Skipping update"
+fi
