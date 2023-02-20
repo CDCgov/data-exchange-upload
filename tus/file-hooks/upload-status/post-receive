@@ -7,15 +7,19 @@ size="$TUS_SIZE"
 
 first_update=false
 if [ ! -f "/tmp/$id.txt" ]; then
+    # The latest offset temp file was not found, which means this is likely the first time
+    # post-receive is being called for this upload.
     echo "INFO: Latest offset file NOT found"
     first_update=true
 else
     echo "INFO: Found latest offset file"
 
-    # read the latest offset (for debug purposes)
+    # Read the latest offset (for debug purposes)
     read -rd '' latest_offset </tmp/$id.txt || :
 
-    # calculate elapsed seconds since last modified timestamp of latest offset file
+    # Calculate elapsed seconds since last modified timestamp of latest offset file
+    # The elapsed seconds will later be used to throttle the number of calls to update
+    # the database.
     last_modified_epoch=`stat -c %Y /tmp/$id.txt`
     now_epoch=`date +%s`
     elapsed_seconds=$(expr \( $now_epoch - $last_modified_epoch \))
@@ -23,13 +27,15 @@ else
     echo "INFO: offset = $offset, latest offset = $latest_offset, now epoch = $now_epoch, last modified epoch = $last_modified_epoch, elapsed sec = $elapsed_seconds"
 fi
 
+# If this is the first update, or at least one second has elapsed since the last update, or the upload is complete,
+# then update the latest offset temp file and perform the upsert.
 if [ "$first_update" == true ] || [ $elapsed_seconds -ge "1" ] || [ "$offset" -eq "$size" ]; then
     echo "INFO: Updating latest offset file and processing update"
     
-    # update the latest offset in the temporary file
+    # Update the latest offset in the temporary file
     echo $offset > /tmp/$id.txt
 
-    # run the python standalone binary to update the upload status
+    # Run the python standalone binary to update the upload status
     ./post-receive-bin --id $id --offset $offset --size $size
 else
     echo "INFO: Skipping update"
