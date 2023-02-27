@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['post_receive_bin.py'],
-             pathex=['/src'],
+             pathex=['/Users/mkrystof/git/data-exchange/data-exchange-upload/tus/file-hooks/upload-status'],
              binaries=[],
              datas=[],
              hiddenimports=[],

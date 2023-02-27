@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Build the post_receive_bin.py Python script as a stand-alone binary.
+# Build the cosmos_sync.py Python script as a stand-alone binary.
 # This is necesssary because the tusd default public image does not include
 # any scripting languages like Python, NodeJS, nor Java run-time, etc.
 # We don't want to build a custom image of tusd to include this since doing
@@ -9,7 +9,7 @@
 # cross-compile using the six8/pyinstaller-alpine linux docker image since
 # the target platform for the public tusd docker image is linux
 #
-# output of this step will be dist/post-receive-bin
+# output of this step will be dist/cosmos_sync
 docker run --rm \
     -v "$PWD:$PWD" \
     -w "$PWD" \
@@ -18,7 +18,7 @@ docker run --rm \
     --onefile \
     --log-level DEBUG \
     --clean \
-    post_receive_bin.py
+    cosmos_sync.py
 
 # copy the output file and rename
-cp dist/post_receive_bin post-receive-bin
+cp dist/cosmos_sync cosmos-sync-bin
