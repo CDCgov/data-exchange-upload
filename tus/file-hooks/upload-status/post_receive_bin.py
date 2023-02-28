@@ -6,40 +6,58 @@ import config
 
 import datetime
 
-from azure.storage.queue import QueueClient
+from azure.storage.queue import QueueServiceClient
+from azure.core.exceptions import ResourceExistsError
 
 import json
 
 import logging
-from logging.handlers import RotatingFileHandler
 
 # Include secondary dependencies here, since pyinstaller will miss them and
 # the binary will fail at run-time.
 import chardet
 
-logging.basicConfig(filename="cosmos-sync.log", level=logging.DEBUG)
+logger = logging.getLogger("post-receive-bin")
+logger.setLevel(logging.DEBUG)
 
-logger = logging.getLogger('post-receive-bin')
-handler = RotatingFileHandler("post-receive.log", maxBytes=20000, backupCount=5)
-logger.addHandler(handler)
-logger.propagate = False
+# remove all default handlers
+for handler in logger.handlers:
+    logger.removeHandler(handler)
+
+# create console handler and set level to debug
+console_handle = logging.StreamHandler()
+console_handle.setLevel(logging.DEBUG)
+
+# create formatter
+formatter = logging.Formatter(
+    fmt='[%(name)s] %(asctime)s.%(msecs)03d %(levelname)s: %(message)s',
+    datefmt='%Y/%m/%d %H:%M:%S'
+)
+
+console_handle.setFormatter(formatter)
+
+# now add new handler to logger
+logger.addHandler(console_handle)
 
 connect_str = config.queue_settings['storage_connection_string']
 q_name = config.queue_settings['queue_name']
 
-def log(msg):
-    print('[post-receive-bin] {0} {1}'.format(datetime.datetime.now(), msg))
+def get_queue_client():
+    service_client = QueueServiceClient.from_connection_string(connect_str)
+    try:
+        return service_client.create_queue(q_name)
+    except ResourceExistsError:
+        # Queue exists.  Note, you will get a false positive that the resource still exists if the
+        # queue was very recently deleted.  There seems to be a couple minute delay where after a
+        # queue is deleted that Azure still reports the resource exists.
+        pass
+    return service_client.get_queue_client(q_name)
 
 def send_message_to_cosmos_sync(json_update):
     try:
-        logger.debug('Entering send_message_to_cosmos_sync')
-        logger.debug('send_message_to_cosmos_sync: creating queue client')
-        queue_client = QueueClient.from_connection_string(connect_str, q_name)
         logger.debug('send_message_to_cosmos_sync: sending update message to queue: {0}'.format(json_update))
-        queue_client.send_message(json_update)
-        logger.debug('send_message_to_cosmos_sync: done!')
+        get_queue_client().send_message(json_update)
     except Exception as e:
-        log(str(e))
         logger.exception(e)
 
 def is_cosmos_sync_running(cosmos_sync_proc_name):
@@ -52,28 +70,28 @@ def is_cosmos_sync_running(cosmos_sync_proc_name):
         columns = item.split()
         if len(columns) == 4:
             cosmos_pids.append(int(columns[0]))
-    log('INFO: cosmos_pids = {0}'.format(cosmos_pids))
+    logger.info('cosmos_pids = {0}'.format(cosmos_pids))
 
     for pid in cosmos_pids:
         try:
             proc = psutil.Process(pid)
             if proc.status() == psutil.STATUS_ZOMBIE:
-                log('WARNING: pid {0} is a Zombie process!'.format(pid))
+                logger.warning('pid {0} is a Zombie process!'.format(pid))
             else:
-                log('INFO: pid {0} appears to be running'.format(pid))
+                logger.info('pid {0} appears to be running'.format(pid))
                 return True
         except psutil.NoSuchProcess:
-            log('ERROR: pid {0} not found'.format(pid))
+            logger.error('pid {0} not found'.format(pid))
     return False
 
 def upsert_item(tguid, offset, size):
-    log('INFO: Upserting tguid = {0}'.format(tguid))
+    logger.info('Upserting tguid = {0}'.format(tguid))
 
-    log('INFO: tguid: {0}'.format(tguid))
-    log('INFO: offset: {0}'.format(offset))
-    log('INFO: size: {0}'.format(size))
+    logger.info('tguid: {0}'.format(tguid))
+    logger.info('offset: {0}'.format(offset))
+    logger.info('size: {0}'.format(size))
 
-    log('INFO: Sending update to cosmos-sync-bin...')
+    logger.info('Sending update to cosmos-sync-bin...')
     update = {
         'tguid': tguid,
         'offset': offset,
@@ -84,27 +102,27 @@ def upsert_item(tguid, offset, size):
 
 def post_receive(tguid, offset, size):
     try:
-        log('INFO: python version = {0}'.format(sys.version))
+        logger.info('python version = {0}'.format(sys.version))
 
         processname = 'cosmos-sync-bin'
         cosmos_sync_running = is_cosmos_sync_running(processname)
         if cosmos_sync_running == True:
-            log('INFO: {0} is running'.format(processname))
+            logger.info('{0} is running'.format(processname))
         else:
             start_in_progress_filename = './{0}.lock'.format(processname)
             start_in_progress = os.path.exists(start_in_progress_filename)
             if start_in_progress:
-                log('INFO: {0} in process of starting...'.format(processname))
+                logger.info('{0} in process of starting...'.format(processname))
             else:
-                log('INFO: Starting {0}...'.format(processname))
+                logger.info('Starting {0}...'.format(processname))
                 # create empty lock file
                 with open(start_in_progress_filename, 'w'):
                     pass
                 # Spawn cosmos-sync-bin as a new process and don't wait for it
                 proc = subprocess.Popen('./' + processname, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-                log('INFO: Started {0} with pid = {1}'.format(processname, proc.pid))
+                logger.info('Started {0} with pid = {1}'.format(processname, proc.pid))
 
-        log('INFO: post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
+        logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
         upsert_item(tguid, offset, size)
     except Exception as e:
         print(e)
