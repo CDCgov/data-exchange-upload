@@ -2,14 +2,20 @@ import getopt
 import sys, os
 import subprocess
 import psutil
+import config
 
 import datetime
 
-import zmq
-import sys
+from azure.storage.queue import QueueClient
+
+import json
 
 import logging
 from logging.handlers import RotatingFileHandler
+
+# Include secondary dependencies here, since pyinstaller will miss them and
+# the binary will fail at run-time.
+import chardet
 
 logging.basicConfig(filename="cosmos-sync.log", level=logging.DEBUG)
 
@@ -18,41 +24,20 @@ handler = RotatingFileHandler("post-receive.log", maxBytes=20000, backupCount=5)
 logger.addHandler(handler)
 logger.propagate = False
 
+connect_str = config.queue_settings['storage_connection_string']
+q_name = config.queue_settings['queue_name']
+
 def log(msg):
     print('[post-receive-bin] {0} {1}'.format(datetime.datetime.now(), msg))
 
-# !!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!
-# looks like when this method is called concurrently due to rapid updates than the socket connection
-# is blocked for the second call.  would pub/sub or something other than pair type work better?  or,
-# do we need some way to wait for previous call to complete before attempting to open the socket again?
-# since with pair you can only have 1:1 client:server. 
-# !!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!
 def send_message_to_cosmos_sync(json_update):
     try:
         logger.debug('Entering send_message_to_cosmos_sync')
-        port = "5556"
-        context = zmq.Context()
-        socket = context.socket(zmq.PAIR)
-        logger.debug('send_message_to_cosmos_sync: calling socket.connect')
-        socket.connect("tcp://localhost:%s" % port)
-        #socket.setsockopt(zmq.LINGER, 100) # added
-        logger.debug('send_message_to_cosmos_sync: calling socket.send_json')
-        socket.send_json(json_update)
-        log('INFO: Called socket.send_json(), waiting for ACK...')
-        logger.debug('Called socket.send_json(), waiting for ACK...')
-        socket.recv()
-        log('INFO: ACK received, closing socket')
-        logger.debug('ACK received, closing socket')
-        socket.close() # added
+        logger.debug('send_message_to_cosmos_sync: creating queue client')
+        queue_client = QueueClient.from_connection_string(connect_str, q_name)
+        logger.debug('send_message_to_cosmos_sync: sending update message to queue: {0}'.format(json_update))
+        queue_client.send_message(json_update)
+        logger.debug('send_message_to_cosmos_sync: done!')
     except Exception as e:
         log(str(e))
         logger.exception(e)
@@ -94,7 +79,8 @@ def upsert_item(tguid, offset, size):
         'offset': offset,
         'size': size
     }
-    send_message_to_cosmos_sync(update)
+    json_update = json.dumps(update)
+    send_message_to_cosmos_sync(json_update)
 
 def post_receive(tguid, offset, size):
     try:

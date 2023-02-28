@@ -1,3 +1,4 @@
 azure-cosmos
 psutil
-pyzmq
+azure-storage-queue
+chardet

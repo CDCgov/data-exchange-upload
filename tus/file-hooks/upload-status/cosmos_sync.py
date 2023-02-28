@@ -6,18 +6,20 @@ from azure.cosmos.partition_key import PartitionKey
 
 import config
 import datetime
-import zmq
+
+from azure.storage.queue import QueueClient
 
 import logging
 from logging.handlers import RotatingFileHandler
 
 import json
-# from argparse import Namespace
+import ast
 from types import SimpleNamespace
 
 # Include secondary dependencies here, since pyinstaller will miss them and
 # the binary will fail at run-time.
-import pkgutil 
+import pkgutil
+import chardet
 
 HOST = config.settings['host']
 MASTER_KEY = config.settings['master_key']
@@ -33,6 +35,9 @@ logger = logging.getLogger('post-receive-bin')
 handler = RotatingFileHandler("cosmos-sync.log", maxBytes=20000, backupCount=5)
 logger.addHandler(handler)
 logger.propagate = False
+
+connect_str = config.queue_settings['storage_connection_string']
+q_name = config.queue_settings['queue_name']
 
 def upsert_item(container, tguid, offset, size):
     logger.info('Upserting tguid = {0}'.format(tguid))
@@ -103,19 +108,18 @@ try:
     lock_filename = 'cosmos-sync-bin.lock'
     if os.path.exists(lock_filename): os.remove(lock_filename)
 
-    port = "5556"
-    context = zmq.Context()
-    socket = context.socket(zmq.PAIR)
-    socket.bind("tcp://*:%s" % port)
+    queue_client = QueueClient.from_connection_string(connect_str, q_name)
+    
     while True:
-        logger.debug("Waiting for socket.recv()...")
-        json_data = socket.recv()
-        logger.debug("socket.recv(): received data: {0}".format(json_data))
-        logger.info('Sending ack')
-        socket.send_string('ACK')
-        update = json.loads(json_data, object_hook=lambda d: SimpleNamespace(**d))
-        logger.debug('tguid = {0}, offset = {1}, size = {2}'.format(update.tguid, update.offset, update.size))
-        post_receive(update.tguid, update.offset, update.size)
+        messages = queue_client.receive_messages()
+        for message in messages:
+            logger.info("Dequeueing message: " + message.content)
+            queue_client.delete_message(message.id, message.pop_receipt)
+            parsed_dict = ast.literal_eval(message.content) # fixes issues with json formatting introduced by queue
+            parsed_json = json.dumps(parsed_dict)
+            update = json.loads(parsed_json, object_hook=lambda d: SimpleNamespace(**d))
+            logger.debug('tguid = {0}, offset = {1}, size = {2}'.format(update.tguid, update.offset, update.size))
+            post_receive(update.tguid, update.offset, update.size)
         time.sleep(1e-1) # needed?
 except Exception as e:
     logger.exception(e)

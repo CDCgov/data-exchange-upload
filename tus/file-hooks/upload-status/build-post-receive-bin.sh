@@ -13,7 +13,7 @@
 docker run --rm \
     -v "$PWD:$PWD" \
     -w "$PWD" \
-    six8/pyinstaller-alpine:alpine-3.6-pyinstaller-v3.4 \
+    six8/pyinstaller-alpine-linux-amd64:alpine-3.7-python-3.7-pyinstaller-v3.6 \
     --noconfirm \
     --onefile \
     --log-level DEBUG \
