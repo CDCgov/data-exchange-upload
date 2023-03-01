@@ -1,0 +1,18 @@
+name: "Mirror To CDC Gov"
+
+on: push
+
+jobs:
+  mirror:
+    name: "Mirror Commits To CDC Gov"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Mirror
+        run: git clone --mirror git@github.com:cdcent/data-exchange-upload.git
+
+      - name: Clone to CDCGov
+        working-directory: data-exchange-upload
+        run: |
+          git remote set-url --push origin git@github.com:CDCgov/data-exchange-upload.git
+          git fetch -p origin
+          git push --mirror
