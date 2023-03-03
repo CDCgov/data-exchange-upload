@@ -23,16 +23,12 @@ jobs:
         run: |
           pip install pyjwt
           pip install cryptography
+          pip install requests
       - name: Generate JWT
         id: get-jwt
         env:
           PRIVATE_KEY: ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }}
-        run: python generate-jwt.py --app-id ${{ secrets.CDCENT_CDCGOV_SYNC_APP_ID }} >> $GITHUB_OUTPUT
-      - name: Get Install Token
-        id: get-token
-        run: |
-          sudo apt-get install jq
-          ./get-installation-access-token.sh ${{ steps.get-jwt.outputs.jwt }} ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> $GITHUB_OUTPUT
+        run: python get-isntall-token.py --app-id ${{ secrets.CDCENT_CDCGOV_SYNC_APP_ID }} --installation-id ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> $GITHUB_OUTPUT
   mirror:
     name: "Mirror Commits To CDC Gov"
     runs-on: ubuntu-latest
