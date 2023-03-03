@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install jwt
-        run: pip install jwt
+        run: pip install pyjwt
       - name: Generate JWT
         id: get-jwt
         env:
