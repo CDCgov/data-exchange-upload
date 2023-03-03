@@ -15,4 +15,6 @@ token=$(curl -i -X POST \
 -H "Accept: application/vnd.github+json" \
 "https://api.github.com/app/installation/${installation_id}/access_tokens" | jq '.token')
 
+echo ${token}
+
 echo installToken=${token}
