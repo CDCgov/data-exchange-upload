@@ -18,7 +18,6 @@ payload = {
 }
 
 # Create JWT
-encoded_jwt = jwt.encode(
-    payload, os.environ["PRIVATE_KEY"].encode("ascii"), algorithm='RS256')
+encoded_jwt = jwt.encode(payload, os.environ["PRIVATE_KEY"], algorithm='RS256')
 
-print(encoded_jwt + "<<EOF")
+print(f'jwt={encoded_jwt}')
