@@ -22,7 +22,7 @@ jobs:
       - name: Install Python Dependencies
         run: |
           pip install pyjwt
-          pip install cryptographgy
+          pip install cryptography
       - name: Generate JWT
         id: get-jwt
         env:
