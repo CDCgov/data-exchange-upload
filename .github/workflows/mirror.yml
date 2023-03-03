@@ -11,7 +11,7 @@ jobs:
       installToken: ${{ steps.get-token.outputs.token }}
     defaults:
       run:
-        working-directory: ./.github/workflows/scripts
+        working-directory: .github/workflows/scripts
     steps:
       - name: Install Python
         uses: actions/setup-python@v4
@@ -24,7 +24,7 @@ jobs:
         run: python generate-jwt.py --app-id ${{ secrets.APP_ID }} --private-key ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }} >> "$GITHUB_OUTPUT"
       - name: Get Install Token
         id: get-token
-        run: get-install-access-token.sh ${{ steps.get-jwt.outputs.jwt }} ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> "$GITHUB_OUTPUT"
+        run: ./get-install-access-token.sh ${{ steps.get-jwt.outputs.jwt }} ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> "$GITHUB_OUTPUT"
   mirror:
     name: "Mirror Commits To CDC Gov"
     runs-on: ubuntu-latest
