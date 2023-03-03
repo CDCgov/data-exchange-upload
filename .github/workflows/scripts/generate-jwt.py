@@ -20,4 +20,4 @@ payload = {
 # Create JWT
 encoded_jwt = jwt.encode(payload, args.private_key, algorithm='RS256')
 
-print(f"JWT:  ", encoded_jwt)
+print(encoded_jwt)

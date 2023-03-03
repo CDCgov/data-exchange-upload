@@ -1,20 +1,37 @@
 name: "Mirror To CDC Gov"
 
-on: push
+on:
+  workflow_dispatch:
+  push:
 
 jobs:
-  mirror:
-    name: "Mirror Commits To CDC Gov"
+  get-install-token:
+    name: "Get Install Token"
     runs-on: ubuntu-latest
+    outputs:
+      jwt: ${{ steps.get-jwt.outputs.jwt }}
+      installToken: ${{ steps.get-token.outputs.token }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: Install Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
       - name: Install jwt
         run: pip install jwt
-
+      - name: Generate JWT
+        id: get-jwt
+        run: python scripts/generate-jwt.py --app-id ${{ secrets.APP_ID }} --private-key ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }} >> "$GITHUB_OUTPUT"
+      - name: Get Install Token
+        id: get-token
+        run: ./scripts/get-install-access-token.sh ${{ jobs.get-jwt.outputs.jwt }} ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> "$GITHUB_OUTPUT"
+  mirror:
+    name: "Mirror Commits To CDC Gov"
+    runs-on: ubuntu-latest
+    needs: get-install-token
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
       - name: Clone to CDCGov
+        env:
+          GITHUB_TOKEN: ${{ needs.get-install-token.outputs.token }}
         run: git push --mirror git@github.com:CDCgov/data-exchange-upload.git
