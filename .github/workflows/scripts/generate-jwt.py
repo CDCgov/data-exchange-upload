@@ -17,9 +17,10 @@ payload = {
     'iss': args.app_id
 }
 
-print(os.environ["PRIVATE_KEY"])
+print(os.environ["PRIVATE_KEY"].encode('ascii'))
 
 # Create JWT
-encoded_jwt = jwt.encode(payload, os.environ["PRIVATE_KEY"], algorithm='RS256')
+encoded_jwt = jwt.encode(
+    payload, os.environ["PRIVATE_KEY"].encode('ascii'), algorithm='RS256')
 
 print(encoded_jwt)
