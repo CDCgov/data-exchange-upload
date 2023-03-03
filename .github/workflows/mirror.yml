@@ -21,9 +21,11 @@ jobs:
           python-version: '3.10'
       - name: Install jwt
         run: pip install jwt
+      - name: Create key file
+        run: echo ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }} >> key.pem
       - name: Generate JWT
         id: get-jwt
-        run: python generate-jwt.py --private-key ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }} --app-id ${{ secrets.CDCENT_CDCGOV_SYNC_APP_ID }} >> "$GITHUB_OUTPUT"
+        run: python generate-jwt.py --private-key key.pem --app-id ${{ secrets.CDCENT_CDCGOV_SYNC_APP_ID }} >> "$GITHUB_OUTPUT"
       - name: Get Install Token
         id: get-token
         run: ./get-install-access-token.sh ${{ steps.get-jwt.outputs.jwt }} ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> "$GITHUB_OUTPUT"
