@@ -29,4 +29,4 @@ jobs:
       - name: Clone to CDCGov
         env:
           GITHUB_TOKEN: ${{ steps.get-token.outputs.token }}
-        run: git push --mirror https://github.com/cdcgov/data-exchange-upload.git
+        run: git push --mirror https://x-access-token:${{ steps.get-token.outputs.token }}@github.com/cdcgov/data-exchange-upload.git
