@@ -6,8 +6,6 @@ jobs:
   get-install-token:
     name: "Get Install Token"
     runs-on: ubuntu-latest
-    outputs:
-      installToken: ${{ steps.get-token.outputs.token }}
     defaults:
       run:
         working-directory: .github/workflows/scripts
@@ -28,14 +26,7 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }}
         run: python get-install-token.py --app-id ${{ secrets.CDCENT_CDCGOV_SYNC_APP_ID }} --installation-id ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> $GITHUB_OUTPUT
-  mirror:
-    name: "Mirror Commits To CDC Gov"
-    runs-on: ubuntu-latest
-    needs: get-install-token
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
       - name: Clone to CDCGov
         env:
-          GITHUB_TOKEN: ${{ needs.get-install-token.outputs.installToken }}
+          GITHUB_TOKEN: ${{ steps.get-token.outputs.token }}
         run: git push --mirror git@github.com:CDCgov/data-exchange-upload.git
