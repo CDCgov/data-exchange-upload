@@ -9,6 +9,9 @@ jobs:
     outputs:
       jwt: ${{ steps.get-jwt.outputs.jwt }}
       installToken: ${{ steps.get-token.outputs.token }}
+    defaults:
+      run:
+        working-directory: ./.github/workflows/scripts
     steps:
       - name: Install Python
         uses: actions/setup-python@v4
@@ -18,11 +21,9 @@ jobs:
         run: pip install jwt
       - name: Generate JWT
         id: get-jwt
-        working-directory: ./.github/workflows/scripts
         run: python generate-jwt.py --app-id ${{ secrets.APP_ID }} --private-key ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }} >> "$GITHUB_OUTPUT"
       - name: Get Install Token
         id: get-token
-        working-directory: ./.github/workflows/scripts
         run: ./get-install-access-token.sh ${{ steps.get-jwt.outputs.jwt }} ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> "$GITHUB_OUTPUT"
   mirror:
     name: "Mirror Commits To CDC Gov"
