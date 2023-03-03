@@ -21,4 +21,4 @@ payload = {
 encoded_jwt = jwt.encode(
     payload, os.environ["PRIVATE_KEY"].encode("ascii"), algorithm='RS256')
 
-print(encoded_jwt)
+print(encoded_jwt + "<<EOF")

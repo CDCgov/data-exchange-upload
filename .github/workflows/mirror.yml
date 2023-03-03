@@ -27,7 +27,7 @@ jobs:
         id: get-jwt
         env:
           PRIVATE_KEY: ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }}
-        run: python generate-jwt.py --app-id ${{ secrets.CDCENT_CDCGOV_SYNC_APP_ID }}<<EOF >> $GITHUB_OUTPUT
+        run: python generate-jwt.py --app-id ${{ secrets.CDCENT_CDCGOV_SYNC_APP_ID }} >> $GITHUB_OUTPUT
       - name: Get Install Token
         id: get-token
         run: ./get-install-access-token.sh ${{ steps.get-jwt.outputs.jwt }} ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> $GITHUB_OUTPUT
