@@ -10,7 +10,9 @@ fi
 jwt=$1
 installation_id=$2
 
-curl -i -X POST \
+token=curl -i -X POST \
 -H "Authorization: Bearer ${jwt}" \
 -H "Accept: application/vnd.github+json" \
-"https://api.github.com/app/installation/${installation_id}/access_tokens"
+"https://api.github.com/app/installation/${installation_id}/access_tokens" | jq -r '.token'
+
+echo installToken=${token}
