@@ -21,7 +21,7 @@ jobs:
         run: python scripts/generate-jwt.py --app-id ${{ secrets.APP_ID }} --private-key ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }} >> "$GITHUB_OUTPUT"
       - name: Get Install Token
         id: get-token
-        run: ./scripts/get-install-access-token.sh ${{ jobs.get-jwt.outputs.jwt }} ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> "$GITHUB_OUTPUT"
+        run: ./scripts/get-install-access-token.sh ${{ steps.get-jwt.outputs.jwt }} ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> "$GITHUB_OUTPUT"
   mirror:
     name: "Mirror Commits To CDC Gov"
     runs-on: ubuntu-latest
