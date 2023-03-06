@@ -1,6 +1,9 @@
 name: "Mirror To CDC Gov"
 
-on: [workflow_dispatch, push]
+on: 
+  push:
+    branches:
+      - main
 
 permissions:
   contents: write 
