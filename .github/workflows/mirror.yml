@@ -3,7 +3,7 @@ name: "Mirror To CDC Gov"
 on: [workflow_dispatch, push]
 
 permissions:
-  contents: write
+  contents: write 
 
 jobs:
   get-install-token:
@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          persist-credentials: false
       - name: Install Python
         uses: actions/setup-python@v4
         with:
@@ -29,10 +31,8 @@ jobs:
         env:
           PRIVATE_KEY: ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }}
         run: python get-install-token.py --app-id ${{ secrets.CDCENT_CDCGOV_SYNC_APP_ID }} --installation-id ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> $GITHUB_OUTPUT
-      - name: push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ steps.get-token.outputs.token }}
-          repository: cdcgov/data-exchange-upload
-          branch: main 
-          force: true
+      - name: Push to CDCGov
+        run: |
+          git remote set-url --push origin https://x-access-token:${{ steps.get-token.outputs.token }}@github.com/cdcgov/data-exchange-upload.git
+          git fetch -p origin
+          git push --mirror 
