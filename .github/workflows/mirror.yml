@@ -14,10 +14,7 @@ jobs:
         working-directory: .github/workflows/scripts
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false
-          fetch-depth: 0
+        run: git clone --mirror https://github.com/cdcent/data-exchange-upload.git
       - name: Install Python
         uses: actions/setup-python@v4
         with:
