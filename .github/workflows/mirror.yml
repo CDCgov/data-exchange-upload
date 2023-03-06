@@ -6,8 +6,8 @@ permissions:
   contents: write 
 
 jobs:
-  get-install-token:
-    name: "Get Install Token"
+  sync-mirror:
+    name: "sync-mirror"
     runs-on: ubuntu-latest
     defaults:
       run:
