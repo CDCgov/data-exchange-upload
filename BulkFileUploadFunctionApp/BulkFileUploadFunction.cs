@@ -28,6 +28,7 @@ namespace BulkFileUploadFunctionApp
         private readonly string _dexAzureStorageAccountKey;
 
         private readonly string _edavAzureStroageAccountName;
+        private readonly string _metadataEventHubSasCredential;
 
         public static string? GetEnvironmentVariable(string name)
         {
@@ -44,6 +45,10 @@ namespace BulkFileUploadFunctionApp
             _dexAzureStorageAccountName = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME") ?? "dataexchangedev";
             _dexAzureStorageAccountKey = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY") ?? "";
             _edavAzureStroageAccountName = GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "edavdevdatalakedex";
+
+            _metadataEventHubEndPoint = GetEnvironmentVariable("EDAV_AZURE_EVENTHUB_ENDPOINT_NAME") ?? "";
+            _metadataEventHubEndHubName = GetEnvironmentVariable("EDAV_AZURE_EVENTHUB_HUB_NAME") ?? "";
+            _metadataEventHubSasCredential = GetEnvironmentVariable("EDAV_AZURE_EVENTHUB_SAS_CREDENTIAL") ?? "";
         }
 
         [Function("BulkFileUploadFunction")]
@@ -88,6 +93,12 @@ namespace BulkFileUploadFunctionApp
                 tusFileMetadata.Remove("filename");
                 tusFileMetadata.Add("orig_filename", filename);
 
+                //send metadata to eventhub for other consumers
+                var metadataRelaySucceeded = await RelayMetaData(tusFileMetadata);
+                if (!metadataRelaySucceeded) {
+                    _logger.LogError($"metadata relay failed for: {tusPayloadPathname}");
+                }
+
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
                 await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
@@ -98,6 +109,45 @@ namespace BulkFileUploadFunctionApp
             {
                 _logger.LogError(e.Message);
             }
+        }
+
+        /// <summary>
+        /// Sends Uploaded File metadata to event hub for downstream consumers to proccess
+        /// </summary>
+        /// <param name="metaData"></param>
+        /// <returns></returns>
+        private async Task<bool> RelayMetaData(Dictionary<string, string> metaData)
+        {
+            var relaySucceeded = false;
+            EventHubProducerClient producerClient = new EventHubProducerClient(
+                    $"{_metadataEventHubEndPoint}.servicebus.windows.net",
+                    $"{_metadataEventHubEndHubName}", 
+                    new AzureSasCredential(_metadataEventHubSasCredential));
+            var metaDataEventBody = JsonConvert.Serialize(metaData);
+
+            // Create a batch of events 
+            using EventDataBatch eventBatch = await producerClient.CreateBatchAsync();
+
+            //metaDataEventBody //Encoding.UTF8.GetBytes($"Event {i}")
+            var eventData = new EventData(metaDataEventBody);
+            if (!eventBatch.TryAdd())
+            {
+                // if it is too large for the batch
+                throw new Exception($"Metadata Event is too large for the batch and cannot be sent.");
+            }
+
+            try
+            {
+                // Use the producer client to send the batch of events to the event hub
+                await producerClient.SendAsync(eventBatch);
+                relaySucceeded = true;
+                Console.WriteLine($"A batch of 1 metadata events has been published.");
+            }
+            finally
+            {
+                await producerClient.DisposeAsync();
+            }
+            return relaySucceeded;
         }
 
         private async Task<TusInfoFile> GetTusFileInfo(string connectionString, string sourceContainerName, string tusPayloadPathname)
