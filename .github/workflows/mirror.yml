@@ -13,9 +13,6 @@ jobs:
   sync-mirror:
     name: "sync-mirror"
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .github/workflows/scripts
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -23,23 +20,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Push to CDCGov
-        uses: cdcent/cdcent-cdcgov-sync-action@v0.1
+        uses: cdcent/cdcent-cdcgov-sync-action@v1.0
         with:
           destination-repo: data-exchange-upload
-      # - name: Install Python
-      #   uses: actions/setup-python@v4
-      #   with:
-      #     python-version: '3.10'
-      # - name: Install Python Dependencies
-      #   run: |
-      #     pip install pyjwt
-      #     pip install cryptography
-      #     pip install requests
-      # - name: Get Install Token
-      #   id: get-token
-      #   env:
-      #     PRIVATE_KEY: ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }}
-      #   run: python get-install-token.py --app-id ${{ secrets.CDCENT_CDCGOV_SYNC_APP_ID }} --installation-id ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }} >> $GITHUB_OUTPUT
-      # - name: Push to CDCGov
-      #   run: |
-      #     git push --mirror https://x-access-token:${{ steps.get-token.outputs.token }}@github.com/CDCgov/data-exchange-upload.git
+          app-id: ${{ secrets.CDCENT_CDCGOV_SYNC_APPID }}
+          installation-id: ${{ secrets.CDCENT_CDCGOV_SYNC_INSTALLATION_ID }}
+          private-key: ${{ secrets.CDCENT_CDCGOV_SYNC_PRIVATE_KEY }}
