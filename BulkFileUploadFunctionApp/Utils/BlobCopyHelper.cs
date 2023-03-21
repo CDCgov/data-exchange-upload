@@ -4,7 +4,7 @@ using Azure.Storage.Blobs;
 using Azure;
 using Microsoft.Extensions.Logging;
 
-namespace BulkFileUploadFunctionApp
+namespace BulkFileUploadFunctionApp.Utils
 {
     internal class BlobCopyHelper
     {
