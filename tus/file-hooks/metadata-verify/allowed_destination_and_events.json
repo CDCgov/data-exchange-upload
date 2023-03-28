@@ -3,11 +3,11 @@
        "destination_id": "ndlp",
        "ext_events": [
         {
-            "name": "ri",
+            "name": "routineImmunization",
             "definition_filename": "ndlp-ri-meta-definition.json"
         },
         {
-            "name": "event1",
+            "name": "influenzaVaccination",
             "definition_filename": null
         }
        ]
