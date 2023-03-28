@@ -47,12 +47,12 @@ namespace BulkFileUploadFunctionApp
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
             _blobCopyHelper = new(_logger);
-            
+
             _tusAzureObjectPrefix = GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX") ?? "tus-prefix";
             _tusAzureStorageContainer = GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER") ?? "bulkuploads";
-            _dexAzureStorageAccountName = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME") ?? "dataexchangedev";
+            _dexAzureStorageAccountName = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
             _dexAzureStorageAccountKey = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY") ?? "";
-            _edavAzureStroageAccountName = GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "edavdevdatalakedex";
+            _edavAzureStroageAccountName = GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
 
             _metadataEventHubEndPoint = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_ENDPOINT_NAME") ?? "";
             _metadataEventHubHubName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_HUB_NAME") ?? "";
@@ -61,20 +61,41 @@ namespace BulkFileUploadFunctionApp
         }
 
         [Function("BulkFileUploadFunction")]
-        public async Task Run([EventGridTrigger] StorageBlobCreatedEvent eventGridEvent)
+        public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvent)
         {
-            _logger.LogInformation(eventGridEvent.Data?.ToString());
+            if (eventHubTriggerEvent.Count() < 1)
+                throw new Exception("EventHubTrigger triggered with no data");
+
+            string blobCreatedEventJson = eventHubTriggerEvent[0];
+            _logger.LogInformation($"Received event: {blobCreatedEventJson}");
+
+            StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
+
+            if (blobCreatedEvents == null)
+                throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
+
+            if (blobCreatedEvents.Count() < 1)
+                throw new Exception("Unexpected data content of event; there should be at least one element in the array");
+
+            StorageBlobCreatedEvent blobCreatedEvent = blobCreatedEvents[0];
+            if (blobCreatedEvent == null)
+                throw new Exception("Unexpected data content of event; there should be at least one element in the array");
+
+            await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
+        }
+
+        private async Task ProcessBlobCreatedEvent(string? blobCreatedUrl)
+        {
+            if (blobCreatedUrl == null)
+                throw new Exception("Blob url may not be null");
 
             _logger.LogInformation($"TUS_AZURE_OBJECT_PREFIX={_tusAzureObjectPrefix}, TUS_AZURE_STORAGE_CONTAINER={_tusAzureStorageContainer}, DEX_AZURE_STORAGE_ACCOUNT_NAME={_dexAzureStorageAccountName}");
 
             try
             {
-                _logger.LogInformation("url of event is = {0}", eventGridEvent.Data?.Url);
+                _logger.LogInformation($"Processing blob url: {blobCreatedUrl}");
 
-                if (eventGridEvent.Data == null)
-                    throw new Exception("event grid event data can not be null");
-
-                var sourceBlobUri = new Uri(eventGridEvent.Data.Url!);
+                var sourceBlobUri = new Uri(blobCreatedUrl);
                 string tusPayloadFilename = sourceBlobUri.Segments.Last();
                 _logger.LogInformation($"tusPayloadFilename is = {tusPayloadFilename}");
 
