@@ -1,0 +1,17 @@
+name: "Tus Pre-Create Hook Checks"
+
+on:
+  pull_request:
+    paths:
+      - tus/file-hooks/metadata-verify
+
+jobs:
+  unit-test:
+    name: "unit-test"
+    runs-on: [self-hosted, python3]
+    steps:
+     - name: Checkout
+       uses: actions/checkout@v3
+     - name: Run Unit Tests
+       working-directory: tus/file-hooks/metadata-verify
+       run: python3 -m unittest discover -v test
