@@ -20,6 +20,7 @@ jobs:
        run: python3 -m unittest discover -v test
   build-and-deploy:
     name: "build-and-deploy"
+    needs: unit-test
     runs-on: [self-hosted, python3]
     defaults:
       run:
