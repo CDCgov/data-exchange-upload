@@ -1,4 +1,4 @@
-name: "Tus Pre-Create Hook"
+name: "Tus Pre-Create Hook Build and Deploy"
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       branches:
         - main
       paths:
-        - tus/file-hooks/metadata-verify
+        - tus/file-hooks/metadata-verify/**
 
 jobs:
   unit-test:

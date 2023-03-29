@@ -1,9 +1,9 @@
-name: "Tus Pre-Create Hook Checks"
+name: "Tus Pre-Create Hook Unit Tests"
 
 on:
   pull_request:
     paths:
-      - tus/file-hooks/metadata-verify
+      - tus/file-hooks/metadata-verify/**
 
 jobs:
   unit-test:
