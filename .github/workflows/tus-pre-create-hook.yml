@@ -1,0 +1,38 @@
+name: "Tus Pre-Create Hook"
+
+on:
+  workflow_dispatch:
+  push:
+      branches:
+        - main
+      paths:
+        - tus/file-hooks/metadata-verify
+
+jobs:
+  unit-test:
+    name: "unit-test"
+    runs-on: [self-hosted, python3]
+    steps:
+     - name: Checkout
+       uses: actions/checkout@v3
+     - name: Run Unit Tests
+       working-directory: tus/file-hooks/metadata-verify
+       run: python3 -m unittest discover -v test
+  build-and-deploy:
+    name: "build-and-deploy"
+    runs-on: [self-hosted, python3]
+    defaults:
+      run:
+        working-directory: tus/file-hooks/metadata-verify
+    steps:
+     - name: Checkout
+       uses: actions/checkout@v3
+     - name: Build
+       run: |
+        pyinstaller --noconfirm --onefile --log-level DEBUG --clean pre_create_bin.py
+        cp dist/pre_create_bin pre-create-bin
+     - name: Upload to Blob Container
+       env:
+        STORAGE_ACCOUNT_NAME: ocioededataexchangedev
+        STORAGE_ACCOUNT_KEY: ${{ secrets.STORAGE_ACCOUNT_KEY }}
+       run: ./upload-to-blob-container.sh $STORAGE_ACCOUNT_NAME $STORAGE_ACCOUNT_KEY
