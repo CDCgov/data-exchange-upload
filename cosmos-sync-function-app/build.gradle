@@ -1,0 +1,49 @@
+buildscript {
+    ext.kotlin_version = '1.8.10'
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+plugins {
+    id "com.microsoft.azure.azurefunctions" version "1.12.1"
+}
+apply plugin: "java"
+apply plugin: 'kotlin'
+
+group 'gov.cdc.ocio'
+version '1.0.0-SNAPSHOT'
+
+dependencies {
+    implementation 'com.microsoft.azure.functions:azure-functions-java-library:3.0.0'
+    implementation 'com.azure:azure-cosmos:4.42.0'
+    implementation 'com.fasterxml.jackson.module:jackson-module-kotlin:2.12.1'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    testImplementation 'org.mockito:mockito-core:2.23.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+repositories {
+    mavenCentral()
+}
+
+azurefunctions {
+    // subscription = '<your subscription id>'
+    resourceGroup = 'java-functions-group'
+    appName = 'cosmos-sync-function-app' // please rename the function name
+    pricingTier = 'Consumption' // refers https://github.com/microsoft/azure-maven-plugins/tree/develop/azure-functions-maven-plugin#supported-pricing-tiers for all valid values
+    region = 'westus'
+    runtime {
+      os = 'windows'
+    }
+    // appSettings {
+    //    key = 'value'
+    // }
+    // localDebug = "transport=dt_socket,server=y,suspend=n,address=5005"
+}
