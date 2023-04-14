@@ -37,6 +37,12 @@
             "allowed_values": null,
             "required": "true",
             "description": "The name of the file submitted to the IZGW.  File and extension should be named in accordance with guidelines outlined in the DUA."
+        },
+        {
+            "fieldname": "meta_ext_submissionperiod",
+            "allowed_values": null,
+            "required": "true",
+            "description": "Submission period for the file submitted."
         }
        ]
     }
