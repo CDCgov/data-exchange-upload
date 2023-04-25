@@ -1,0 +1,33 @@
+buildscript {
+    ext.kotlin_version = "1.8.10"
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+plugins {
+    id "com.microsoft.azure.azurefunctions" version "1.12.1"
+}
+apply plugin: "java"
+apply plugin: "kotlin"
+
+group "gov.cdc.ocio"
+version "1.0.0-SNAPSHOT"
+
+dependencies {
+    implementation "com.microsoft.azure.functions:azure-functions-java-library:3.0.0"
+    implementation "com.azure:azure-cosmos:4.41.0"
+    implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2"
+    testImplementation "org.mockito:mockito-core:5.2.0"
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.2"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+}
+
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
+
+repositories {
+    mavenCentral()
+}

@@ -1,0 +1,203 @@
+openapi: 3.0.1
+info:
+  title: DeX Bulk Upload Supplemental API
+  description: Swagger definition of the DeX bulk upload supplemental API.
+  version: 1.0.0
+servers:
+- url: https://apidev.cdc.gov/1.0.0
+  description: Development server
+- url: https://api.cdc.gov/1.0.0
+  description: Production server
+- url: https://ocio-ede-dev-supplemental-api-kotlin.azurewebsites.net/api
+
+tags:
+  - name: DeX
+    description: CDC Data Exchange
+    externalDocs:
+      description: Find out more
+      url: https://github.com/CDCgov/data-exchange-csv
+      
+# Apply the security globally to all operations
+security:
+  - bearerAuth: []
+
+paths:
+  /status/{tguid}:
+    get:
+      tags:
+        - DeX
+      summary: Provides upload status for a specific tguid.
+      description: Provides upload status for a specific tguid. Tus clients are used to initiate the upload. When the upload starts, clients are returned a unique identifer (tguid) used to resume uploads or identify the filename it is persisted as in blob storage once completed. The tguid will be used for getting a specific uploaded file's status..
+      parameters:
+      - name: tguid
+        in: path
+        description: Unique identifier of the upload to retrieve status on.
+        required: true
+        schema:
+          type: string
+      responses:
+        200:
+          description: Status of the given upload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadStatus'
+        400:
+          description: Bad request.  The tguid provided was not found.
+        401:
+          description: Authorization information is missing or invalid.
+  /status/destination/{destination_id}:
+    get:
+      tags:
+        - DeX
+      summary: Provides all upload statuses for the given destination identifier.
+      description: Provides upload statuses for the given destination identifier that can be optionally filtered by meta_ext_event and date range.  Returned data is paginated.
+      parameters:
+      - name: ext_event
+        in: query
+        schema:
+          type: string
+        description: If specified, also filter by meta_ext_event that was provided with the upload.
+        example: RoutineImmunization
+      - name: destination_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Destination identifier to retrieve all the upload statuses for.
+      - name: date_start
+        in: query
+        schema:
+          type: string
+        description: Start date of filter.  Format is YYYYMMDDTHHMMSSZ (UTC format, inclusive).  Defaults to 3 months prior to today.
+        example: 20231020T14103000Z
+      - name: date_end
+        in: query
+        schema:
+          type: string
+        description: End date of filter.  Format is YYYYMMDDTHHMMSSZ (UTC format, exclusive).  Defaults to today.
+        example: 20231030T14103000Z
+      - name: page_size
+        in: query
+        schema:
+          type: integer
+        description: Number of entries returned for the given page.
+        example: 50
+      - name: page_number
+        in: query
+        schema:
+          type: integer
+        description: Page number to retrieve.
+        example: 1
+      - name: sort_by
+        in: query
+        schema:
+          type: string
+        description: Can sort by date or event
+        example: date
+      - name: sort_order
+        in: query
+        schema:
+          type: string
+        description: Can sort by ascending or descening
+        example: descending
+      responses:
+        200:
+          description: All of the upload statuses for the given destination identifier
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UploadsStatus'
+        400:
+          description: Bad request.  The destination identifier provided was not found.
+        401:
+          description: Authorization information is missing or invalid.
+components:
+  # Define the security scheme type (HTTP bearer)
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    UploadStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The upload status.
+          example: Uploading
+        percent_complete:
+          type: number
+          format: double
+          description: Percentage the upload is complete.
+          example: 0.65
+        file_name:
+          type: string
+          description: Filename of the upload.
+          example: largefile.csv
+        file_size_bytes:
+          type: integer
+          description: File size in bytes.
+          example: 190840042
+        bytes_uploaded:
+          type: integer
+          description: Bytes uploaded so far.
+          example: 124046027
+        tus_upload_id:
+          type: string
+          description: Unique identifier of the upload assigned by tus.
+          example: 8923c9ff-6afa-42b2-a67b-89cb37e047e6
+        time_uploading_sec:
+          type: number
+          format: double
+          description: Total time the upload was or has been in progress.
+          example: 34.4
+        meta_destination_id:
+          type: string
+          description: Destination for this upload, which was provided as metadata when the upload was started.
+          example: NDLP
+        meta_ext_event:
+          type: string
+          description: Event type for this upload, which was provided as metadata when the upload was started. 
+          example: RoutineImmunization
+        timestamp:
+          type: string
+          description: Last modified timestamp for the upload status
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyValuePair'
+    UploadsStatus:
+      type: object
+      properties:
+        summary:
+          $ref: '#/components/schemas/PageSummary'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UploadStatus'
+    PageSummary:
+      type: object
+      properties:
+        page_number:
+          type: integer
+          example: 1
+        number_of_pages:
+          type: integer
+          example: 8
+        page_size:
+          type: integer
+          example: 20
+        total_items:
+          type: integer
+          example: 157
+    KeyValuePair:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+          
