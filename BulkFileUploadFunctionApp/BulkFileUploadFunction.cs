@@ -334,11 +334,23 @@ namespace BulkFileUploadFunctionApp
         {
             if (tusInfoFile.MetaData == null)
                 throw new TusInfoFileException("tus info file required metadata is missing");
-            
+
+            // 27-04-2023: Matt Krystof
+            // Below is a temporary hotfix to allow NDLP files to proceed.  IZGW is sending meta_ext_filename, but not filename in the metadata,
+            // which is failing here.  Temporary solution is to allow either field, but long-term fix will be to require 'filename' metadata field
+            // at time of upload.
             var filenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("filename", null);
-            if (filenameFromMetaData == null)
-                throw new TusInfoFileException("filename is a required metadata field and is missing from the tus info file");
-            filename = filenameFromMetaData;
+            var extfilenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_filename", null);
+            //if (filenameFromMetaData == null)
+            //    throw new TusInfoFileException("filename is a required metadata field and is missing from the tus info file");
+            //filename = filenameFromMetaData;
+            if (filenameFromMetaData != null)
+                filename = filenameFromMetaData;
+            else if (extfilenameFromMetaData != null)
+                filename = extfilenameFromMetaData;
+            else
+                throw new TusInfoFileException("filename or meta_ext_filename is a required metadata field and is missing from the tus info file");
+            // End of hotfix
 
             var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
             if (metaDestinationId == null)
