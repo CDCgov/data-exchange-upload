@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.2] - 2023-04-27
+-  Temporary hotfix to allow NDLP file uploads to work.  IZGW is sending meta_ext_filename, but not filename in the metadata, which is failing in the bulk file upload function app.  Temporary solution is to allow either field, but long-term fix will be to require 'filename' metadata field at time of upload.
+
 ## [1.0.1] - 2023-04-14
 - HOTFIX to update the NDLP routine immunization required metadata fields to include meta_ext_submissionperiod
 
