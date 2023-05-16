@@ -39,6 +39,33 @@ jobs:
           name: pre-create-bin
           path: ./tus/file-hooks/metadata-verify/pre-create-bin
           retention-days: 7
+  publish:
+    name: Push artifacts to ImageHub
+    needs: build-with-artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: pre-create-bin
+          path: tus/file-hooks/metadata-verify
+      - name: Zip files
+        working-directory: tus/file-hooks/metadata-verify
+        run: |
+          echo "GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA")" >> "$GITHUB_ENV"
+          $GITHUB_SHA_SHORT=(git rev-parse --short "$GITHUB_SHA") 
+          zip "tus_hooks_${{ env.GIT_HUB_SHA_SHORT }}.zip" pre-create-bin allowed_destination_and_events.json ndlp-ri-meta-definition.json pre-create
+      - name: Publish to ImageHub
+        uses: sonatype-nexus-community/nexus-repo-github-action@master
+        with:
+          serverUrl: http://imagehub.cdc.gov
+          username: ${{ secrets.IMAGEHUB_USERNAME }}
+          password: ${{ secrets.IMAGEHUB_PASSWORD }}
+          repository: docker-dev2/tus-hooks
+          assets: extention=zip
+          filename: ${{ env.GITHUB_SHA_SHORT }}
   deploy:
     name: Upload to Blob Container
     needs: build-with-artifact
