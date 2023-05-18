@@ -19,3 +19,9 @@ tusdotnet/TUSTestHelpers/obj/
 tus/file-hooks/metadata-verify/pre_create_bin.spec
 
 tus/file-hooks/metadata-verify/pre-create-bin
+
+**/node_modules
+
+**/.DS_Store
+
+**/.env

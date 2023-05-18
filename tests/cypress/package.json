@@ -1,0 +1,17 @@
+{
+  "name": "dex-tests-cypress",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "cypress": "npx cypress open",
+    "test": "npx cypress run"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "cypress": "^12.11.0",
+    "cypress-plugin-api": "^2.11.0",
+    "dotenv": "^16.0.3"
+  }
+}
