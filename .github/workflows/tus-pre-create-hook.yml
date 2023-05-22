@@ -54,20 +54,23 @@ jobs:
       - name: Zip files
         working-directory: tus/file-hooks/metadata-verify
         run: |
-          $GITHUB_SHA_SHORT=(git rev-parse --short "$GITHUB_SHA") 
-          $FILE_NAME="tus_hooks_${GITHUB_SHA_SHORT}.zip"
+          GITHUB_SHA_SHORT=(git rev-parse --short "$GITHUB_SHA") 
+          FILE_NAME="tus_hooks_${GITHUB_SHA_SHORT}.zip"
           zip $FILE_NAME pre-create pre-create-bin allowed_destination_and_events.json ndlp-ri-meta-definition.json 
-          curl -v -u ${{ secret.IMAGEHUB_USERNAME }}:${{ secret.IMAGEHUB_PASSWORD } --upload-file $FILE_NAME http://imagehub.cdc.gov/repository/<repo_to_publish>
+          curl -u ${{ secret.IMAGEHUB_USERNAME }}:${{ secret.IMAGEHUB_PASSWORD } --upload-file $FILE_NAME http://imagehub.cdc.gov/repository/dex-upload-tus-artifacts
   deploy:
     name: Upload to Blob Container
-    needs: build-with-artifact
+    needs: publish
     runs-on: [self-hosted, python3]
     env:
       STORAGE_ACCOUNT_NAME: ocioededataexchangedev
       STORAGE_ACCOUNT_KEY: ${{ secrets.STORAGE_ACCOUNT_KEY }}
     steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: pre-create-bin
-      - run: ls -lh .
-      - run: ./tus/file-hooks/metadata-verify/upload-to-blob-container.sh $STORAGE_ACCOUNT_NAME $STORAGE_ACCOUNT_KEY
+      - name: Download and unzip
+        run: |
+          GITHUB_SHA_SHORT=(git rev-parse --short "$GITHUB_SHA") 
+          FILE_NAME="tus_hooks_${GITHUB_SHA_SHORT}.zip"
+          curl -X GET -o --output tus-artifacts.zip "http://imagehub.cdc.gov/repository/dex-upload-tus-artifacts/${FILE_NAME}"
+          unzip tus-artifacts.zip
+      - name: Upload
+        run: ./tus/file-hooks/metadata-verify/upload-to-blob-container.sh $STORAGE_ACCOUNT_NAME $STORAGE_ACCOUNT_KEY
