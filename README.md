@@ -1,28 +1,28 @@
 # CDC Data Exchange (DEX) Upload
 
-## Overview
-
 Repository for CDC DEX Upload.
 
-### Github Actions
+### Repository Structure
+
+#### Github Actions
 `/.github/workflows` - tests and CI/CD
 
-### BulkFileUploadFunctionApp
+#### BulkFileUploadFunctionApp
 `/BulkFileUploadFunctionApp` event triggered azure function to process uploaded blob and metadata. 
 
-### cosmos-sync-function-app
+#### cosmos-sync-function-app
 `/cosmos-sync-function-app`  event triggered azure function to upsert metadata for cosmos-db.
 
-### supplemental-api-function-app
+#### supplemental-api-function-app
 `/supplemental-api-function-app` http triggered azure function to retrieve status of upload/s.
 
-### tests 
+#### tests 
 `/tests/cypress` 
 
-### file-hooks
+#### file-hooks
 `tus/file-hooks` hooks, tus specific, pre and post receive of upload.
 
-### spikes
+#### spikes
 `/spikes` exploratory development spikes, archive.
 
 ### TUS Protocol
