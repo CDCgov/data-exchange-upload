@@ -1,25 +1,37 @@
-# CDCent GitHub Organization Open Source Project Template
+# CDC Data Exchange (DEX) Upload
 
-**Template for clearance: This project serves as a template to aid projects in starting up and moving through clearance procedures. To start, create a new repository and implement the required [open practices](open_practices.md), train on and agree to adhere to the organization's [rules of behavior](rules_of_behavior.md), and [send a request through the create repo form](https://forms.office.com/Pages/ResponsePage.aspx?id=aQjnnNtg_USr6NJ2cHf8j44WSiOI6uNOvdWse4I-C2NUNk43NzMwODJTRzA4NFpCUk1RRU83RTFNVi4u) using language from this template as a Guide.**
+Repository for CDC DEX Upload.
 
-**General disclaimer** This repository was created for use by CDC programs to collaborate on public health related projects in support of the [CDC mission](https://www.cdc.gov/about/organization/mission.htm). GitHub is not hosted by the CDC, but is a third party website used by CDC and its partners to share information and collaborate on software. CDC use of GitHub does not imply an endorsement of any one particular service, product, or enterprise.
+### Repository Structure
 
-## Access Request, Repo Creation Request
+#### Github Actions
+`/.github/workflows` - tests and CI/CD
 
-- [CDC GitHub Open Project Request Form](https://forms.office.com/Pages/ResponsePage.aspx?id=aQjnnNtg_USr6NJ2cHf8j44WSiOI6uNOvdWse4I-C2NUNk43NzMwODJTRzA4NFpCUk1RRU83RTFNVi4u) _[Requires a CDC Office365 login, if you do not have a CDC Office365 please ask a friend who does to submit the request on your behalf. If you're looking for access to the CDCEnt private organization, please use the [GitHub Enterprise Cloud Access Request form](https://forms.office.com/Pages/ResponsePage.aspx?id=aQjnnNtg_USr6NJ2cHf8j44WSiOI6uNOvdWse4I-C2NUQjVJVDlKS1c0SlhQSUxLNVBaOEZCNUczVS4u).]_
+#### BulkFileUploadFunctionApp
+`/BulkFileUploadFunctionApp` event triggered azure function to process uploaded blob and metadata. 
 
-## Related documents
+#### cosmos-sync-function-app
+`/cosmos-sync-function-app`  event triggered azure function to upsert metadata for cosmos-db.
 
-- [Open Practices](open_practices.md)
-- [Rules of Behavior](rules_of_behavior.md)
-- [Thanks and Acknowledgements](thanks.md)
-- [Disclaimer](DISCLAIMER.md)
-- [Contribution Notice](CONTRIBUTING.md)
-- [Code of Conduct](code-of-conduct.md)
+#### supplemental-api-function-app
+`/supplemental-api-function-app` http triggered azure function to retrieve status of upload/s.
 
-## Overview
+#### tests 
+`/tests/cypress` 
 
-Describe the purpose of your project. Add additional sections as necessary to help collaborators and potential collaborators understand and use your project.
+#### file-hooks
+`tus/file-hooks` hooks, tus specific, pre and post receive of upload.
+
+#### spikes
+`/spikes` exploratory development spikes, archive.
+
+### TUS Protocol
+This repository is using the TUS resumable upload protocol: [https://tus.io/](https://tus.io/),
+and reference implementation: [https://github.com/tus/tusd](https://github.com/tus/tusd)
+
+## Example Usage
+Example clients, for back-end or browser (front-end), to upload files:
+[https://github.com/CDCgov/data-exchange-api-examples](https://github.com/CDCgov/data-exchange-api-examples)
 
 ## Public Domain Standard Notice
 
