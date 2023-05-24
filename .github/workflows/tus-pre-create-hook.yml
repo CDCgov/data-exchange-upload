@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - cdc-619/publish-build-artifacts-for-tus-hooks
     paths:
       - tus/file-hooks/metadata-verify/**
 
@@ -57,7 +57,7 @@ jobs:
           GITHUB_SHA_SHORT=(git rev-parse --short "$GITHUB_SHA") 
           FILE_NAME="tus_hooks_${GITHUB_SHA_SHORT}.zip"
           zip $FILE_NAME pre-create pre-create-bin allowed_destination_and_events.json ndlp-ri-meta-definition.json 
-          curl -u ${{ secret.IMAGEHUB_USERNAME }}:${{ secret.IMAGEHUB_PASSWORD } --upload-file $FILE_NAME http://imagehub.cdc.gov/repository/dex-upload-tus-artifacts
+          curl -u ${{ secrets.IMAGEHUB_USERNAME }}:${{ secrets.IMAGEHUB_PASSWORD } --upload-file $FILE_NAME http://imagehub.cdc.gov/repository/dex-upload-tus-artifacts
   deploy:
     name: Upload to Blob Container
     needs: publish
