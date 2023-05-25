@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - cdc-619/publish-build-artifacts-for-tus-hooks
+      - main
     paths:
       - tus/file-hooks/metadata-verify/**
 
@@ -42,7 +42,9 @@ jobs:
   publish:
     name: Publish artifacts to ImageHub
     needs: build-with-artifact
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux]
+    outputs: 
+      artifact_filename: ${{ steps.archive_files.outputs.filename_output }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -51,26 +53,28 @@ jobs:
         with:
           name: pre-create-bin
           path: tus/file-hooks/metadata-verify
-      - name: Zip files
+      - name: Archive and publish
+        id: archive_files
         working-directory: tus/file-hooks/metadata-verify
         run: |
-          GITHUB_SHA_SHORT=(git rev-parse --short "$GITHUB_SHA") 
-          FILE_NAME="tus_hooks_${GITHUB_SHA_SHORT}.zip"
-          zip $FILE_NAME pre-create pre-create-bin allowed_destination_and_events.json ndlp-ri-meta-definition.json 
-          curl -u ${{ secrets.IMAGEHUB_USERNAME }}:${{ secrets.IMAGEHUB_PASSWORD } --upload-file $FILE_NAME http://imagehub.cdc.gov/repository/dex-upload-tus-artifacts
+          GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA") 
+          FILE_NAME="tus_hooks_${GITHUB_SHA_SHORT}.tar"
+          echo "filename_output=${FILE_NAME}" >> "$GITHUB_OUTPUT"
+          tar cfv $FILE_NAME pre-create pre-create-bin allowed_destination_and_events.json ndlp-ri-meta-definition.json 
+          curl -k -u ${{ secrets.IMAGEHUB_USERNAME }}:${{ secrets.IMAGEHUB_PASSWORD }} --upload-file $FILE_NAME "https://imagehub.cdc.gov/repository/dex-upload-tus-artifacts/${FILE_NAME}"
   deploy:
     name: Upload to Blob Container
     needs: publish
-    runs-on: [self-hosted, python3]
+    runs-on: [self-hosted, Linux]
     env:
       STORAGE_ACCOUNT_NAME: ocioededataexchangedev
       STORAGE_ACCOUNT_KEY: ${{ secrets.STORAGE_ACCOUNT_KEY }}
     steps:
-      - name: Download and unzip
+      - name: Download and extract
+        env:
+          FILE_NAME: ${{ needs.publish.outputs.artifact_filename }}
         run: |
-          GITHUB_SHA_SHORT=(git rev-parse --short "$GITHUB_SHA") 
-          FILE_NAME="tus_hooks_${GITHUB_SHA_SHORT}.zip"
-          curl -X GET -o --output tus-artifacts.zip "http://imagehub.cdc.gov/repository/dex-upload-tus-artifacts/${FILE_NAME}"
-          unzip tus-artifacts.zip
+          curl -X GET -k -o tus-artifacts.tar "https://imagehub.cdc.gov/repository/dex-upload-tus-artifacts/${FILE_NAME}"
+          tar xvf tus-artifacts.tar
       - name: Upload
         run: ./tus/file-hooks/metadata-verify/upload-to-blob-container.sh $STORAGE_ACCOUNT_NAME $STORAGE_ACCOUNT_KEY
