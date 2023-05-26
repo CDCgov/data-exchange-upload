@@ -15,13 +15,13 @@
 		{
 			"fieldname": "route",
 			"allowed_values": ["COVID19_ELR", "PHLIP_ELR"],
-			"required": "true if message_type == ELR",
+			"required": "false",
 			"description": "Informs the type of ELR messages when message_type = ELR"
 		},
 		{
 			"fieldname": "reporting_jurisdiction",
 			"allowed_values": "free from",
-			"required": "true if message_type == ELR",
+			"required": "false",
 			"description": "Informs which jurisdiction is uploading the message"
 		},
 
