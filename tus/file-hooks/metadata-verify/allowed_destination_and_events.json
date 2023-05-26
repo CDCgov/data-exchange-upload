@@ -1,5 +1,14 @@
 [
    {
+      "destination_id":"dex",
+            "ext_events":[
+         {
+            "name":"hl7",
+            "definition_filename":null
+         }
+      ]
+   },
+   {
       "destination_id":"ndlp",
       "ext_events":[
          {
