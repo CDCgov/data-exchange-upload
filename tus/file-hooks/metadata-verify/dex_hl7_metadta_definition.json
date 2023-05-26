@@ -1,12 +1,6 @@
 [{
 	"schema_version": "1.0",
 	"fields": [{
-			"fieldname": "system_provider",
-			"allowed_values": ["DEX-ROUTING"],
-			"required": "false",
-			"description": "Informs which system delivered the message to HL7 Validation API. This does not need to be set by the entity uploading the message, is hardcoded to DEX-ROUTING by the Router FN probably. So, might not be in this file in the end."
-		},
-		{
 			"fieldname": "message_type",
 			"allowed_values": ["CASE", "ELR"],
 			"required": "true",
@@ -20,18 +14,20 @@
 		},
 		{
 			"fieldname": "reporting_jurisdiction",
-			"allowed_values": "free from",
+			"allowed_values": null,
 			"required": "false",
 			"description": "Informs which jurisdiction is uploading the message"
 		},
 
 		{
 			"fieldname": "original_file_name",
+			"allowed_values": null,
 			"required": "false",
 			"description": "Tells the original file name at the source of the message"
 		},
 		{
 			"fieldname": "original_file_timestamp",
+			"allowed_values": null,
 			"required": "false",
 			"description": "Tells the original file timestamp at the source of the message"
 		}
