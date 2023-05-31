@@ -1,6 +1,30 @@
 [{
 	"schema_version": "1.0",
 	"fields": [{
+			"fieldname": "meta_ext_source",
+			"allowed_values": null,
+			"required": "true",
+			"description": "Establishes where the data came from."
+		},
+		{
+			"fieldname": "meta_ext_sourceversion",
+			"allowed_values": null,
+			"required": "true",
+			"description": "Aligns with version of the specification."
+		},
+		{
+			"fieldname": "meta_username",
+			"allowed_values": null,
+			"required": "true",
+			"description": "Username of user who submitted the file to the IZGW.  If this is a system to system submission then this should be the service account."
+		},
+		{
+			"fieldname": "meta_ext_objectkey",
+			"allowed_values": null,
+			"required": "true",
+			"description": "This field is used to track back to the source filename/objectid."
+		},
+		{
 			"fieldname": "message_type",
 			"allowed_values": ["CASE", "ELR"],
 			"required": "true",
