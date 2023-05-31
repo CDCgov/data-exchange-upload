@@ -25,6 +25,18 @@
 			"description": "This field is used to track back to the source filename/objectid."
 		},
 		{
+			"fieldname": "meta_ext_filename",
+			"allowed_values": null,
+			"required": "true",
+			"description": "The name of the file submitted."
+		},
+		{
+			"fieldname": "meta_ext_file_timestamp",
+			"allowed_values": null,
+			"required": "true",
+			"description": "The timestamp of last modified for the file submitted."
+		},
+		{
 			"fieldname": "message_type",
 			"allowed_values": ["CASE", "ELR"],
 			"required": "true",
@@ -41,18 +53,6 @@
 			"allowed_values": null,
 			"required": "false",
 			"description": "Informs which jurisdiction is uploading the message"
-		},
-		{
-			"fieldname": "original_file_name",
-			"allowed_values": null,
-			"required": "false",
-			"description": "Tells the original file name at the source of the message"
-		},
-		{
-			"fieldname": "original_file_timestamp",
-			"allowed_values": null,
-			"required": "false",
-			"description": "Tells the original file timestamp at the source of the message"
 		}
 	]
 }]
