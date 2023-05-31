@@ -4,11 +4,13 @@ info:
   description: Swagger definition of the DeX bulk upload supplemental API.
   version: 1.0.0
 servers:
-  - url: 'https://apidev.cdc.gov/1.0.0'
-    description: Development server
-  - url: 'https://api.cdc.gov/1.0.0'
-    description: Production server
-  - url: 'https://ocio-ede-dev-supplemental-api-kotlin.azurewebsites.net/api'
+  - url: >-
+      https://ocio-dmz-dev-stv2-external.azure-api.net/ocio-ede-dev-supplemental-api
+  # - url: 'https://apidev.cdc.gov/1.0.0'
+  #   description: Development server
+  # - url: 'https://api.cdc.gov/1.0.0'
+  #   description: Production server
+  # - url: 'https://ocio-ede-dev-supplemental-api-kotlin.azurewebsites.net/api'
 tags:
   - name: DeX
     description: CDC Data Exchange
@@ -23,6 +25,7 @@ paths:
       tags:
         - DeX
       summary: Provides upload status for a specific tguid.
+      operationId: get-statusfortguid
       description: >-
         Provides upload status for a specific tguid. Tus clients are used to
         initiate the upload. When the upload starts, clients are returned a
@@ -35,7 +38,7 @@ paths:
           description: Unique identifier of the upload to retrieve status on.
           required: true
           schema:
-            type: string
+            type: ''
       responses:
         '200':
           description: Status of the given upload
@@ -52,6 +55,7 @@ paths:
       tags:
         - DeX
       summary: Provides all upload statuses for the given destination identifier.
+      operationId: get-statusfordestination
       description: >-
         Provides upload statuses for the given destination identifier that can
         be optionally filtered by meta_ext_event and date range.  Returned data
@@ -69,7 +73,7 @@ paths:
           in: path
           required: true
           schema:
-            type: string
+            type: ''
           description: Destination identifier to retrieve all the upload statuses for.
         - name: date_start
           in: query
