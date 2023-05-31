@@ -1,5 +1,14 @@
 [
    {
+      "destination_id":"dex-hl7",
+            "ext_events":[
+         {
+            "name":"hl7ingress",
+            "definition_filename":"dex_hl7_metadata_definition.json"
+         }
+      ]
+   },
+   {
       "destination_id":"ndlp",
       "ext_events":[
          {
