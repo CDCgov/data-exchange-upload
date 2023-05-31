@@ -42,7 +42,6 @@
 			"required": "false",
 			"description": "Informs which jurisdiction is uploading the message"
 		},
-
 		{
 			"fieldname": "original_file_name",
 			"allowed_values": null,
