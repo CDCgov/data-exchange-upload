@@ -356,7 +356,7 @@ namespace BulkFileUploadFunctionApp
             else if (extUUIDFromMetaData != null)
                 filename = extUUIDFromMetaData;
             else
-                throw new TusInfoFileException("filename or meta_ext_filename is a required metadata field and is missing from the tus info file");
+                throw new TusInfoFileException("filename, meta_ext_filename, or meta_ext_objectkey is a required metadata field and is missing from the tus info file");
             // End of hotfix
 
             var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
