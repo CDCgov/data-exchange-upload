@@ -60,7 +60,7 @@ jobs:
           GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA") 
           FILE_NAME="tus_hooks_${GITHUB_SHA_SHORT}.tar"
           echo "filename_output=${FILE_NAME}" >> "$GITHUB_OUTPUT"
-          tar cfv $FILE_NAME pre-create pre-create-bin allowed_destination_and_events.json ndlp-ri-meta-definition.json 
+          tar cfv $FILE_NAME pre-create pre-create-bin allowed_destination_and_events.json ndlp-ri-meta-definition.json dex_hl7_metadata_definition.json
           curl -k -u ${{ secrets.IMAGEHUB_USERNAME }}:${{ secrets.IMAGEHUB_PASSWORD }} --upload-file $FILE_NAME "https://imagehub.cdc.gov/repository/dex-upload-tus-artifacts/${FILE_NAME}"
   deploy:
     name: Upload to Blob Container
