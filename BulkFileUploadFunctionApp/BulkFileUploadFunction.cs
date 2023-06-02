@@ -342,9 +342,8 @@ namespace BulkFileUploadFunctionApp
             var filenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("filename", null);
             var extfilenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_filename", null);
 
-            // fall-back for using the provided uuid instead of file name
             // this is needed for DEX HL7 and is a required field in dex_hl7_metadata_definition.json
-            var extUUIDFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_objectkey", null);
+            var originalFileName = tusInfoFile.MetaData!.GetValueOrDefault("original_filename", null);
 
             //if (filenameFromMetaData == null)
             //    throw new TusInfoFileException("filename is a required metadata field and is missing from the tus info file");
@@ -353,10 +352,10 @@ namespace BulkFileUploadFunctionApp
                 filename = filenameFromMetaData;
             else if (extfilenameFromMetaData != null)
                 filename = extfilenameFromMetaData;
-            else if (extUUIDFromMetaData != null)
-                filename = extUUIDFromMetaData;
+            else if (originalFileName != null)
+                filename = originalFileName;
             else
-                throw new TusInfoFileException("filename, meta_ext_filename, or meta_ext_objectkey is a required metadata field and is missing from the tus info file");
+                throw new TusInfoFileException("filename, meta_ext_filename, or original_filename is a required metadata field and is missing from the tus info file");
             // End of hotfix
 
             var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
