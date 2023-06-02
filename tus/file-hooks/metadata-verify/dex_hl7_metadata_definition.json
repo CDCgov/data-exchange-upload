@@ -4,25 +4,37 @@
 			"fieldname": "meta_ext_source",
 			"allowed_values": null,
 			"required": "true",
-			"description": "Establishes where the data came from."
+			"description": "The system source where the data came from."
 		},
 		{
 			"fieldname": "meta_ext_sourceversion",
 			"allowed_values": null,
 			"required": "true",
-			"description": "Aligns with version of the specification."
+			"description": "The system source version where the data came from."
 		},
 		{
 			"fieldname": "meta_username",
 			"allowed_values": null,
 			"required": "true",
-			"description": "Username of user who submitted the file to the IZGW.  If this is a system to system submission then this should be the service account."
+			"description": "Username of user who submitted the file. If this is a system to system submission then this should be the service account."
 		},
 		{
 			"fieldname": "meta_ext_objectkey",
 			"allowed_values": null,
+			"required": "false",
+			"description": "The system source file objectid, could be used to track the file to the source."
+		},
+		{
+			"fieldname": "original_filename",
+			"allowed_values": null,
 			"required": "true",
-			"description": "This field is used to track back to the source filename/objectid."
+			"description": "The name of the file submitted."
+		},
+		{
+			"fieldname": "original_file_timestamp",
+			"allowed_values": null,
+			"required": "true",
+			"description": "The timestamp of last modified for the file submitted."
 		},
 		{
 			"fieldname": "message_type",
@@ -41,18 +53,6 @@
 			"allowed_values": null,
 			"required": "false",
 			"description": "Informs which jurisdiction is uploading the message"
-		},
-		{
-			"fieldname": "original_file_name",
-			"allowed_values": null,
-			"required": "false",
-			"description": "Tells the original file name at the source of the message"
-		},
-		{
-			"fieldname": "original_file_timestamp",
-			"allowed_values": null,
-			"required": "false",
-			"description": "Tells the original file timestamp at the source of the message"
 		}
 	]
 }]
