@@ -1,5 +1,6 @@
 package gov.cdc.ocio.supplementalapi.functions
 
+import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.models.CosmosQueryRequestOptions
 import com.microsoft.azure.functions.ExecutionContext
 import com.microsoft.azure.functions.HttpRequestMessage
@@ -46,12 +47,27 @@ class StatusForDestinationFunction {
                 .build()
         }
 
-        val cosmosClient = CosmosClientManager.getCosmosClient()
-        val cosmosDB = cosmosClient.getDatabase("UploadStatus")
-        val container = cosmosDB.getContainer("Items")
+        val cosmosClient: CosmosClient
+        try {
+            cosmosClient = CosmosClientManager.getCosmosClient()
+        } catch (ex: Exception) {
+            logger.warning("Failed to connect to database with exception: ${ex.localizedMessage}")
+            return request
+                .createResponseBuilder(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Content-Type", "application/json")
+                .body(ex.localizedMessage)
+                .build()
+        }
+
+        val databaseName = System.getenv("CosmosDbDatabaseName")
+        val containerName = System.getenv("CosmosDbContainerName")
+
+        val cosmosDB = cosmosClient.getDatabase(databaseName)
+        val container = cosmosDB.getContainer(containerName)
 
         val sqlQuery = StringBuilder()
-        sqlQuery.append("from Items t where t.meta_destination_id = '$destinationName'")
+        sqlQuery.append("from $containerName t where t.meta_destination_id = '$destinationName'")
+
         extEvent?.run {
             sqlQuery.append(" and t.meta_ext_event = '$extEvent'")
         }
@@ -86,7 +102,19 @@ class StatusForDestinationFunction {
             countQuery, CosmosQueryRequestOptions(),
             Long::class.java
         )
-        val totalItems = if (count.count() > 0) count.first().toLong() else -1
+
+        var totalItems = 0L
+        try {
+            val count = container.queryItems(
+                countQuery, CosmosQueryRequestOptions(),
+                Long::class.java
+            )
+            totalItems = if (count.count() > 0) count.first().toLong() else -1
+        } catch (ex: Exception) {
+            // no items found or problem with query
+            logger.warning(ex.localizedMessage)
+        }
+
         val numberOfPages = (totalItems / pageSizeAsInt + if (totalItems % pageSizeAsInt > 0) 1 else 0).toInt()
 
         val pageNumberAsInt = try {
@@ -125,10 +153,13 @@ class StatusForDestinationFunction {
         }
         val offset = (pageNumberAsInt - 1) * pageSizeAsInt
         val dataSqlQuery = "select * $sqlQuery offset $offset limit $pageSizeAsInt"
-        val items = container.queryItems(
-            dataSqlQuery, CosmosQueryRequestOptions(),
-            Item::class.java
-        )
+        val items = if (totalItems > 0)
+            container.queryItems(
+                dataSqlQuery, CosmosQueryRequestOptions(),
+                Item::class.java
+            )
+        else
+            listOf()
 
         val uploadsStatus = UploadsStatus()
         items.forEach { item ->

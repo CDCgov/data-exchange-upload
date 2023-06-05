@@ -24,10 +24,14 @@ class StatusForTguidFunction {
         logger.info("HTTP trigger processed a ${request.httpMethod.name} request.")
 
         val cosmosClient = CosmosClientManager.getCosmosClient()
-        val cosmosDB = cosmosClient.getDatabase("UploadStatus")
-        val container = cosmosDB.getContainer("Items")
 
-        val sqlQuery = "select * from Items t where t.tguid = '$tguid'"
+        val databaseName = System.getenv("CosmosDbDatabaseName")
+        val containerName = System.getenv("CosmosDbContainerName")
+
+        val cosmosDB = cosmosClient.getDatabase(databaseName)
+        val container = cosmosDB.getContainer(containerName)
+
+        val sqlQuery = "select * from $containerName t where t.tguid = '$tguid'"
         val items = container.queryItems(
             sqlQuery, CosmosQueryRequestOptions(),
             Item::class.java
