@@ -4,7 +4,6 @@ using Azure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using BulkFileUploadFunctionApp.Model;
 using Azure.Identity;
@@ -60,6 +59,12 @@ namespace BulkFileUploadFunctionApp
             _metadataEventHubSharedAccessKey = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY") ?? "";
         }
 
+        /// <summary>
+        /// Entrypoint for processing blob created events.  Note this should only be fired when a tus upload completes.
+        /// </summary>
+        /// <param name="eventHubTriggerEvent"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         [Function("BulkFileUploadFunction")]
         public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvent)
         {
@@ -84,6 +89,12 @@ namespace BulkFileUploadFunctionApp
             await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
         }
 
+        /// <summary>
+        /// Processeses the given blob created event from the URL provided.
+        /// </summary>
+        /// <param name="blobCreatedUrl"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         private async Task ProcessBlobCreatedEvent(string? blobCreatedUrl)
         {
             if (blobCreatedUrl == null)
@@ -104,17 +115,37 @@ namespace BulkFileUploadFunctionApp
                 var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusPayloadFilename}";
                 var tusInfoFile = await GetTusFileInfo(connectionString, sourceContainerName, tusPayloadPathname);
 
-                GetRequiredMetaData(tusInfoFile, out string filename, out string destinationId, out string extEvent);
+                GetRequiredMetaData(tusInfoFile, out string destinationId, out string extEvent);
 
-                // Partitioning is part of the filename where slashes will create subfolders.
-                // Container name is "{meta_destination_id}-{extEvent}"
-                // Path inside of that is year / month / day / filename
+                var uploadConfig = UploadConfig.Default;
+                try
+                {
+                    // Determine the filename and subfolder creation schemes for this destination/event.
+                    var configFilename = $"{destinationId}-{extEvent}.json";
+                    var blobReader = new BlobReader(_logger);
+                    uploadConfig = await blobReader.GetObjectFromBlobJsonContent<UploadConfig>(connectionString, "upload-configs", configFilename);
+                    _logger.LogInformation($"Upload config: FilenameMetadataField={uploadConfig.FilenameMetadataField}, FilenameSuffix={uploadConfig.FilenameSuffix}, FolderStructure={uploadConfig.FolderStructure}");
+                }
+                catch (Exception e)
+                {
+                    // use default upload config
+                    _logger.LogWarning($"No upload config found for destination id = {destinationId}, ext event = {extEvent}: exception = ${e.Message}");
+                }
+
+                // Determine the destination filename based on the upload config and metadata values provided with the source file.
+                GetFilenameFromMetaData(tusInfoFile, uploadConfig.FilenameMetadataField, out string filename);
+
                 var dateTimeNow = DateTime.UtcNow;
+
+                // Determine the folder path and filename suffix from the upload configuration.
+                var folderPath = GetFolderPath(uploadConfig, dateTimeNow);
+                var filenameSuffix = GetFilenameSuffix(uploadConfig, dateTimeNow);
 
                 var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
                 var fileExtension = Path.GetExtension(filename);
-                var destinationBlobFilename = $"{dateTimeNow.Year}/{dateTimeNow.Month.ToString().PadLeft(2, '0')}/{dateTimeNow.Day.ToString().PadLeft(2, '0')}/{fileNameWithoutExtension}_{dateTimeNow.Ticks}{fileExtension}";
+                var destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{filenameSuffix}{fileExtension}";
 
+                // Container name is "{meta_destination_id}-{extEvent}"
                 // There are some restrictions on container names -- underscores not allowed, must be all lowercase
                 var destinationContainerName = $"{destinationId.ToLower()}-{extEvent.ToLower()}";
 
@@ -189,49 +220,44 @@ namespace BulkFileUploadFunctionApp
             return relaySucceeded;
         }
 
+        /// <summary>
+        /// Returns the metadata from a tus .info file for the pathname provided.
+        /// </summary>
+        /// <param name="connectionString">Azure storage account connection string</param>
+        /// <param name="sourceContainerName">Container where the file to get info for resides</param>
+        /// <param name="tusPayloadPathname">Full path of the file to get info on</param>
+        /// <returns></returns>
+        /// <exception cref="TusInfoFileException"></exception>
         private async Task<TusInfoFile> GetTusFileInfo(string connectionString, string sourceContainerName, string tusPayloadPathname)
         {
             TusInfoFile tusInfoFile;
 
-            string tusInfoPathname = tusPayloadPathname + ".info";
-
-            _logger.LogInformation($"Retrieving tus info file: {tusInfoPathname}");
-
-            var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
-
-            BlobClient sourceBlob = sourceContainerClient.GetBlobClient(tusInfoPathname);
-
-            _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
-
-            // Ensure that the source blob exists
-            if (!await sourceBlob.ExistsAsync())
+            try
             {
-                throw new TusInfoFileException("File is missing");
+                string tusInfoPathname = tusPayloadPathname + ".info";
+
+                _logger.LogInformation($"Retrieving tus info file: {tusInfoPathname}");
+
+                var blobReader = new BlobReader(_logger);
+                tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(connectionString, sourceContainerName, tusInfoPathname);
+            }
+            catch (Exception e)
+            {
+                throw new TusInfoFileException(e.Message);
             }
 
-            _logger.LogInformation("File exists, getting lease on file");
-
-            BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
-
-            // Specifying -1 for the lease interval creates an infinite lease
-            await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
-
-            BlobDownloadResult download = await sourceBlob.DownloadContentAsync();
-            tusInfoFile = download.Content.ToObjectFromJson<TusInfoFile>();
-
-            BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
-
-            if (sourceProperties.LeaseState == LeaseState.Leased)
-            {
-                // Release the lease on the source blob
-                await lease.ReleaseAsync();
-            }
-
-            _logger.LogInformation($"Info file metadata keys: {tusInfoFile.MetaData?.Keys}");
+            _logger.LogInformation($"Info file metadata keys: {string.Join(", ", tusInfoFile.MetaData?.Keys.ToList())}");
 
             return tusInfoFile;
         }
 
+        /// <summary>
+        /// Obtains a SAS URI for the given blob client.  The SAS token associated with the
+        /// URI returned will be valid for one hour.
+        /// </summary>
+        /// <param name="blobClient">Blob client to use for getting the SAS token</param>
+        /// <param name="storedPolicyName">Optional stored policy name</param>
+        /// <returns></returns>
         private Uri? GetServiceSasUriForBlob(BlobClient blobClient, string? storedPolicyName = null)
         {
             // Check whether this BlobClient object has been authorized with Shared Key.
@@ -268,6 +294,13 @@ namespace BulkFileUploadFunctionApp
             }
         }
 
+        /// <summary>
+        /// Copies a blob file from DEX to EDAV asynchronously.
+        /// </summary>
+        /// <param name="sourceContainerName">Source container name</param>
+        /// <param name="sourceBlobFilename">Source blob filename</param>
+        /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
+        /// <returns></returns>
         private async Task CopyBlobFromDexToEdavAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
         {
             try
@@ -301,6 +334,16 @@ namespace BulkFileUploadFunctionApp
             }
         }
 
+        /// <summary>
+        /// Copies a blob from the tus upload folder to the DEX storage account
+        /// </summary>
+        /// <param name="connectionString">Connection string for both the source and destination storage account</param>
+        /// <param name="sourceContainerName">Source container name for the file to copy</param>
+        /// <param name="sourceBlobName">Source blob filename to copy</param>
+        /// <param name="destinationContainerName">Destination container name for the copied file</param>
+        /// <param name="destinationBlobName">Destination blob filename</param>
+        /// <param name="destinationMetadata">Metadata to be associated with the destination blob file</param>
+        /// <returns></returns>
         private async Task CopyBlobFromTusToDexAsync(string connectionString, string sourceContainerName, string sourceBlobName, string destinationContainerName,
             string destinationBlobName, IDictionary<string, string> destinationMetadata)
         {
@@ -330,33 +373,18 @@ namespace BulkFileUploadFunctionApp
             }
         }
 
-        private static void GetRequiredMetaData(TusInfoFile tusInfoFile, out string filename, out string destinationId, out string extEvent)
+        /// <summary>
+        /// Checks that all the required metadata fields are present for a given tus file.
+        /// </summary>
+        /// <param name="tusInfoFile">Contains all the tus file metadata</param>
+        /// <param name="destinationId">Destination ID from the tus info file metadata</param>
+        /// <param name="extEvent">External event from the tus info file metadata</param>
+        /// <exception cref="TusInfoFileException"></exception>
+        /// <exception cref="UploadConfigException"></exception>
+        private void GetRequiredMetaData(TusInfoFile tusInfoFile, out string destinationId, out string extEvent)
         {
             if (tusInfoFile.MetaData == null)
                 throw new TusInfoFileException("tus info file required metadata is missing");
-
-            // 27-04-2023: Matt Krystof
-            // Below is a temporary hotfix to allow NDLP files to proceed.  IZGW is sending meta_ext_filename, but not filename in the metadata,
-            // which is failing here.  Temporary solution is to allow either field, but long-term fix will be to require 'filename' metadata field
-            // at time of upload.
-            var filenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("filename", null);
-            var extfilenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_filename", null);
-
-            // this is needed for DEX HL7 and is a required field in dex_hl7_metadata_definition.json
-            var originalFileName = tusInfoFile.MetaData!.GetValueOrDefault("original_filename", null);
-
-            //if (filenameFromMetaData == null)
-            //    throw new TusInfoFileException("filename is a required metadata field and is missing from the tus info file");
-            //filename = filenameFromMetaData;
-            if (filenameFromMetaData != null)
-                filename = filenameFromMetaData;
-            else if (extfilenameFromMetaData != null)
-                filename = extfilenameFromMetaData;
-            else if (originalFileName != null)
-                filename = originalFileName;
-            else
-                throw new TusInfoFileException("filename, meta_ext_filename, or original_filename is a required metadata field and is missing from the tus info file");
-            // End of hotfix
 
             var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
             if (metaDestinationId == null)
@@ -367,6 +395,103 @@ namespace BulkFileUploadFunctionApp
             if (metaExtEvent == null)
                 throw new TusInfoFileException("meta_ext_event is a required metadata field and is missing from the tus info file");
             extEvent = metaExtEvent;
+        }
+
+        /// <summary>
+        /// Provides the filename from the metadata using the upload config to tell us what field to look for.
+        /// </summary>
+        /// <param name="tusInfoFile">Contains all the tus file metadata</param>
+        /// <param name="metadataFilenameFieldName">Metadata filename field name to use</param>
+        /// <param name="filename">Outputted filename to use</param>
+        /// <exception cref="UploadConfigException"></exception>
+        /// <exception cref="TusInfoFileException"></exception>
+        private void GetFilenameFromMetaData(TusInfoFile tusInfoFile, string? metadataFilenameFieldName, out string filename)
+        {
+            filename = "";
+            if (metadataFilenameFieldName != null)
+            {
+                var prefFilenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault(metadataFilenameFieldName, null);
+                if (prefFilenameFromMetaData != null && prefFilenameFromMetaData.Length > 0)
+                    filename = prefFilenameFromMetaData;
+                else
+                    throw new UploadConfigException($"The metadata field value for filename ({metadataFilenameFieldName}) provided is either empty or missing");
+            }
+
+            if (filename == "")
+            {
+                var filenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("filename", null);
+                var extfilenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_filename", null);
+
+                // this is needed for DEX HL7 and is a required field in dex_hl7_metadata_definition.json
+                var originalFileName = tusInfoFile.MetaData!.GetValueOrDefault("original_filename", null);
+
+                if (filenameFromMetaData != null)
+                    filename = filenameFromMetaData;
+                else if (extfilenameFromMetaData != null)
+                    filename = extfilenameFromMetaData;
+                else if (originalFileName != null)
+                    filename = originalFileName;
+                else
+                    throw new TusInfoFileException("filename, meta_ext_filename, or original_filename is a required metadata field and is missing from the tus info file");
+            }
+        }
+
+        /// <summary>
+        /// Determines the folder path from the upload configuration.
+        /// </summary>
+        /// <param name="uploadConfig"></param>
+        /// <param name="dateTimeNow"></param>
+        /// <returns></returns>
+        private string GetFolderPath(UploadConfig uploadConfig, DateTime dateTimeNow)
+        {
+            string folderPath;
+            switch (uploadConfig.FolderStructure)
+            {
+                case "root":
+                    // Don't partition uploads into any subfolders - all uploads will reside in the root folder
+                    folderPath = "";
+                    break;
+                case "path":
+                    folderPath = uploadConfig.FixedFolderPath ?? "";
+                    break;
+                case "date_YYYY_MM_DD":
+                    // Partitioning is part of the filename where slashes will create subfolders.
+                    // Path inside of that is year / month / day / filename
+                    folderPath = $"{dateTimeNow.Year}/{dateTimeNow.Month.ToString().PadLeft(2, '0')}/{dateTimeNow.Day.ToString().PadLeft(2, '0')}";
+                    break;
+                default:
+                    _logger.LogWarning("No upload folder structure scheme provided or one provided is unrecognized, using root");
+                    folderPath = "";
+                    break;
+            }
+
+            return folderPath;
+        }
+
+        /// <summary>
+        /// Determines the filename suffix from the upload configuration.
+        /// </summary>
+        /// <param name="uploadConfig"></param>
+        /// <param name="dateTimeNow"></param>
+        /// <returns></returns>
+        private string GetFilenameSuffix(UploadConfig uploadConfig, DateTime dateTimeNow)
+        {
+            string filenameSuffix;
+            switch (uploadConfig.FilenameSuffix)
+            {
+                case "none":
+                    filenameSuffix = ""; // no suffix
+                    break;
+                case "clock_ticks":
+                    filenameSuffix = $"_{dateTimeNow.Ticks}";
+                    break;
+                default:
+                    _logger.LogWarning("No filename suffix scheme provided or one provided is unrecognized, using none");
+                    filenameSuffix = ""; // no suffix
+                    break;
+            }
+
+            return filenameSuffix;
         }
     }
 }
