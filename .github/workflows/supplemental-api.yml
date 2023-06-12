@@ -1,0 +1,62 @@
+name: Supplemental API Build and Deploy
+
+on:
+  workflow_dispatch:
+    paths:
+      - supplemental-api-function-app/**
+
+jobs:
+  build:
+    name: Build
+    runs-on: [self-hosted, java]
+    steps:
+      - name: Checkout
+        uses: actions/checkout
+      - name: Build
+        run: |
+          gradle build
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: supplemental-api-function
+          path: ./build/libs/supplemental-api-function-app-1.0.0-SNAPSHOT.jar
+          retention-days: 7
+  publish:
+    name: Publish to ImageHub
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_filename: ${{ steps.publish-jar-file.outputs.filename_output }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout
+    - name: Download artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: supplemental-api-function
+    - name: Publish
+      id: publish-jar-file
+      run: | 
+        GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA") 
+        FILE_NAME="supplemental_api_${GITHUB_SHA_SHORT}.jar"
+        echo "filename_output=${FILE_NAME}" >> "$GITHUB_OUTPUT"
+        curl -k -u ${{ secrets.IMAGEHUB_USERNAME }}:${{ secrets.IMAGEHUB_PASSWORD }} --upload-file $FILE_NAME "https://imagehub.cdc.gov/repository/dex-upload-app-artifacts/supplemental-api/${FILE_NAME}"
+  deploy:
+    name: Deploy Function App
+    needs: publish
+    runs-on: [self-hosted, java]
+    environment: 
+      name: dev
+    steps:
+    - name: Download artifact
+      env:
+        FILE_NAME: ${{ needs.publish.outputs.artifact_filename }}
+      run: |
+        curl -X GET -k -o supplemental-api.jar "https://imagehub.cdc.gov/repository/dex-upload-app-artifacts/supplemental-api/${FILE_NAME}"
+    - name: Log in with Azure
+      uses: azure/login@v1
+      with:
+        creds: "${{ secrets.AZURE_CREDENTIALS }}"
+    - name: Deploy
+      run : | 
+        # gradle azureFunctionsDeploy -Dsubscription=$SUBSCRIPTION -DresourceGroup=$RESOURCE_GROUP -DappName=$APP_NAME
+        

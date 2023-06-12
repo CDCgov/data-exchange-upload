@@ -31,3 +31,14 @@ targetCompatibility = "1.8"
 repositories {
     mavenCentral()
 }
+
+azurefunctions {
+    subscription = System.getProperty("subscription")
+    resourceGroup = System.getProperty("resourceGroup")
+    appName = System.getProperty("appName")
+
+    auth {
+        type = 'azure_cli'
+    }
+}
+
