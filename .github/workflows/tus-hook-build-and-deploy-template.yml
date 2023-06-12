@@ -1,0 +1,94 @@
+name: Tus Hook Deploy Template
+
+on:
+  workflow_call: # Reusable workflow trigger.
+    inputs:
+      HOOK_NAME:
+        type: string
+        description: "Name of tus hook (pre-create|post-receive|post-terminate)"
+        required: true
+      WORKING_DIRECTORY:
+        type: string
+        description: "Subdirectory where the hook script files are located."
+        required: true
+      BUILD_SCRIPT:
+        type: string
+        description: "Name of shell script used to build the portable binary hook file."
+        required: true
+      EXTRA_FILES:
+        type: string
+        description: "space-separated list of files to include in the artifact bundle along with the hook bin file."
+        required: false
+    secrets:
+      STORAGE_ACCOUNT_KEY:
+        required: true
+
+defaults:
+  run:
+    working-directory: ${{ inputs.WORKING_DIRECTORY }}
+
+jobs:
+  unit-test:
+    name: Unit Test
+    runs-on: [self-hosted, python3]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run Unit Tests
+        run: python3 -m unittest discover -v test
+  build-artifact:
+    name: Build Artifact
+    needs: unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build
+        run: |
+          ./${{ inputs.BUILD_SCRIPT }}
+      - name: Get listing
+        run: ls -lh .
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ inputs.HOOK_NAME }}-bin
+          path: .${{ inputs.WORKING_DIRECTORY }}/${{ inputs.HOOK_NAME }}-bin
+          retention-days: 7
+  publish:
+    name: Publish artifacts to ImageHub
+    needs: build-with-artifact
+    runs-on: [self-hosted, Linux]
+    outputs: 
+      artifact_filename: ${{ steps.archive_files.outputs.filename_output }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.HOOK_NAME }}-bin
+          path: ${{ inputs.WORKING_DIRECTORY }}
+      - name: Archive and publish
+        id: archive_files
+        run: |
+          GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA") 
+          FILE_NAME="${{ inputs.HOOK_NAME }}_${GITHUB_SHA_SHORT}.tar"
+          echo "filename_output=${FILE_NAME}" >> "$GITHUB_OUTPUT"
+          tar cfv $FILE_NAME ${{ inputs.HOOK_NAME }} ${{ inputs.HOOK_NAME }}-bin ${{ inputs.EXTRA_FILES }}
+          curl -k -u ${{ secrets.IMAGEHUB_USERNAME }}:${{ secrets.IMAGEHUB_PASSWORD }} --upload-file $FILE_NAME "https://imagehub.cdc.gov/repository/dex-upload-tus-artifacts/${{ inputs.HOOK_NAME }}/${FILE_NAME}"
+  deploy:
+    name: Upload to Blob Container
+    needs: publish
+    runs-on: [self-hosted, Linux]
+    env:
+      STORAGE_ACCOUNT_NAME: ocioededataexchangedev
+      STORAGE_ACCOUNT_KEY: ${{ secrets.STORAGE_ACCOUNT_KEY }}
+    steps:
+      - name: Download and extract
+        env:
+          FILE_NAME: ${{ needs.publish.outputs.artifact_filename }}
+        run: |
+          curl -X GET -k -o tus-artifacts.tar "https://imagehub.cdc.gov/repository/dex-upload-tus-artifacts/${{ inputs.HOOK_NAME }}/${FILE_NAME}"
+          tar xvf ${FILE_NAME} -C temp
+      - name: Upload
+        run: az storage blob upload-batch -d tusd-file-hooks --account-name $STORAGE_ACCOUNT_NAME --account-key $STORAGE_ACCOUNT_KEY -s temp
