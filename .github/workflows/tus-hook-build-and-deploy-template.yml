@@ -17,47 +17,61 @@ on:
         required: true
       EXTRA_FILES:
         type: string
-        description: "space-separated list of files to include in the artifact bundle along with the hook bin file."
+        description: "Space-separated list of files to include in the artifact bundle along with the hook bin file."
         required: false
     secrets:
       STORAGE_ACCOUNT_KEY:
         required: true
-
-defaults:
-  run:
-    working-directory: ${{ inputs.WORKING_DIRECTORY }}
+      AZURE_CREDENTIALS:
+        required: true
 
 jobs:
   unit-test:
     name: Unit Test
     runs-on: [self-hosted, python3]
+    defaults:
+      run:
+        working-directory: ${{ inputs.WORKING_DIRECTORY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Run Unit Tests
-        run: python3 -m unittest discover -v test
+        run: python3 -m unittest discover
   build-artifact:
     name: Build Artifact
-    needs: unit-test
     runs-on: ubuntu-latest
+    needs: unit-test
+    defaults:
+      run:
+        working-directory: ${{ inputs.WORKING_DIRECTORY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Build
+      - name: Log in with Azure
+        uses: azure/login@v1
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+      - name: Log into ACR
         run: |
-          ./${{ inputs.BUILD_SCRIPT }}
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          az acr login --name ociodexdevupload
+      - name: Build
+        run: ./${{ inputs.BUILD_SCRIPT }};
       - name: Get listing
         run: ls -lh .
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.HOOK_NAME }}-bin
-          path: .${{ inputs.WORKING_DIRECTORY }}/${{ inputs.HOOK_NAME }}-bin
+          path: ${{ inputs.WORKING_DIRECTORY }}/${{ inputs.HOOK_NAME }}-bin
           retention-days: 7
   publish:
     name: Publish artifacts to ImageHub
-    needs: build-with-artifact
+    needs: build-artifact
     runs-on: [self-hosted, Linux]
+    defaults:
+      run:
+        working-directory: ${{ inputs.WORKING_DIRECTORY }}
     outputs: 
       artifact_filename: ${{ steps.archive_files.outputs.filename_output }}
     steps:
@@ -80,6 +94,9 @@ jobs:
     name: Upload to Blob Container
     needs: publish
     runs-on: [self-hosted, Linux]
+    defaults:
+      run:
+        working-directory: ${{ inputs.WORKING_DIRECTORY }}
     env:
       STORAGE_ACCOUNT_NAME: ocioededataexchangedev
       STORAGE_ACCOUNT_KEY: ${{ secrets.STORAGE_ACCOUNT_KEY }}
@@ -89,6 +106,7 @@ jobs:
           FILE_NAME: ${{ needs.publish.outputs.artifact_filename }}
         run: |
           curl -X GET -k -o tus-artifacts.tar "https://imagehub.cdc.gov/repository/dex-upload-tus-artifacts/${{ inputs.HOOK_NAME }}/${FILE_NAME}"
+          mkdir temp
           tar xvf ${FILE_NAME} -C temp
       - name: Upload
-        run: az storage blob upload-batch -d tusd-file-hooks --account-name $STORAGE_ACCOUNT_NAME --account-key $STORAGE_ACCOUNT_KEY -s temp
+        run: az storage blob upload-batch -d tusd-file-hooks --account-name $STORAGE_ACCOUNT_NAME --account-key $STORAGE_ACCOUNT_KEY -s temp --overwrite

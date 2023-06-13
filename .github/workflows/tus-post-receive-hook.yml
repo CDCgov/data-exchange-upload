@@ -8,10 +8,15 @@ on:
     paths:
       - tus/file-hooks/upload-status/**
 
+defaults:
+  run:
+    working-directory: tus/file-hooks/upload-status
+
 jobs:
   dev:
-    uses: ./.github/workflows/tus-hooks-build-and-deploy-template.yml
+    uses: ./.github/workflows/tus-hook-build-and-deploy-template.yml
     with:
       HOOK_NAME: post-receive
       WORKING_DIRECTORY: tus/file-hooks/upload-status
-      BUILD_SCRIPT: build-post-receive-bin.sh
+      BUILD_SCRIPT: podman-build-post-receive-bin.sh
+    secrets: inherit

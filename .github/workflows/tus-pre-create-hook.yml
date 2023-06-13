@@ -8,10 +8,16 @@ on:
     paths:
       - tus/file-hooks/metadata-verify/**
 
+defaults:
+  run:
+    working-directory: tus/file-hooks/metadata-verify
+
 jobs:
   dev:
-    uses: ./.github/workflows/tus-hooks-build-and-deploy-template.yml
+    uses: ./.github/workflows/tus-hook-build-and-deploy-template.yml
     with:
       HOOK_NAME: pre-create
-      WORKING_DIRECTORY: tus/file-hooks/metadata-vericy
-      BUILD_SCRIPT: build-pre-create-bin.sh
+      WORKING_DIRECTORY: tus/file-hooks/metadata-verify
+      BUILD_SCRIPT: podman-build-pre-create-bin.sh
+      EXTRA_FILES: "allowed_destination_and_events.json dex_hl7_metadata_definition.json ndlp-ri-meta-definition.json dextesting_te1_metadata_definition.json ndlp-iv-meta-definition.json pulsenet_metadata_definition.json"
+    secrets: inherit
