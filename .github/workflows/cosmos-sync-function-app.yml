@@ -2,16 +2,16 @@ name: Cosmos Sync Function App Build and Deploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+#  push:
+#    branches:
+#      - main
     paths:
       - cosmos-sync-function-app/**
 
 jobs:
   build:
     name: Build
-    runs-on: [self-hosted, upload-java]
+    runs-on: [self-hosted, java]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -47,22 +47,22 @@ jobs:
           echo "filename_output=${FILE_NAME}" >> "$GITHUB_OUTPUT"
           echo $FILE_NAME
           curl -I -k -u ${{ secrets.IMAGEHUB_USERNAME }}:${{ secrets.IMAGEHUB_PASSWORD }} --upload-file cosmos-sync-function-app-1.0.0-SNAPSHOT.jar "https://imagehub.cdc.gov/repository/dex-upload-app-artifacts/cosmos-sync"
-#  deploy:
-#    name: Deploy Function App
-#    needs: publish
-#    runs-on: [self-hosted, upload-java]
-#    environment:
-#      name: dev
-#    steps:
-#      - name: Download artifact
-#        env:
-#          FILE_NAME: ${{ needs.publish.outputs.artifact_filename }}
-#        run: |
-#          curl -X GET -k -o cosmos-sync.jar "https://imagehub.cdc.gov/repository/dex-upload-app-artifacts/cosmos-sync/${FILE_NAME}"
-#      - name: Log in to Azure
-#        uses: azure/login@v1
-#        with:
-#          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+  deploy:
+    name: Deploy Function App
+    needs: publish
+    runs-on: [self-hosted, upload-java]
+    environment:
+      name: dev
+    steps:
+      - name: Download artifact
+        env:
+          FILE_NAME: ${{ needs.publish.outputs.artifact_filename }}
+        run: |
+          curl -X GET -k -o cosmos-sync.jar "https://imagehub.cdc.gov/repository/dex-upload-app-artifacts/cosmos-sync/${FILE_NAME}"
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
 #      - name: Deploy
 #        run : |
-          # gradle azureFunctionsDeploy -Dsubscription=$SUBSCRIPTION -DresourceGroup=$RESOURCE_GROUP -DappName=$APP_NAME
+#         # gradle azureFunctionsDeploy -Dsubscription=$SUBSCRIPTION -DresourceGroup=$RESOURCE_GROUP -DappName=$APP_NAME
