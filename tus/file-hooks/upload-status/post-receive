@@ -44,7 +44,7 @@ if [ "$first_update" == true ] || [ $elapsed_seconds -ge "1" ] || [ "$offset" -e
     echo "[post-receive]: INFO: Latest offset file updated, calling post-receive-bin (offset = $offset)"
 
     # Run the python standalone binary to update the upload status
-    ./post-receive-bin --id $id --offset $offset --size $size --metadata $metadata
+    ./post-receive-bin --id $id --offset $offset --size $size --metadata "$metadata"
 
     echo "[post-receive]: INFO: Completed calling post-receive-bin (offset = $offset)"
 else
