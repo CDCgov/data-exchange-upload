@@ -18,6 +18,22 @@
          {
             "name":"influenzaVaccination",
             "definition_filename":"ndlp-iv-meta-definition.json"
+         },
+         {
+            "name":"hepatitis",
+            "definition_filename":"ndlp-hep-meta-definition.json"
+         },
+         {
+            "name":"covid19",
+            "definition_filename":"ndlp-covid-meta-definition.json"
+         },
+         {
+            "name":"publicHealthFlu",
+            "definition_filename":"ndlp-phlip-flu-meta-definition.json"
+         },
+         {
+            "name":"publicHealthVpd",
+            "definition_filename":"ndlp-phlip-vpd-meta-definition.json"
          }
       ]
    },
