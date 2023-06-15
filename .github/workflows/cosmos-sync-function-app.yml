@@ -1,0 +1,68 @@
+name: Cosmos Sync Function App Build and Deploy
+
+on:
+  workflow_dispatch:
+#  push:
+#    branches:
+#      - main
+    paths:
+      - cosmos-sync-function-app/**
+
+jobs:
+  build:
+    name: Build
+    runs-on: [self-hosted, java]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build
+        working-directory: cosmos-sync-function-app/**
+        run: |
+          gradle build
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: cosmos-sync-function-app
+          path: ./cosmos-sync-function-app/build/libs/cosmos-sync-function-app-1.0.0-SNAPSHOT.jar
+          retention-days: 7
+  publish:
+    name: Publish to ImageHub
+    needs: build
+    runs-on: [self-hosted, Linux]
+    outputs:
+      artifact_filename: ${{ steps.publish-jar-file.outputs.filename_output }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: cosmos-sync-function-app
+      - name: Publish
+        id: publish-jar-file
+        run: |
+          ls
+          GITHUB_SHA_SHORT=$(git rev-parse --short "$GITHUB_SHA") 
+          FILE_NAME="cosmos_sync_${GITHUB_SHA_SHORT}.jar"
+          echo "filename_output=${FILE_NAME}" >> "$GITHUB_OUTPUT"
+          echo $FILE_NAME
+          curl -I -k -u ${{ secrets.IMAGEHUB_USERNAME }}:${{ secrets.IMAGEHUB_PASSWORD }} --upload-file cosmos-sync-function-app-1.0.0-SNAPSHOT.jar "https://imagehub.cdc.gov/repository/dex-upload-app-artifacts/cosmos-sync"
+  deploy:
+    name: Deploy Function App
+    needs: publish
+    runs-on: [self-hosted, java]
+    environment:
+      name: dev
+    steps:
+      - name: Download artifact
+        env:
+          FILE_NAME: ${{ needs.publish.outputs.artifact_filename }}
+        run: |
+          curl -X GET -k -o cosmos-sync.jar "https://imagehub.cdc.gov/repository/dex-upload-app-artifacts/cosmos-sync/${FILE_NAME}"
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: "${{ secrets.AZURE_CREDENTIALS }}"
+#      - name: Deploy
+#        run : |
+#         # gradle azureFunctionsDeploy -Dsubscription=$SUBSCRIPTION -DresourceGroup=$RESOURCE_GROUP -DappName=$APP_NAME
