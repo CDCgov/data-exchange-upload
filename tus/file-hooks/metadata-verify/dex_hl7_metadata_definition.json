@@ -44,7 +44,7 @@
 		},
 		{
 			"fieldname": "route",
-			"allowed_values": ["COVID19_ELR", "PHLIP_ELR"],
+			"allowed_values": ["COVID19_ELR", "PHLIP_FLU", "PHLIP_VPD"],
 			"required": "false",
 			"description": "Informs the type of ELR messages when message_type = ELR"
 		},
