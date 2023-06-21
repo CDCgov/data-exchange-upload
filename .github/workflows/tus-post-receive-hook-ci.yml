@@ -11,7 +11,7 @@ defaults:
 
 jobs:
   dev:
-    uses: ./.github/workflows/tus-hook-build-and-deploy-template.yml
+    uses: ./.github/workflows/tus-hooks-ci-template.yml
     with:
       HOOK_NAME: post-receive
       WORKING_DIRECTORY: tus/file-hooks/upload-status
