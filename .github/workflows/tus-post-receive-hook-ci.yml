@@ -1,0 +1,18 @@
+name: "Tus Post-Receive Hook CI"
+
+on:
+  pull_request:
+    paths:
+      - tus/file-hooks/upload-status/**
+
+defaults:
+  run:
+    working-directory: tus/file-hooks/upload-status
+
+jobs:
+  dev:
+    uses: ./.github/workflows/tus-hook-build-and-deploy-template.yml
+    with:
+      HOOK_NAME: post-receive
+      WORKING_DIRECTORY: tus/file-hooks/upload-status
+      BUILD_SCRIPT: podman-build-pre-create-bin.sh  
