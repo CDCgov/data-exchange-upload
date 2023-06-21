@@ -1,6 +1,7 @@
 name: "Tus Pre-Create Hook CI"
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - tus/file-hooks/metadata-verify/**

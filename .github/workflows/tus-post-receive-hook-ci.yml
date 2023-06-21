@@ -1,6 +1,7 @@
 name: "Tus Post-Receive Hook CI"
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - tus/file-hooks/upload-status/**
