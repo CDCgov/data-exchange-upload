@@ -1,0 +1,13 @@
+name: "Gradle Function App CI Template"
+
+on:
+  workflow_call:
+    inputs:
+      WORKING_DIRECTORY:
+        type: string
+        description: "Subdirectory where the function app project files are located."
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
