@@ -39,6 +39,7 @@ azurefunctions {
     appName = 'cosmos-sync-function-app' // please rename the function name
     pricingTier = 'Consumption' // refers https://github.com/microsoft/azure-maven-plugins/tree/develop/azure-functions-maven-plugin#supported-pricing-tiers for all valid values
     region = 'westus'
+    allowTelemetry = false
     runtime {
       os = 'windows'
     }
