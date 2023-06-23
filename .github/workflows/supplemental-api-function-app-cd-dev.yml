@@ -1,4 +1,4 @@
-name: "Tus Post-Receive Hook CD Dev"
+name: "Supplemental API Function App CD Dev"
 
 on:
   workflow_dispatch:
@@ -6,10 +6,10 @@ on:
     branches:
       - main
     paths:
-      - tus/file-hooks/upload-status/**
+      - supplemental-api-function-app/**
 
 jobs:
   dev:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
-      WORKFLOW: tus-post-receive-hook-cd-dev.yml
+      WORKFLOW: supplemental-api-function-app-cd-dev.yml
