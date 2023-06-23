@@ -24,7 +24,7 @@ jobs:
           echo "${{ secrets.CDC_COE_BOTFREY_PEM }}" > app-private-key.pem
           chmod +x ./get-github-app-access-token.sh;
           ./get-github-app-access-token.sh;
-          echo "access_token=${TOKEN}" >> "$GITHUB_ENV"
+          echo "access_token=${TOKEN}"
       - name: Manually Dispatch Remote CICD Trigger Event 
         uses: actions/github-script@v6
         with:
