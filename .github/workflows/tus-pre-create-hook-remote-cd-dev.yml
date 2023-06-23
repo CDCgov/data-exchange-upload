@@ -13,3 +13,4 @@ jobs:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
       WORKFLOW: tus-pre-create-hook-cd-dev.yml
+    secrets: inherit
