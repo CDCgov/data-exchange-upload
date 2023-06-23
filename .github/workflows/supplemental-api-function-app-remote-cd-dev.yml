@@ -1,4 +1,4 @@
-name: "Supplemental API Function App CD Dev"
+name: "Supplemental API Function App Remote CD Dev"
 
 on:
   workflow_dispatch:

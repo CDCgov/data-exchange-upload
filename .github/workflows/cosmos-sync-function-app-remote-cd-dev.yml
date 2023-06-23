@@ -1,4 +1,4 @@
-name: "Cosmos Sync Function App CD Dev"
+name: "Cosmos Sync Function App Remote CD Dev"
 
 on:
   workflow_dispatch:
