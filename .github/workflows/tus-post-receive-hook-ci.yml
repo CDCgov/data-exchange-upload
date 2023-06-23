@@ -1,10 +1,8 @@
-name: Tus Post-Receive Hook Build and Deploy
+name: "Tus Post-Receive Hook CI"
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  pull_request:
     paths:
       - tus/file-hooks/upload-status/**
 
@@ -14,9 +12,8 @@ defaults:
 
 jobs:
   dev:
-    uses: ./.github/workflows/tus-hook-build-and-deploy-template.yml
+    uses: ./.github/workflows/tus-hooks-ci-template.yml
     with:
       HOOK_NAME: post-receive
       WORKING_DIRECTORY: tus/file-hooks/upload-status
-      BUILD_SCRIPT: podman-build-post-receive-bin.sh
-    secrets: inherit
+      BUILD_SCRIPT: podman-build-pre-create-bin.sh  

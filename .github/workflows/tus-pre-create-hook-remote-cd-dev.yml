@@ -1,0 +1,15 @@
+name: "Tus Pre-Create Hook Remote CD Dev"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - tus/file-hooks/metadata-verify/**
+
+jobs:
+  dev:
+    uses: ./.github/workflows/remote-cd-trigger-template.yml
+    with:
+      WORKFLOW: tus-pre-create-hook-cd-dev.yml

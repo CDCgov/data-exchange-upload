@@ -1,0 +1,15 @@
+name: "Cosmos Sync Function App Remote CD Dev"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - cosmos-sync-function-app/**
+
+jobs:
+  dev:
+    uses: ./.github/workflows/remote-cd-trigger-template.yml
+    with:
+      WORKFLOW: cosmos-sync-function-app-cd-dev.yml
