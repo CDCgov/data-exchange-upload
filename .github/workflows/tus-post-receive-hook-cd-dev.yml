@@ -1,0 +1,13 @@
+name: "Tus Post-Receive Hook CD Dev"
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - tus/file-hooks/upload-status/**
+
+jobs:
+  dev:
+    uses: ./.github/workflows/tus-hooks-cd-template.yml
+    with:
+      WORKFLOW: tus-post-receive-hook-cd-dev.yml

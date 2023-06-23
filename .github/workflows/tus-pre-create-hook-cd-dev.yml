@@ -1,0 +1,13 @@
+name: "Tus Pre-Create Hook CD Dev"
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - tus/file-hooks/metadata-verify/**
+
+jobs:
+  dev:
+    uses: ./.github/workflows/tus-hooks-cd-template.yml
+    with:
+      WORKFLOW: tus-pre-create-hook-cd-dev.yml
