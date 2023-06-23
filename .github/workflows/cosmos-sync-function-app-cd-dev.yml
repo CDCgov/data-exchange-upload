@@ -1,4 +1,4 @@
-name: "Tus Post-Receive Hook CD Dev"
+name: "Cosmos Sync Function App CD Dev"
 
 on:
   workflow_dispatch:
@@ -6,10 +6,10 @@ on:
     branches:
       - main
     paths:
-      - tus/file-hooks/upload-status/**
+      - cosmos-sync-function-app/**
 
 jobs:
   dev:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
-      WORKFLOW: tus-post-receive-hook-cd-dev.yml
+      WORKFLOW: cosmos-sync-function-app-cd-dev.yml
