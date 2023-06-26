@@ -1,3 +1,5 @@
+# **Archived in favor of [CDCgov/data-exchange-upload](https://github.com/CDCgov/data-exchange-upload)**
+
 # CDC Data Exchange (DEX) Upload
 
 Repository for CDC DEX Upload.
