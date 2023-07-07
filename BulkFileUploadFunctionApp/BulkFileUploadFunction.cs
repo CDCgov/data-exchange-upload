@@ -66,28 +66,32 @@ namespace BulkFileUploadFunctionApp
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
         [Function("BulkFileUploadFunction")]
-        public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvent)
+        public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
-            if (eventHubTriggerEvent.Count() < 1)
-                throw new Exception("EventHubTrigger triggered with no data");
+            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
 
-            string blobCreatedEventJson = eventHubTriggerEvent[0];
-            _logger.LogInformation($"Received event: {blobCreatedEventJson}");
+            foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
+            {
+                
+                _logger.LogInformation($"Received event: {blobCreatedEventJson}");
 
-            StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
+                StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 
-            if (blobCreatedEvents == null)
-                throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
+                if (blobCreatedEvents == null)
+                    throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
 
-            if (blobCreatedEvents.Count() < 1)
-                throw new Exception("Unexpected data content of event; there should be at least one element in the array");
+                if (blobCreatedEvents.Count() < 1)
+                    throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
-            StorageBlobCreatedEvent blobCreatedEvent = blobCreatedEvents[0];
-            if (blobCreatedEvent == null)
-                throw new Exception("Unexpected data content of event; there should be at least one element in the array");
+                StorageBlobCreatedEvent blobCreatedEvent = blobCreatedEvents[0];
+                if (blobCreatedEvent == null)
+                    throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
-            await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
-        }
+                await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
+
+            } // .foreach 
+
+        } // .Task Run
 
         /// <summary>
         /// Processeses the given blob created event from the URL provided.
@@ -303,8 +307,11 @@ namespace BulkFileUploadFunctionApp
         /// <returns></returns>
         private async Task CopyBlobFromDexToEdavAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
         {
-            try
-            {
+            try {
+                BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
+                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
+                BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
+
                 var edavBlobServiceClient = new BlobServiceClient(
                     new Uri($"https://{_edavAzureStroageAccountName}.blob.core.windows.net"),
                     new DefaultAzureCredential() // using Service Principal
@@ -313,24 +320,19 @@ namespace BulkFileUploadFunctionApp
                 string destinationContainerName = sourceContainerName;
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
-                // Create the destination container if not exists
                 await edavContainerClient.CreateIfNotExistsAsync();
 
-                StorageSharedKeyCredential storageSharedKeyCredential = new(_dexAzureStorageAccountName, _dexAzureStorageAccountKey);
-                Uri blobContainerUri = new($"https://{_dexAzureStorageAccountName}.blob.core.windows.net/{sourceContainerName}");
-                BlobContainerClient dexCombinedSourceContainerClient = new(blobContainerUri, storageSharedKeyCredential);
-
                 string destinationBlobFilename = sourceBlobFilename;
-                BlobClient dexSourceBlobClient = dexCombinedSourceContainerClient.GetBlobClient(destinationBlobFilename);
-                var dexSasUri = GetServiceSasUriForBlob(dexSourceBlobClient);
-
                 BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
 
-                await _blobCopyHelper.CopyBlobAsync(dexSourceBlobClient, edavDestBlobClient, destinationMetadata, dexSasUri);
-            }
-            catch (RequestFailedException ex)
+                using var edavBlobStream = await edavDestBlobClient.OpenWriteAsync(true);
+                using var dexBlobStream = await dexBlobClient.OpenReadAsync();
+
+                await dexBlobStream.CopyToAsync(edavBlobStream);
+            } 
+            catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError("Failed to copy", ex.Message);
             }
         }
 
