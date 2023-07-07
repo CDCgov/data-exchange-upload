@@ -73,6 +73,9 @@ paths:
       description: Get the tusd welcome message
       security:
         - bearerAuth: []
+      responses:
+        200:
+          description: Success
     
     post:
       summary: An empty POST request is used to create a new upload resource. The
