@@ -71,13 +71,8 @@ paths:
     get:
       summary: tusd Heartbeat
       description: Get the tusd welcome message
-      parameters:
-        - name: Authorization
-          in: header
-          schema:
-            type: string
-          required: true
-          description: Auth token proveded by SAMS.
+      security:
+        - bearerAuth: []
     
     post:
       summary: An empty POST request is used to create a new upload resource. The
@@ -86,6 +81,8 @@ paths:
         parts of the upload in the initial Creation request
       description: Endpoint for the Creation extension. Modified by the Creation With
         Upload extension.
+      security:
+        - bearerAuth: []
       parameters:
       - name: Content-Length
         in: header
@@ -267,7 +264,7 @@ paths:
             Tus-Extension:
               schema:
                 $ref: "#/components/schemas/Tus-Extension"
-  /upload/{id}:
+  /upload/{tguid}:
     delete:
       summary: Added by the Termination extension.
       description: When receiving a DELETE request for an existing upload the Server
@@ -307,6 +304,8 @@ paths:
       summary: Used to determine the offset at which the upload should be continued.
       description: Used to determine the offset at which the upload should be continued.
       operationId: FilesHead
+      security:
+        - bearerAuth: []
       parameters:
       - name: id
         in: path
@@ -376,6 +375,8 @@ paths:
         by the Upload-Offset header. All PATCH requests MUST use Content-Type: application/offset+octet-stream,
         otherwise the server SHOULD return a 415 Unsupported Media Type status.'
       operationId: FilePatch
+      security:
+        - bearerAuth: []
       parameters:
       - name: id
         in: path
@@ -494,8 +495,6 @@ paths:
                 $ref: "#/components/schemas/Tus-Resumable"
   '/status/{tguid}':
     get:
-      tags:
-        - DeX
       summary: Provides upload status for a specific tguid.
       operationId: get-statusfortguid
       description: >-
@@ -504,6 +503,8 @@ paths:
         unique identifer (tguid) used to resume uploads or identify the filename
         it is persisted as in blob storage once completed. The tguid will be
         used for getting a specific uploaded file's status..
+      security:
+        - bearerAuth: []
       parameters:
         - name: tguid
           in: path
@@ -524,14 +525,14 @@ paths:
           description: Authorization information is missing or invalid.
   '/status/destination/{destination_id}':
     get:
-      tags:
-        - DeX
       summary: Provides all upload statuses for the given destination identifier.
       operationId: get-statusfordestination
       description: >-
         Provides upload statuses for the given destination identifier that can
         be optionally filtered by meta_ext_event and date range.  Returned data
         is paginated.
+      security:
+        - bearerAuth: []
       parameters:
         - name: ext_event
           in: query
@@ -602,6 +603,10 @@ paths:
           description: Authorization information is missing or invalid.
 
 components:
+  securitySchemes:
+      bearerAuth:
+        type: http
+        scheme: bearer
   schemas:
     Tus-Resumable:
       type: string
