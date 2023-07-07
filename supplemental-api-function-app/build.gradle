@@ -36,6 +36,7 @@ azurefunctions {
     subscription = System.getProperty("subscription")
     resourceGroup = System.getProperty("resourceGroup")
     appName = System.getProperty("appName")
+    allowTelemetry = false
 
     auth {
         type = 'azure_cli'
