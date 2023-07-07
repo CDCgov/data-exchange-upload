@@ -66,28 +66,32 @@ namespace BulkFileUploadFunctionApp
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
         [Function("BulkFileUploadFunction")]
-        public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvent)
+        public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
-            if (eventHubTriggerEvent.Count() < 1)
-                throw new Exception("EventHubTrigger triggered with no data");
+            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
 
-            string blobCreatedEventJson = eventHubTriggerEvent[0];
-            _logger.LogInformation($"Received event: {blobCreatedEventJson}");
+            foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
+            {
+                
+                _logger.LogInformation($"Received event: {blobCreatedEventJson}");
 
-            StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
+                StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 
-            if (blobCreatedEvents == null)
-                throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
+                if (blobCreatedEvents == null)
+                    throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
 
-            if (blobCreatedEvents.Count() < 1)
-                throw new Exception("Unexpected data content of event; there should be at least one element in the array");
+                if (blobCreatedEvents.Count() < 1)
+                    throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
-            StorageBlobCreatedEvent blobCreatedEvent = blobCreatedEvents[0];
-            if (blobCreatedEvent == null)
-                throw new Exception("Unexpected data content of event; there should be at least one element in the array");
+                StorageBlobCreatedEvent blobCreatedEvent = blobCreatedEvents[0];
+                if (blobCreatedEvent == null)
+                    throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
-            await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
-        }
+                await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
+
+            } // .foreach 
+
+        } // .Task Run
 
         /// <summary>
         /// Processeses the given blob created event from the URL provided.
