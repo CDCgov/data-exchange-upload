@@ -18,13 +18,15 @@ paths:
     get:
       summary: This GET request goes to SAMS to validate a supplied token by the client.
       description:
-      parameters:
-        - name: access_token
-          in: query
-          schema:
-            type: string
-          required: true
-          description: Auth token given by SAMS
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: JSON object describing the proveded auth token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Oauth-Token-Validation'
         
     post:
       summary: This POST request goes to SAMS to obtain a session token for authentication.
@@ -611,6 +613,15 @@ components:
         type: http
         scheme: bearer
   schemas:
+    Oauth-Token-Validation:
+      type: object
+      properties:
+        status:
+          type: string
+          description: Status of the token describing if it is valid or not.
+        Reason:
+          type: string
+          description: Message saying if the token is valid or not.
     Tus-Resumable:
       type: string
       enum:
