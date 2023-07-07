@@ -31,25 +31,24 @@ paths:
     post:
       summary: This POST request goes to SAMS to obtain a session token for authentication.
       description:
-      parameters:
-        - name: Content-Type
-          in: header
-          schema:
-            type: string
-          required: true
-          description: urlencoded string
-        - name: username
-          in: formData
-          schema:
-            type: string
-          required: true
-          description: SAMS System account username (required)
-        - name: password
-          in: formData
-          schema:
-            type: string
-          required: true
-          description: SAMS System account password (required)
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Oauth-Form'
+      responses:
+        '200':
+          description: JSON object containing the new auth token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Oauth-Token-Grant'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SAMS-Error'
                     
   /oauth/refresh:
     post:
@@ -622,6 +621,52 @@ components:
         Reason:
           type: string
           description: Message saying if the token is valid or not.
+    Oauth-Token-Grant:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: An official auth token in UUID format.
+        token_type:
+          type: string
+          description: The Oauth token type.
+        expires_in: 
+          type: integer
+          description: Duration in seconds when the token will expire.
+        refresh_token:
+          type: string
+          description: Token used to get a new auth token when it expires.
+        scope: 
+          type: string
+          description: Authorization scopes associated with this auth token.
+        resource: 
+          type: array
+          description: List of resources this token has access to.
+    Oauth-Form:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: SAMS system account username.
+          required:
+            - "true"
+        password:
+          type: string
+          description: SAMS sytem account password.
+        grant_type:
+          type: string
+          description: Oauth grant type.
+          default: password
+    SAMS-Error:
+      type: object
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
     Tus-Resumable:
       type: string
       enum:
