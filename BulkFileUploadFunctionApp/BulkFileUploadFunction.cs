@@ -303,8 +303,11 @@ namespace BulkFileUploadFunctionApp
         /// <returns></returns>
         private async Task CopyBlobFromDexToEdavAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
         {
-            try
-            {
+            try {
+                BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
+                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
+                BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
+
                 var edavBlobServiceClient = new BlobServiceClient(
                     new Uri($"https://{_edavAzureStroageAccountName}.blob.core.windows.net"),
                     new DefaultAzureCredential() // using Service Principal
@@ -313,24 +316,19 @@ namespace BulkFileUploadFunctionApp
                 string destinationContainerName = sourceContainerName;
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
-                // Create the destination container if not exists
                 await edavContainerClient.CreateIfNotExistsAsync();
 
-                StorageSharedKeyCredential storageSharedKeyCredential = new(_dexAzureStorageAccountName, _dexAzureStorageAccountKey);
-                Uri blobContainerUri = new($"https://{_dexAzureStorageAccountName}.blob.core.windows.net/{sourceContainerName}");
-                BlobContainerClient dexCombinedSourceContainerClient = new(blobContainerUri, storageSharedKeyCredential);
-
                 string destinationBlobFilename = sourceBlobFilename;
-                BlobClient dexSourceBlobClient = dexCombinedSourceContainerClient.GetBlobClient(destinationBlobFilename);
-                var dexSasUri = GetServiceSasUriForBlob(dexSourceBlobClient);
-
                 BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
 
-                await _blobCopyHelper.CopyBlobAsync(dexSourceBlobClient, edavDestBlobClient, destinationMetadata, dexSasUri);
-            }
-            catch (RequestFailedException ex)
+                using var edavBlobStream = await edavDestBlobClient.OpenWriteAsync(true);
+                using var dexBlobStream = await dexBlobClient.OpenReadAsync();
+
+                await dexBlobStream.CopyToAsync(edavBlobStream);
+            } 
+            catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                _logger.LogError("Failed to copy", ex.Message);
             }
         }
 
