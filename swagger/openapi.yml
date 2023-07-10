@@ -22,7 +22,7 @@ paths:
         - bearerAuth: []
       responses:
         '200':
-          description: JSON object describing the proveded auth token.
+          description: JSON object describing the provided auth token.
           content:
             application/json:
               schema:
