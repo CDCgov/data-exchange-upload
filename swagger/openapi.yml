@@ -59,14 +59,32 @@ paths:
           in: header
           schema:
             type: string
+            default: application/x-www-form-urlencoded
           required: true
           description: urlencoded string
-        - name: refresh_token
-          in: query
-          schema:
-            type: string
-          required: true
-          description: Refresh token provided by SAMS.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+                  description: Refresh token given by SAMS in the oauth grant response.
+      responses:
+        '200':
+            description: JSON object containing the new auth token.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Oauth-Token-Grant'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SAMS-Error'
         
   /upload:
     get:
