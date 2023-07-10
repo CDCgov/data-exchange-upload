@@ -3,12 +3,12 @@ name: Publish Swagger UI to Github Pages
 on:
   pull_request:
     paths:
-      - swagger/**
+      - 'swagger/**'
   push:
     branches:
       - main
     paths:
-      - swagger/**
+      - 'swagger/**'
 
 jobs:
   deploy:
