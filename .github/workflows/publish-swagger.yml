@@ -1,6 +1,9 @@
 name: Publish Swagger UI to Github Pages
 
 on:
+  pull_request:
+    paths:
+      - swagger/**
   push:
     branches:
       - main
