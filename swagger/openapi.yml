@@ -93,7 +93,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        200:
+        '200':
           description: Success
     
     post:
@@ -172,7 +172,7 @@ paths:
               type: string
               format: binary
       responses:
-        201:
+        '201':
           description: Created
           headers:
             Tus-Resumable:
@@ -204,7 +204,7 @@ paths:
               description: Url of the created resource.
               schema:
                 type: string
-        400:
+        '400':
           description: Added by the Creation With Upload Extension in combination
             with the checksum extension. The checksum algorithm is not supported by
             the server
@@ -212,7 +212,7 @@ paths:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        412:
+        '412':
           description: Precondition Failed
           headers:
             Tus-Resumable:
@@ -221,7 +221,7 @@ paths:
             Tus-Version:
               schema:
                 $ref: "#/components/schemas/Tus-Version"
-        413:
+        '413':
           description: If the length of the upload exceeds the maximum, which MAY
             be specified using the Tus-Max-Size header, the Server MUST respond with
             the 413 Request Entity Too Large status.
@@ -229,14 +229,14 @@ paths:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        415:
+        '415':
           description: Added by the Creation With Upload Extension. Content-Type was
             not application/offset+octet-stream
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        460:
+        '460':
           description: Added by the Creation With Upload Extension in combination
             with the checksum extension. Checksums mismatch
           headers:
@@ -250,7 +250,7 @@ paths:
         No Content or 200 OK status MUST contain the Tus-Version header. It MAY include
         the Tus-Extension and Tus-Max-Size headers.
       responses:
-        200:
+        '200':
           description: Success
           headers:
             Tus-Resumable:
@@ -268,7 +268,7 @@ paths:
             Tus-Extension:
               schema:
                 $ref: "#/components/schemas/Tus-Extension"
-        204:
+        '204':
           description: Success
           headers:
             Tus-Resumable:
@@ -307,13 +307,13 @@ paths:
         schema:
           $ref: "#/components/schemas/Tus-Resumable"
       responses:
-        204:
+        '204':
           description: Upload was terminated
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        412:
+        '412':
           description: Precondition Failed
           headers:
             Tus-Resumable:
@@ -340,7 +340,7 @@ paths:
         schema:
           $ref: "#/components/schemas/Tus-Resumable"
       responses:
-        200:
+        '200':
           description: Returns offset
           headers:
             Tus-Resumable:
@@ -357,7 +357,7 @@ paths:
             Upload-Length:
               schema:
                 $ref: "#/components/schemas/Upload-Length"
-        403:
+        '403':
           description: If the resource is not found, the Server SHOULD return either
             the 404 Not Found, 410 Gone or 403 Forbidden status without the Upload-Offset
             header.
@@ -365,7 +365,7 @@ paths:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        404:
+        '404':
           description: If the resource is not found, the Server SHOULD return either
             the 404 Not Found, 410 Gone or 403 Forbidden status without the Upload-Offset
             header.
@@ -373,7 +373,7 @@ paths:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        410:
+        '410':
           description: If the resource is not found, the Server SHOULD return either
             the 404 Not Found, 410 Gone or 403 Forbidden status without the Upload-Offset
             header.
@@ -381,7 +381,7 @@ paths:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        412:
+        '412':
           description: Precondition Failed
           headers:
             Tus-Resumable:
@@ -434,7 +434,7 @@ paths:
               type: string
               format: binary
       responses:
-        204:
+        '204':
           description: Upload offset was updated
           headers:
             Tus-Resumable:
@@ -461,14 +461,14 @@ paths:
                 Upload-Expires header MUST be in RFC 7231 datetime format.
               schema:
                 type: string
-        400:
+        '400':
           description: Added by the checksum extension. The checksum algorithm is
             not supported by the server
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        403:
+        '403':
           description: In the concatenation extension, the Server MUST respond with
             the 403 Forbidden status to PATCH requests against a final upload URL
             and MUST NOT modify the final or its partial uploads.
@@ -476,13 +476,13 @@ paths:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        404:
+        '404':
           description: PATCH request against a non-existent resource
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        409:
+        '409':
           description: PATCH request with Upload-Offset unequal to the offset of the resource on the server. The Upload-Offset header's value MUST be equal to the current offset of the resource.
           headers:
             Tus-Resumable:
@@ -503,13 +503,13 @@ paths:
             Tus-Version:
               schema:
                 $ref: "#/components/schemas/Tus-Version"
-        415:
+        '415':
           description: Content-Type was not application/offset+octet-stream
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        460:
+        '460':
           description: Added by the checksum extension. Checksums mismatch
           headers:
             Tus-Resumable:
@@ -533,7 +533,7 @@ paths:
           description: Unique identifier of the upload to retrieve status on.
           required: true
           schema:
-            type: ''
+            type: string
       responses:
         '200':
           description: Status of the given upload
@@ -568,7 +568,7 @@ paths:
           in: path
           required: true
           schema:
-            type: ''
+            type: string
           description: Destination identifier to retrieve all the upload statuses for.
         - name: date_start
           in: query
