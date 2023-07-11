@@ -13,4 +13,5 @@ jobs:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
       WORKFLOW: bulk-file-upload-function-app-cd-dev.yml
+      REF: main
     secrets: inherit
