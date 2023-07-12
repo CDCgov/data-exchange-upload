@@ -1,17 +1,15 @@
-name: "Supplemental API Function App Remote CD Staging"
+name: "Deploy Function App Release Candidate - Staging"
 
 on:
   workflow_dispatch:
   push:
     tags:
       - '*'
-    paths:
-      - supplemental-api-function-app/**
 
 jobs:
   staging:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
-      WORKFLOW: supplemental-api-function-app-cd-staging.yml
+      WORKFLOW: function-app-rc-matrix.yml
       REF: ${{ github.ref }}
     secrets: inherit
