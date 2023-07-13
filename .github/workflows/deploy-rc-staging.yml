@@ -1,4 +1,4 @@
-name: "Deploy Function App Release Candidate - Staging"
+name: "Deploy Release Candidate - Staging"
 
 on:
   workflow_dispatch:
@@ -11,5 +11,5 @@ jobs:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
       WORKFLOW: function-app-rc-matrix.yml
-      REF: ${{ github.ref }}
+      REF: ${{ github.ref }}  # Resolves to the tag that is pushed
     secrets: inherit

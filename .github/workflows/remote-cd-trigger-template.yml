@@ -9,8 +9,9 @@ on:
         required: true
       REF: 
         type: string
-        description: "Github reference"
-        required: true
+        description: "Git tag or branch the workflow is running on."
+        required: false
+        default: "main"
 
 jobs:
   invoke-cd-trigger:
@@ -38,5 +39,8 @@ jobs:
                   owner: 'cdcent',
                   repo: 'data-exchange-upload-devops',
                   workflow_id: '${{ inputs.WORKFLOW }}',
-                  ref: '${{ inputs.REF }}'
+                  ref: main
+                  inputs: {
+                    DATA_EXCHANGE_UPLOAD_TAG: ${{ inputs.REF }}
+                  }
                 })
