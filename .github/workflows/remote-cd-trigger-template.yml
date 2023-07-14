@@ -7,6 +7,11 @@ on:
         type: string
         description: "Workflow yml file that should be triggered."
         required: true
+      REF: 
+        type: string
+        description: "Git tag or branch the workflow is running on."
+        required: false
+        default: 'main'
 
 jobs:
   invoke-cd-trigger:
@@ -34,5 +39,8 @@ jobs:
                   owner: 'cdcent',
                   repo: 'data-exchange-upload-devops',
                   workflow_id: '${{ inputs.WORKFLOW }}',
-                  ref: 'main'
+                  ref: main
+                  inputs: {
+                    DATA_EXCHANGE_UPLOAD_REF: ${{ inputs.REF }}
+                  }
                 })
