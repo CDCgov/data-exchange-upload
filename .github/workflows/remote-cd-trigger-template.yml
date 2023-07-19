@@ -39,7 +39,7 @@ jobs:
                   owner: 'cdcent',
                   repo: 'data-exchange-upload-devops',
                   workflow_id: '${{ inputs.WORKFLOW }}',
-                  ref: main
+                  ref: 'main',
                   inputs: {
                     DATA_EXCHANGE_UPLOAD_REF: ${{ inputs.REF }}
                   }
