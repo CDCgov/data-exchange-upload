@@ -11,5 +11,5 @@ jobs:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
       WORKFLOW: function-app-rc.yml
-      REF: ${{ github.ref }}  # Resolves to the tag that is pushed
+      REF: ${{ github.ref_name }}  # Resolves to the tag that is pushed
     secrets: inherit
