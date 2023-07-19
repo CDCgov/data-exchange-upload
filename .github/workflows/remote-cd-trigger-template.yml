@@ -1,4 +1,4 @@
-name: Trigger Tus Hook CD Template
+name: Trigger CDCent workflow template
 
 on:
   workflow_call:
