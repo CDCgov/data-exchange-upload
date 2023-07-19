@@ -41,6 +41,6 @@ jobs:
                   workflow_id: '${{ inputs.WORKFLOW }}',
                   ref: 'main',
                   inputs: {
-                    DATA_EXCHANGE_UPLOAD_REF: ${{ inputs.REF }}
+                    DATA_EXCHANGE_UPLOAD_REF: '${{ inputs.REF }}'
                   }
                 })
