@@ -6,7 +6,7 @@ import com.microsoft.azure.functions.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.Connection;
-import java.sql.DriverManger;
+// import java.sql.DriverManger;
 import java.sql.SQLException;
 import gov.cdc.ocio.supplementalapi.functions.StatusForDestinationFunction;
 import gov.cdc.ocio.supplementalapi.functions.StatusForTguidFunction;
