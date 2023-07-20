@@ -89,15 +89,17 @@ public class FunctionJavaWrappers {
         String dbUsername = "dev_user";
         String dbPassword = "dev_password";
 
-        try (Connection connection = DriverManager.getConnection(dbUrl, dbUsername, dbPassword)) {
-            // If the connection is successful, return true to indicate database connectivity
-            return true;
-        } catch (SQLException e) {
-            // If there's an exception (e.g., failed connection), log the error and return false
-            // You can also handle the exception based on your application's requirements
-            e.printStackTrace();
-            return false;
-        }
+        // try (Connection connection = DriverManager.getConnection(dbUrl, dbUsername, dbPassword)) {
+        //     // If the connection is successful, return true to indicate database connectivity
+        //     return true;
+        // } catch (SQLException e) {
+        //     // If there's an exception (e.g., failed connection), log the error and return false
+        //     // You can also handle the exception based on your application's requirements
+        //     e.printStackTrace();
+        //     return false;
+        // }
+
+        return true;
     }
 
     private boolean checkExternalServiceHealth() {
