@@ -3,10 +3,22 @@ package gov.cdc.ocio.supplementalapi;
 import java.util.*;
 import com.microsoft.azure.functions.annotation.*;
 import com.microsoft.azure.functions.*;
+import gov.cdc.ocio.supplementalapi.functions.HealthCheckFunction;
 import gov.cdc.ocio.supplementalapi.functions.StatusForDestinationFunction;
 import gov.cdc.ocio.supplementalapi.functions.StatusForTguidFunction;
 
 public class FunctionJavaWrappers {
+
+    @FunctionName("HealthCheck")
+    public HttpResponseMessage healthCheck(
+            @HttpTrigger(
+                    name = "req",
+                    methods = {HttpMethod.GET},
+                    route = "health",
+                    authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<String>> request,
+            final ExecutionContext context) {
+        return new HealthCheckFunction().run(request, context);
+    }
 
     @FunctionName("StatusForTguid")
     public HttpResponseMessage statusForTguid(
