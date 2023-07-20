@@ -18,10 +18,9 @@ class HealthCheckFunction {
         context: ExecutionContext
     ): HttpResponseMessage {
 
-        var LOGGER = context.logger
-
-        try {
-            
+        val LOGGER = context.logger
+        
+        try {           
             val cosmosClient = CosmosClientManager.getCosmosClient()
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
@@ -41,8 +40,9 @@ class HealthCheckFunction {
                 .build()
 
         } catch (ex: Throwable) {
-
+            
             LOGGER.info("Health Check Failed -> ${ex.localizedMessage}")
+            ex.printStackTrace();
 
             return request
                 .createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
