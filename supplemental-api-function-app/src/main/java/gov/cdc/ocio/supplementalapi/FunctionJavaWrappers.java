@@ -14,7 +14,7 @@ public class FunctionJavaWrappers {
             @HttpTrigger(
                     name = "req",
                     methods = {HttpMethod.GET},
-                    route = "health",
+                    route = "status/health",
                     authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<String>> request,
             final ExecutionContext context) {
         return new HealthCheckFunction().run(request, context);

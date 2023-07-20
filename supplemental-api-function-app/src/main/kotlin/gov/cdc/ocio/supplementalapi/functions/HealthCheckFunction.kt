@@ -19,8 +19,8 @@ class HealthCheckFunction {
     ): HttpResponseMessage {
 
         val LOGGER = context.logger
-        
-        try {           
+
+        try {
             val cosmosClient = CosmosClientManager.getCosmosClient()
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
