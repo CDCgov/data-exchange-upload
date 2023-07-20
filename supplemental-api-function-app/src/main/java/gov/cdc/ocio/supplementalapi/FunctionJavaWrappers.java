@@ -37,7 +37,7 @@ public class FunctionJavaWrappers {
         return new StatusForDestinationFunction().run(request, destinationName, context);
     }
 
-    @FunctionName("HealthCheckDev")
+    @FunctionName("HealthCheck")
     public HttpResponseMessage healthCheckDev(
             @HttpTrigger(
                     name = "req",
@@ -50,9 +50,9 @@ public class FunctionJavaWrappers {
 
         // Return appropriate response based on health status
         if (isHealthy) {
-            return request.createResponseBuilder(HttpStatus.OK).body("API is healthy in dev environment").build();
+            return request.createResponseBuilder(HttpStatus.OK).body("API is healthy").build();
         } else {
-            return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).body("API is not healthy in dev environment").build();
+            return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).body("API is not healthy").build();
         }
     }
 
