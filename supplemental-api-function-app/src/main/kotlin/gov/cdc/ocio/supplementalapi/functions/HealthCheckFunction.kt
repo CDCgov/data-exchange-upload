@@ -8,6 +8,7 @@ import com.microsoft.azure.functions.HttpStatus
 import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import gov.cdc.ocio.supplementalapi.model.Item
 import java.util.*
+import java.util.logging.Logger
 
 
 class HealthCheckFunction {
@@ -17,22 +18,35 @@ class HealthCheckFunction {
         context: ExecutionContext
     ): HttpResponseMessage {
 
-        val cosmosClient = CosmosClientManager.getCosmosClient()
+        var LOGGER = context.logger
 
-        val databaseName = System.getenv("CosmosDbDatabaseName")
-        val containerName = System.getenv("CosmosDbContainerName")
+        try {
+            
+            val cosmosClient = CosmosClientManager.getCosmosClient()
 
-        val cosmosDB = cosmosClient.getDatabase(databaseName)
-        val container = cosmosDB.getContainer(containerName)
+            val databaseName = System.getenv("CosmosDbDatabaseName")
+            val containerName = System.getenv("CosmosDbContainerName")
 
-        val sqlQuery = "select * from $containerName t OFFSET 0 LIMIT 1"
-        val items = container.queryItems(
-            sqlQuery, CosmosQueryRequestOptions(),
-            Item::class.java
-        )
+            val cosmosDB = cosmosClient.getDatabase(databaseName)
+            val container = cosmosDB.getContainer(containerName)
 
-        return request
-            .createResponseBuilder(HttpStatus.OK)
-            .build()
+            val sqlQuery = "select * from $containerName t OFFSET 0 LIMIT 1"
+            val items = container.queryItems(
+                sqlQuery, CosmosQueryRequestOptions(),
+                Item::class.java
+            )
+
+            return request
+                .createResponseBuilder(HttpStatus.OK)
+                .build()
+
+        } catch (ex: Throwable) {
+
+            LOGGER.info("Health Check Failed -> ${ex.localizedMessage}")
+
+            return request
+                .createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
+                .build()
+        }
     }
 }
