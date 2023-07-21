@@ -135,4 +135,47 @@ class CosmosSyncFunction {
         logger.info("Upserted at ${Date()}, new offset=${response.item.offset}")
         logger.info("Upsert success for tguid ${update.tguid}!!")
     }
+
+    @FunctionName("CosmosHealthCheck")
+    fun healthCheck(
+        @HttpTrigger(
+            name = "req",
+            methods = [HttpMethod.GET],
+            route = "health"
+        ) request: HttpRequestMessage<Optional<String>>,
+        context: ExecutionContext
+    ): HttpResponseMessage {
+        // Perform your health check logic here
+        val isHealthy = performHealthCheck(context)
+
+        // Return appropriate response based on health status
+        return if (isHealthy) {
+            request.createResponseBuilder(HttpStatus.OK).body("CosmosSyncFunction is healthy").build()
+        } else {
+            request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).body("CosmosSyncFunction is not healthy").build()
+        }
+    }
+
+    private fun performHealthCheck(context: ExecutionContext): Boolean {
+        try {
+            val logger = context.logger
+
+            // Get the Cosmos DB client
+            logger.info("Checking Cosmos DB client availability...")
+            val cosmosClient: CosmosClient? = CosmosClientManager.getCosmosClient()
+            if (cosmosClient != null) {
+                // If the client is available, consider the function healthy
+                return true
+            } else {
+                // If the client is null, there is an issue with Cosmos DB connectivity
+                // Log the error or handle it based on your application's requirements
+                logger.warning("Cosmos DB client is not available.")
+                return false
+            }
+
+        } catch (ex: Exception) {
+            context.logger.warning("Health check failed: ${ex.localizedMessage}")
+            return false
+        }
+    }
 }
