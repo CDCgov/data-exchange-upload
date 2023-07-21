@@ -7,6 +7,12 @@ import com.azure.cosmos.CosmosException
 import com.azure.cosmos.models.*
 import com.google.gson.Gson
 import com.microsoft.azure.functions.ExecutionContext
+import com.microsoft.azure.functions.annotation.FunctionName
+import com.microsoft.azure.functions.annotation.HttpTrigger
+import com.microsoft.azure.functions.annotation.HttpMethod
+import com.microsoft.azure.functions.HttpRequestMessage
+import com.microsoft.azure.functions.HttpResponseMessage
+import com.microsoft.azure.functions.HttpStatus
 import gov.cdc.ocio.cosmossync.cosmos.CosmosClientManager
 import gov.cdc.ocio.cosmossync.model.Item
 import java.util.*
