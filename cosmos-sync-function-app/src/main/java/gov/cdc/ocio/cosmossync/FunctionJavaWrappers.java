@@ -1,5 +1,7 @@
 package gov.cdc.ocio.cosmossync;
 
+import java.util.*;
+import java.util.Optional;
 import com.microsoft.azure.functions.annotation.*;
 import com.microsoft.azure.functions.*;
 import com.microsoft.azure.functions.ExecutionContext;
