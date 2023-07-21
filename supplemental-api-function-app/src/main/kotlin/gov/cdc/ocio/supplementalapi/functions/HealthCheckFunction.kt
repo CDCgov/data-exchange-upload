@@ -17,9 +17,7 @@ class HealthCheckFunction {
         request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
     ): HttpResponseMessage {
-
-        val LOGGER = context.logger
-
+    
         try {
             val cosmosClient = CosmosClientManager.getCosmosClient()
 
@@ -41,9 +39,6 @@ class HealthCheckFunction {
 
         } catch (ex: Throwable) {
             
-            LOGGER.info("Health Check Failed -> ${ex.localizedMessage}")
-            ex.printStackTrace();
-
             return request
                 .createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
                 .build()
