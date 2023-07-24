@@ -326,9 +326,16 @@ namespace BulkFileUploadFunctionApp
                 BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
 
                 using var edavBlobStream = await edavDestBlobClient.OpenWriteAsync(true);
-                using var dexBlobStream = await dexBlobClient.OpenReadAsync();
-
-                await dexBlobStream.CopyToAsync(edavBlobStream);
+                {
+                    using var dexBlobStream = await dexBlobClient.OpenReadAsync();
+                    {
+                        await dexBlobStream.CopyToAsync(edavBlobStream);
+                        dexBlobStream.Close();
+                        edavBlobStream.Close();
+                    }
+                }                            
+                await edavDestBlobClient.SetMetadataAsync(destinationMetadata);
+                
             } 
             catch (Exception ex)
             {
