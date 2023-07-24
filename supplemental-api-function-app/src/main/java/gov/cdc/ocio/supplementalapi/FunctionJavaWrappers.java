@@ -15,7 +15,7 @@ public class FunctionJavaWrappers {
                     name = "req",
                     methods = {HttpMethod.GET},
                     route = "status/health",
-                    authLevel = AuthorizationLevel.FUNCTION) HttpRequestMessage<Optional<String>> request,
+                    authLevel = AuthorizationLevel.ANONYMOUS) HttpRequestMessage<Optional<String>> request,
             final ExecutionContext context) {
         return new HealthCheckFunction().run(request, context);
     }
