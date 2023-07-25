@@ -1,12 +1,12 @@
-package gov.cdc.ocio.supplementalapi.functions
+package gov.cdc.ocio.cosmossync.functions
 
 import com.azure.cosmos.models.CosmosQueryRequestOptions
 import com.microsoft.azure.functions.ExecutionContext
 import com.microsoft.azure.functions.HttpRequestMessage
 import com.microsoft.azure.functions.HttpResponseMessage
 import com.microsoft.azure.functions.HttpStatus
-import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
-import gov.cdc.ocio.supplementalapi.model.Item
+import gov.cdc.ocio.cosmossync.cosmos.CosmosClientManager
+import gov.cdc.ocio.cosmossync.model.Item
 import java.util.*
 import java.util.logging.Logger
 
