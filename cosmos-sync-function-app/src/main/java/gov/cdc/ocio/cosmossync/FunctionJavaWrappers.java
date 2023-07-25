@@ -6,6 +6,17 @@ import gov.cdc.ocio.cosmossync.functions.CosmosSyncFunction;
 
 public class FunctionJavaWrappers {
 
+    @FunctionName("HealthCheck")
+    public HttpResponseMessage healthCheck(
+            @HttpTrigger(
+                    name = "req",
+                    methods = {HttpMethod.GET},
+                    route = "health",
+                    authLevel = AuthorizationLevel.ANONYMOUS) HttpRequestMessage<Optional<String>> request,
+            final ExecutionContext context) {
+        return new HealthCheckFunction().run(request, context);
+    }
+
     @FunctionName("CosmosQueueProcessor")
     public void run(
             @QueueTrigger(name = "msg",
