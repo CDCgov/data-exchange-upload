@@ -4,6 +4,7 @@ import com.microsoft.azure.functions.annotation.*;
 import com.microsoft.azure.functions.*;
 import gov.cdc.ocio.cosmossync.functions.CosmosSyncFunction;
 import gov.cdc.ocio.cosmossync.functions.HealthCheckFunction;
+import java.util.Optional;
 
 public class FunctionJavaWrappers {
 
