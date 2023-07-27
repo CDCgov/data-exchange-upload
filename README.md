@@ -1,5 +1,3 @@
-# **Archived in favor of [CDCgov/data-exchange-upload](https://github.com/CDCgov/data-exchange-upload)**
-
 # CDC Data Exchange (DEX) Upload
 
 Repository for CDC DEX Upload.
@@ -7,31 +5,40 @@ Repository for CDC DEX Upload.
 ### Repository Structure
 
 #### Github Actions
+
 `/.github/workflows` - tests and CI/CD
 
 #### BulkFileUploadFunctionApp
-`/BulkFileUploadFunctionApp` event triggered azure function to process uploaded blob and metadata. 
+
+`/BulkFileUploadFunctionApp` event triggered azure function to process uploaded blob and metadata.
 
 #### cosmos-sync-function-app
-`/cosmos-sync-function-app`  event triggered azure function to upsert metadata for cosmos-db.
+
+`/cosmos-sync-function-app` event triggered azure function to upsert metadata for cosmos-db.
 
 #### supplemental-api-function-app
+
 `/supplemental-api-function-app` http triggered azure function to retrieve status of upload/s.
 
-#### tests 
-`/tests/cypress` 
+#### tests
+
+`/tests/cypress`
 
 #### file-hooks
+
 `tus/file-hooks` hooks, tus specific, pre and post receive of upload.
 
 #### spikes
+
 `/spikes` exploratory development spikes, archive.
 
 ### TUS Protocol
+
 This repository is using the TUS resumable upload protocol: [https://tus.io/](https://tus.io/),
 and reference implementation: [https://github.com/tus/tusd](https://github.com/tus/tusd)
 
 ## Example Usage
+
 Example clients, for back-end or browser (front-end), to upload files:
 [https://github.com/CDCgov/data-exchange-api-examples](https://github.com/CDCgov/data-exchange-api-examples)
 
