@@ -3,83 +3,76 @@ using System.Net;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using Azure.Messaging.EventHubs;
-using Azure.Messaging.EventHubs.Producer;
-using System.Text;
+using Azure.Storage.Blobs;
+using Azure;
+using Azure.Storage.Blobs.Models;
 
 namespace BulkFileUploadFunctionApp
 {
     public static class HealthCheckFunction
    {   
     
-    private const string EventHubConnectionString = "AzureEventHubConnectionString";
-    private const string EventHubName = "AzureEventHubName";
-    [Function("HealthCheckFunction")]
+     [Function("HealthCheckFunction")]
     public static async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "health")] HttpRequestData req,        
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] HttpRequestData req,        
         FunctionContext context)
     {
         var logger = context.GetLogger("HealthCheckFunction");
         logger.LogInformation("Health check request received.");
 
-        String? eventHubConnectionString = Environment.GetEnvironmentVariable(EventHubConnectionString);
-        String? eventHubName = Environment.GetEnvironmentVariable(EventHubName);
-         if(String.IsNullOrEmpty(eventHubConnectionString)){
-            return CreateErrorResponse(req, "Event Hub connection String not found in the Azure portal configuration.");
-         }
+        
 
-         if(String.IsNullOrEmpty(eventHubName)){
-            return CreateErrorResponse(req, "Event Hub Name not found in the Azure portal configuration.");
-         }
-                
-
-            // Check the health of the Event Hub connection
-            bool isEventHubHealthy = await CheckEventHubHealthAsync();
-            if (!isEventHubHealthy)
-            {
-                return CreateErrorResponse(req, "Event Hub connection is not healthy.");
-            }        
-            
-
-            // If all checks pass, return a 200 OK response with a success message
-            var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
-            response.WriteString("Health check passed!");
-
-            return response;
-      }
-    private static async Task<bool> CheckEventHubHealthAsync()
+          string dEX_AZURE_STORAGE_ACCOUNT_NAME = "DEX_AZURE_STORAGE_ACCOUNT_NAME";
+          string dexAzureStorageAccountKey = "DEX_AZURE_STORAGE_ACCOUNT_KEY";
+          string cName = "ndlp-influenzavaccination";
+          var response = req.CreateResponse();
+      try
         {
-            var producerClient = new EventHubProducerClient(EventHubConnectionString, EventHubName);           
 
-            try
-            {
-                // Send a test event to the Event Hub to check if it can send events successfully.
-                var eventData = new EventData(Encoding.UTF8.GetBytes("Test Event"));
-                await producerClient.SendAsync(new List<EventData> {eventData});
-                
+        String? _dexAzureStorageAccountName = Environment.GetEnvironmentVariable(dEX_AZURE_STORAGE_ACCOUNT_NAME);
+        String? _dexAzureStorageAccountKey = Environment.GetEnvironmentVariable(dexAzureStorageAccountKey);
+        String? containerName = Environment.GetEnvironmentVariable(cName);    
 
-                return true;
-            }
-            catch (Exception ex)
-            {                   
-               
-                return false;
-            }
-            finally
-            {
-                await producerClient.CloseAsync();
-            }
-        }
+        var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net"; 
+             
+         
+       // Create a BlobServiceClient object from the connection string
+        BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);
+
+         // Get a reference to the specified container
+        BlobContainerClient container = blobServiceClient.GetBlobContainerClient(containerName);
 
        
 
-        private static HttpResponseData CreateErrorResponse(HttpRequestData request, string errorMessage)
-        {
-            var response = request.CreateResponse(HttpStatusCode.ServiceUnavailable);
-            response.Headers.Add("Content-Type", "text/plain; charset=utf-8");
-            response.WriteString(errorMessage);
-            return response;
+        // Check if the container exists
+         if (await container.ExistsAsync())
+         {
+            BlobContainerProperties containerProperties=await container.GetPropertiesAsync();
+
+            var lastModified = containerProperties.LastModified;
+            var ETag = containerProperties.ETag;
+            // Container exists, return a success message with container name and properties
+            response.StatusCode = (HttpStatusCode)200;
+            await response.WriteStringAsync($"Container '{container.Name}' exists. LastModified: {lastModified}, Etag: {ETag}");
         }
-    }
+        else
+        {
+         // Container doesn't exist, return an error message
+            response.StatusCode = (HttpStatusCode)404;
+            await response.WriteStringAsync($"Container '{containerName}' does not exist.");
+         }
+          
+         } catch (RequestFailedException ex)
+        {
+            // Handle any exceptions that might occur during the health check
+            logger.LogError(ex, "Error occurred while checking Blob storage container health.");
+            response.StatusCode = (HttpStatusCode)500;
+            await response.WriteStringAsync("Error occurred while checking Blob storage container health.");
+        }
+
+            return response;
+      }       
+
+   }
+
 }
