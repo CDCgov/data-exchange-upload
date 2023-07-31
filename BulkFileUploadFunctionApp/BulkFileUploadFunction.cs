@@ -91,7 +91,7 @@ namespace BulkFileUploadFunctionApp
 
             } // .foreach 
 
-        } // .Task Run
+        } // .Task Run        
 
         /// <summary>
         /// Processeses the given blob created event from the URL provided.
@@ -497,5 +497,10 @@ namespace BulkFileUploadFunctionApp
 
             return filenameSuffix;
         }
+    
+        
     }
+
+    
 }
+
