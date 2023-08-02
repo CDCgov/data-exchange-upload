@@ -30,23 +30,19 @@ namespace BulkFileUploadFunctionApp
         String? _dexAzureStorageAccountKey = Environment.GetEnvironmentVariable(dexAzureStorageAccountKey);
         String? containerName = Environment.GetEnvironmentVariable(cName);    
 
-        var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net"; 
-             
-         
-       // Create a BlobServiceClient object from the connection string
-        BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);
-
-         // Get a reference to the specified container
+        var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";         
+                
+        BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);         
         BlobContainerClient container = blobServiceClient.GetBlobContainerClient(containerName);
         response.StatusCode = (HttpStatusCode)200;
-        await response.WriteStringAsync("Healty!");   
+        await response.WriteStringAsync("Healthy!");   
     
          } catch (RequestFailedException ex)
         {
-            // Handle any exceptions that might occur during the health check
+            
             logger.LogError(ex, "Error occurred while checking Blob storage container health.");
             response.StatusCode = (HttpStatusCode)500;
-            await response.WriteStringAsync("Not Healty!");
+            await response.WriteStringAsync("Not Healthy!");
         }
 
             return response;
