@@ -4,7 +4,7 @@
             "ext_events":[
          {
             "name":"hl7ingress",
-            "definition_filename":"dex_hl7_metadata_definition.json"
+            "definition_filename":"definitions/dex_hl7_metadata_definition.json"
          }
       ]
    },
@@ -13,11 +13,11 @@
       "ext_events":[
          {
             "name":"routineImmunization",
-            "definition_filename":"ndlp-ri-meta-definition.json"
+            "definition_filename":"definitions/ndlp-ri-meta-definition.json"
          },
          {
             "name":"influenzaVaccination",
-            "definition_filename":"ndlp-iv-meta-definition.json"
+            "definition_filename":"definitions/ndlp-iv-meta-definition.json"
          }
       ]
    },
@@ -26,7 +26,7 @@
       "ext_events":[
          {
             "name":"LocalSequenceFile",
-            "definition_filename":"pulsenet_metadata_definition.json"
+            "definition_filename":"definitions/pulsenet_metadata_definition.json"
          }
       ]
    },
@@ -35,7 +35,7 @@
       "ext_events":[
          {
             "name":"testevent1",
-            "definition_filename":"dextesting_te1_metadata_definition.json"
+            "definition_filename":"definitions/dextesting_te1_metadata_definition.json"
          }
       ]
    }
