@@ -22,18 +22,23 @@ namespace BulkFileUploadFunctionApp
           string dEX_AZURE_STORAGE_ACCOUNT_NAME = "DEX_AZURE_STORAGE_ACCOUNT_NAME";
           string dexAzureStorageAccountKey = "DEX_AZURE_STORAGE_ACCOUNT_KEY";
           string cName = "ndlp-influenzavaccination";
+          
           var response = req.CreateResponse();
+          response.Headers.Add("Content-Type", "text/plain");
+
       try
         {
 
         String? _dexAzureStorageAccountName = Environment.GetEnvironmentVariable(dEX_AZURE_STORAGE_ACCOUNT_NAME);
         String? _dexAzureStorageAccountKey = Environment.GetEnvironmentVariable(dexAzureStorageAccountKey);
-        String? containerName = Environment.GetEnvironmentVariable(cName);    
 
+            
+        logger.LogDebug("Container name-->" + cName);
         var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";         
                 
         BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);         
-        BlobContainerClient container = blobServiceClient.GetBlobContainerClient(containerName);
+        BlobContainerClient container = blobServiceClient.GetBlobContainerClient(cName);           
+
         response.StatusCode = (HttpStatusCode)200;
         await response.WriteStringAsync("Healthy!");   
     
