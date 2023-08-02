@@ -22,6 +22,7 @@ namespace BulkFileUploadFunctionApp
           string dEX_AZURE_STORAGE_ACCOUNT_NAME = "DEX_AZURE_STORAGE_ACCOUNT_NAME";
           string dexAzureStorageAccountKey = "DEX_AZURE_STORAGE_ACCOUNT_KEY";
           string cName = "ndlp-influenzavaccination";
+          
           var response = req.CreateResponse();
           response.Headers.Add("Content-Type", "text/plain");
       try
