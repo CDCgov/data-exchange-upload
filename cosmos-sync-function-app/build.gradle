@@ -13,6 +13,12 @@ plugins {
 apply plugin: "java"
 apply plugin: 'kotlin'
 
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
 group 'gov.cdc.ocio'
 version '1.0.0-SNAPSHOT'
 
@@ -34,17 +40,12 @@ repositories {
 }
 
 azurefunctions {
-    // subscription = '<your subscription id>'
-    resourceGroup = 'java-functions-group'
-    appName = 'cosmos-sync-function-app' // please rename the function name
-    pricingTier = 'Consumption' // refers https://github.com/microsoft/azure-maven-plugins/tree/develop/azure-functions-maven-plugin#supported-pricing-tiers for all valid values
-    region = 'westus'
+    subscription = System.getProperty("subscription")
+    resourceGroup = System.getProperty("resourceGroup")
+    appName = System.getProperty("appName")
     allowTelemetry = false
-    runtime {
-      os = 'windows'
+
+    auth {
+        type = 'azure_cli'
     }
-    // appSettings {
-    //    key = 'value'
-    // }
-    // localDebug = "transport=dt_socket,server=y,suspend=n,address=5005"
 }
