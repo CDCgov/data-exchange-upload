@@ -322,12 +322,17 @@ namespace BulkFileUploadFunctionApp
                     new DefaultAzureCredential() // using Service Principal
                 );
 
-                string destinationContainerName = _edavAzureContainerName;
+                // _edavAzureContainerName could be set to empty, then no root container in edav
+
+                string destinationContainerName = string.IsNullOrEmpty(_edavAzureContainerName) ? sourceContainerName : _edavAzureContainerName;
+                string destinationBlobFilename = string.IsNullOrEmpty(_edavAzureContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
+
+
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
                 await edavContainerClient.CreateIfNotExistsAsync();
 
-                string destinationBlobFilename = sourceContainerName + "/" + sourceBlobFilename;
+                
                 BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
 
                 using var dexBlobStream = await dexBlobClient.OpenReadAsync();
