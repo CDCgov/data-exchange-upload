@@ -60,7 +60,7 @@ namespace BulkFileUploadFunctionApp
             _metadataEventHubSharedAccessKeyName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY_NAME") ?? "";
             _metadataEventHubSharedAccessKey = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY") ?? "";
 
-            _edavAzureContainerName = GetEnvironmentVariable("EDAV_AZURE_CONTAINER_NAME") ?? "";
+            _edavAzureContainerName = GetEnvironmentVariable("EDAV_AZURE_CONTAINER_NAME") ?? "upload";
 
         }
 
