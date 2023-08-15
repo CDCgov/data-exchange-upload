@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2023-08-15
+- Added upload database sync function to log each upload in the persistent storage ( Cosmos DB )
+- Added Tus Hooks support to update upload status
+- Added Supplemental API Function App to retrieve the status of an upload
+- Added SAMS scopes 
+- Changes made to the APIM policy, enabling users with specified scopes to access particular functionality
+- Added Metadata Configuration changes to support more use cases
 
 ## [1.0.2] - 2023-04-27
 -  Temporary hotfix to allow NDLP file uploads to work.  IZGW is sending meta_ext_filename, but not filename in the metadata, which is failing in the bulk file upload function app.  Temporary solution is to allow either field, but long-term fix will be to require 'filename' metadata field at time of upload.
