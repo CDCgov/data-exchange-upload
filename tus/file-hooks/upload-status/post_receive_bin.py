@@ -88,6 +88,7 @@ def upsert_item(tguid, offset, size, filename, meta_destination_id, meta_ext_eve
 def post_receive(tguid, offset, size, metadata_json):
     try:
         logger.info('python version = {0}'.format(sys.version))
+        logger.info('metadata_json = {0}'.format(metadata_json))
         metadata = json.loads(metadata_json, object_hook=lambda d: SimpleNamespace(**d))
 
         filename = None
