@@ -89,7 +89,23 @@ def post_receive(tguid, offset, size, metadata_json):
     try:
         logger.info('python version = {0}'.format(sys.version))
         metadata = json.loads(metadata_json, object_hook=lambda d: SimpleNamespace(**d))
-        filename = metadata.filename
+
+        filename = None
+
+        if "filename" in metadata:
+            filename = metadata.filename
+        
+        if filename is None:
+            if "meta_ext_filename" in metadata:
+                filename = metadata.meta_ext_filename
+
+        if filename is None:
+            if "meta_ext_filename" in metadata:
+                filename = metadata.original_filename
+
+        if filename is None:
+            raise Exception("filename, meta_ext_filename, or original_filename not found in metadata.")
+
         meta_destination_id = metadata.meta_destination_id
         meta_ext_event = metadata.meta_ext_event
         logger.info('filename = {0}, meta_destination_id = {1}, meta_ext_event = {2}'.format(filename, meta_destination_id, meta_ext_event))
