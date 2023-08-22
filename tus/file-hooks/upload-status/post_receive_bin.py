@@ -92,16 +92,12 @@ def post_receive(tguid, offset, size, metadata_json):
 
         filename = None
 
-        if "filename" in metadata:
+        if metadata.filename != None:
             filename = metadata.filename
-        
-        if filename is None:
-            if "meta_ext_filename" in metadata:
-                filename = metadata.meta_ext_filename
-
-        if filename is None:
-            if "original_filename" in metadata:
-                filename = metadata.original_filename
+        elif metadata.meta_ext_filename != None:
+            filename = metadata.meta_ext_filename
+        elif metadata.original_filename != None:
+            filename = metadata.original_filename
 
         if filename is None:
             raise Exception("filename, meta_ext_filename, or original_filename not found in metadata.")
