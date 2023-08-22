@@ -1,5 +1,5 @@
 {
 	"FilenameMetadataField": "meta_ext_filename",
 	"FilenameSuffix": "clock_ticks",
-	"FolderStructure": "root"
+	"FolderStructure": "date_YYYY_MM_DD"
 }
