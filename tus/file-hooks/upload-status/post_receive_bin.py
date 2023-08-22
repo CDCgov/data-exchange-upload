@@ -100,7 +100,7 @@ def post_receive(tguid, offset, size, metadata_json):
                 filename = metadata.meta_ext_filename
 
         if filename is None:
-            if "meta_ext_filename" in metadata:
+            if "original_filename" in metadata:
                 filename = metadata.original_filename
 
         if filename is None:
