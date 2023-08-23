@@ -1,3 +1,4 @@
+package gov.cdc.ocio.supplementalapi.functions
 import com.microsoft.azure.functions.*
 import com.microsoft.azure.functions.HttpMethod
 import com.microsoft.azure.functions.annotation.AuthorizationLevel
