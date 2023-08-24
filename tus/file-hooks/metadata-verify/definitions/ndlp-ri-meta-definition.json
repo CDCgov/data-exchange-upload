@@ -10,7 +10,7 @@
         },
         {
             "fieldname": "meta_ext_sourceversion",
-            "allowed_values": ["V2022-12-31"],
+            "allowed_values": ["V2022-12-31","2023-09-01"],
             "required": "true",
             "description": "Aligns with version of the specification."
         },
