@@ -30,12 +30,14 @@ namespace BulkFileUploadFunctionApp
 
         private readonly string _dexAzureStorageAccountKey;
 
-        private readonly string _edavAzureStroageAccountName;
+        private readonly string _edavAzureStorageAccountName;
 
         private readonly string _metadataEventHubEndPoint;
         private readonly string _metadataEventHubHubName;
         private readonly string _metadataEventHubSharedAccessKeyName;
         private readonly string _metadataEventHubSharedAccessKey;
+
+        private readonly string _edavUploadRootContainerName;
 
         public static string? GetEnvironmentVariable(string name)
         {
@@ -51,12 +53,15 @@ namespace BulkFileUploadFunctionApp
             _tusAzureStorageContainer = GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER") ?? "bulkuploads";
             _dexAzureStorageAccountName = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
             _dexAzureStorageAccountKey = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY") ?? "";
-            _edavAzureStroageAccountName = GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
+            _edavAzureStorageAccountName = GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
 
             _metadataEventHubEndPoint = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_ENDPOINT_NAME") ?? "";
             _metadataEventHubHubName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_HUB_NAME") ?? "";
             _metadataEventHubSharedAccessKeyName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY_NAME") ?? "";
             _metadataEventHubSharedAccessKey = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY") ?? "";
+
+            _edavUploadRootContainerName = GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME") ?? "upload";
+
         }
 
         /// <summary>
@@ -313,16 +318,21 @@ namespace BulkFileUploadFunctionApp
                 BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
 
                 var edavBlobServiceClient = new BlobServiceClient(
-                    new Uri($"https://{_edavAzureStroageAccountName}.blob.core.windows.net"),
+                    new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
                     new DefaultAzureCredential() // using Service Principal
                 );
 
-                string destinationContainerName = sourceContainerName;
+                // _edavUploadRootContainerName could be set to empty, then no root container in edav
+
+                string destinationContainerName = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceContainerName : _edavUploadRootContainerName;
+                string destinationBlobFilename = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
+
+
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
                 await edavContainerClient.CreateIfNotExistsAsync();
 
-                string destinationBlobFilename = sourceBlobFilename;
+                
                 BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
 
                 using var dexBlobStream = await dexBlobClient.OpenReadAsync();
