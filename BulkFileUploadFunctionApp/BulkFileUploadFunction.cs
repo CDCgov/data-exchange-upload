@@ -37,7 +37,7 @@ namespace BulkFileUploadFunctionApp
         private readonly string _metadataEventHubSharedAccessKeyName;
         private readonly string _metadataEventHubSharedAccessKey;
 
-        private readonly string _edavAzureContainerName;
+        private readonly string _edavUploadRootContainerName;
 
         public static string? GetEnvironmentVariable(string name)
         {
@@ -60,7 +60,7 @@ namespace BulkFileUploadFunctionApp
             _metadataEventHubSharedAccessKeyName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY_NAME") ?? "";
             _metadataEventHubSharedAccessKey = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY") ?? "";
 
-            _edavAzureContainerName = GetEnvironmentVariable("EDAV_AZURE_CONTAINER_NAME") ?? "upload";
+            _edavUploadRootContainerName = GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME") ?? "upload";
 
         }
 
@@ -322,10 +322,10 @@ namespace BulkFileUploadFunctionApp
                     new DefaultAzureCredential() // using Service Principal
                 );
 
-                // _edavAzureContainerName could be set to empty, then no root container in edav
+                // _edavUploadRootContainerName could be set to empty, then no root container in edav
 
-                string destinationContainerName = string.IsNullOrEmpty(_edavAzureContainerName) ? sourceContainerName : _edavAzureContainerName;
-                string destinationBlobFilename = string.IsNullOrEmpty(_edavAzureContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
+                string destinationContainerName = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceContainerName : _edavUploadRootContainerName;
+                string destinationBlobFilename = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
 
 
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
