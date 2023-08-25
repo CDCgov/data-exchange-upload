@@ -40,6 +40,18 @@
       {
         "name": "influenzaVaccination",
         "definition_filename": "definitions/ndlp-iv-meta-definition.json"
+      },
+      {
+        "name": "rsvPrevention",
+        "definition_filename": "definitions/ndlp_rsv_meta_definition.json"
+      },
+      {
+        "name": "covidallmonthlyVaccination",
+        "definition_filename": "definitions/ndlp_covid_all_meta_definition.json"
+      },
+      {
+        "name": "covidbridgeVaccination",
+        "definition_filename": "definitions/ndlp_covid_bridge_meta_definition.json"
       }
     ]
   },
