@@ -88,8 +88,22 @@ def upsert_item(tguid, offset, size, filename, meta_destination_id, meta_ext_eve
 def post_receive(tguid, offset, size, metadata_json):
     try:
         logger.info('python version = {0}'.format(sys.version))
+        logger.info('metadata_json = {0}'.format(metadata_json))
+
         metadata = json.loads(metadata_json, object_hook=lambda d: SimpleNamespace(**d))
-        filename = metadata.filename
+
+        filename = None
+
+        if hasattr(metadata, 'filename'):
+            filename = metadata.filename
+        elif hasattr(metadata, 'meta_ext_filename'):
+            filename = metadata.meta_ext_filename
+        elif hasattr(metadata, 'original_filename'):
+            filename = metadata.original_filename
+
+        if filename is None:
+            raise Exception("filename, meta_ext_filename, or original_filename not found in metadata.")
+
         meta_destination_id = metadata.meta_destination_id
         meta_ext_event = metadata.meta_ext_event
         logger.info('filename = {0}, meta_destination_id = {1}, meta_ext_event = {2}'.format(filename, meta_destination_id, meta_ext_event))

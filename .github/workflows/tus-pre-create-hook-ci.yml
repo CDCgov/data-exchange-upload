@@ -11,9 +11,7 @@ defaults:
     working-directory: tus/file-hooks/metadata-verify
 
 jobs:
-  dev:
+  run-tests:
     uses: ./.github/workflows/tus-hooks-ci-template.yml
     with:
-      HOOK_NAME: pre-create
       WORKING_DIRECTORY: tus/file-hooks/metadata-verify
-      BUILD_SCRIPT: podman-build-pre-create-bin.sh  
