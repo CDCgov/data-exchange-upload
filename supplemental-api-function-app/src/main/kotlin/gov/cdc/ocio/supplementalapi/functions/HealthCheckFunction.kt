@@ -36,7 +36,6 @@ class HealthCheckFunction {
             return request
                 .createResponseBuilder(HttpStatus.OK)
                 .build()
-
         } catch (ex: Throwable) {
             
             return request
