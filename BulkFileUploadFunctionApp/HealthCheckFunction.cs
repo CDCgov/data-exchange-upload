@@ -42,15 +42,15 @@ namespace BulkFileUploadFunctionApp
         response.StatusCode = (HttpStatusCode)200;
         await response.WriteStringAsync("Healthy!");   
     
-         } catch (RequestFailedException ex)
-        {
+        } 
+        catch (RequestFailedException ex) {
             
             logger.LogError(ex, "Error occurred while checking Blob storage container health.");
             response.StatusCode = (HttpStatusCode)500;
             await response.WriteStringAsync("Not Healthy!");
         }
 
-            return response;
+        return response;
       }       
 
    }
