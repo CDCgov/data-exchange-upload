@@ -10,8 +10,8 @@ The purpose of Enterprise Data Exchange (DEX) Upload release version 1.2.0 is to
 
 ## New Features
 ### Supplemental API - Upload Status
-*Dex Upload API Physical Architecture v1.2.0*
-![DEX Upload API Physical Architecture v1.2.0](diagrams/DEX%20Upload%20API%20Physical%20Architecture%20v1.2.0.png)
+*Dex Upload API Flow v1.2.0*
+![DEX Upload API Flow v1.2.0](diagrams/DEX%20Upload%20API%20Flow%20v1.2.0.png)
 
 The DEX supplemental Application Program Interface (API) feature is designed to allow DEX Upload users to request and obtain status information regarding the progress of file uploads. 
 - Metadata regarding upload progress are captured and passed to a storage account queue.
