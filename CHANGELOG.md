@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2023-09-12
+- Fix for ndlp sending data without filename in metadata ( tus post-receive hook )
+- upload-462 ( PR -133 ) - create upoad root folder in edav ( bulk aupload processor )
+- Add new NDLP metadata and upload configs ( TUS file hooks: metadata-verify, upload-configs )
+- aims-celr configurations ( TUS file hooks: metadata-verify, upload-configs )
+
 ## [1.2.0] - 2023-08-15
 - Added upload database sync function to log each upload in the persistent storage ( Cosmos DB )
 - Added Tus Hooks support to update upload status
