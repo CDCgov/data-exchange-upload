@@ -13,6 +13,7 @@ import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
 
 import org.testng.Assert.*
+import org.testng.annotations.BeforeClass
 import java.util.*
 
 class HealthCheckFunctionTest {
@@ -20,11 +21,10 @@ class HealthCheckFunctionTest {
     private lateinit var request: HttpRequestMessage<Optional<String>>
     private lateinit var context: ExecutionContext
 
-    @BeforeMethod
+    @BeforeClass
     fun setUp() {
         //MockitoAnnotations.openMocks(this)
-        val endpoint = System.getenv("CosmosDBEndpoint") ?: throw IllegalStateException("CosmosDBEndpoint environment variable is not set.")
-        healthCheckFunction = HealthCheckFunction(endpoint)
+        healthCheckFunction = HealthCheckFunction()
         request = mock(HttpRequestMessage::class.java) as HttpRequestMessage<Optional<String>>
         context = mock(ExecutionContext::class.java)
 

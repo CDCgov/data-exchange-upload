@@ -1,5 +1,7 @@
 package gov.cdc.ocio.supplementalapi.functions
 
+import com.azure.cosmos.CosmosClient
+import com.azure.cosmos.CosmosClientBuilder
 import com.azure.cosmos.models.CosmosQueryRequestOptions
 import com.microsoft.azure.functions.ExecutionContext
 import com.microsoft.azure.functions.HttpRequestMessage
@@ -11,15 +13,26 @@ import java.util.*
 import java.util.logging.Logger
 
 
-class HealthCheckFunction(private val endpoint: String) {
+class HealthCheckFunction {
+    private val cosmosClient: CosmosClient
+    // Initialize the CosmosDB client in the constructor
+    init {
+        val endpoint = System.getenv("CosmosDbEndpoint")
+        val cosmoDBKey = System.getenv("CosmosDbKey")
+
+        val cosmosClientBuilder = CosmosClientBuilder()
+            .endpoint(endpoint)
+            .key(cosmoDBKey)
+        cosmosClient = cosmosClientBuilder.buildClient()
+    }
 
     fun run(
         request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
     ): HttpResponseMessage {
-    
+
         try {
-            val cosmosClient = CosmosClientManager.getCosmosClient()
+            //val cosmosClient = CosmosClientManager.getCosmosClient()
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
@@ -33,12 +46,13 @@ class HealthCheckFunction(private val endpoint: String) {
                 Item::class.java
             )
 
+
             return request
                 .createResponseBuilder(HttpStatus.OK)
                 .build()
         } catch (ex: Throwable) {
             println("An error occurred: ${ex.message}")
-            
+
             return request
                 .createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
                 .build()

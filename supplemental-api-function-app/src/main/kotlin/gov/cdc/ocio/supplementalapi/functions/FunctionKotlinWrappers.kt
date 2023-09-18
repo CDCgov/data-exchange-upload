@@ -21,8 +21,7 @@ class FunctionKotlinWrappers {
         ) request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
     ): HttpResponseMessage {
-        val endpoint = System.getenv("CosmosDBEndpoint") ?: throw IllegalStateException("CosmosDBEndpoint environment variable is not set.")
-        return HealthCheckFunction(endpoint).run(request, context)
+        return HealthCheckFunction().run(request, context)
     }
 
     @FunctionName("StatusForTguid")
