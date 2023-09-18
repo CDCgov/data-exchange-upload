@@ -11,7 +11,7 @@ import java.util.*
 import java.util.logging.Logger
 
 
-class HealthCheckFunction {
+class HealthCheckFunction(private val endpoint: String) {
 
     fun run(
         request: HttpRequestMessage<Optional<String>>,

@@ -16,21 +16,24 @@ import org.testng.Assert.*
 import java.util.*
 
 class HealthCheckFunctionTest {
-    @Mock
+    private lateinit var healthCheckFunction: HealthCheckFunction
     private lateinit var request: HttpRequestMessage<Optional<String>>
-
-    @Mock
     private lateinit var context: ExecutionContext
 
     @BeforeMethod
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
+        //MockitoAnnotations.openMocks(this)
+        val endpoint = System.getenv("CosmosDBEndpoint") ?: throw IllegalStateException("CosmosDBEndpoint environment variable is not set.")
+        healthCheckFunction = HealthCheckFunction(endpoint)
+        request = mock(HttpRequestMessage::class.java) as HttpRequestMessage<Optional<String>>
+        context = mock(ExecutionContext::class.java)
+
     }
     @Test
     fun testRun() {
 
         // Create an instance of HealthCheckFunction
-        val healthCheckFunction = HealthCheckFunction()
+        //val healthCheckFunction = HealthCheckFunction()
 
         // Call healthCheckFunction.run() with the mock objects
         val response = healthCheckFunction.run(request, context)
