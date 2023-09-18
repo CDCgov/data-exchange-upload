@@ -37,6 +37,7 @@ class HealthCheckFunction {
                 .createResponseBuilder(HttpStatus.OK)
                 .build()
         } catch (ex: Throwable) {
+            println("An error occurred: ${ex.message}")
             
             return request
                 .createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
