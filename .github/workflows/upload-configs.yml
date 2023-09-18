@@ -1,0 +1,16 @@
+name: "Upload Configs"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - upload-configs/**
+
+jobs:
+    dev:
+        uses: ./.github/workflows/remote-cd-trigger-template.yml
+        with:
+            WORKFLOW: upload-configs.yml
+        secrets: inherit
