@@ -15,7 +15,7 @@ class FunctionKotlinWrappers {
             methods = [HttpMethod.GET],
             route = "status/health",
             authLevel = AuthorizationLevel.ANONYMOUS
-        ) request: HttpRequestMessage<*>,
+        ) request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
     ): HttpStatus {
         return HealthCheckFunction().run(request, context)

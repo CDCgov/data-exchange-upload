@@ -8,14 +8,15 @@ import com.microsoft.azure.functions.HttpRequestMessage
 import com.microsoft.azure.functions.HttpResponseMessage
 import com.microsoft.azure.functions.HttpStatus
 import gov.cdc.ocio.supplementalapi.model.Item
+import java.util.*
 
 
 class HealthCheckFunction {
     private val cosmosClient: CosmosClient
     // Initialize the CosmosDB client in the constructor
     init {
-        val endpoint = System.getenv("CosmosDbEndpoint")
-        val cosmoDBKey = System.getenv("CosmosDbKey")
+        val endpoint = System.getenv("COSMOSDBENDPOINT")
+        val cosmoDBKey = System.getenv("COSMOSDBKEY")
 
         val cosmosClientBuilder = CosmosClientBuilder()
             .endpoint(endpoint)
@@ -24,7 +25,7 @@ class HealthCheckFunction {
     }
 
     fun run(
-        request: HttpRequestMessage<*>,
+        request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
     ): HttpStatus {
 
@@ -43,6 +44,10 @@ class HealthCheckFunction {
                 Item::class.java
             )
 
+           /* return request.createResponseBuilder(HttpStatus.OK)
+                   .body("Cosmos DB is healthy")
+                   .build()*/
+
             return HttpStatus.OK
 
 
@@ -50,6 +55,10 @@ class HealthCheckFunction {
             println("An error occurred: ${ex.message}")
 
             return HttpStatus.INTERNAL_SERVER_ERROR
+
+            /*return request.createResponseBuilder(HttpStatus.OK)
+                .body("Cosmos DB not healthy")
+                .build()*/
         }
     }
 }
