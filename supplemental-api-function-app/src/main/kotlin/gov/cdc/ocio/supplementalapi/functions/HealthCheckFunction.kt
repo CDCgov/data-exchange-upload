@@ -12,17 +12,6 @@ import java.util.*
 
 
 class HealthCheckFunction {
-    private val cosmosClient: CosmosClient
-    // Initialize the CosmosDB client in the constructor
-    init {
-        val endpoint = System.getenv("COSMOSDBENDPOINT")
-        val cosmoDBKey = System.getenv("COSMOSDBKEY")
-
-        val cosmosClientBuilder = CosmosClientBuilder()
-            .endpoint(endpoint)
-            .key(cosmoDBKey)
-        cosmosClient = cosmosClientBuilder.buildClient()
-    }
 
     fun run(
         request: HttpRequestMessage<Optional<String>>,
@@ -30,7 +19,14 @@ class HealthCheckFunction {
     ): HttpStatus {
 
         try {
-            //val cosmosClient = CosmosClientManager.getCosmosClient()
+            val endpoint = System.getenv("COSMOSDBENDPOINT")
+            val cosmoDBKey = System.getenv("COSMOSDBKEY")
+
+
+            val cosmosClientBuilder = CosmosClientBuilder()
+                .endpoint(endpoint)
+                .key(cosmoDBKey)
+            val cosmosClient = cosmosClientBuilder.buildClient()
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
