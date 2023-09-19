@@ -5,9 +5,6 @@ import com.microsoft.azure.functions.annotation.AuthorizationLevel
 import com.microsoft.azure.functions.annotation.BindingName
 import com.microsoft.azure.functions.annotation.FunctionName
 import com.microsoft.azure.functions.annotation.HttpTrigger
-import gov.cdc.ocio.supplementalapi.functions.HealthCheckFunction
-import gov.cdc.ocio.supplementalapi.functions.StatusForDestinationFunction
-import gov.cdc.ocio.supplementalapi.functions.StatusForTguidFunction
 import java.util.Optional
 
 class FunctionKotlinWrappers {
@@ -18,9 +15,9 @@ class FunctionKotlinWrappers {
             methods = [HttpMethod.GET],
             route = "status/health",
             authLevel = AuthorizationLevel.ANONYMOUS
-        ) request: HttpRequestMessage<Optional<String>>,
+        ) request: HttpRequestMessage<*>,
         context: ExecutionContext
-    ): HttpResponseMessage {
+    ): HttpStatus {
         return HealthCheckFunction().run(request, context)
     }
 

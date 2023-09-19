@@ -7,10 +7,7 @@ import com.microsoft.azure.functions.ExecutionContext
 import com.microsoft.azure.functions.HttpRequestMessage
 import com.microsoft.azure.functions.HttpResponseMessage
 import com.microsoft.azure.functions.HttpStatus
-import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import gov.cdc.ocio.supplementalapi.model.Item
-import java.util.*
-import java.util.logging.Logger
 
 
 class HealthCheckFunction {
@@ -27,9 +24,9 @@ class HealthCheckFunction {
     }
 
     fun run(
-        request: HttpRequestMessage<Optional<String>>,
+        request: HttpRequestMessage<*>,
         context: ExecutionContext
-    ): HttpResponseMessage {
+    ): HttpStatus {
 
         try {
             //val cosmosClient = CosmosClientManager.getCosmosClient()
@@ -46,16 +43,13 @@ class HealthCheckFunction {
                 Item::class.java
             )
 
+            return HttpStatus.OK
 
-            return request
-                .createResponseBuilder(HttpStatus.OK)
-                .build()
+
         } catch (ex: Throwable) {
             println("An error occurred: ${ex.message}")
 
-            return request
-                .createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
-                .build()
+            return HttpStatus.INTERNAL_SERVER_ERROR
         }
     }
 }
