@@ -1,32 +1,25 @@
 package gov.cdc.ocio.supplementalapi.functions
 
-import com.azure.cosmos.CosmosClient
-import com.azure.cosmos.CosmosClientBuilder
 import com.azure.cosmos.models.CosmosQueryRequestOptions
 import com.microsoft.azure.functions.ExecutionContext
 import com.microsoft.azure.functions.HttpRequestMessage
 import com.microsoft.azure.functions.HttpResponseMessage
 import com.microsoft.azure.functions.HttpStatus
+import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import gov.cdc.ocio.supplementalapi.model.Item
 import java.util.*
 
 
-class HealthCheckFunction {
+class HealthCheckFunction() {
 
     fun run(
         request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
-    ): HttpStatus {
+    ): HttpResponseMessage {
 
         try {
-            val endpoint = System.getenv("COSMOSDBENDPOINT")
-            val cosmoDBKey = System.getenv("COSMOSDBKEY")
 
-
-            val cosmosClientBuilder = CosmosClientBuilder()
-                .endpoint(endpoint)
-                .key(cosmoDBKey)
-            val cosmosClient = cosmosClientBuilder.buildClient()
+            val cosmosClient = CosmosClientManager.getCosmosClient()
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
@@ -40,21 +33,17 @@ class HealthCheckFunction {
                 Item::class.java
             )
 
-           /* return request.createResponseBuilder(HttpStatus.OK)
+           return request.createResponseBuilder(HttpStatus.OK)
                    .body("Cosmos DB is healthy")
-                   .build()*/
-
-            return HttpStatus.OK
+                   .build()
 
 
         } catch (ex: Throwable) {
             println("An error occurred: ${ex.message}")
 
-            return HttpStatus.INTERNAL_SERVER_ERROR
-
-            /*return request.createResponseBuilder(HttpStatus.OK)
+            return request.createResponseBuilder(HttpStatus.OK)
                 .body("Cosmos DB not healthy")
-                .build()*/
+                .build()
         }
     }
 }
