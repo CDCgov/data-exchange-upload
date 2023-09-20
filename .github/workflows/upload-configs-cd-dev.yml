@@ -1,4 +1,4 @@
-name: "Upload Configs"
+name: "Upload Configs CD Dev"
 
 on:
   workflow_dispatch:
@@ -12,5 +12,5 @@ jobs:
     dev:
         uses: ./.github/workflows/remote-cd-trigger-template.yml
         with:
-            WORKFLOW: upload-configs.yml
+            WORKFLOW: upload-configs-cd-dev.yml
         secrets: inherit
