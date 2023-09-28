@@ -1,13 +1,13 @@
 openapi: 3.0.1
 info:
-  title: Swagger definition of the tusd / Data Exchange Upload API.
+  title: Tusd Upload API.
   description: Swagger definition of the tusd / Data Exchange Upload API.
   version: "1.1"
   contact:
     email: tpz7@cdc.gov
 servers:
   - url: 'https://apidev.cdc.gov'
-    description: Development server
+    description: Development servergiy
   - url: 'https://apistg.cdc.gov'
     description: Staging server
   - url: 'https://api.cdc.gov'
