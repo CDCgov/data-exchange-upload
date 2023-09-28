@@ -296,7 +296,7 @@ paths:
         status.
       operationId: FilesDelete
       parameters:
-      - name: id
+      - name: tguid
         in: path
         required: true
         schema:
@@ -329,7 +329,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-      - name: id
+      - name: tguid
         in: path
         required: true
         schema:
@@ -400,7 +400,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-      - name: id
+      - name: tguid
         in: path
         required: true
         schema:
