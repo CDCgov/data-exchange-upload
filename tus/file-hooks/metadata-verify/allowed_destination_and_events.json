@@ -52,6 +52,10 @@
       {
         "name": "covidbridgeVaccination",
         "definition_filename": "definitions/ndlp_covid_bridge_meta_definition.json"
+      },
+      {
+        "name": "aplHistoricalData",
+        "definition_filename": "definitions/ndlp_apl_historical_data_meta_definition.json"
       }
     ]
   },
