@@ -346,10 +346,10 @@ namespace BulkFileUploadFunctionApp
             {                
                 string currentStackTrace = System.Environment.StackTrace;
 
-                _logger.LogError("Failed to copy " +  ex.GetType().Name);
+                _logger.LogError("Failed to copy" +  ex.GetType().Name);
                 _logger.LogError("Failed to copy",  ex.GetType().Name);
                 _logger.LogError("Failed to copy", currentStackTrace);
-                -logger.LogError("Failed to copy", ex.ToString());
+                _logger.LogError("Failed to copy", ex.ToString());
                 _logger.LogError("Failed to copy", ex.StackTrace);
                 
                 if ((ex is AggregateException aggEx) && (aggEx.InnerExceptions != null))
