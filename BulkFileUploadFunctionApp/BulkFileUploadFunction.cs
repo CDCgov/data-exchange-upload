@@ -339,18 +339,22 @@ namespace BulkFileUploadFunctionApp
                 {
                     await edavDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
                     dexBlobStream.Close();
-                }
-                
-            } 
+                }                
+            }    
+            catch(AuthenticationFailedException afe) {
+                _logger.LogError("Authenticaton Failed-1" + afe.StackTrace);
+                _logger.LogError("Authenticaton Failed-2" + afe.ToString());                
+            }
             catch (Exception ex)
             {                
                 string currentStackTrace = System.Environment.StackTrace;
 
-                _logger.LogError("Failed to copy" +  ex.GetType().Name);
-                _logger.LogError("Failed to copy",  ex.GetType().Name);
-                _logger.LogError("Failed to copy", currentStackTrace);
-                _logger.LogError("Failed to copy", ex.ToString());
-                _logger.LogError("Failed to copy", ex.StackTrace);
+                _logger.LogError("Failed to copy-1" + ex.GetType().Name);
+                _logger.LogError("Failed to copy-2",  ex.GetType().Name);
+
+                _logger.LogError("Failed to copy-3", currentStackTrace);
+                _logger.LogError("Failed to copy-4", ex.ToString());
+                _logger.LogError("Failed to copy-5", ex.StackTrace);
                 
                 if ((ex is AggregateException aggEx) && (aggEx.InnerExceptions != null))
                 {
