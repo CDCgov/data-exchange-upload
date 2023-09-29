@@ -1,7 +1,10 @@
-[
-    {
-       "schema_version": "1.0",
-       "fields": [
-       ]
-    }
-]
+[{
+   "schema_version": "1.0",
+   "fields": [{
+         "fieldname": "filename",
+         "allowed_values": null,
+         "required": "true",
+         "description": "The name of the file submitted."
+      }
+   ]
+}]
