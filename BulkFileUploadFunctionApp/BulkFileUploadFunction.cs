@@ -341,33 +341,16 @@ namespace BulkFileUploadFunctionApp
                     dexBlobStream.Close();
                 }                
             }    
-            catch(AuthenticationFailedException afe) {
-                _logger.LogError("Authenticaton Failed-1" + afe.StackTrace);
-                _logger.LogError("Authenticaton Failed-2" + afe.ToString());                
+            // catch(AuthenticationFailedException afe) {
+            //     _logger.LogError("Failed to copy", afe.ToString());
+            // }
+            catch (Exception ex) {
+                _logger.LogError("Failed to copy", ex.GetType().Name);
+                _logger.LogError(GetExceptionMessages(ex));                
             }
-            catch (Exception ex)
-            {                
-                string currentStackTrace = System.Environment.StackTrace;
-
-                _logger.LogError("Failed to copy-1" + ex.GetType().Name);
-                _logger.LogError("Failed to copy-2",  ex.GetType().Name);
-
-                _logger.LogError("Failed to copy-3", currentStackTrace);
-                _logger.LogError("Failed to copy-4", ex.ToString());
-                _logger.LogError("Failed to copy-5", ex.StackTrace);
-                
-                if ((ex is AggregateException aggEx) && (aggEx.InnerExceptions != null))
-                {
-                    string crashMessage = "";
-                    int i = 1;
-                    foreach (Exception innerAggEx in aggEx.InnerExceptions)
-                    {
-                        crashMessage += innerAggEx.Message + innerAggEx.StackTrace;
-                    }
-
-                     _logger.LogError("Failed to copy", crashMessage);
-                }
-            }
+        }
+        public static string GetExceptionMessages(Exception exception, int msgCount = 1) {
+             return exception != null ? string.Format("{0}: {1}\n{2}", msgCount, exception.Message, GetExceptionMessages(exception.InnerException, ++msgCount)) : string.Empty;
         }
 
         /// <summary>
