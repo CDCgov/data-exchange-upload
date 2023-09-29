@@ -348,7 +348,21 @@ namespace BulkFileUploadFunctionApp
 
                 _logger.LogError("Failed to copy", currentStackTrace);
                 _logger.LogError("Failed to copy", ex.ToString());
-                _logger.LogError("Failed to copy", ex.StackTrace);                
+                _logger.LogError("Failed to copy", ex.StackTrace);
+                
+                if ((ex is AggregateException aggEx) && (aggEx.InnerExceptions != null))
+                {
+                    int i = 1;
+                    foreach (Exception innerAggEx in aggEx.InnerExceptions)
+                    {
+                        crashMessage += $"\r\n------------------------------ aggregation #{i++} ------------------------------\r\n"
+                                     +  $"Message(s): {GetAllExceptionMessages(innerAggEx)}\r\n"
+                                     +  $"Exception type(s): {GetAllExceptionTypes(innerAggEx)}\r\n"
+                                     +  $"Stack trace:\r\n{innerAggEx.StackTrace ?? "[NULL]"}";
+                    }
+
+                     _logger.LogError("Failed to copy", crashMessage);
+                }
             }
         }
 
