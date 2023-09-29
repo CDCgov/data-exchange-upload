@@ -344,8 +344,11 @@ namespace BulkFileUploadFunctionApp
             } 
             catch (Exception ex)
             {                
-                _logger.LogError("Failed to copy", ex.StackTrace);
-                _logger.LogError("---STACK TRACE----", ex);
+                string currentStackTrace = System.Environment.StackTrace;
+
+                _logger.LogError("Failed to copy", currentStackTrace);
+                _logger.LogError("Failed to copy", ex.ToString());
+                _logger.LogError("Failed to copy", ex.StackTrace);                
             }
         }
 
