@@ -345,12 +345,12 @@ namespace BulkFileUploadFunctionApp
             //     _logger.LogError("Failed to copy", afe.ToString());
             // }
             catch (Exception ex) {
-                _logger.LogError("Failed to copy", ex.GetType().Name);
+                _logger.LogError("Failed to copy from Dex to Edav - " + ex.GetType().Name);
                 _logger.LogError(GetExceptionMessages(ex));                
             }
         }
         public static string GetExceptionMessages(Exception exception, int msgCount = 1) {
-             return exception != null ? string.Format("{0}: {1}\n{2}", msgCount, exception.Message, GetExceptionMessages(exception.InnerException, ++msgCount)) : string.Empty;
+             return exception != null ? string.Format("{0}: {1}\n\n{2}", msgCount, exception.Message, GetExceptionMessages(exception.InnerException, ++msgCount)) : string.Empty;
         }
 
         /// <summary>
