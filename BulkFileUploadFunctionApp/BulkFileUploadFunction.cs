@@ -352,6 +352,7 @@ namespace BulkFileUploadFunctionApp
                 
                 if ((ex is AggregateException aggEx) && (aggEx.InnerExceptions != null))
                 {
+                    string crashMessage = "";
                     int i = 1;
                     foreach (Exception innerAggEx in aggEx.InnerExceptions)
                     {
