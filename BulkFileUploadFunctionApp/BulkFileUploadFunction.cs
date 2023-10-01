@@ -341,7 +341,7 @@ namespace BulkFileUploadFunctionApp
             }    
             catch (Exception ex) {
               _logger.LogError("Failed to copy from Dex to Edav");
-              ExceptionUtils.LogErrorDetails(ex);
+              ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
@@ -381,7 +381,7 @@ namespace BulkFileUploadFunctionApp
             catch (RequestFailedException ex)
             {
               _logger.LogError("Failed to copy from TUS to Dex");
-              ExceptionUtils.LogErrorDetails(ex);                
+              ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
