@@ -1,8 +1,16 @@
+using Microsoft.Extensions.Logging;
+
 namespace BulkFileUploadFunctionApp.Utils
 {
     internal class ExceptionUtils
     {
-        public LogErrorDetails(Exception ex)
+        private readonly ILogger _logger;
+        public ExceptionUtils(ILogger logger)
+        {
+            _logger = logger;
+        }
+
+        public void LogErrorDetails(Exception ex)
         {
             if(ex is AggregateException) {
                 foreach (var inner in ex.Flatten().InnerExceptions) {
