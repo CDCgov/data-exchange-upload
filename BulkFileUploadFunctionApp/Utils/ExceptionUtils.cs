@@ -7,7 +7,7 @@ namespace BulkFileUploadFunctionApp.Utils
         public static void LogErrorDetails(Exception ex, ILogger _logger)
         {
             if(ex is AggregateException) {
-                foreach (Exception innerException in (AggregateException) ex.Flatten().InnerExceptions) {
+                foreach (Exception innerException in (AggregateException) ex.InnerExceptions) {
                     _logger.LogError(innerException.ToString());
                 }
             } else {
