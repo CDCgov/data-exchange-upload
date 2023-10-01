@@ -327,12 +327,10 @@ namespace BulkFileUploadFunctionApp
                 string destinationContainerName = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceContainerName : _edavUploadRootContainerName;
                 string destinationBlobFilename = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
 
-
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
                 await edavContainerClient.CreateIfNotExistsAsync();
 
-                
                 BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
 
                 using var dexBlobStream = await dexBlobClient.OpenReadAsync();
@@ -341,16 +339,10 @@ namespace BulkFileUploadFunctionApp
                     dexBlobStream.Close();
                 }                
             }    
-            // catch(AuthenticationFailedException afe) {
-            //     _logger.LogError("Failed to copy", afe.ToString());
-            // }
             catch (Exception ex) {
-                _logger.LogError("Failed to copy from Dex to Edav - " + ex.GetType().Name);
-                _logger.LogError(GetExceptionMessages(ex));                
+              _logger.LogError("Failed to copy from Dex to Edav");
+              ExceptionUtils.LogErrorDetails(ex);
             }
-        }
-        public static string GetExceptionMessages(Exception exception, int msgCount = 1) {
-             return exception != null ? string.Format("{0}: {1}\n\n{2}", msgCount, exception.Message, GetExceptionMessages(exception.InnerException, ++msgCount)) : string.Empty;
         }
 
         /// <summary>
@@ -388,7 +380,8 @@ namespace BulkFileUploadFunctionApp
             }
             catch (RequestFailedException ex)
             {
-                _logger.LogError(ex.Message);
+              _logger.LogError("Failed to copy from TUS to Dex");
+              ExceptionUtils.LogErrorDetails(ex);                
             }
         }
 
