@@ -10,19 +10,21 @@ import gov.cdc.ocio.supplementalapi.model.Item
 import java.util.*
 
 
-class HealthCheckFunction() {
+
+
+class HealthCheckFunction {
 
     fun run(
         request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
-    ): HttpResponseMessage {
+    ): HttpStatus {
 
         try {
-
             val cosmosClient = CosmosClientManager.getCosmosClient()
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
+
 
             val cosmosDB = cosmosClient.getDatabase(databaseName)
             val container = cosmosDB.getContainer(containerName)
@@ -33,17 +35,13 @@ class HealthCheckFunction() {
                 Item::class.java
             )
 
-           return request.createResponseBuilder(HttpStatus.OK)
-                   .body("Cosmos DB is healthy")
-                   .build()
+           return HttpStatus.OK
 
 
         } catch (ex: Throwable) {
             println("An error occurred: ${ex.message}")
 
-            return request.createResponseBuilder(HttpStatus.OK)
-                .body("Cosmos DB not healthy")
-                .build()
+            return HttpStatus.INTERNAL_SERVER_ERROR
         }
     }
 }

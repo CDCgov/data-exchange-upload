@@ -4,7 +4,10 @@ import com.azure.cosmos.ConsistencyLevel
 import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.CosmosClientBuilder
 
+
+
 class CosmosClientManager {
+
     companion object {
 
         private var client: CosmosClient? = null
@@ -25,4 +28,6 @@ class CosmosClientManager {
             return client!!
         }
     }
+
+
 }
