@@ -327,24 +327,21 @@ namespace BulkFileUploadFunctionApp
                 string destinationContainerName = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceContainerName : _edavUploadRootContainerName;
                 string destinationBlobFilename = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
 
-
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
                 await edavContainerClient.CreateIfNotExistsAsync();
 
-                
                 BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
 
                 using var dexBlobStream = await dexBlobClient.OpenReadAsync();
                 {
                     await edavDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
                     dexBlobStream.Close();
-                }
-                
-            } 
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to copy", ex.Message);
+                }                
+            }    
+            catch (Exception ex) {
+              _logger.LogError("Failed to copy from Dex to Edav");
+              ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
@@ -383,7 +380,8 @@ namespace BulkFileUploadFunctionApp
             }
             catch (RequestFailedException ex)
             {
-                _logger.LogError(ex.Message);
+              _logger.LogError("Failed to copy from TUS to Dex");
+              ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
