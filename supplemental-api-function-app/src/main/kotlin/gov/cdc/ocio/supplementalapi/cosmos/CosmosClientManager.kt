@@ -5,7 +5,6 @@ import com.azure.cosmos.CosmosClient
 import com.azure.cosmos.CosmosClientBuilder
 
 
-
 class CosmosClientManager {
 
     companion object {
@@ -28,6 +27,4 @@ class CosmosClientManager {
             return client!!
         }
     }
-
-
 }

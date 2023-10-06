@@ -5,6 +5,7 @@ import com.microsoft.azure.functions.annotation.AuthorizationLevel
 import com.microsoft.azure.functions.annotation.BindingName
 import com.microsoft.azure.functions.annotation.FunctionName
 import com.microsoft.azure.functions.annotation.HttpTrigger
+import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import java.util.Optional
 
 class FunctionKotlinWrappers {
@@ -18,7 +19,7 @@ class FunctionKotlinWrappers {
         ) request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
     ): HttpStatus {
-        return HealthCheckFunction().run(request, context)
+        return HealthCheckFunction().run(request, context, CosmosClientManager.getCosmosClient())
     }
 
     @FunctionName("StatusForTguid")
