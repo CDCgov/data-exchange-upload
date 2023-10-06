@@ -8,19 +8,20 @@ import com.microsoft.azure.functions.HttpStatus
 import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import gov.cdc.ocio.supplementalapi.model.Item
 import java.util.*
-import java.util.logging.Logger
+import com.azure.cosmos.CosmosClient
+
+
 
 
 class HealthCheckFunction {
 
     fun run(
         request: HttpRequestMessage<Optional<String>>,
-        context: ExecutionContext
-    ): HttpResponseMessage {
-    
-        try {
-            val cosmosClient = CosmosClientManager.getCosmosClient()
+        context: ExecutionContext,
+        cosmosClient: CosmosClient
+    ): HttpStatus {
 
+        try {
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
 
@@ -33,14 +34,12 @@ class HealthCheckFunction {
                 Item::class.java
             )
 
-            return request
-                .createResponseBuilder(HttpStatus.OK)
-                .build()
-        } catch (ex: Throwable) {
-            
-            return request
-                .createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
-                .build()
+           return HttpStatus.OK
+
+        } catch (ex: Exception) {
+            println("An error occurred: ${ex.message}")
+
+            return HttpStatus.INTERNAL_SERVER_ERROR
         }
     }
 }
