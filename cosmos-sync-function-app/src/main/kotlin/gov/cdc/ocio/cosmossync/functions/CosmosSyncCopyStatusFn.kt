@@ -11,7 +11,7 @@ import gov.cdc.ocio.cosmossync.model.ItemCopyStatus
 import com.azure.cosmos.CosmosContainer
 
 
-class CosmosSyncCopyStatusFn {
+class CosmosSyncCopyStatus {
 
     companion object {
         private const val containerName = "Items"
@@ -45,7 +45,7 @@ class CosmosSyncCopyStatusFn {
         
     } // .updateItemCopyStatus
 
-  } // .CosmosSyncCopyStatusFn
+  } // .CosmosSyncCopyStatus
 
   
 
