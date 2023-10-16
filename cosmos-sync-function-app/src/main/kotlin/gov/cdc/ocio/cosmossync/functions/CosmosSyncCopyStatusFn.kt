@@ -7,15 +7,17 @@ import gov.cdc.ocio.cosmossync.functions.HealthCheckFunction
 import java.util.Optional
 
 import com.google.gson.Gson
-import gov.cdc.ocio.cosmossync.model.ItemCopyStatus
+import gov.cdc.ocio.cosmossync.model.*
 import com.azure.cosmos.CosmosContainer
+import com.azure.cosmos.models.PartitionKey
+import gov.cdc.ocio.cosmossync.cosmos.CosmosClientManager
 
 
 class CosmosSyncCopyStatus {
 
     companion object {
-        private const val containerName = "Items"
-        private const val databaseName = "UploadStatus"
+        private const val COSMOS_CONTAINER_NAME = "Items"
+        private const val COSMOS_DB_NAME = "UploadStatus"
     } // .companion object 
 
     @FunctionName("CosmosSyncCopyStatusFn")
@@ -27,23 +29,42 @@ class CosmosSyncCopyStatus {
         ) message: String,
         context: ExecutionContext
     ) {
-        val logger = context.logger
 
-        logger.info("Dequeueing message: $message")
-        val messageJson = Gson().fromJson(message, ItemCopyStatus::class.java)
+        val log = context.logger
+        log.info("Dequeueing message: $message")
 
-        logger.info("Received JSON messageJson: ${messageJson}")
+        try {
 
-        // updateItemCopyStatus(context, container, messageJson)
-    }
+            val itemInternalStatus = Gson().fromJson(message, ItemInternalStatus::class.java)
 
-    private fun updateItemCopyStatus(context: ExecutionContext, container: CosmosContainer, msg: ItemCopyStatus) {
+            log.info("Received JSON itemInternalStatus: ${itemInternalStatus}")
 
-        val logger = context.logger
+            // cosmos connection    
+            val cosmosClient = CosmosClientManager.getCosmosClient()
+            val cosmosDb = cosmosClient.getDatabase(COSMOS_DB_NAME) 
+            val cosmosContainer = cosmosDb.getContainer(COSMOS_CONTAINER_NAME)
+            
+            // get existing item from Cosmos by tguid
+            val itemResponse = cosmosContainer.readItem(
+                itemInternalStatus.tguid, PartitionKey(COSMOS_DB_NAME),
+                ItemCopyStatus::class.java
+            )
+            val readItem: ItemCopyStatus = itemResponse.item
 
-        logger.info("update id: ${msg.id}, statusDEX: ${msg.statusDEX}, statusEDAV: ${msg.statusEDAV}")
-        
-    } // .updateItemCopyStatus
+            // add the new internal status 
+            readItem.statusInternal = itemInternalStatus.statusInternal 
+
+            // update the item
+            cosmosContainer.upsertItem(readItem) 
+
+        } catch (e: Exception) {
+
+            log.info("Exception: ${e.localizedMessage}")
+
+        } // .catch 
+
+    } // .evHubCopyStatus
+
 
   } // .CosmosSyncCopyStatus
 
