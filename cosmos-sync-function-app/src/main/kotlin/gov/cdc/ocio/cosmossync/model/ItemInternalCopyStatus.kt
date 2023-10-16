@@ -1,7 +1,7 @@
 package gov.cdc.ocio.cosmossync.model
 
 // sent by BulkFileUploadFunctionApp to storage queue 
-class ItemInternalStatus {
+class ItemInternalCopyStatus {
 
     var tguid : String? = null
 
@@ -9,4 +9,4 @@ class ItemInternalStatus {
 
     var statusEDAV : String? = null
 
-} // .ItemInternalStatus
+} // .ItemInternalCopyStatus

@@ -35,9 +35,9 @@ class CosmosSyncCopyStatus {
 
         try {
 
-            val itemInternalStatus = Gson().fromJson(message, ItemInternalStatus::class.java)
+            val itemInternalCopyStatus = Gson().fromJson(message, ItemInternalCopyStatus::class.java)
 
-            log.info("Received JSON itemInternalStatus: ${itemInternalStatus}")
+            log.info("Received JSON itemInternalCopyStatus: ${itemInternalCopyStatus}")
 
             // cosmos connection    
             val cosmosClient = CosmosClientManager.getCosmosClient()
@@ -46,14 +46,14 @@ class CosmosSyncCopyStatus {
             
             // get existing item from Cosmos by tguid
             val itemResponse = cosmosContainer.readItem(
-                itemInternalStatus.tguid, PartitionKey(COSMOS_DB_NAME),
-                ItemCopyStatus::class.java
+                itemInternalCopyStatus.tguid, PartitionKey(COSMOS_DB_NAME),
+                ItemInternalCopyStatus::class.java
             )
-            val readItem: ItemCopyStatus = itemResponse.item
+            val readItem: ItemInternalCopyStatus = itemResponse.item
 
             // add the new internal statuses, two separated statuses in case of async updates
-            readItem.statusDEX = itemInternalStatus.statusDEX
-            readItem.statusEDAV = itemInternalStatus.statusEDAV
+            readItem.statusDEX = itemInternalCopyStatus.statusDEX
+            readItem.statusEDAV = itemInternalCopyStatus.statusEDAV
 
             // update the item
             cosmosContainer.upsertItem(readItem) 
