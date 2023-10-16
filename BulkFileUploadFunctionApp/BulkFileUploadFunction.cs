@@ -13,6 +13,7 @@ using Azure.Messaging.EventHubs.Producer;
 using Azure.Messaging.EventHubs;
 using Newtonsoft.Json;
 using BulkFileUploadFunctionApp.Utils;
+using Azure.Storage.Queues;
 
 namespace BulkFileUploadFunctionApp
 {
@@ -39,6 +40,8 @@ namespace BulkFileUploadFunctionApp
 
         private readonly string _edavUploadRootContainerName;
 
+        private readonly string _cosmosSinkCopyStatusQueueName;
+
         public static string? GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
@@ -61,6 +64,8 @@ namespace BulkFileUploadFunctionApp
             _metadataEventHubSharedAccessKey = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY") ?? "";
 
             _edavUploadRootContainerName = GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME") ?? "upload";
+
+            _cosmosSinkCopyStatusQueueName = GetEnvironmentVariable("CosmosSinkCopyStatusQueueName") ?? "cosmos-sink-copy-status-queue";
 
         }
 
@@ -165,9 +170,30 @@ namespace BulkFileUploadFunctionApp
 
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
                 await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                
+                // Update status StatusDEX = "Completed"
+                QueueClient cosmosCopyStatusQueue = new QueueClient(connectionString, _cosmosSinkCopyStatusQueueName);
+                await cosmosCopyStatusQueue.CreateIfNotExistsAsync();
+                ItemInternalCopyStatus itemInternalCopyStatus = new ItemInternalCopyStatus
+                {
+                    Tguid = tusInfoFile?.ID,
+                    StatusDEX = "Completed"
+                };
+                var itemDEXStatusJson = Newtonsoft.Json.JsonConvert.SerializeObject(itemInternalCopyStatus);
+                var itemDEXStatusBytes = System.Text.Encoding.UTF8.GetBytes(itemDEXStatusJson);
+                var itemDEXStatusBase64 = System.Convert.ToBase64String(itemDEXStatusBytes);
+
+                await cosmosCopyStatusQueue.SendMessageAsync(itemDEXStatusBase64);
 
                 // Now copy the file from DeX to the EDAV storage account, also partitioned by date
                 await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+
+                // Update status StatusEDAV = "Completed"
+                itemInternalCopyStatus.StatusEDAV = "Completed";
+                var itemEDAVStatusJson = Newtonsoft.Json.JsonConvert.SerializeObject(itemInternalCopyStatus);
+                var itemEDAVStatusBytes = System.Text.Encoding.UTF8.GetBytes(itemEDAVStatusJson);
+                var itemEDAVStatusBase64 = System.Convert.ToBase64String(itemEDAVStatusBytes);
+                await cosmosCopyStatusQueue.SendMessageAsync(itemEDAVStatusBase64);
 
                 // Finally, send metadata to eventhub for other consumers
                 var metadataRelaySucceeded = await RelayMetaData(tusFileMetadata);

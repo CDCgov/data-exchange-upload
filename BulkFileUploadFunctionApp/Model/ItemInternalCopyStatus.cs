@@ -1,5 +1,4 @@
 ﻿namespace BulkFileUploadFunctionApp.Model
-
 {
     public class ItemInternalCopyStatus
     {
