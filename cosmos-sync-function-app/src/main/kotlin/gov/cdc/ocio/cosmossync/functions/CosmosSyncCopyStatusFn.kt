@@ -15,10 +15,10 @@ import gov.cdc.ocio.cosmossync.cosmos.CosmosClientManager
 
 class CosmosSyncCopyStatus {
 
-    companion object {
-        private const val COSMOS_CONTAINER_NAME = "Items"
-        private const val COSMOS_DB_NAME = "UploadStatus"
-    } // .companion object 
+    // companion object {
+    //     private const val COSMOS_DB_NAME = System.getenv("CosmosDbDatabaseName") //"UploadStatus"
+    //     private const val COSMOS_CONTAINER_NAME = "Items"
+    // } // .companion object 
 
     @FunctionName("CosmosSyncCopyStatusFn")
     fun evHubCopyStatus(
@@ -34,19 +34,23 @@ class CosmosSyncCopyStatus {
         log.info("Dequeueing message: $message")
 
         try {
+            
+            val databaseName = System.getenv("CosmosDbDatabaseName")
+            val containerName = System.getenv("CosmosDbContainerName")
 
             val itemInternalCopyStatus = Gson().fromJson(message, ItemInternalCopyStatus::class.java)
 
-            log.info("Received JSON itemInternalCopyStatus: ${itemInternalCopyStatus}")
+            log.info("Received JSON itemInternalCopyStatus: $itemInternalCopyStatus")
 
             // cosmos connection    
             val cosmosClient = CosmosClientManager.getCosmosClient()
-            val cosmosDb = cosmosClient.getDatabase(COSMOS_DB_NAME) 
-            val cosmosContainer = cosmosDb.getContainer(COSMOS_CONTAINER_NAME)
+            val cosmosDb = cosmosClient.getDatabase(databaseName) 
+            val cosmosContainer = cosmosDb.getContainer(containerName)
+
             
             // get existing item from Cosmos by tguid
             val itemResponse = cosmosContainer.readItem(
-                itemInternalCopyStatus.tguid, PartitionKey(COSMOS_DB_NAME),
+                itemInternalCopyStatus.tguid, PartitionKey(databaseName),
                 ItemInternalCopyStatus::class.java
             )
             val readItem: ItemInternalCopyStatus = itemResponse.item
