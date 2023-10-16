@@ -5,6 +5,8 @@ class ItemInternalStatus {
 
     var tguid : String? = null
 
-    var statusInternal : String? = null
+    var statusDEX : String? = null
+
+    var statusEDAV : String? = null
 
 } // .ItemInternalStatus

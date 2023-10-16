@@ -26,8 +26,11 @@ class ItemCopyStatus {
 
     var _ts : Long = 0
 
-    // Item + statusInternal
+    // Item + internal statuses
 
-    var statusInternal : String? = null
+    var statusDEX : String? = null
+
+    var statusEDAV : String? = null
     
+
 } // .ItemCopyStatus

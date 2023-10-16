@@ -51,8 +51,9 @@ class CosmosSyncCopyStatus {
             )
             val readItem: ItemCopyStatus = itemResponse.item
 
-            // add the new internal status 
-            readItem.statusInternal = itemInternalStatus.statusInternal 
+            // add the new internal statuses, two separated statuses in case of async updates
+            readItem.statusDEX = itemInternalStatus.statusDEX
+            readItem.statusEDAV = itemInternalStatus.statusEDAV
 
             // update the item
             cosmosContainer.upsertItem(readItem) 
