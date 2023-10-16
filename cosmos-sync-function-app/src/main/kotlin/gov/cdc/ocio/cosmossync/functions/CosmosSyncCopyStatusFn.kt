@@ -24,7 +24,7 @@ class CosmosSyncCopyStatus {
     fun evHubCopyStatus(
         @QueueTrigger(
             name = "msg",
-            queueName = "%CosmosSinkQueueName%", 
+            queueName = "%CosmosSinkCopyStatusQueueName%", 
             connection = "StorageConnectionString"
         ) message: String,
         context: ExecutionContext
