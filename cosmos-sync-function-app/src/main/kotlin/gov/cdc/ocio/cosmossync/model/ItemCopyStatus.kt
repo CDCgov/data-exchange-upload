@@ -31,6 +31,10 @@ class ItemCopyStatus {
     var statusDEX : String? = null
 
     var statusEDAV : String? = null
+
+    override fun toString(): String {
+        return "ItemCopyStatus(id='$id', tguid=$tguid, partitionKey=$partitionKey, offset=$offset, size=$size, meta_destination_id=$meta_destination_id, meta_ext_event=$meta_ext_event, filename=$filename, metadata=$metadata, start_time_epoch=$start_time_epoch, end_time_epoch=$end_time_epoch, _ts=$_ts, statusDEX=$statusDEX, statusEDAV=$statusEDAV)"
+    } // .toString 
     
 
 } // .ItemCopyStatus
