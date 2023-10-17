@@ -15,11 +15,6 @@ import gov.cdc.ocio.cosmossync.cosmos.CosmosClientManager
 
 class CosmosSyncCopyStatus {
 
-    // companion object {
-    //     private const val COSMOS_DB_NAME = System.getenv("CosmosDbDatabaseName") //"UploadStatus"
-    //     private const val COSMOS_CONTAINER_NAME = "Items"
-    // } // .companion object 
-
     @FunctionName("CosmosSyncCopyStatusFn")
     fun evHubCopyStatus(
         @QueueTrigger(
