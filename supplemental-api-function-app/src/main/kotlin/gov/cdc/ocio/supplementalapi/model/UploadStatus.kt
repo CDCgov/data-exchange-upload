@@ -27,7 +27,7 @@ class UploadStatus {
             if (item.size > 0)
                 percentComplete = item.offset.toFloat() / item.size * 100
 
-            val statusMessage = if (item.offset < item.size) "Uploading" else "Complete"
+            val statusMessage = if (item.offset < item.size) "Uploading" else "UploadComplete"
             return UploadStatus().apply {
                 status = statusMessage
                 tus_upload_id = item.tguid
