@@ -24,7 +24,9 @@ class HealthCheckFunction {
 
             val LOGGER = LogManager.getLogger(HealthCheckFunction::class.java)
 
+            println("---JSON LOG-START--")
             LOGGER.info("HELLO THERE! I am testing json log functionality.")
+            println("---JSON LOG-END--")
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
