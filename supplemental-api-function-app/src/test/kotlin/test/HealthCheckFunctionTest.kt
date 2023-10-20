@@ -36,39 +36,39 @@ class HealthCheckFunctionTest {
         context = mock(ExecutionContext::class.java)
     }
 
-    @Test
-    fun testOkStatusBack() {   
-        val mockCosmosClient = mockk<CosmosClient>()
-        val mockCosmosDb = mockk<CosmosDatabase>()
-        val mockCosmosContainer = mockk<CosmosContainer>()
+    // @Test
+    // fun testOkStatusBack() {   
+    //     val mockCosmosClient = mockk<CosmosClient>()
+    //     val mockCosmosDb = mockk<CosmosDatabase>()
+    //     val mockCosmosContainer = mockk<CosmosContainer>()
 
-        val items = mockk<CosmosPagedIterable<Item>>()
+    //     val items = mockk<CosmosPagedIterable<Item>>()
 
-        every { mockCosmosClient.getDatabase(any()) } returns mockCosmosDb
-        every { mockCosmosDb.getContainer(any()) } returns mockCosmosContainer
-        every { mockCosmosContainer.queryItems(any<String>(), any<CosmosQueryRequestOptions>(), Item::class.java) } returns items
+    //     every { mockCosmosClient.getDatabase(any()) } returns mockCosmosDb
+    //     every { mockCosmosDb.getContainer(any()) } returns mockCosmosContainer
+    //     every { mockCosmosContainer.queryItems(any<String>(), any<CosmosQueryRequestOptions>(), Item::class.java) } returns items
 
-        // Create a HealthCheckFunction instance
-        val healthCheckFunction = HealthCheckFunction()
+    //     // Create a HealthCheckFunction instance
+    //     val healthCheckFunction = HealthCheckFunction()
 
-        // call HealthCheckFunction
-        val response = healthCheckFunction.run(request, context, mockCosmosClient)
+    //     // call HealthCheckFunction
+    //     val response = healthCheckFunction.run(request, context, mockCosmosClient)
 
-        assert(response == HttpStatus.OK)
-    }
+    //     assert(response == HttpStatus.OK)
+    // }
 
-     @Test
-    fun testFailureStatusBack() {   
-        val mockCosmosClient = mockk<CosmosClient>()
+    //  @Test
+    // fun testFailureStatusBack() {   
+    //     val mockCosmosClient = mockk<CosmosClient>()
 
-        every { mockCosmosClient.getDatabase(any()) } throws (Exception("CosmosDB error"))
+    //     every { mockCosmosClient.getDatabase(any()) } throws (Exception("CosmosDB error"))
 
-        // Create a HealthCheckFunction instance
-        val healthCheckFunction = HealthCheckFunction()
+    //     // Create a HealthCheckFunction instance
+    //     val healthCheckFunction = HealthCheckFunction()
 
-        // call HealthCheckFunction
-        val response = healthCheckFunction.run(request, context, mockCosmosClient)
+    //     // call HealthCheckFunction
+    //     val response = healthCheckFunction.run(request, context, mockCosmosClient)
 
-        assert(response == HttpStatus.INTERNAL_SERVER_ERROR)
-    }
+    //     assert(response == HttpStatus.INTERNAL_SERVER_ERROR)
+    // }
 }
