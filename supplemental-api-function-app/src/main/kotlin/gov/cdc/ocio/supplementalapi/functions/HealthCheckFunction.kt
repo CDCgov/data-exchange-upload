@@ -22,7 +22,7 @@ class HealthCheckFunction {
 
         try {
 
-            val LOGGER = LogManager.getLogger(HealthCheckFunction::class.java)
+            val LOGGER = LogManager.getLogger()
 
             println("---JSON LOG-START--")
             LOGGER.info("HELLO THERE! I am testing json log functionality.")
