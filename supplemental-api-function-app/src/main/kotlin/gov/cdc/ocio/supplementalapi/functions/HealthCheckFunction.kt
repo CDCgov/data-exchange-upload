@@ -23,8 +23,8 @@ class HealthCheckFunction {
     ): HttpStatus {     
 
         try {
-            
-            LOGGER.info("HELLL THERE! I am testing json log functionality.")
+
+            LOGGER.info("HELLO THERE! I am testing json log functionality.")
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
