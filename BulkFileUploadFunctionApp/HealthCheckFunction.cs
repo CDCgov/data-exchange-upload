@@ -13,7 +13,7 @@ namespace BulkFileUploadFunctionApp
    {   
     
      [Function("HealthCheckFunction")]
-    public static async Task<HttpResponseData> Run(
+    public static async Task<HttpStatusCode> Run(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] HttpRequestData req,        
         FunctionContext context)
     {
@@ -39,18 +39,20 @@ namespace BulkFileUploadFunctionApp
         BlobServiceClient blobServiceClient = new BlobServiceClient(connectionString);         
         BlobContainerClient container = blobServiceClient.GetBlobContainerClient(cName);           
 
-        response.StatusCode = (HttpStatusCode)200;
+       // response = (HttpStatusCode)200;
         await response.WriteStringAsync("Healthy!");   
+        return (HttpStatusCode)200;
     
         } 
         catch (RequestFailedException ex) {
             
             logger.LogError(ex, "Error occurred while checking Blob storage container health.");
-            response.StatusCode = (HttpStatusCode)500;
+           // response.StatusCode = (HttpStatusCode)500;
             await response.WriteStringAsync("Not Healthy!");
+            return (HttpStatusCode)500;
         }
 
-        return response;
+       // return response;
       }       
 
    }
