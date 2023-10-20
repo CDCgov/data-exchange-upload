@@ -35,7 +35,10 @@ dependencies {
     testImplementation "io.mockk:mockk:1.12.0"
 
     implementation 'io.github.microutils:kotlin-logging-jvm:2.0.11'
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.6'
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.11'
+    implementation group: 'ch.qos.logback.contrib', name: 'logback-json-classic', version: '0.1.5'
+    implementation group: 'ch.qos.logback.contrib', name: 'logback-jackson', version: '0.1.5'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.3'
 }
 
 sourceCompatibility = "1.8"
