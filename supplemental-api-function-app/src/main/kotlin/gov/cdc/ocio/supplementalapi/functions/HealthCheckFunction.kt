@@ -13,8 +13,6 @@ import mu.KotlinLogging
 
 class HealthCheckFunction {
 
-    private val logger = KotlinLogging.logger {}
-
     fun run(
         request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext,
@@ -22,6 +20,8 @@ class HealthCheckFunction {
     ): HttpStatus {     
 
         try {
+
+            val logger = KotlinLogging.logger {}
 
             println("---JSON LOG-START--")
             logger.info("HELLO THERE! I am testing json log functionality.")
