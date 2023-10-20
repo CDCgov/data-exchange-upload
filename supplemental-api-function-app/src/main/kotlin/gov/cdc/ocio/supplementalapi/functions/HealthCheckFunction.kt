@@ -12,8 +12,6 @@ import com.azure.cosmos.CosmosClient
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-private val LOGGER = LogManager.getLogger(HealthCheckFunction::class.java)
-
 class HealthCheckFunction {
 
     fun run(
@@ -23,6 +21,8 @@ class HealthCheckFunction {
     ): HttpStatus {     
 
         try {
+
+            val LOGGER = LogManager.getLogger(HealthCheckFunction::class.java)
 
             LOGGER.info("HELLO THERE! I am testing json log functionality.")
 
