@@ -9,9 +9,10 @@ import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import gov.cdc.ocio.supplementalapi.model.Item
 import java.util.*
 import com.azure.cosmos.CosmosClient
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-
-
+private val LOGGER = LogManager.getLogger(HealthCheckFunction::class.java)
 
 class HealthCheckFunction {
 
@@ -19,9 +20,12 @@ class HealthCheckFunction {
         request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext,
         cosmosClient: CosmosClient
-    ): HttpStatus {
+    ): HttpStatus {     
 
         try {
+            
+            LOGGER.info("HELLL THERE! I am testing json log functionality.")
+
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
 
