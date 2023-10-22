@@ -1,16 +1,16 @@
 <configuration>
     <appender name="json" class="ch.qos.logback.core.ConsoleAppender">
-        <!-- <encoder>
+        <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} MDC=%X{user} - %msg%n</pattern>
-        </encoder> -->
-        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+        </encoder>
+        <!-- <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
                 <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
                     <prettyPrint>true</prettyPrint>
                 </jsonFormatter>
                 <timestampFormat>yyyy-MM-dd' 'HH:mm:ss.SSS</timestampFormat>
             </layout>
-        </encoder>
+        </encoder> -->
     </appender>
 
     <root name="jsonLogger" level="TRACE">
