@@ -9,12 +9,12 @@ import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import gov.cdc.ocio.supplementalapi.model.Item
 import java.util.*
 import com.azure.cosmos.CosmosClient
-
-import org.slf4j.LoggerFactory;
-import org.slf4j.Logger;
-
+import mu.KotlinLogging
+import org.slf4j.LoggerFactory
 
 class HealthCheckFunction {
+   
+    private val logger = KotlinLogging.logger {} 
 
     fun run(
         request: HttpRequestMessage<Optional<String>>,
@@ -23,11 +23,13 @@ class HealthCheckFunction {
     ): HttpStatus {     
 
         try {
-
-            val logger = LoggerFactory.getLogger("jsonLogger");
-
+          
             println("---JSON LOG-START--")
-            logger.info("HELLO THERE! I am testing json log functionality.")
+            logger.info("logger-1 info")
+            logger.warn("logger-2 warn")
+            logger.error("logger-3 error")
+            logger.debug("logger-4 debug")
+            logger.trace("logger-5 trace")
             println("---JSON LOG-END--")
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
