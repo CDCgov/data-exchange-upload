@@ -9,7 +9,10 @@ import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import gov.cdc.ocio.supplementalapi.model.Item
 import java.util.*
 import com.azure.cosmos.CosmosClient
-import mu.KotlinLogging
+
+import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+
 
 class HealthCheckFunction {
 
@@ -21,7 +24,7 @@ class HealthCheckFunction {
 
         try {
 
-            val logger = KotlinLogging.logger {}
+            val logger = LoggerFactory.getLogger("jsonLogger");
 
             println("---JSON LOG-START--")
             logger.info("HELLO THERE! I am testing json log functionality.")
