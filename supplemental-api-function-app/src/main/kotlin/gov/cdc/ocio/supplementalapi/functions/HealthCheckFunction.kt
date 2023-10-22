@@ -10,12 +10,10 @@ import gov.cdc.ocio.supplementalapi.model.Item
 import java.util.*
 import com.azure.cosmos.CosmosClient
 import mu.KotlinLogging
-import org.slf4j.LoggerFactory
+
 
 class HealthCheckFunction {
    
-    private val logger = KotlinLogging.logger {} 
-
     fun run(
         request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext,
@@ -23,6 +21,8 @@ class HealthCheckFunction {
     ): HttpStatus {     
 
         try {
+
+            val logger = KotlinLogging.logger {} 
           
             println("---JSON LOG-START--")
             logger.info("logger-1 info")
