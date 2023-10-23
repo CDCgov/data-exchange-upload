@@ -1,4 +1,4 @@
-<configuration>
+<!-- <configuration>
     <appender name="json" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
@@ -15,4 +15,4 @@
     </root>
 </configuration>
 
-
+ -->
