@@ -1,5 +1,5 @@
-<!-- <configuration>
-    <appender name="json" class="ch.qos.logback.core.ConsoleAppender">
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
                 <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
@@ -10,9 +10,7 @@
         </encoder>
     </appender>
 
-    <root name="jsonLogger" level="TRACE">
-        <appender-ref ref="json" />
+    <root level="TRACE">
+        <appender-ref ref="STDOUT" />
     </root>
 </configuration>
-
- -->
