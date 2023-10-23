@@ -42,10 +42,6 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.3'
 }
 
-java {
-    toolchain.languageVersion.set(JavaLanguageVersion.of(11))
-}
-
 sourceCompatibility = "1.8"
 targetCompatibility = "1.8"
 
