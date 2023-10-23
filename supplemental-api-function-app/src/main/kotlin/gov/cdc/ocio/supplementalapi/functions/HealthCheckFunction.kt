@@ -30,6 +30,8 @@ class HealthCheckFunction {
             logger.error("logger-3 error")
             logger.debug("logger-4 debug")
             logger.trace("logger-5 trace")
+            
+            context.getLogger().info("Testing logs in azure");
             println("---JSON LOG-END--")
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
