@@ -23,9 +23,9 @@ class HealthCheckFunction {
     ): HttpStatus {     
 
         try {
-            var telemetryClient = TelemetryClient()
+            // var telemetryClient = TelemetryClient()
 
-            telemetryClient.trackEvent("Health Check - START");
+            // telemetryClient.trackEvent("Health Check - START");
 
             val logger = KotlinLogging.logger {} 
           
@@ -44,7 +44,7 @@ class HealthCheckFunction {
                 Item::class.java
             )
 
-           telemetryClient.trackEvent("Health Check - END");
+        //    telemetryClient.trackEvent("Health Check - END");
 
            return HttpStatus.OK
 
