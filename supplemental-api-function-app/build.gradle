@@ -60,23 +60,13 @@ test {
     // Set the test classpath, if required
 }
 
-// azurefunctions {
-//     subscription = System.getProperty("subscription")
-//     resourceGroup = System.getProperty("resourceGroup")
-//     appName = System.getProperty("appName")
-//     allowTelemetry = false
-
-//     auth {
-//         type = 'azure_cli'
-//     }
-// }
-
 azurefunctions {
-    resourceGroup = 'ocio-ede-dev-moderate-hl7-rg'
-    appName = 'ocio-ede-dev-supplemental-api'
-    
-    runtime {
-      os = 'mac'
+    subscription = System.getProperty("subscription")
+    resourceGroup = System.getProperty("resourceGroup")
+    appName = System.getProperty("appName")
+    allowTelemetry = false
+
+    auth {
+        type = 'azure_cli'
     }
-    localDebug = "transport=dt_socket,server=y,suspend=n,address=5005"
 }
