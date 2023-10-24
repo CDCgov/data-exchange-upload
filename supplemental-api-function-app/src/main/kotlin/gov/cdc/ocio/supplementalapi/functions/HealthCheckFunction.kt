@@ -11,29 +11,25 @@ import java.util.*
 import com.azure.cosmos.CosmosClient
 import mu.KotlinLogging
 
+import com.microsoft.applicationinsights.TelemetryClient
+
 
 class HealthCheckFunction {
    
     fun run(
         request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext,
-        cosmosClient: CosmosClient
+        cosmosClient: CosmosClient,
+        telemetryClient: TelemetryClient
     ): HttpStatus {     
 
         try {
+            telemetryClient.trackEvent("Health Check - START");
 
             val logger = KotlinLogging.logger {} 
-
           
-            println("---JSON LOG-START--")
-            logger.info("logger-1 info")
-            logger.warn("logger-2 warn")
-            logger.error("logger-3 error")
-            logger.debug("logger-4 debug")
-            logger.trace("logger-5 trace")
-
-            context.getLogger().info("Testing logs in azure");
-            println("---JSON LOG-END--")
+            logger.info("testing json logger")
+            //context.getLogger().info("Testing logs in azure");
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
@@ -46,6 +42,8 @@ class HealthCheckFunction {
                 sqlQuery, CosmosQueryRequestOptions(),
                 Item::class.java
             )
+
+           telemetryClient.trackEvent("Health Check - END");
 
            return HttpStatus.OK
 

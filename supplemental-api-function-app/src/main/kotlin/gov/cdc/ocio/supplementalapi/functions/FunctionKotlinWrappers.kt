@@ -7,6 +7,7 @@ import com.microsoft.azure.functions.annotation.FunctionName
 import com.microsoft.azure.functions.annotation.HttpTrigger
 import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import java.util.Optional
+import com.microsoft.applicationinsights.TelemetryClient
 
 class FunctionKotlinWrappers {
     @FunctionName("HealthCheck")
@@ -17,9 +18,10 @@ class FunctionKotlinWrappers {
             route = "status/health",
             authLevel = AuthorizationLevel.ANONYMOUS
         ) request: HttpRequestMessage<Optional<String>>,
-        context: ExecutionContext
+        context: ExecutionContext,
+        telemetryClient: TelemetryClient
     ): HttpStatus {
-        return HealthCheckFunction().run(request, context, CosmosClientManager.getCosmosClient())
+        return HealthCheckFunction().run(request, context, CosmosClientManager.getCosmosClient(), telemetryClient)
     }
 
     @FunctionName("StatusForTguid")

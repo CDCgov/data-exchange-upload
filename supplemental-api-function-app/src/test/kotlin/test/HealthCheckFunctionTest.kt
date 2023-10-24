@@ -29,12 +29,12 @@ class HealthCheckFunctionTest {
     private lateinit var request: HttpRequestMessage<Optional<String>>
     private lateinit var context: ExecutionContext
 
-    @BeforeMethod
-    fun setUp() {
-        // Initialize any mock objects or dependencies needed for testing
-        request = mock(HttpRequestMessage::class.java) as HttpRequestMessage<Optional<String>>
-        context = mock(ExecutionContext::class.java)
-    }
+    // @BeforeMethod
+    // fun setUp() {
+    //     // Initialize any mock objects or dependencies needed for testing
+    //     request = mock(HttpRequestMessage::class.java) as HttpRequestMessage<Optional<String>>
+    //     context = mock(ExecutionContext::class.java)
+    // }
 
     // @Test
     // fun testOkStatusBack() {   
