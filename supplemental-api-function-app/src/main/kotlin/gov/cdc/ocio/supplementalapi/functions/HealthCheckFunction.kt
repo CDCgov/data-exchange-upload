@@ -19,11 +19,12 @@ class HealthCheckFunction {
     fun run(
         request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext,
-        cosmosClient: CosmosClient,
-        telemetryClient: TelemetryClient
+        cosmosClient: CosmosClient
     ): HttpStatus {     
 
         try {
+            var telemetryClient = TelemetryClient()
+
             telemetryClient.trackEvent("Health Check - START");
 
             val logger = KotlinLogging.logger {} 
