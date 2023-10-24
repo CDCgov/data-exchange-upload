@@ -49,4 +49,17 @@ class FunctionKotlinWrappers {
     ): HttpResponseMessage {
         return StatusForDestinationFunction().run(request, destinationName, context)
     }
+
+    @FunctionName("Destination")
+    fun destination(
+        @HttpTrigger(
+            name = "req",
+            methods = [HttpMethod.GET],
+            route = "/destination",
+            authLevel = AuthorizationLevel.FUNCTION
+        ) request: HttpRequestMessage<Optional<String>>,
+        context: ExecutionContext
+    ) : HttpResponseMessage {
+        return DestinationIdFunction().run(request, context)
+    }
 }
