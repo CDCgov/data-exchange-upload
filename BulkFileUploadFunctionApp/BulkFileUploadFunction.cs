@@ -173,7 +173,7 @@ namespace BulkFileUploadFunctionApp
                 var metadataRelaySucceeded = await RelayMetaData(tusFileMetadata);
                 if (!metadataRelaySucceeded)
                 {
-                    _logger.LogError($"metadata relay failed for: {tusPayloadPathname}");
+                    _logger.LogWarning($"metadata relay failed for: {tusPayloadPathname}");
                 }
             }
             catch (Exception e)
