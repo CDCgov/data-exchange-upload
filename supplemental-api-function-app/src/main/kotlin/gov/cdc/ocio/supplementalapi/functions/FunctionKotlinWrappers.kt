@@ -55,7 +55,7 @@ class FunctionKotlinWrappers {
         @HttpTrigger(
             name = "req",
             methods = [HttpMethod.GET],
-            route = "/destination",
+            route = "destination",
             authLevel = AuthorizationLevel.FUNCTION
         ) request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
