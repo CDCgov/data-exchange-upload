@@ -20,10 +20,10 @@ public class DestinationIdFunction {
         Logger logger = context.getLogger();
 
         BlobClient blobClient = new BlobClientBuilder()
-                .endpoint(System.getenv("DEX_STORAGE_ENDPOINT"))
-                .connectionString(System.getenv("DEX_STORAGE_CONNECTION_STRING"))
-                .containerName(System.getenv("TUS_HOOKS_CONTAINER_NAME"))
-                .blobName(System.getenv("DESTINATIONS_FILE_NAME"))
+                .endpoint(System.getenv("DexStorageEndpoint"))
+                .connectionString(System.getenv("DexStorageConnectionString"))
+                .containerName(System.getenv("TusHooksContainerName"))
+                .blobName(System.getenv("DestinationsFileName"))
                 .buildClient();
 
         Destination[] destinations;
