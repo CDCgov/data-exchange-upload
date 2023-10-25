@@ -12,10 +12,13 @@ import gov.cdc.ocio.supplementalapi.model.Destination;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class DestinationIdFunction {
     public HttpResponseMessage run(HttpRequestMessage<Optional<String>> request, final ExecutionContext context) {
+        Logger logger = context.getLogger();
+
         BlobClient blobClient = new BlobClientBuilder()
                 .endpoint(System.getenv("DEX_STORAGE_ENDPOINT"))
                 .connectionString(System.getenv("DEX_STORAGE_CONNECTION_STRING"))
@@ -23,14 +26,15 @@ public class DestinationIdFunction {
                 .blobName(System.getenv("DESTINATIONS_FILE_NAME"))
                 .buildClient();
 
-        Destination[] destinations = null;
+        Destination[] destinations;
 
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             blobClient.downloadStream(outputStream);
             ObjectMapper mapper = new ObjectMapper();
             destinations = mapper.readValue(outputStream.toByteArray(), Destination[].class);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.severe(e.getMessage());
+            return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
 
         if (destinations == null) {
