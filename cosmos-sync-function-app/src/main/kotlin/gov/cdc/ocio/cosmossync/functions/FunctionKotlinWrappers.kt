@@ -4,6 +4,7 @@ import com.microsoft.azure.functions.annotation.*;
 import com.microsoft.azure.functions.*
 import gov.cdc.ocio.cosmossync.functions.CosmosSyncFunction
 import gov.cdc.ocio.cosmossync.functions.HealthCheckFunction
+import gov.cdc.ocio.cosmossync.cosmos.CosmosClientManager
 import java.util.Optional
 
 class FunctionKotlinWrappers {
@@ -16,8 +17,8 @@ class FunctionKotlinWrappers {
             authLevel = AuthorizationLevel.ANONYMOUS
         ) request: HttpRequestMessage<Optional<String>>,
         context: ExecutionContext
-    ): HttpResponseMessage {
-        return HealthCheckFunction().run(request, context)
+    ): HttpStatus{
+        return HealthCheckFunction().run(request, context, CosmosClientManager.getCosmosClient())
     }
 
     @FunctionName("CosmosQueueProcessor")

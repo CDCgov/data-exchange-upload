@@ -1,6 +1,7 @@
 package gov.cdc.ocio.cosmossync.functions
 
 import com.azure.cosmos.models.CosmosQueryRequestOptions
+//import com.azure.cosmos.CosmosClient
 import com.microsoft.azure.functions.ExecutionContext
 import com.microsoft.azure.functions.HttpRequestMessage
 import com.microsoft.azure.functions.HttpResponseMessage
@@ -9,16 +10,18 @@ import gov.cdc.ocio.cosmossync.cosmos.CosmosClientManager
 import gov.cdc.ocio.cosmossync.model.Item
 import java.util.*
 import java.util.logging.Logger
+import com.azure.cosmos.CosmosClient
 
 class HealthCheckFunction {
 
     fun run(
         request: HttpRequestMessage<Optional<String>>,
-        context: ExecutionContext
-    ): HttpResponseMessage {
+        context: ExecutionContext,
+        cosmosClient: CosmosClient
+    ): HttpStatus {
     
         try {
-            val cosmosClient = CosmosClientManager.getCosmosClient()
+            //val cosmosClient = CosmosClientManager.getCosmosClient()
 
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
@@ -32,14 +35,13 @@ class HealthCheckFunction {
                 Item::class.java
             )
 
-            return request
-                .createResponseBuilder(HttpStatus.OK)
-                .build()
-        } catch (ex: Throwable) {
+            return HttpStatus.OK
+                
+        } catch (ex: Exception) {
+            println("An error occurred: ${ex.message}")
             
-            return request
-                .createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR)
-                .build()
+            return HttpStatus.INTERNAL_SERVER_ERROR
+                
         }
     }
 }
