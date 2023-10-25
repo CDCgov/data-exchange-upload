@@ -13,18 +13,27 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
 <<<<<<< HEAD
+<<<<<<< HEAD
 import java.util.logging.Logger;
 =======
 >>>>>>> d848de7 (returns array of destinations)
+=======
+import java.util.logging.Logger;
+>>>>>>> 0f69193 (use context logger)
 import java.util.stream.Collectors;
 
 public class DestinationIdFunction {
     public HttpResponseMessage run(HttpRequestMessage<Optional<String>> request, final ExecutionContext context) {
 <<<<<<< HEAD
+<<<<<<< HEAD
         Logger logger = context.getLogger();
 
 =======
 >>>>>>> d848de7 (returns array of destinations)
+=======
+        Logger logger = context.getLogger();
+
+>>>>>>> 0f69193 (use context logger)
         BlobClient blobClient = new BlobClientBuilder()
                 .endpoint(System.getenv("DEX_STORAGE_ENDPOINT"))
                 .connectionString(System.getenv("DEX_STORAGE_CONNECTION_STRING"))
@@ -33,10 +42,14 @@ public class DestinationIdFunction {
                 .buildClient();
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         Destination[] destinations;
 =======
         Destination[] destinations = null;
 >>>>>>> d848de7 (returns array of destinations)
+=======
+        Destination[] destinations;
+>>>>>>> 0f69193 (use context logger)
 
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             blobClient.downloadStream(outputStream);
@@ -44,11 +57,16 @@ public class DestinationIdFunction {
             destinations = mapper.readValue(outputStream.toByteArray(), Destination[].class);
         } catch (IOException e) {
 <<<<<<< HEAD
+<<<<<<< HEAD
             logger.severe(e.getMessage());
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).build();
 =======
             e.printStackTrace();
 >>>>>>> d848de7 (returns array of destinations)
+=======
+            logger.severe(e.getMessage());
+            return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).build();
+>>>>>>> 0f69193 (use context logger)
         }
 
         if (destinations == null) {
