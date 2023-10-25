@@ -12,13 +12,19 @@ import gov.cdc.ocio.supplementalapi.model.Destination;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
+<<<<<<< HEAD
 import java.util.logging.Logger;
+=======
+>>>>>>> d848de7 (returns array of destinations)
 import java.util.stream.Collectors;
 
 public class DestinationIdFunction {
     public HttpResponseMessage run(HttpRequestMessage<Optional<String>> request, final ExecutionContext context) {
+<<<<<<< HEAD
         Logger logger = context.getLogger();
 
+=======
+>>>>>>> d848de7 (returns array of destinations)
         BlobClient blobClient = new BlobClientBuilder()
                 .endpoint(System.getenv("DEX_STORAGE_ENDPOINT"))
                 .connectionString(System.getenv("DEX_STORAGE_CONNECTION_STRING"))
@@ -26,15 +32,23 @@ public class DestinationIdFunction {
                 .blobName(System.getenv("DESTINATIONS_FILE_NAME"))
                 .buildClient();
 
+<<<<<<< HEAD
         Destination[] destinations;
+=======
+        Destination[] destinations = null;
+>>>>>>> d848de7 (returns array of destinations)
 
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             blobClient.downloadStream(outputStream);
             ObjectMapper mapper = new ObjectMapper();
             destinations = mapper.readValue(outputStream.toByteArray(), Destination[].class);
         } catch (IOException e) {
+<<<<<<< HEAD
             logger.severe(e.getMessage());
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).build();
+=======
+            e.printStackTrace();
+>>>>>>> d848de7 (returns array of destinations)
         }
 
         if (destinations == null) {
