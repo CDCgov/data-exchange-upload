@@ -30,6 +30,7 @@ class DestinationIDFunctionTest {
         request = Mockito.mock(HttpRequestMessage::class.java) as HttpRequestMessage<Optional<String>>
         context = Mockito.mock(ExecutionContext::class.java)
 
+        // Setup method invocation interception when createResponseBuilder is called to avoid null pointer on real method call.
         doAnswer { invocation ->
             val status = invocation.arguments[0] as HttpStatus
             HttpResponseMessageBuilderMock().status(status)
@@ -38,7 +39,9 @@ class DestinationIDFunctionTest {
 
     @Test
     fun testShouldReturnArrayOfDestinationsGivenDestinationEventJson() {
+        // Mocking the Azure Blob Client so we don't connect to the actual remote blob.
         val mockBlobClient = mockk<BlobClient>()
+        // Mocking the Blob utility class to avoid invoking the real Azure Blob Client's download function.
         mockkObject(Blob)
         val testBytes = File("./src/test/kotlin/data/destinations_and_events.json").inputStream().readBytes()
 
