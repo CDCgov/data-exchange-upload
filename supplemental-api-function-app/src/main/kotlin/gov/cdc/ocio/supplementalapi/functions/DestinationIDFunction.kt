@@ -16,15 +16,18 @@ class DestinationIdFunction {
     fun run(request: HttpRequestMessage<Optional<String>>, context: ExecutionContext, blobClient: BlobClient): HttpResponseMessage {
         val logger = context.logger
 
-        val destinations: Array<Destination>
+        var destinations: Array<Destination> = emptyArray()
 
         try {
-            val fileBytes = Blob.toByteArray(blobClient);
-            val mapper = ObjectMapper()
-            destinations = mapper.readValue(
-                fileBytes,
-                Array<Destination>::class.java
-            )
+            val fileBytes = Blob.toByteArray(blobClient)
+
+            if (fileBytes.isNotEmpty()) {
+                val mapper = ObjectMapper()
+                destinations = mapper.readValue(
+                    fileBytes,
+                    Array<Destination>::class.java
+                )
+            }
         } catch (e: IOException) {
             logger.severe(e.message)
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).build()
