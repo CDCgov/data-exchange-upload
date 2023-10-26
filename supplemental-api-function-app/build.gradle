@@ -42,7 +42,7 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.15.3'
 
     implementation group: 'com.microsoft.azure', name: 'applicationinsights-core', version: '3.4.17'
-    //implementation group: 'com.microsoft.azure', name: 'applicationinsights-runtime-attach', version: '3.4.17'
+    // implementation group: 'com.microsoft.azure', name: 'applicationinsights-runtime-attach', version: '3.4.17'
 }
 
 sourceCompatibility = "1.8"
