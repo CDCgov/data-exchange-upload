@@ -29,6 +29,7 @@ dependencies {
     implementation "com.microsoft.azure.functions:azure-functions-java-library:3.0.0"
     implementation "com.azure:azure-cosmos:4.41.0"
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2"
+    implementation "io.netty:netty-all:5.0.0.Alpha2"
     //testImplementation "org.mockito:mockito-core:3.7.7"
     testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
     //testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.2"
