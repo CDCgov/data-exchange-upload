@@ -1,4 +1,5 @@
 package gov.cdc.ocio.supplementalapi.functions
+import com.azure.storage.blob.BlobClientBuilder
 import com.microsoft.azure.functions.*
 import com.microsoft.azure.functions.HttpMethod
 import com.microsoft.azure.functions.annotation.AuthorizationLevel
@@ -48,5 +49,25 @@ class FunctionKotlinWrappers {
         context: ExecutionContext
     ): HttpResponseMessage {
         return StatusForDestinationFunction().run(request, destinationName, context)
+    }
+
+    @FunctionName("Destination")
+    fun destination(
+        @HttpTrigger(
+            name = "req",
+            methods = [HttpMethod.GET],
+            route = "destination",
+            authLevel = AuthorizationLevel.FUNCTION
+        ) request: HttpRequestMessage<Optional<String>>,
+        context: ExecutionContext
+    ) : HttpResponseMessage {
+        val blobClient = BlobClientBuilder()
+            .endpoint(System.getenv("DexStorageEndpoint"))
+            .connectionString(System.getenv("DexStorageConnectionString"))
+            .containerName(System.getenv("TusHooksContainerName"))
+            .blobName(System.getenv("DestinationsFileName"))
+            .buildClient()
+
+        return DestinationIdFunction().run(request, context, blobClient)
     }
 }

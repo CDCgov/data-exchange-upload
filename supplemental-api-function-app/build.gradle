@@ -23,6 +23,9 @@ group "gov.cdc.ocio"
 version "1.0.0-SNAPSHOT"
 
 dependencies {
+    implementation platform('com.azure:azure-sdk-bom:1.2.17')
+    implementation "com.azure:azure-storage-blob"
+    implementation "com.azure:azure-identity"
     implementation "com.microsoft.azure.functions:azure-functions-java-library:3.0.0"
     implementation "com.azure:azure-cosmos:4.41.0"
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2"
@@ -57,8 +60,8 @@ azurefunctions {
     appName = System.getProperty("appName")
     allowTelemetry = false
 
-    auth {
-        type = 'azure_cli'
+    runtime {
+        os = 'windows'
     }
 }
 
