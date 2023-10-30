@@ -59,9 +59,5 @@ azurefunctions {
     resourceGroup = System.getProperty("resourceGroup")
     appName = System.getProperty("appName")
     allowTelemetry = false
-
-    runtime {
-        os = 'windows'
-    }
 }
 
