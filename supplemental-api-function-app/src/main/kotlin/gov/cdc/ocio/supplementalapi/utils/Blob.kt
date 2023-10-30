@@ -5,10 +5,8 @@ import java.io.ByteArrayOutputStream
 
 object Blob {
     fun toByteArray(client: BlobClient): ByteArray {
-        ByteArrayOutputStream().use { outputStream ->
-            client.downloadStream(outputStream)
-            return outputStream.toByteArray()
+        client.openInputStream().use { inputStream ->
+            return inputStream.readBytes()
         }
-        // TODO: Throw exception if we get here.
     }
 }
