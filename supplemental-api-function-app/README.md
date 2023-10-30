@@ -19,10 +19,10 @@ dev environment.
 ```json
 {
   "Values": {
-    "DEX_STORAGE_ENDPOINT": "https://ocioededataexchangedev.blob.core.windows.net",
-    "DEX_STORAGE_CONNECTION_STRING": "***",
-    "TUS_HOOKS_CONTAINER_NAME": "tusd-file-hooks",
-    "DESTINATIONS_FILE_NAME": "allowed_destinations_and_events.json"
+    "DexStorageEndpoint": "https://ocioededataexchangedev.blob.core.windows.net",
+    "DexStorageConnectionString": "***",
+    "TusHooksContainerFileName": "tusd-file-hooks",
+    "DestinationsFileName": "allowed_destinations_and_events.json"
   }
 }
 ```
