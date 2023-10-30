@@ -23,12 +23,12 @@ group "gov.cdc.ocio"
 version "1.0.0-SNAPSHOT"
 
 dependencies {
-    implementation "com.azure:azure-storage-blob:12.24.1"
-    implementation "com.azure:azure-identity:1.10.4"
+    implementation platform('com.azure:azure-sdk-bom:1.2.18')
+    implementation "com.azure:azure-storage-blob"
+    implementation "com.azure:azure-identity"
     implementation "com.microsoft.azure.functions:azure-functions-java-library:3.0.0"
     implementation "com.azure:azure-cosmos:4.41.0"
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2"
-    implementation "io.netty:netty-all:5.0.0.Alpha2"
     //testImplementation "org.mockito:mockito-core:3.7.7"
     testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
     //testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.2"
