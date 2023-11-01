@@ -23,11 +23,9 @@ group "gov.cdc.ocio"
 version "1.0.0-SNAPSHOT"
 
 dependencies {
-    implementation platform('com.azure:azure-sdk-bom:1.2.18')
-    implementation "com.azure:azure-storage-blob"
-    implementation "com.azure:azure-identity"
+    implementation "com.azure:azure-storage-blob:12.24.1"
     implementation "com.microsoft.azure.functions:azure-functions-java-library:3.0.0"
-    implementation "com.azure:azure-cosmos:4.41.0"
+    implementation "com.azure:azure-cosmos:4.42.0"
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.14.2"
     //testImplementation "org.mockito:mockito-core:3.7.7"
     testImplementation("org.mockito.kotlin:mockito-kotlin:4.0.0")
