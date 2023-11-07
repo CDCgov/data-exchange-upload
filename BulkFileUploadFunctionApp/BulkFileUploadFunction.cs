@@ -41,17 +41,17 @@ namespace BulkFileUploadFunctionApp
 
         private readonly string _edavUploadRootContainerName;
 
-        private readonly TelemetryClient _telemetryClient;
+        
 
         public static string? GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction( TelemetryClient telemetryClient, ILoggerFactory loggerFactory)
+        public BulkFileUploadFunction( ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
-            _telemetryClient = telemetryClient;
+            
             _blobCopyHelper = new(_logger);
 
             _tusAzureObjectPrefix = GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX") ?? "tus-prefix";
@@ -79,17 +79,7 @@ namespace BulkFileUploadFunctionApp
         public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
             _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
-
-            _telemetryClient.TrackTrace("Custom message", SeverityLevel.Information);
-
-            var metric =  _telemetryClient.GetMetric("ProcessedBlobCount");
-
-             // Track an event at the start of processing
-            var properties = new Dictionary<string, string>
-              {
-                 { "EventCount", eventHubTriggerEvents.Length.ToString() }
-               };
-            _telemetryClient.TrackEvent("ProcessingStart", properties);
+            
 
             foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
             {
@@ -111,7 +101,7 @@ namespace BulkFileUploadFunctionApp
 
                 await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
 
-                metric.TrackValue(1);
+                
 
             } // .foreach 
 
@@ -158,7 +148,7 @@ namespace BulkFileUploadFunctionApp
                 {
                     // use default upload config
                     _logger.LogWarning($"No upload config found for destination id = {destinationId}, ext event = {extEvent}: exception = ${e.Message}");
-                     _telemetryClient.TrackTrace(e.Message);
+                    
                      throw;
                 }
 
@@ -200,7 +190,7 @@ namespace BulkFileUploadFunctionApp
             catch (Exception e)
             {
                 _logger.LogError(e.Message);
-                _telemetryClient.TrackTrace(e.Message);
+               
                 throw;
             }
         }
