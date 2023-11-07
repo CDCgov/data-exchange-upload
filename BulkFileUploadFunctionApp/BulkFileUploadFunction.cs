@@ -149,7 +149,7 @@ namespace BulkFileUploadFunctionApp
                     // use default upload config
                     _logger.LogWarning($"No upload config found for destination id = {destinationId}, ext event = {extEvent}: exception = ${e.Message}");
                     
-                     throw;
+                     
                 }
 
                 // Determine the destination filename based on the upload config and metadata values provided with the source file.
@@ -191,7 +191,7 @@ namespace BulkFileUploadFunctionApp
             {
                 _logger.LogError(e.Message);
                
-                throw;
+                
             }
         }
 
