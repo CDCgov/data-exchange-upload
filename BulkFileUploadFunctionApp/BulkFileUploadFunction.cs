@@ -13,6 +13,8 @@ using Azure.Messaging.EventHubs.Producer;
 using Azure.Messaging.EventHubs;
 using Newtonsoft.Json;
 using BulkFileUploadFunctionApp.Utils;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 
 namespace BulkFileUploadFunctionApp
 {
@@ -39,14 +41,17 @@ namespace BulkFileUploadFunctionApp
 
         private readonly string _edavUploadRootContainerName;
 
+        
+
         public static string? GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction(ILoggerFactory loggerFactory)
+        public BulkFileUploadFunction( ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
+            
             _blobCopyHelper = new(_logger);
 
             _tusAzureObjectPrefix = GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX") ?? "tus-prefix";
@@ -74,11 +79,13 @@ namespace BulkFileUploadFunctionApp
         public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
             _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
+            
 
             foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
             {
                 
                 _logger.LogInformation($"Received event: {blobCreatedEventJson}");
+                
 
                 StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 
@@ -93,6 +100,8 @@ namespace BulkFileUploadFunctionApp
                     throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
                 await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
+
+                
 
             } // .foreach 
 
@@ -139,6 +148,8 @@ namespace BulkFileUploadFunctionApp
                 {
                     // use default upload config
                     _logger.LogWarning($"No upload config found for destination id = {destinationId}, ext event = {extEvent}: exception = ${e.Message}");
+                    
+                     
                 }
 
                 // Determine the destination filename based on the upload config and metadata values provided with the source file.
@@ -179,6 +190,8 @@ namespace BulkFileUploadFunctionApp
             catch (Exception e)
             {
                 _logger.LogError(e.Message);
+               
+                
             }
         }
 
