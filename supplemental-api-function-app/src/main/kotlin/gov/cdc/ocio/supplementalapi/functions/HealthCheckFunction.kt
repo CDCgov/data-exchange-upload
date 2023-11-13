@@ -38,13 +38,13 @@ class HealthCheckFunction {
                 Item::class.java
             )
 
-           logger.info("instance healthy")
+           logger.info("instance is healthy")
 
            return HttpStatus.OK
 
         } catch (ex: Exception) {
 
-            logger.info("instance not healthy")
+            logger.error("instance is not healthy")
             logger.error(ex.message)
 
             //println("An error occurred: ${ex.message}")
