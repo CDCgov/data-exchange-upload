@@ -12,8 +12,6 @@ import com.azure.cosmos.CosmosClient
 import mu.KotlinLogging
 
 
-
-
 class HealthCheckFunction {
 
     fun run(
@@ -22,7 +20,7 @@ class HealthCheckFunction {
         cosmosClient: CosmosClient
     ): HttpStatus {
 
-        val logger = KotlinLogging.logger {}           
+        val logger = KotlinLogging.logger {}
         
         try {
                 
@@ -39,16 +37,11 @@ class HealthCheckFunction {
             )
 
            logger.info("instance is healthy")
-
            return HttpStatus.OK
 
         } catch (ex: Exception) {
 
-            logger.error("instance is not healthy")
-            logger.error(ex.message)
-
-            //println("An error occurred: ${ex.message}")
-
+            logger.error("instance is not healthy", ex.message)
             return HttpStatus.INTERNAL_SERVER_ERROR
         }
     }
