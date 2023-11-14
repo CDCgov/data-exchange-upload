@@ -9,8 +9,7 @@ import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import gov.cdc.ocio.supplementalapi.model.Item
 import java.util.*
 import com.azure.cosmos.CosmosClient
-
-
+import mu.KotlinLogging
 
 
 class HealthCheckFunction {
@@ -21,7 +20,10 @@ class HealthCheckFunction {
         cosmosClient: CosmosClient
     ): HttpStatus {
 
+        val logger = KotlinLogging.logger {}
+        
         try {
+                
             val databaseName = System.getenv("CosmosDbDatabaseName")
             val containerName = System.getenv("CosmosDbContainerName")
 
@@ -34,11 +36,12 @@ class HealthCheckFunction {
                 Item::class.java
             )
 
+           logger.info("instance is healthy")
            return HttpStatus.OK
 
         } catch (ex: Exception) {
-            println("An error occurred: ${ex.message}")
 
+            logger.error("instance is not healthy", ex.message)
             return HttpStatus.INTERNAL_SERVER_ERROR
         }
     }

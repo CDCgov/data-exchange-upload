@@ -15,6 +15,7 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.logging.Level
+import mu.KotlinLogging
 
 
 class StatusForDestinationFunction {
@@ -25,7 +26,7 @@ class StatusForDestinationFunction {
         context: ExecutionContext
     ): HttpResponseMessage {
 
-        val logger = context.logger
+        val logger = KotlinLogging.logger {}       
 
         logger.info("HTTP trigger processed a ${request.httpMethod.name} request.")
         logger.info("destination name = $destinationName")
@@ -51,7 +52,7 @@ class StatusForDestinationFunction {
         try {
             cosmosClient = CosmosClientManager.getCosmosClient()
         } catch (ex: Exception) {
-            logger.warning("Failed to connect to database with exception: ${ex.localizedMessage}")
+            logger.error("Failed to connect to database with exception: ${ex.localizedMessage}")
             return request
                 .createResponseBuilder(HttpStatus.SERVICE_UNAVAILABLE)
                 .header("Content-Type", "application/json")
@@ -77,7 +78,7 @@ class StatusForDestinationFunction {
                 val dateStartEpochSecs = getEpochFromDateString(dateStart, "date_start")
                 sqlQuery.append(" and t._ts >= $dateStartEpochSecs")
             } catch (e: BadRequestException) {
-                logger.log(Level.SEVERE, e.localizedMessage)
+                logger.error(e.localizedMessage)
                 return request
                     .createResponseBuilder(HttpStatus.BAD_REQUEST)
                     .body(e.localizedMessage)
@@ -89,7 +90,7 @@ class StatusForDestinationFunction {
                 val dateEndEpochSecs = getEpochFromDateString(dateEnd, "date_end")
                 sqlQuery.append(" and t._ts < $dateEndEpochSecs")
             } catch (e: BadRequestException) {
-                logger.log(Level.SEVERE, e.localizedMessage)
+                logger.error(e.localizedMessage)
                 return request
                     .createResponseBuilder(HttpStatus.BAD_REQUEST)
                     .body(e.localizedMessage)
@@ -112,7 +113,7 @@ class StatusForDestinationFunction {
             totalItems = if (count.count() > 0) count.first().toLong() else -1
         } catch (ex: Exception) {
             // no items found or problem with query
-            logger.warning(ex.localizedMessage)
+            logger.warn(ex.localizedMessage)
         }
 
         val numberOfPages = (totalItems / pageSizeAsInt + if (totalItems % pageSizeAsInt > 0) 1 else 0).toInt()

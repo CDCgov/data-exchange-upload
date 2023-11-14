@@ -9,6 +9,7 @@ import gov.cdc.ocio.supplementalapi.cosmos.CosmosClientManager
 import gov.cdc.ocio.supplementalapi.model.Item
 import gov.cdc.ocio.supplementalapi.model.UploadStatus
 import java.util.*
+import mu.KotlinLogging
 
 
 class StatusForTguidFunction {
@@ -19,7 +20,7 @@ class StatusForTguidFunction {
         context: ExecutionContext
     ): HttpResponseMessage {
 
-        val logger = context.logger
+        val logger = KotlinLogging.logger {}
 
         logger.info("HTTP trigger processed a ${request.httpMethod.name} request.")
 

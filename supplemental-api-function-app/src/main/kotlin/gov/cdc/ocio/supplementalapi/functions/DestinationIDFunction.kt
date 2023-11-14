@@ -11,10 +11,12 @@ import gov.cdc.ocio.supplementalapi.utils.Blob
 import java.io.IOException
 import java.util.*
 import java.util.stream.Collectors
+import mu.KotlinLogging
 
 class DestinationIdFunction {
     fun run(request: HttpRequestMessage<Optional<String>>, context: ExecutionContext, blobClient: BlobClient): HttpResponseMessage {
-        val logger = context.logger
+
+        val logger = KotlinLogging.logger {}
 
         var destinations: Array<Destination> = emptyArray()
 
@@ -29,7 +31,7 @@ class DestinationIdFunction {
                 )
             }
         } catch (e: IOException) {
-            logger.severe(e.message)
+            logger.error(e.message)
             return request.createResponseBuilder(HttpStatus.INTERNAL_SERVER_ERROR).build()
         }
 
