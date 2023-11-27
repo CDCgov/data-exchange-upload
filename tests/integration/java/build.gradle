@@ -29,6 +29,14 @@ jar {
     }
 }
 
+task runTest(type: JavaExec) {
+    dependsOn 'build'
+    main = '-jar'
+    classpath = sourceSets.main.runtimeClasspath
+    args = ['build/libs/dex-upload-client-1.0-SNAPSHOT.jar']
+}
+
+
 dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.9.1'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.0'

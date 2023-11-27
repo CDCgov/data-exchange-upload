@@ -25,10 +25,10 @@ URL=<dex_staging_url> \
 - Bundle the application
 
 ```bash
-./gradle clean jar
+./gradlew clean jar
 ```
 
-- Runnign the jar file sample command
+- Running the jar file sample command
 
 ```bash
 java -DUSERNAME="username" -DPASSWORD="password" -DURL="https://apidev.cdc.gov" -DSMOKE -jar .\dex-upload-client-1.0-SNAPSHOT.jar
