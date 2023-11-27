@@ -17,7 +17,7 @@ namespace BulkFileUploadFunctionApp
             .WriteTo.Console(new RenderedCompactJsonFormatter())
             .CreateLogger();
 
-        builder.Services.AddLogging(lb => lb.AddSerilog());
+        builder.Services.AddLogging(lb => lb.AddSerilog(dispose: true));
     }
 }
 }

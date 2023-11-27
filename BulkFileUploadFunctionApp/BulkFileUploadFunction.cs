@@ -80,8 +80,12 @@ namespace BulkFileUploadFunctionApp
         {
             _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
 
-            var customData = new { Key1 = "Value1", Key2 = "Value2" };
-            _logger.LogInformation("Processing with custom data: {@CustomData}", customData);
+            var customProperties = new Dictionary<string, object>
+               {
+                { "CustomKey1", "CustomValue1" },
+                { "CustomKey2", "CustomValue2" }
+               };
+            _logger.LogInformation("Processing with custom data: {@CustomData}", customProperties);
             
 
             foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
