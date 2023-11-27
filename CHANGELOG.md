@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2023-11-17
+- NDLP APL historical data configuration
+- Changing all upload configs of NDLP to not append clock ticks to the filename
+- Implementation of printing exception stack trace for increased visibility into error details
+- Updates to OpenAPI specifications
+- Workflow refactoring for upload configurations (CI/CD)
+- Addition of workflow for upload configurations (CI/CD)
+
 ## [1.2.1] - 2023-09-12
 - Fix for ndlp sending data without filename in metadata ( TUS post-receive hook )
 - Create upoad root folder in edav ( bulk upload processor )
