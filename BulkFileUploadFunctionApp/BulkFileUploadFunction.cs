@@ -528,7 +528,7 @@ namespace BulkFileUploadFunctionApp
             try
             {                                       
                 var blobReader = new BlobReader(_logger);
-                destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<DestinationAndEvents>(connectionString, "tus-file-hooks", "allowed_destination_and_events.json");
+                destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<DestinationAndEvents>(connectionString, "tusd-file-hooks", "allowed_destination_and_events.json");
 
                 _logger.LogInformation("Using destinationAndEvents: " + destinationAndEvents);
                 return destinationAndEvents;
