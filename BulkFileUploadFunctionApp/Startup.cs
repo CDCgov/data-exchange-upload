@@ -13,6 +13,7 @@ namespace BulkFileUploadFunctionApp
     public override void Configure(IFunctionsHostBuilder builder)
     {
         Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
             .Enrich.FromLogContext()
             .WriteTo.Console(new RenderedCompactJsonFormatter())
             .CreateLogger();
