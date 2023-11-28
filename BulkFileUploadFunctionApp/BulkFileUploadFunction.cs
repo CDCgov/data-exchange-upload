@@ -67,6 +67,7 @@ namespace BulkFileUploadFunctionApp
 
             _edavUploadRootContainerName = GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME") ?? "upload";
 
+            var destinationAndEvents = GetAllDestinationAndEvents();
         }
 
         /// <summary>
@@ -518,8 +519,27 @@ namespace BulkFileUploadFunctionApp
 
             return filenameSuffix;
         }
-    
-        
+
+        private async Task<DestinationAndEvents?> GetAllDestinationAndEvents() {
+
+            var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
+            var destinationAndEvents = DestinationAndEvents.Default;
+
+            try
+            {                                       
+                var blobReader = new BlobReader(_logger);
+                destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<DestinationAndEvents>(connectionString, "tus-file-hooks", "allowed_destination_and_events.json");
+
+                _logger.LogInformation("Using destinationAndEvents: " + destinationAndEvents);
+                return destinationAndEvents;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Failed to Destination And Events");
+                ExceptionUtils.LogErrorDetails(e, _logger);
+                return null;                        
+            }
+        }
     }
 
     
