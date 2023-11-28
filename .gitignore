@@ -25,3 +25,9 @@ tus/file-hooks/metadata-verify/pre-create-bin
 **/.DS_Store
 
 **/.env
+**/env.*
+
+# Java
+**/.gradle
+tests/integration/java/build/
+tests/integration/java/bin
