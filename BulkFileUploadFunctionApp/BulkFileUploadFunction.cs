@@ -534,13 +534,10 @@ namespace BulkFileUploadFunctionApp
             }
             catch (Exception e)
             {
-                _logger.LogError("Failed to Destination And Events");
+                _logger.LogError("Failed to fetch all Destinations and Events");
                 ExceptionUtils.LogErrorDetails(e, _logger);
                 return null;                        
             }
         }
-    }
-
-    
+    }   
 }
-

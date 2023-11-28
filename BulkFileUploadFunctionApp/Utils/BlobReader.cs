@@ -30,21 +30,21 @@ namespace BulkFileUploadFunctionApp.Utils
 
             _logger.LogInformation("File exists, getting lease on file");
 
-            BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
+            // BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
 
             // Specifying -1 for the lease interval creates an infinite lease
-            await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
+            // await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
 
             BlobDownloadResult download = await sourceBlob.DownloadContentAsync();
             var objectData = download.Content.ToObjectFromJson<T>();
 
             BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
 
-            if (sourceProperties.LeaseState == LeaseState.Leased)
-            {
+            //if (sourceProperties.LeaseState == LeaseState.Leased)
+            //{
                 // Release the lease on the source blob
-                await lease.ReleaseAsync();
-            }
+                //await lease.ReleaseAsync();
+            //}
 
             return objectData;
         }
