@@ -4,7 +4,8 @@ namespace BulkFileUploadFunctionApp.Model
 {
     public class DestinationAndEvents
     {
-        public string? destination_id { get; set; }
+        [JsonPropertyName("destination_id")]
+        public string? destinationId { get; set; }
         
         [JsonPropertyName("ext_events")]
         public List<ExtEvent>? extEvents { get; set; }

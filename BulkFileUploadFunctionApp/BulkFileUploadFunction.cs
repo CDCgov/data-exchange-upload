@@ -520,15 +520,14 @@ namespace BulkFileUploadFunctionApp
             return filenameSuffix;
         }
 
-        private async Task<DestinationAndEvents?> GetAllDestinationAndEvents() {
+        private async Task<List<DestinationAndEvents>?> GetAllDestinationAndEvents() {
 
             var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
-            var destinationAndEvents = DestinationAndEvents.Default;
 
             try
             {                                       
                 var blobReader = new BlobReader(_logger);
-                destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<DestinationAndEvents>(connectionString, "tusd-file-hooks", "allowed_destination_and_events.json");
+                var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, "tusd-file-hooks", "allowed_destination_and_events.json");
 
                 _logger.LogInformation("Using destinationAndEvents: " + destinationAndEvents);
                 return destinationAndEvents;
