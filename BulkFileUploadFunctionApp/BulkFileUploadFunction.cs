@@ -40,7 +40,7 @@ namespace BulkFileUploadFunctionApp
         private readonly string _metadataEventHubSharedAccessKey;
 
         private readonly string _edavUploadRootContainerName;
-
+        private readonly Task<List<DestinationAndEvents>?> _destinationAndEvents;
         
 
         public static string? GetEnvironmentVariable(string name)
@@ -67,7 +67,7 @@ namespace BulkFileUploadFunctionApp
 
             _edavUploadRootContainerName = GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME") ?? "upload";
 
-            var destinationAndEvents = GetAllDestinationAndEvents();
+            _destinationAndEvents = GetAllDestinationAndEvents();
         }
 
         /// <summary>
@@ -81,10 +81,8 @@ namespace BulkFileUploadFunctionApp
         {
             _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
             
-
             foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
-            {
-                
+            {                
                 _logger.LogInformation($"Received event: {blobCreatedEventJson}");
                 
 
@@ -101,8 +99,6 @@ namespace BulkFileUploadFunctionApp
                     throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
                 await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
-
-                
 
             } // .foreach 
 
@@ -149,8 +145,8 @@ namespace BulkFileUploadFunctionApp
                 {
                     // use default upload config
                     _logger.LogWarning($"No upload config found for destination id = {destinationId}, ext event = {extEvent}: exception = ${e.Message}");
-                    
-                     
+
+
                 }
 
                 // Determine the destination filename based on the upload config and metadata values provided with the source file.
@@ -178,8 +174,7 @@ namespace BulkFileUploadFunctionApp
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
                 await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
-                // Now copy the file from DeX to the EDAV storage account, also partitioned by date
-                await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                await CopyToTargetSystemAsync(destinationId, extEvent, destinationBlobFilename, destinationContainerName, tusFileMetadata);
 
                 // Finally, send metadata to eventhub for other consumers
                 var metadataRelaySucceeded = await RelayMetaData(tusFileMetadata);
@@ -190,9 +185,28 @@ namespace BulkFileUploadFunctionApp
             }
             catch (Exception e)
             {
-                _logger.LogError(e.Message);
-               
-                
+                _logger.LogError(e.Message);                               
+            }
+        }
+
+        private async Task CopyToTargetSystemAsync(string destinationId, string extEvent, string destinationBlobFilename, string destinationContainerName, Dictionary<string, string> tusFileMetadata)
+        {
+            var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
+
+            var currentEvent = currentDestination?.extEvents?.Find(e => e.name == extEvent);
+
+            foreach (CopyTarget copyTarget in currentEvent.copyTargets)
+            {    
+                _logger.LogInformation("Copy Target: " + copyTarget.target);
+
+                if (copyTarget.target == "dex_edav") {
+                    // Now copy the file from DeX to the EDAV storage account, also partitioned by date
+                    await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+
+                } else if (copyTarget.target == "dex_routing") {
+
+                    // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
+                }
             }
         }
 
@@ -534,7 +548,7 @@ namespace BulkFileUploadFunctionApp
             }
             catch (Exception e)
             {
-                _logger.LogError("Failed to fetch all Destinations and Events");
+                _logger.LogError("Failed to fetch Destinations and Events");
                 ExceptionUtils.LogErrorDetails(e, _logger);
                 return null;                        
             }
