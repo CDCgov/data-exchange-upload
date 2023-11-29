@@ -34,12 +34,19 @@ namespace BulkFileUploadFunctionApp
 
         private readonly string _edavAzureStorageAccountName;
 
+        private readonly string _routingStorageAccountName;
+
+        private readonly string _routingStorageAccountKey;
+
         private readonly string _metadataEventHubEndPoint;
         private readonly string _metadataEventHubHubName;
         private readonly string _metadataEventHubSharedAccessKeyName;
         private readonly string _metadataEventHubSharedAccessKey;
 
         private readonly string _edavUploadRootContainerName;
+
+        private readonly string _routingUploadRootContainerName;
+
         private readonly Task<List<DestinationAndEvents>?> _destinationAndEvents;
         
 
@@ -60,12 +67,16 @@ namespace BulkFileUploadFunctionApp
             _dexAzureStorageAccountKey = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY") ?? "";
             _edavAzureStorageAccountName = GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
 
+            _routingStorageAccountName = GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_NAME") ?? "";
+            _routingStorageAccountKey = GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_KEY") ?? "";            
+
             _metadataEventHubEndPoint = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_ENDPOINT_NAME") ?? "";
             _metadataEventHubHubName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_HUB_NAME") ?? "";
             _metadataEventHubSharedAccessKeyName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY_NAME") ?? "";
             _metadataEventHubSharedAccessKey = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY") ?? "";
 
             _edavUploadRootContainerName = GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME") ?? "upload";
+            _routingUploadRootContainerName = GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME") ?? "routeingress";
 
             _destinationAndEvents = GetAllDestinationAndEvents();
         }
@@ -195,18 +206,27 @@ namespace BulkFileUploadFunctionApp
 
             var currentEvent = currentDestination?.extEvents?.Find(e => e.name == extEvent);
 
-            foreach (CopyTarget copyTarget in currentEvent.copyTargets)
-            {    
-                _logger.LogInformation("Copy Target: " + copyTarget.target);
+            if(currentEvent != null && currentEvent.copyTargets != null) {
 
-                if (copyTarget.target == "dex_edav") {
-                    // Now copy the file from DeX to the EDAV storage account, also partitioned by date
-                    await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                foreach (CopyTarget copyTarget in currentEvent.copyTargets)
+                {    
+                    _logger.LogInformation("Copy Target: " + copyTarget.target);
+                    if (copyTarget.target == "dex_edav") {
 
-                } else if (copyTarget.target == "dex_routing") {
+                        // Now copy the file from DeX to the EDAV storage account, also partitioned by date
+                        await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
-                    // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
+                    } else if (copyTarget.target == "dex_routing") {
+
+                        // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
+                        await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                    }
                 }
+            } else {
+
+                _logger.LogInformation("No copy target found. Defaulting to EDAV");
+                // Now copy the file from DeX to the EDAV storage account, also partitioned by date
+                await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
             }
         }
 
@@ -369,6 +389,48 @@ namespace BulkFileUploadFunctionApp
             }    
             catch (Exception ex) {
               _logger.LogError("Failed to copy from Dex to Edav");
+              ExceptionUtils.LogErrorDetails(ex, _logger);
+            }
+        }
+
+        /// <summary>
+        /// Copies a blob file from DEX to ROUTING asynchronously.
+        /// </summary>
+        /// <param name="sourceContainerName">Source container name</param>
+        /// <param name="sourceBlobFilename">Source blob filename</param>
+        /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
+        /// <returns></returns>
+        private async Task CopyBlobFromDexToRoutingAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
+        {
+            try {
+
+                var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_routingStorageAccountName};AccountKey={_routingStorageAccountKey};EndpointSuffix=core.windows.net";
+
+                BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
+                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
+                BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
+
+                var routingBlobServiceClient = new BlobServiceClient(connectionString);                
+
+                // _routingUploadRootContainerName could be set to empty, then no root container in routing
+
+                string destinationContainerName = string.IsNullOrEmpty(_routingUploadRootContainerName) ? sourceContainerName : _routingUploadRootContainerName;
+                string destinationBlobFilename = string.IsNullOrEmpty(_routingUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
+
+                var routingContainerClient = routingBlobServiceClient.GetBlobContainerClient(destinationContainerName);
+
+                await routingContainerClient.CreateIfNotExistsAsync();
+
+                BlobClient routingDestBlobClient = routingContainerClient.GetBlobClient(destinationBlobFilename);
+
+                using var dexBlobStream = await dexBlobClient.OpenReadAsync();
+                {
+                    await routingDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
+                    dexBlobStream.Close();
+                }                
+            }    
+            catch (Exception ex) {
+              _logger.LogError("Failed to copy from Dex to ROUTING");
               ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
@@ -543,7 +605,6 @@ namespace BulkFileUploadFunctionApp
                 var blobReader = new BlobReader(_logger);
                 var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, "tusd-file-hooks", "allowed_destination_and_events.json");
 
-                _logger.LogInformation("Using destinationAndEvents: " + JsonConvert.SerializeObject(destinationAndEvents));
                 return destinationAndEvents;
             }
             catch (Exception e)
