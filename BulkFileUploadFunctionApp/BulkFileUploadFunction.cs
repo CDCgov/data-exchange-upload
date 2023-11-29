@@ -80,11 +80,7 @@ namespace BulkFileUploadFunctionApp
         {
            // _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
 
-            var customProperties = new Dictionary<string, object>
-               {
-                { "Received events count", eventHubTriggerEvents.Count() }                
-               };
-            _logger.LogWarning("Processing with custom data: {@CustomData}", customProperties);
+           _logger.LogInformation("Received events count: {eventHubTriggerEvents.Count() }", eventHubTriggerEvents.Count());
             
 
             foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
