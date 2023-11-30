@@ -37,7 +37,8 @@
         "name": "testevent1",
         "definition_filename": "definitions/dextesting_te1_metadata_definition.json",
         "copy_targets": [ 
-          { "target" : "dex_edav"}
+          { "target" : "dex_edav"},
+          { "target" : "dex_routing"}
         ]
       }
     ]
