@@ -47,7 +47,14 @@ namespace BulkFileUploadFunctionApp
 
         private readonly string _routingUploadRootContainerName;
 
+        private readonly string _tusHooksFolder;
+
         private readonly Task<List<DestinationAndEvents>?> _destinationAndEvents;
+
+        private readonly string _targetEdav = "dex_edav";
+        private readonly string _targetRouting = "dex_routing";
+
+        private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
         
 
         public static string? GetEnvironmentVariable(string name)
@@ -77,6 +84,8 @@ namespace BulkFileUploadFunctionApp
 
             _edavUploadRootContainerName = GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME") ?? "upload";
             _routingUploadRootContainerName = GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME") ?? "routeingress";
+
+            _tusHooksFolder = GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME") ?? "tusd-file-hooks";
 
             _destinationAndEvents = GetAllDestinationAndEvents();
         }
@@ -199,7 +208,6 @@ namespace BulkFileUploadFunctionApp
                 _logger.LogError(e.Message);                               
             }
         }
-
         private async Task CopyToTargetSystemAsync(string destinationId, string extEvent, string destinationBlobFilename, string destinationContainerName, Dictionary<string, string> tusFileMetadata)
         {
             var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
@@ -211,12 +219,13 @@ namespace BulkFileUploadFunctionApp
                 foreach (CopyTarget copyTarget in currentEvent.copyTargets)
                 {    
                     _logger.LogInformation("Copy Target: " + copyTarget.target);
-                    if (copyTarget.target == "dex_edav") {
+
+                    if (copyTarget.target == _targetEdav) {
 
                         // Now copy the file from DeX to the EDAV storage account, also partitioned by date
                         await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
-                    } else if (copyTarget.target == "dex_routing") {
+                    } else if (copyTarget.target == _targetRouting) {
 
                         // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
                         await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
@@ -225,6 +234,7 @@ namespace BulkFileUploadFunctionApp
             } else {
 
                 _logger.LogInformation("No copy target found. Defaulting to EDAV");
+
                 // Now copy the file from DeX to the EDAV storage account, also partitioned by date
                 await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
             }
@@ -603,7 +613,7 @@ namespace BulkFileUploadFunctionApp
             try
             {                                       
                 var blobReader = new BlobReader(_logger);
-                var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, "tusd-file-hooks", "allowed_destination_and_events.json");
+                var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
 
                 return destinationAndEvents;
             }
@@ -611,7 +621,8 @@ namespace BulkFileUploadFunctionApp
             {
                 _logger.LogError("Failed to fetch Destinations and Events");
                 ExceptionUtils.LogErrorDetails(e, _logger);
-                return null;                        
+
+                return new List<DestinationAndEvents>();                
             }
         }
     }   
