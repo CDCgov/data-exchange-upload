@@ -85,7 +85,7 @@ namespace BulkFileUploadFunctionApp
             _edavUploadRootContainerName = GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME") ?? "upload";
             _routingUploadRootContainerName = GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME") ?? "routeingress";
 
-            _tusHooksFolder = GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME") ?? "tusd-file-hooks";
+            _tusHooksFolder = GetEnvironmentVariable("TUSD_HOOKS_FOLDER") ?? "tusd-file-hooks";
 
             _destinationAndEvents = GetAllDestinationAndEvents();
         }
