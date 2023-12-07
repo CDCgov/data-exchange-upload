@@ -23,6 +23,8 @@
                 }
             }
         },
+        "AllowedHosts": "*",
+        
         "applicationInsights": {
             "samplingSettings": {
                 "isEnabled": true,
