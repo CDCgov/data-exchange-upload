@@ -2,7 +2,26 @@
     "version": "2.0",
     "logging": {
         "logLevel": {
-            "default": "Warning"
+            "Default": "Information",
+            "Microsoft": "Warning",
+            "Microsoft.Hosting.Lifetime": "Information"
+        },
+        "Console": {
+            "LogLevel": {
+                "Default": "Information",
+                "Microsoft": "Warning",
+                "Microsoft.Hosting.Lifetime": "Information"
+            },
+            "FormatterName": "json",
+            "FormatterOptions": {
+                "SingleLine": true,
+                "IncludeScopes": true,
+                "TimestampFormat": "HH:mm:ss ",
+                "UseUtcTimestamp": true,
+                "JsonWriterOptions": {
+                    "Indented": true
+                }
+            }
         },
         "applicationInsights": {
             "samplingSettings": {
@@ -12,4 +31,5 @@
             
         }
     }
+    
 }
