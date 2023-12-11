@@ -12,7 +12,9 @@ tusdotnet/DEXTUSServer/obj/
 
 tusdotnet/TUSTestHelpers/obj/
 
+# IDE
 .vscode/
+.idea/
 
 *.pyc
 
