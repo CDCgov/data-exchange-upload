@@ -164,7 +164,7 @@ namespace BulkFileUploadFunctionApp
                 catch (Exception e)
                 {
                     // use default upload config
-                    _logger.LogWarning($"No upload config found for destination id = {destinationId}, ext event = {extEvent}: exception = ${e.Message}");
+                    _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {extEvent}: exception = ${e.Message}");
 
 
                 }
@@ -273,7 +273,7 @@ namespace BulkFileUploadFunctionApp
             }
             catch (Exception e)
             {
-                _logger.LogError($"Exception caught sending the event batch: {e.Message}");
+                _logger.LogInformation($"Exception caught sending the event batch: {e.Message}");
             }
             finally
             {
