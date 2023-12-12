@@ -19,6 +19,18 @@
     ]
   },
   {
+    "destination_id": "daart",
+    "ext_events": [
+      {
+        "name": "hl7",
+        "definition_filename": "definitions/daart_hl7_meta_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_routing"}
+        ]
+      }
+    ]
+  },
+  {
     "destination_id": "dex-hl7",
     "ext_events": [
       {
