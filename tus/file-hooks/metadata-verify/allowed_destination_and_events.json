@@ -6,7 +6,7 @@
         "name": "csv",
         "definition_filename": "definitions/aims_celr_meta_definition.json",
         "copy_targets": [ 
-          { "target" : "dex_edav"}
+          { "target" : "dex_routing"}
         ]
       },
       {
