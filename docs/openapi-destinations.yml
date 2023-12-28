@@ -1,0 +1,41 @@
+openapi: 3.0.1
+
+info:
+  title: ocio-dmz-dev-upload-destination  
+  description: 'API to retrieve upload destinations'  
+  version: '1.2.2'
+  contact:
+    name: API Support
+    email: tuy5@cdc.gov
+
+tags:
+  - name: Destinations
+
+servers:
+  - url: https://apidev.cdc.gov/destination
+  
+paths:
+  "/":
+    get:
+      summary: UploadDestinations
+      tags:
+        - Destinations
+      description: Returns all allowed destinations
+      operationId: get-uploaddestinations
+      responses:
+        '200':
+          description: Success
+
+components:
+  securitySchemes:
+    sams:
+      type: oauth2
+      description: This API uses OAuth-2 with the password grant flow. 
+      flows:
+        password:
+          tokenUrl: https://apidev.cdc.gov/oauth
+          scopes:
+            dex:status: dex status
+            
+security:
+   - sams: []
