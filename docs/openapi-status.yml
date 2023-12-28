@@ -1,9 +1,15 @@
 openapi: 3.0.1
 
 info:
-  title: ocio-dmz-dev-upload-status
-  description: ''
-  version: '1.0'
+  title: ocio-dmz-dev-upload-status  
+  description: 'API for retrieving the status of files'  
+  version: '1.2.2'
+  contact:
+    name: API Support
+    email: tuy5@cdc.gov
+
+tags:
+  - name: Status
 
 servers:
 - url: https://apidev.cdc.gov/status
@@ -12,6 +18,8 @@ paths:
   "/{tguid}":
     get:
       summary: StatusForTguid
+      tags:
+        - Status
       description: Provides upload status for a specific tguid
       operationId: get-statusfortguid
       parameters:
@@ -28,6 +36,9 @@ paths:
   "/health":
     get:
       summary: HealthCheck
+      tags:
+        - Status
+      description: Provides the API health status
       operationId: healthcheck
       responses:
         '200':
@@ -38,7 +49,7 @@ components:
   securitySchemes:
     sams:
       type: oauth2
-      description: This API uses OAuth-2 with the password grant flow. 
+      description: This API uses OAuth-2 with the password grant flow
       flows:
         password:
           tokenUrl: https://apidev.cdc.gov/oauth

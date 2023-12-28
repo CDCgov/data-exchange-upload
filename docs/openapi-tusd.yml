@@ -2,8 +2,14 @@ openapi: 3.0.1
 
 info:
   title: ocio-dmz-dev-tusd
-  description: ''
+  description: 'Resumable Upload API following the TUS protocol'
   version: '1.0'
+  contact:
+    name: API Support
+    email: tuy5@cdc.gov
+
+tags:
+  - name: TUSD
 
 servers:
 - url: https://apidev.cdc.gov/upload
@@ -12,46 +18,58 @@ paths:
   "/*":
     head:
       summary: File Offset
+      tags:
+        - TUSD
       description: Used to determine the offset at which the upload should be continued.
       operationId: head-files
       responses:
         '200':
-          description:
+          description: Success
     post:
       summary: Post Files
+      tags:
+        - TUSD
       description: Endpoint for the Creation extension. Modified by the Creation With
         Upload extension.
       operationId: post-files
       responses:
         '200':
-          description:
+          description: Success
     options:
       summary: Server Config
+      tags:
+        - TUSD
       description: Request to gather information about the Server's current configuration
       operationId: options-files
       responses:
         '200':
-          description:
+          description: Success
     patch:
       summary: Resume File
+      tags:
+        - TUSD
       description: Used to resume the upload
       operationId: patch-files
       responses:
         '200':
-          description:
+          description: Success
 
   "/":
     get:
       summary: Heartbeat
+      tags:
+        - TUSD
       description: Get the tusd welcome message.
       operationId: heartbeat
       responses:
         '200':
-          description: ''
+          description: Success
 
   "/{tguid}":
     get:
       summary: Download File
+      tags:
+        - TUSD
       description: Download a file by tguid.
       operationId: download-file
       parameters:
@@ -63,7 +81,7 @@ paths:
           type: string
       responses:
         '200':
-          description:
+          description: Success
 
 
 components:

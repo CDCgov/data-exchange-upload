@@ -1,9 +1,15 @@
 openapi: 3.0.1
 
 info:
-  title: ocio-dmz-dev-sams
-  description: ''
+  title: ocio-dmz-dev-sams  
+  description: 'Authentication API for SAMS'  
   version: '1.0'
+  contact:
+    name: API Support
+    email: tuy5@cdc.gov
+
+tags:
+  - name: SAMS
 
 servers:
 - url: https://apidev.cdc.gov/oauth
@@ -12,6 +18,8 @@ paths:
   "/":
     get:
       summary: SAMS token validation
+      tags:
+        - SAMS
       description: Check whether or not a given auth token is valid or expired.
       operationId: sams_validate_token
       parameters:
@@ -23,9 +31,11 @@ paths:
           type: string
       responses:
         '200':
-          description:
+          description: Success
     post:
       summary: SAMS Password Grant Flow
+      tags:
+        - SAMS
       description: Generate a new SAMS auth token given a SAMS System username and
         password.
       operationId: sams_password
@@ -59,6 +69,8 @@ paths:
   "/refresh":
     post:
       summary: SAMS Refresh Token
+      tags:
+        - SAMS
       description: Generate new auth token from SAMS given a valid refresh token.
       operationId: sams_refresh_token
       parameters:
