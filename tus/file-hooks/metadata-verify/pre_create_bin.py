@@ -117,7 +117,14 @@ def main(argv):
     try:
         checkMetadata(metadata)
     except Exception as e:
-        print(e)
+        reject_upload_json = {
+                "RejectUpload": True,
+                "HTTPResponse": {
+                    "StatusCode": 400,
+                    "Body": str(e)
+                }
+            }    
+        print(json.dumps(reject_upload_json))
         sys.exit(1)
 
 if __name__ == "__main__":
