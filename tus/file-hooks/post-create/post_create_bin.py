@@ -1,4 +1,4 @@
-import sys, argparse, os
+import sys, argparse, os, time
 import json
 import requests
 from dotenv import load_dotenv
@@ -14,6 +14,21 @@ def create_upload_trace(uploadId, destinationId, eventType):
     'eventType': eventType
   }
   response = requests.post(f'{os.getenv("PS_API_URL")}/api/trace', params=params)
+  response.raise_for_status()
+
+  resp_json = response.json()
+
+  if 'trace_id' not in resp_json or 'span_id' not in resp_json:
+    raise Exception('Invalid PS API response: ' + str(resp_json))
+  
+  return (resp_json['trace_id'], resp_json['span_id'])
+
+def start_span_for_trace(trace_id, parent_span_id, stage_name):
+  params = {
+    "stageName": stage_name,
+    "spanMark": "start"
+  }
+  response = requests.put(f'{os.getenv("PS_API_URL")}/api/trace/addSpan/{trace_id}/{parent_span_id}', params=params)
   response.raise_for_status()
 
   resp_json = response.json()
@@ -57,8 +72,10 @@ def main(argv):
   # Create upload trace.
   dest, event = get_required_metadata(metadata)
   trace_id, parent_span_id = create_upload_trace(tguid, dest, event)
-  print(trace_id)
-  print(parent_span_id)
+
+  # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
+  start_span_for_trace(trace_id, parent_span_id, "dex-upload")
+  
 
 if __name__ == '__main__':
   main(sys.argv[1:])
