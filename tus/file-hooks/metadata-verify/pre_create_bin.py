@@ -1,3 +1,4 @@
+import time
 import sys, getopt
 import json
 from argparse import Namespace
@@ -132,6 +133,7 @@ def main(argv):
                 }
             }
         print(json.dumps(reject_upload_json), flush=True)
+        time.sleep(3)
         sys.exit(0)
 
 if __name__ == "__main__":
