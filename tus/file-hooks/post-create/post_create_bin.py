@@ -1,5 +1,9 @@
-import sys, argparse, os, time
+import argparse
 import json
+import os
+import sys
+import time
+
 from dotenv import load_dotenv
 
 from common.proc_stat_controller import ProcStatController
@@ -8,47 +12,46 @@ load_dotenv()
 
 required_metadata_fields = ['meta_destination_id', 'meta_ext_event']
 
+
 def get_required_metadata(metadata_str):
-  meta_json = json.loads(metadata_str)
-  missing_metadata_fields = []
+    meta_json = json.loads(metadata_str)
+    missing_metadata_fields = []
 
-  for field in required_metadata_fields:
-    if not field in meta_json:
-      missing_metadata_fields.append(field)
+    for field in required_metadata_fields:
+        if not field in meta_json:
+            missing_metadata_fields.append(field)
 
-  if len(missing_metadata_fields) > 0:
-    raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
+    if len(missing_metadata_fields) > 0:
+        raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
 
-  return [
-    meta_json['meta_destination_id'],
-    meta_json['meta_ext_event'],
-  ]
+    return [
+        meta_json['meta_destination_id'],
+        meta_json['meta_ext_event'],
+    ]
 
-def main(argv):
-  tguid = None
-  metadata = None
 
-  parser = argparse.ArgumentParser()
-  parser.add_argument('-i', '--id')
-  parser.add_argument('-m', '--metadata')
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--id')
+    parser.add_argument('-m', '--metadata')
 
-  args = parser.parse_args()
-  tguid = args.id
-  metadata = args.metadata
-  
-  if tguid is None:
-    raise Exception('No tguid provided')
+    args = parser.parse_args()
+    tguid = args.id
+    metadata = args.metadata
 
-  # Create upload trace.
-  dest, event = get_required_metadata(metadata)
+    if tguid is None:
+        raise Exception('No tguid provided')
 
-  ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
-  trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, dest, event)
+    # Create upload trace.
+    dest, event = get_required_metadata(metadata)
 
-  # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
-  ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
-  print(trace_id)
-  
+    ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
+    trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, dest, event)
+
+    # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
+    ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
+    print(trace_id)
+
 
 if __name__ == '__main__':
-  main(sys.argv[1:])
+    main()
