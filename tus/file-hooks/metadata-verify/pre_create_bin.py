@@ -117,7 +117,6 @@ def main(argv):
     try:
         checkMetadata(metadata)
     except Exception as e:
-        print("--DEBUG: Creating JSON Object---")
         reject_upload_json = {
                 "RejectUpload": True,
                 "HTTPResponse": {
@@ -125,10 +124,8 @@ def main(argv):
                     "Body": str(e)
                 }
             }
-        print("--DEBUG: Printing JSON ---")
         print(json.dumps(reject_upload_json))
-        print("--DEBUG: Exiting with 0 exit code ---")
-        sys.exit(0)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
