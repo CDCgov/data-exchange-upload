@@ -1,10 +1,14 @@
 import argparse
 import json
 import os
+import sys
 
 from dotenv import load_dotenv
 
-from common.proc_stat_controller import ProcStatController
+# Including the common directory because it's above the script's root directory.
+sys.path.append(os.path.join(sys.path[0], '..', 'common'))
+# IDEs will probably complain that it can't find this module.
+from proc_stat_controller import ProcStatController
 
 load_dotenv()
 
@@ -48,7 +52,6 @@ def main():
 
     # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
     ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
-    print(trace_id)
 
 
 if __name__ == '__main__':
