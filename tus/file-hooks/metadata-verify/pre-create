@@ -7,4 +7,8 @@ data=$(</dev/stdin)
 metadata=$(jq -c .Upload.MetaData `$data`)
 
 # run the python standalone binary to evaluate the metadata
-./pre-create-bin --metadata "$metadata"
+# ./pre-create-bin --metadata "$metadata"
+
+python_script_return_value=$(./pre-create-bin --metadata "$metadata")
+
+echo "Python script returned: $python_script_return_value"
