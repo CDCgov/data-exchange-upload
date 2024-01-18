@@ -132,7 +132,8 @@ def main(argv):
                     "Body": "Metadata not valid"
                 }
             }
-        print(json.dumps(reject_upload_json), flush=True)
+        print(json.dumps(reject_upload_json), end='\n', flush=True)        
+        sys.stdout.flush()
         time.sleep(3)
         sys.exit(0)
 
