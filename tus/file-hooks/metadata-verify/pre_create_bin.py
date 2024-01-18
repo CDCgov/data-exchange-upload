@@ -131,7 +131,7 @@ def main(argv):
                     "Body": "Metadata not valid"
                 }
             }
-        logging.debug(json.dumps(reject_upload_json))
+        print(json.dumps(reject_upload_json), flush=True)
         sys.exit(0)
 
 if __name__ == "__main__":
