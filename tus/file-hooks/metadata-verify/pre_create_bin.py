@@ -121,11 +121,11 @@ def main(argv):
                 "RejectUpload": True,
                 "HTTPResponse": {
                     "StatusCode": 400,
-                    "Body": str(e)
+                    "Body": "Metadata not valid"
                 }
             }
         print(json.dumps(reject_upload_json))
-        sys.exit(1)
+        sys.exit(0)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
