@@ -65,6 +65,7 @@ def checkProgramEventMetadata(program_event_meta_filename, metadata):
         checkMetadataAgainstDefinition(definitionObj, metadata)
 
 def checkMetadataAgainstDefinition(definitionObj, metadata):
+    print("DEBUG: --checkMetadataAgainstDefinition")
     # check if the schema was provided and if not, default to the oldest schema
     meta_json = json.loads(metadata)
     requested_schema_version = None
@@ -90,6 +91,7 @@ def checkMetadataAgainstDefinition(definitionObj, metadata):
         raise Exception("Provided metadata: " + metadata)
             
 def checkMetadata(metadata):
+    print("DEBUG: --checkMetadata")
     meta_json = json.loads(metadata)
     min_required_metadata = ["meta_destination_id", "meta_ext_event"]
     missing_metadata_fields = []
@@ -106,6 +108,7 @@ def checkMetadata(metadata):
         checkProgramEventMetadata(filename, metadata)
     
 def main(argv):
+    print("DEBUG: tus pre hook")
     metadata = ''
     opts, args = getopt.getopt(argv,"hm:",["metadata="])
     for opt, arg in opts:
@@ -124,8 +127,7 @@ def main(argv):
                     "Body": "Metadata not valid"
                 }
             }
-        sys.stdout.write(json.dumps(reject_upload_json))
-        sys.stdout.flush()
+        print(json.dumps(reject_upload_json))
         sys.exit(0)
 
 if __name__ == "__main__":
