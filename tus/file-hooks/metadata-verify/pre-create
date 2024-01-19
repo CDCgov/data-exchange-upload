@@ -9,4 +9,12 @@ metadata=$(jq -c .Upload.MetaData `$data`)
 # run the python standalone binary to evaluate the metadata
 ./pre-create-bin --metadata "$metadata"
 
+return_code=$?
+
+if [ $return_code -eq 0 ]; then
+    echo "SUCCESS $return_code"
+else
+    echo "FAILURE $return_code"
+fi
+
 exit 0
