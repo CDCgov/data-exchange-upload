@@ -21,7 +21,7 @@ def get_required_metadata(metadata_str):
     missing_metadata_fields = []
 
     for field in required_metadata_fields:
-        if not field in meta_json:
+        if field not in meta_json:
             missing_metadata_fields.append(field)
 
     if len(missing_metadata_fields) > 0:
