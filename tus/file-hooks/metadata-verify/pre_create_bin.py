@@ -5,7 +5,7 @@ from argparse import Namespace
 
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 class AllowedDestinationEvents:
     def __init__(self, destination_id, ext_events):
@@ -132,10 +132,8 @@ def main(argv):
                     "Body": "Metadata not valid"
                 }
             }
-        print(json.dumps(reject_upload_json), end='\n', flush=True)        
-        sys.stdout.flush()
-        time.sleep(3)
-        sys.exit(1)
+        sys.stdout.write(json.dumps(reject_upload_json))        
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -8,3 +8,5 @@ metadata=$(jq -c .Upload.MetaData `$data`)
 
 # run the python standalone binary to evaluate the metadata
 ./pre-create-bin --metadata "$metadata"
+
+exit 0
