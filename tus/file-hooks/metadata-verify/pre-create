@@ -14,7 +14,15 @@ return_code=$?
 if [ $return_code -eq 0 ]; then
     echo "SUCCESS $return_code"
 else
-    echo "FAILURE $return_code"
+    cat <<END
+    {   
+        "RejectUpload": true,
+        "HTTPResponse": {
+            "StatusCode": 400,
+            "Body": "no filename provided"
+        }
+    }
+END
 fi
 
 exit 0
