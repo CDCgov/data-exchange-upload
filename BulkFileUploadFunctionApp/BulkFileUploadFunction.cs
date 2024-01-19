@@ -130,15 +130,15 @@ namespace BulkFileUploadFunctionApp
 
                 if (isRoutingEnabled)
                   {
-                    _logger.LogInformation($"Routing is Enabled. Bypassing routing for blob: {blobCreatedEvent?.Data?.Url}");
+                    await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);                    
                      
                    }
                 else
                   {
-                  await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
+                   _logger.LogInformation($"Routing is Enabled. Bypassing routing for blob: {blobCreatedEvent?.Data?.Url}");
                   }
 
-               // await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
+               
 
             } // .foreach 
 
