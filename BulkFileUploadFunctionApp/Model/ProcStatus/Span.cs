@@ -4,6 +4,6 @@ namespace BulkFileUploadFunctionApp.Model.ProcStatus
 {
   public class Span
   {
-    public statuc readonly Span Default = new Span();
+    public static readonly Span Default = new Span();
   }
 }

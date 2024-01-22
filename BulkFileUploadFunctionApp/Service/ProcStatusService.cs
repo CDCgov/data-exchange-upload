@@ -1,35 +1,25 @@
+using BulkFileUploadFunctionApp.Model.ProcStatus;
 using Microsoft.Extensions.Logging;
-using System.Net.Http;
-using Model.Trace;
+using System.Net.Http.Json;
 
-namespace BulkFileUploadFunctionApp.Utils
+namespace BulkFileUploadFunctionApp.Service
 {
-  internal class ProcStatusService : IProcStatusService
+  internal class ProcStatusService : IProcStatService
   {
-    private readonly string _baseUrl
+    private readonly Uri _baseUrl;
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
 
     public ProcStatusService(string baseUrl, HttpClient httpClient, ILogger logger)
     {
-      _baseUrl = baseUrl;
+      _baseUrl = new Uri(baseUrl);
       _httpClient = httpClient;
       _logger = logger;
     }
 
-    public async Trace GetTraceByUploadId(string uploadId)
+    public async Task<Trace> GetTraceByUploadId(string uploadId)
     {
-      var response = await this.httpClient.GetAsync($"{_baseUrl}/api/trace/traceId/{uploadId}");
-      httpResponse.EnsureSuccessfulStatusCode();
-
-      try
-      {
-        return await response.Content.ReadAsAsync<Trace>();
-      }
-      catch
-      {
-        _logger.LogError($"Error deserializing HTTP response {response}")
-      }
+      return await _httpClient.GetFromJsonAsync<Trace>($"api/trace/traceId/{uploadId}");
     }
   }
 }

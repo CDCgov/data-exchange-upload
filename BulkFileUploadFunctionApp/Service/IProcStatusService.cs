@@ -1,13 +1,9 @@
-using Model.ProcStatus.Trace;
+using BulkFileUploadFunctionApp.Model.ProcStatus;
 
 namespace BulkFileUploadFunctionApp.Service
 {
   public interface IProcStatService
   {
-    string baseUrl;
-    HttpClient httpClient;
-    ILogger logger;
-
-    Trace GetTraceByUploadId(string uploadID);
+    Task<Trace> GetTraceByUploadId(string uploadID);
   }
 }

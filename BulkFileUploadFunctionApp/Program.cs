@@ -1,11 +1,10 @@
 using BulkFileUploadFunctionApp;
+using BulkFileUploadFunctionApp.Service;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extentions.Http;
-using BulkFileUplaodFunctionApp.Service;
 
 var host = new HostBuilder()
     .ConfigureLogging(builder =>
@@ -30,7 +29,7 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
         services.AddHttpClient();
-        services.AddSingleton<IProcStatusService, ProcStatusService>();
+        services.AddSingleton<IProcStatService, ProcStatusService>();
     })
     .Build();
 
