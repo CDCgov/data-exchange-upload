@@ -28,7 +28,10 @@ var host = new HostBuilder()
     {
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
-        services.AddHttpClient();
+        services.AddHttpClient<IProcStatService, ProcStatusService>(client =>
+        {
+          client.BaseAddress = new Uri(Environment.GetEnvironmentVariable("PROC_STATUS_URL") ?? "");
+        });
         services.AddSingleton<IProcStatService, ProcStatusService>();
     })
     .Build();

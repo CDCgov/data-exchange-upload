@@ -7,16 +7,14 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using BulkFileUploadFunctionApp.Model;
 using Azure.Identity;
-using Azure.Storage;
 using Azure.Storage.Sas;
 using Azure.Messaging.EventHubs.Producer;
 using Azure.Messaging.EventHubs;
 using Newtonsoft.Json;
 using BulkFileUploadFunctionApp.Utils;
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
+using BulkFileUploadFunctionApp.Service;
 
 namespace BulkFileUploadFunctionApp
 {
@@ -59,6 +57,8 @@ namespace BulkFileUploadFunctionApp
         private readonly string _targetRouting = "dex_routing";
 
         private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
+
+        private readonly IProcStatService _procStatusService;
         
 
         public static string? GetEnvironmentVariable(string name)
@@ -66,7 +66,7 @@ namespace BulkFileUploadFunctionApp
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction( ILoggerFactory loggerFactory, IConfiguration configuration)
+        public BulkFileUploadFunction(IProcStatService procStatService, ILoggerFactory loggerFactory, IConfiguration configuration)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
 
@@ -94,6 +94,8 @@ namespace BulkFileUploadFunctionApp
             _tusHooksFolder = GetEnvironmentVariable("TUSD_HOOKS_FOLDER") ?? "tusd-file-hooks";
 
             _destinationAndEvents = GetAllDestinationAndEvents();
+
+            _procStatusService = procStatService;
         }
 
         /// <summary>
@@ -211,6 +213,7 @@ namespace BulkFileUploadFunctionApp
                 tusFileMetadata.Remove("filename");
                 tusFileMetadata.Add("orig_filename", filename);
 
+                
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
                 await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
