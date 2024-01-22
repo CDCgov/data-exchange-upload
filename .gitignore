@@ -22,6 +22,11 @@ tus/file-hooks/metadata-verify/pre_create_bin.spec
 
 tus/file-hooks/metadata-verify/pre-create-bin
 
+tus/file-hooks/post-create/build/
+tus/file-hooks/post-create/dist
+tus/file-hooks/post-create/post-create-bin
+tus/file-hooks/post-create/post_create_bin.spec
+
 **/node_modules
 
 **/.DS_Store
