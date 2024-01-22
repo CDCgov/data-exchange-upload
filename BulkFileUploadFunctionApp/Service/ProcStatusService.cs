@@ -21,5 +21,15 @@ namespace BulkFileUploadFunctionApp.Service
     {
       return await _httpClient.GetFromJsonAsync<Trace>($"api/trace/traceId/{uploadId}");
     }
+
+    public async Task StartSpanForTrace(string traceId, string parentSpanId, string stageName)
+    {
+      await _httpClient.GetAsync($"api/trace/addSpan/{traceId}/{parentSpanId}?stageName={stageName}&spanMark=start");
+    }
+
+    public async Task StopSpanForTrace(string traceId, string parentSpanId, string stageName)
+    {
+      await _httpClient.GetAsync($"api/trace/addSpan/{traceId}/{parentSpanId}?stageName={stageName}&spanMark=stop");
+    }
   }
 }
