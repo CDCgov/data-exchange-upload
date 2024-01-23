@@ -109,7 +109,7 @@ namespace BulkFileUploadFunctionApp
 
             bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
 
-             _logger.LogInformation($"Routing Status: {isRoutingEnabled }");
+            
             
             foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
             {                
