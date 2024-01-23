@@ -105,11 +105,7 @@ namespace BulkFileUploadFunctionApp
         [Function("BulkFileUploadFunction")]
         public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
-            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
-
-            bool isRoutingEnabled = _configuration.GetValue<bool>(".appconfig.featureflag/ROUTING");
-
-            
+            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");            
             
             foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
             {                
@@ -127,18 +123,8 @@ namespace BulkFileUploadFunctionApp
                 StorageBlobCreatedEvent blobCreatedEvent = blobCreatedEvents[0];
                 if (blobCreatedEvent == null)
                     throw new Exception("Unexpected data content of event; there should be at least one element in the array");
-
-                if (isRoutingEnabled)
-                  {
-                    await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);                    
-                     
-                   }
-                else
-                  {
-                   _logger.LogInformation($"Routing is Enabled. Bypassing routing for blob: {blobCreatedEvent?.Data?.Url}");
-                  }
-
                
+                    await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
 
             } // .foreach 
 
