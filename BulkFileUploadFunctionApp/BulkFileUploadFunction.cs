@@ -220,6 +220,10 @@ namespace BulkFileUploadFunctionApp
 
             var currentEvent = currentDestination?.extEvents?.Find(e => e.name == extEvent);
 
+            bool isRoutingEnabled = _configuration.GetValue<bool>(".appconfig.featureflag/ROUTING");
+
+            _logger.LogInformation($"Routing Status: {isRoutingEnabled }");
+
             if(currentEvent != null && currentEvent.copyTargets != null) {
 
                 foreach (CopyTarget copyTarget in currentEvent.copyTargets)
@@ -233,8 +237,15 @@ namespace BulkFileUploadFunctionApp
 
                     } else if (copyTarget.target == _targetRouting) {
 
-                        // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
-                        await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                        if (isRoutingEnabled)
+                        {
+                            // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
+                            await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);                     
+                         }
+                        else
+                         {
+                         _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
+                         }                        
                     }
                 }
             } else {
