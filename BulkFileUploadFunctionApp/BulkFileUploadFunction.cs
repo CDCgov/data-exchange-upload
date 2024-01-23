@@ -105,9 +105,10 @@ namespace BulkFileUploadFunctionApp
         [Function("BulkFileUploadFunction")]
         public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
-            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
+            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");           
 
-            bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
+            bool isRoutingEnabled = _configuration.GetValue<bool>(".appconfig.featureflag/ROUTING");
+
 
              _logger.LogInformation($"Routing Status: {isRoutingEnabled }");
             
