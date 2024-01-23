@@ -66,7 +66,9 @@ namespace BulkFileUploadFunctionApp
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IConfiguration configuration)
+
+        public BulkFileUploadFunction( ILoggerFactory loggerFactory, IConfiguration configuration)
+
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
 
@@ -105,19 +107,12 @@ namespace BulkFileUploadFunctionApp
         [Function("BulkFileUploadFunction")]
         public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
-            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count()}");
 
-<<<<<<< HEAD
-            bool isRoutingEnabled = _configuration.GetValue<bool>(".appconfig.featureflag/ROUTING");
-
-             _logger.LogInformation($"Routing Status: {isRoutingEnabled }");
+            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count()}");        
             
             foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
             {                
-=======
-            foreach (var blobCreatedEventJson in eventHubTriggerEvents)
-            {
->>>>>>> 26012df47e1f552fad5a043c84aa52f7495d17b6
+
                 _logger.LogInformation($"Received event: {blobCreatedEventJson}");
 
 
@@ -133,7 +128,17 @@ namespace BulkFileUploadFunctionApp
                 if (blobCreatedEvent == null)
                     throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
-                await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
+                if (isRoutingEnabled)
+                  {
+                    await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);                    
+                     
+                   }
+                else
+                  {
+                   _logger.LogInformation($"Routing is Enabled. Bypassing routing for blob: {blobCreatedEvent?.Data?.Url}");
+                  }
+
+               
 
             } // .foreach 
 
