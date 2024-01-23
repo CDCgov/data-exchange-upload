@@ -107,7 +107,7 @@ namespace BulkFileUploadFunctionApp
         {
             _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");
 
-            bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
+            bool isRoutingEnabled = _configuration.GetValue<bool>(".appconfig.featureflag/ROUTING");
 
             
             
