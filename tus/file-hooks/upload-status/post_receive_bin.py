@@ -40,8 +40,8 @@ console_handle.setFormatter(formatter)
 # now add new handler to logger
 logger.addHandler(console_handle)
 
-service_bus_connection_str = config.queue_settings['SERVICE_BUS_CONNECTION_STR']
-queue_name = config.queue_settings['QUEUE_NAME']
+service_bus_connection_str = config.queue_settings['service_bus_connection_str']
+queue_name = config.queue_settings['queue_name']
 
 async def send_message(message):
     # Create a Service Bus message and send it to the queue
