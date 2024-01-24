@@ -79,6 +79,9 @@ async def post_receive(tguid, offset, size, metadata_json):
         meta_ext_event = metadata.meta_ext_event
         logger.info('filename = {0}, meta_destination_id = {1}, meta_ext_event = {2}'.format(filename, meta_destination_id, meta_ext_event))
 
+        # convert metadata json string to a dictionary
+        metadata_json_dict = ast.literal_eval(metadata_json)
+
         json_data = {
             "schema_name": "upload",
             "schema_version": "1.0",
@@ -88,7 +91,7 @@ async def post_receive(tguid, offset, size, metadata_json):
             "filename": filename,
             "meta_destination_id": meta_destination_id,
             "meta_ext_event": meta_ext_event,
-            "metadata": metadata
+            "metadata": metadata_json_dict
         }
 
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
@@ -96,6 +99,7 @@ async def post_receive(tguid, offset, size, metadata_json):
         await send_message(json.dumps(json_data))
 
     except Exception as e:
+        logger.error('POST RECEIVE HOOK - exiting post_receive with error')
         logger.error(e)
         sys.exit(1)
 
@@ -120,7 +124,8 @@ def main(argv):
     try:        
         asyncio.run(post_receive(tus_id, int(offset), int(size), metadata))
     except Exception as e:
-        logger.error(e)
+        logger.error('POST RECEIVE HOOK - exiting main with error')
+        logger.error(e)        
         sys.exit(1)
 
 if __name__ == "__main__":
