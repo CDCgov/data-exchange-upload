@@ -99,8 +99,7 @@ async def post_receive(tguid, offset, size, metadata_json):
         await send_message(json.dumps(json_data))
 
     except Exception as e:
-        logger.error('POST RECEIVE HOOK - exiting post_receive with error')
-        logger.error(e)
+        logger.error("POST RECEIVE HOOK - exiting post_receive with error: %s", str(e), exc_info=True)
         sys.exit(1)
 
 def main(argv):
@@ -124,8 +123,7 @@ def main(argv):
     try:        
         asyncio.run(post_receive(tus_id, int(offset), int(size), metadata))
     except Exception as e:
-        logger.error('POST RECEIVE HOOK - exiting main with error')
-        logger.error(e)        
+        logger.error("POST RECEIVE HOOK - exiting main with error: %s", str(e), exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":
