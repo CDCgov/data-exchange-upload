@@ -79,11 +79,21 @@ async def post_receive(tguid, offset, size, metadata_json):
         meta_ext_event = metadata.meta_ext_event
         logger.info('filename = {0}, meta_destination_id = {1}, meta_ext_event = {2}'.format(filename, meta_destination_id, meta_ext_event))
 
-        json_data = '{"schema_name": "upload", "schema_version": "1.0", "tguid": "%s", "offset": %d, "size": %d, "filename": "%s", "meta_destination_id": "%s", "meta_ext_event": "%s", "metadata": %s}' % (tguid, offset, size, filename, meta_destination_id, meta_ext_event, metadata_json)
+        json_data = {
+            "schema_name": "upload",
+            "schema_version": "1.0",
+            "tguid": tguid,
+            "offset": offset,
+            "size": size,
+            "filename": filename,
+            "meta_destination_id": meta_destination_id,
+            "meta_ext_event": meta_ext_event,
+            "metadata": metadata
+        }
 
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
 
-        await send_message(json_data)
+        await send_message(json.dumps(json_data))
 
     except Exception as e:
         logger.error(e)
@@ -110,7 +120,7 @@ def main(argv):
     try:        
         asyncio.run(post_receive(tus_id, int(offset), int(size), metadata))
     except Exception as e:
-        print(e)
+        logger.error(e)
         sys.exit(1)
 
 if __name__ == "__main__":
