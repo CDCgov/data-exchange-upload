@@ -83,15 +83,21 @@ async def post_receive(tguid, offset, size, metadata_json):
         metadata_json_dict = ast.literal_eval(metadata_json)
 
         json_data = {
-            "schema_name": "upload",
-            "schema_version": "1.0",
-            "tguid": tguid,
-            "offset": offset,
-            "size": size,
-            "filename": filename,
-            "meta_destination_id": meta_destination_id,
-            "meta_ext_event": meta_ext_event,
-            "metadata": metadata_json_dict
+            "upload_id": tguid,
+            "stage_name": "dex-upload",
+            "content_type": "json",
+            "content": {
+                        "schema_name": "upload",
+                        "schema_version": "1.0",
+                        "tguid": tguid,
+                        "offset": offset,
+                        "size": size,
+                        "filename": filename,
+                        "meta_destination_id": meta_destination_id,
+                        "meta_ext_event": meta_ext_event,
+                        "metadata": metadata_json_dict
+            },
+            "disposition_type": "replace"
         }
 
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
