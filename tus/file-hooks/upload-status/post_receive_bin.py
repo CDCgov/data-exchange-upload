@@ -2,20 +2,21 @@ import getopt
 import sys
 import config
 import datetime
-import base64
-
-from azure.storage.queue import QueueServiceClient
-from azure.core.exceptions import ResourceExistsError
-
 import json
 import ast
+
+import asyncio
+import uuid
+import time
+import requests
+
+from azure.servicebus.aio import ServiceBusClient
+from azure.servicebus import ServiceBusMessage
+from azure.servicebus import TransportType
+
 import logging
 
 from types import SimpleNamespace
-
-# Include secondary dependencies here, since pyinstaller will miss them and
-# the binary will fail at run-time.
-import chardet
 
 logger = logging.getLogger("post-receive-bin")
 logger.setLevel(logging.DEBUG)
@@ -23,7 +24,6 @@ logger.setLevel(logging.DEBUG)
 # remove all default handlers
 for handler in logger.handlers:
     logger.removeHandler(handler)
-
 
 # create console handler and set level to debug
 console_handle = logging.StreamHandler()
@@ -40,52 +40,23 @@ console_handle.setFormatter(formatter)
 # now add new handler to logger
 logger.addHandler(console_handle)
 
-account_name = config.queue_settings['storage_account_name']
-account_key = config.queue_settings['storage_account_key']
-q_name = config.queue_settings['queue_name']
+service_bus_connection_str = config.queue_settings['service_bus_connection_str']
+queue_name = config.queue_settings['queue_name']
 
-def get_queue_client():
-    connect_str = 'DefaultEndpointsProtocol=https;AccountName={0};AccountKey={1};EndpointSuffix=core.windows.net'.format(account_name, account_key)
-    service_client = QueueServiceClient.from_connection_string(connect_str)
-    try:
-        return service_client.create_queue(q_name)
-    except ResourceExistsError:
-        # Queue exists.  Note, you will get a false positive that the resource still exists if the
-        # queue was very recently deleted.  There seems to be a couple minute delay where after a
-        # queue is deleted that Azure still reports the resource exists.
-        pass
-    return service_client.get_queue_client(q_name)
+async def send_message(message):
+    # Create a Service Bus message and send it to the queue
+    message = ServiceBusMessage(message)
 
-def send_message_to_cosmos_sync(json_update):
-    try:
-        logger.debug('send_message_to_cosmos_sync: sending update message to queue: {0}'.format(json_update))
-        json_update_base64_bytes = base64.b64encode(bytes(json_update, 'utf-8')) # bytes
-        base64_str = json_update_base64_bytes.decode('utf-8') # convert bytes to string
-        get_queue_client().send_message(base64_str)
-    except Exception as e:
-        logger.exception(e)
+    async with ServiceBusClient.from_connection_string(
+        conn_str=service_bus_connection_str,
+        transport_type=TransportType.AmqpOverWebsocket,
+        logging_enable=False) as servicebus_client:
+        # Get a Queue Sender object to send messages to the queue
+        sender = servicebus_client.get_queue_sender(queue_name=queue_name)
+        async with sender:
+            await sender.send_messages(message)
 
-def upsert_item(tguid, offset, size, filename, meta_destination_id, meta_ext_event, metadata_json):
-    logger.info('Upserting tguid = {0}'.format(tguid))
-
-    logger.info('tguid: {0}'.format(tguid))
-    logger.info('offset: {0}'.format(offset))
-    logger.info('size: {0}'.format(size))
-
-    logger.info('Sending update to queue: {0}'.format(q_name))
-    update = {
-        'tguid': tguid,
-        'offset': offset,
-        'size': size,
-        'filename': filename,
-        'meta_destination_id': meta_destination_id,
-        'meta_ext_event': meta_ext_event,
-        'metadata': metadata_json
-    }
-    json_update = json.dumps(update)
-    send_message_to_cosmos_sync(json_update)
-
-def post_receive(tguid, offset, size, metadata_json):
+async def post_receive(tguid, offset, size, metadata_json):
     try:
         logger.info('python version = {0}'.format(sys.version))
         logger.info('metadata_json = {0}'.format(metadata_json))
@@ -111,10 +82,24 @@ def post_receive(tguid, offset, size, metadata_json):
         # convert metadata json string to a dictionary
         metadata_json_dict = ast.literal_eval(metadata_json)
 
+        json_data = {
+            "schema_name": "upload",
+            "schema_version": "1.0",
+            "tguid": tguid,
+            "offset": offset,
+            "size": size,
+            "filename": filename,
+            "meta_destination_id": meta_destination_id,
+            "meta_ext_event": meta_ext_event,
+            "metadata": metadata_json_dict
+        }
+
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
-        upsert_item(tguid, offset, size, filename, meta_destination_id, meta_ext_event, metadata_json_dict)
+
+        await send_message(json.dumps(json_data))
+
     except Exception as e:
-        print(e)
+        logger.error("POST RECEIVE HOOK - exiting post_receive with error: %s", str(e), exc_info=True)
         sys.exit(1)
 
 def main(argv):
@@ -135,10 +120,10 @@ def main(argv):
             size = arg
         elif opt in ("-m", "--metadata"):
             metadata = arg
-    try:
-        post_receive(tus_id, int(offset), int(size), metadata)
+    try:        
+        asyncio.run(post_receive(tus_id, int(offset), int(size), metadata))
     except Exception as e:
-        print(e)
+        logger.error("POST RECEIVE HOOK - exiting main with error: %s", str(e), exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":
