@@ -1,5 +1,5 @@
 psutil
 azure-storage-queue
 azure-servicebus
-aiohttp==3.9.1
+aiohttp
 chardet

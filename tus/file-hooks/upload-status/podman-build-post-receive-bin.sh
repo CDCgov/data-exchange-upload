@@ -13,7 +13,7 @@
 podman run --rm \
     -v "${PWD}:${PWD}" \
     -w "${PWD}" \
-    ociodexdevupload.azurecr.io/pyinstaller:alpine-3.7-python-3.7-pyinstaller-v3.6 \
+    ociodexdevupload.azurecr.io/pyinstaller:alpine-python-3.8.3 \
     --noconfirm \
     --onefile \
     --log-level DEBUG \
