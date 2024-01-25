@@ -1,7 +1,6 @@
 import os
 
 queue_settings = {
-    'storage_account_name': os.environ.get('AZURE_STORAGE_ACCOUNT'),
-    'storage_account_key': os.environ.get('AZURE_STORAGE_KEY'),
-    'queue_name': os.environ.get('QUEUE_NAME', 'cosmos-sink-queue')
+    'service_bus_connection_str': os.environ.get('SERVICE_BUS_CONNECTION_STR'),
+    'queue_name': os.environ.get('QUEUE_NAME', 'processing-status-cosmos-db-queue')
 }
