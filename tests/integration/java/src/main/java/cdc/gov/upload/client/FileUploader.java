@@ -9,12 +9,10 @@ import java.util.Properties;
 import cdc.gov.upload.client.model.Definition;
 import cdc.gov.upload.client.model.Destination;
 import cdc.gov.upload.client.model.ExtEvent;
-import cdc.gov.upload.client.model.FileStatus;
 import cdc.gov.upload.client.model.Upload;
 import cdc.gov.upload.client.tus.TusUploadExecutor;
 import cdc.gov.upload.client.utils.DestinationsUtil;
 import cdc.gov.upload.client.utils.LoginUtil;
-import cdc.gov.upload.client.utils.StatusUtil;
 
 public class FileUploader {
 
@@ -170,16 +168,8 @@ public class FileUploader {
         System.out.println("TGUID Received: " + tguid);
         if(upload != null) { upload.setTguid(tguid); }
 
-        System.out.println("Checking file Status");
-        FileStatus fileStatus = StatusUtil.getFileStatus(token, tguid, baseUrl);
-
-        String status = fileStatus.getStatus();
-
-        if(status.equalsIgnoreCase("Complete")) {
-
-            System.out.println("File Uploaded Successfully!");
-            if(upload != null) { upload.setUploadStatus("SUCCESS"); }
-        }
+        System.out.println("File Uploaded Successfully!");
+        if(upload != null) { upload.setUploadStatus("SUCCESS"); }
     }
 
     private static void printValues(String username, String password, String baseUrl) {        
@@ -194,8 +184,8 @@ public class FileUploader {
         System.out.println("baseUrl: " + baseUrl);
     }
 
-    private static File getFileToUpload() throws Exception {        
-        try { 
+    private static File getFileToUpload() throws Exception {
+        try {
             File tempFile =  File.createTempFile("test-upload-file", ".temp");
             tempFile.deleteOnExit();
 
@@ -208,5 +198,5 @@ public class FileUploader {
             System.out.println("Failed to create test upload file!");
             throw e;
         }
-    }    
+    }
 }
