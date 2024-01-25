@@ -1,3 +1,5 @@
 psutil
 azure-storage-queue
+azure-servicebus
+aiohttp
 chardet
