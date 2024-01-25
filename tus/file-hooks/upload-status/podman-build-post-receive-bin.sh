@@ -9,11 +9,11 @@
 # cross-compile using the six8/pyinstaller-alpine linux docker image since
 # the target platform for the public tusd docker image is linux
 #
-# output of this step will be dist/post-receive-bin
+# output of this step will be target/post-receive-bin
 podman run --rm \
     -v "${PWD}:${PWD}" \
     -w "${PWD}" \
-    ociodexdevupload.azurecr.io/pyinstaller:alpine-3.7-python-3.7-pyinstaller-v3.6 \
+    ociodexdevupload.azurecr.io/pyinstaller:alpine-python-3.8.3 \
     --noconfirm \
     --onefile \
     --log-level DEBUG \
@@ -21,4 +21,4 @@ podman run --rm \
     post_receive_bin.py
 
 # copy the output file and rename
-cp dist/post_receive_bin post-receive-bin
+cp target/post_receive_bin post-receive-bin
