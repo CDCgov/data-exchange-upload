@@ -21,4 +21,4 @@ podman run --rm \
     post_receive_bin.py
 
 # copy the output file and rename
-cp /home/runner/work/data-exchange-upload-devops/data-exchange-upload-devops/tus/file-hooks/upload-status/target/post_receive_bin post-receive-bin
+cp target/post_receive_bin post-receive-bin
