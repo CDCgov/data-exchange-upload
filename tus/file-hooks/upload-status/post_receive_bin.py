@@ -85,6 +85,8 @@ async def post_receive(tguid, offset, size, metadata_json):
         json_data = {
             "upload_id": tguid,
             "stage_name": "dex-upload",
+            "destination_id": meta_destination_id,
+            "event_type": meta_ext_event,
             "content_type": "json",
             "content": {
                         "schema_name": "upload",
