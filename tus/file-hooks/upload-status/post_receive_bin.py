@@ -83,20 +83,32 @@ async def post_receive(tguid, offset, size, metadata_json):
         metadata_json_dict = ast.literal_eval(metadata_json)
 
         json_data = {
-            "schema_name": "upload",
-            "schema_version": "1.0",
-            "tguid": tguid,
-            "offset": offset,
-            "size": size,
-            "filename": filename,
-            "meta_destination_id": meta_destination_id,
-            "meta_ext_event": meta_ext_event,
-            "metadata": metadata_json_dict
+            "upload_id": tguid,
+            "stage_name": "dex-upload",
+            "destination_id": meta_destination_id,
+            "event_type": meta_ext_event,
+            "content_type": "json",
+            "content": {
+                        "schema_name": "upload",
+                        "schema_version": "1.0",
+                        "tguid": tguid,
+                        "offset": offset,
+                        "size": size,
+                        "filename": filename,
+                        "meta_destination_id": meta_destination_id,
+                        "meta_ext_event": meta_ext_event,
+                        "metadata": metadata_json_dict
+            },
+            "disposition_type": "replace"
         }
 
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
 
-        await send_message(json.dumps(json_data))
+        json_string = json.dumps(json_data)
+
+        logger.info('JSON MESSAGE: %s', json_string)
+
+        await send_message(json_string)
 
     except Exception as e:
         logger.error("POST RECEIVE HOOK - exiting post_receive with error: %s", str(e), exc_info=True)
