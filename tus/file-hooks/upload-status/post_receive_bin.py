@@ -104,7 +104,11 @@ async def post_receive(tguid, offset, size, metadata_json):
 
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
 
-        await send_message(json.dumps(json_data))
+        json_string = json.dumps(json_data)
+
+        logger.info('JSON MESSAGE: %s', json_string)
+
+        await send_message(json_string)
 
     except Exception as e:
         logger.error("POST RECEIVE HOOK - exiting post_receive with error: %s", str(e), exc_info=True)
