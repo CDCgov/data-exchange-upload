@@ -59,19 +59,19 @@ namespace BulkFileUploadFunctionApp
         private readonly string _targetRouting = "dex_routing";
 
         private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
-        
+
 
         public static string? GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction( ILoggerFactory loggerFactory, IConfiguration configuration)
+        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IConfiguration configuration)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
 
             _configuration = configuration;
-            
+
             _blobCopyHelper = new(_logger);
 
             _tusAzureObjectPrefix = GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX") ?? "tus-prefix";
@@ -81,7 +81,7 @@ namespace BulkFileUploadFunctionApp
             _edavAzureStorageAccountName = GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
 
             _routingStorageAccountName = GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_NAME") ?? "";
-            _routingStorageAccountKey = GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_KEY") ?? "";            
+            _routingStorageAccountKey = GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_KEY") ?? "";
 
             _metadataEventHubEndPoint = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_ENDPOINT_NAME") ?? "";
             _metadataEventHubHubName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_HUB_NAME") ?? "";
@@ -105,12 +105,12 @@ namespace BulkFileUploadFunctionApp
         [Function("BulkFileUploadFunction")]
         public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
-            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count() }");            
-            
-            foreach (var blobCreatedEventJson in eventHubTriggerEvents) 
-            {                
+            _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count()}");
+
+            foreach (var blobCreatedEventJson in eventHubTriggerEvents)
+            {
                 _logger.LogInformation($"Received event: {blobCreatedEventJson}");
-                
+
 
                 StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 
@@ -123,8 +123,8 @@ namespace BulkFileUploadFunctionApp
                 StorageBlobCreatedEvent blobCreatedEvent = blobCreatedEvents[0];
                 if (blobCreatedEvent == null)
                     throw new Exception("Unexpected data content of event; there should be at least one element in the array");
-               
-                    await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
+
+                await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
 
             } // .foreach 
 
@@ -201,17 +201,10 @@ namespace BulkFileUploadFunctionApp
                 await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
                 await CopyToTargetSystemAsync(destinationId, extEvent, destinationBlobFilename, destinationContainerName, tusFileMetadata);
-
-                // Finally, send metadata to eventhub for other consumers
-                var metadataRelaySucceeded = await RelayMetaData(tusFileMetadata);
-                if (!metadataRelaySucceeded)
-                {
-                    _logger.LogWarning($"metadata relay failed for: {tusPayloadPathname}");
-                }
             }
             catch (Exception e)
             {
-                _logger.LogError(e.Message);                               
+                _logger.LogError(e.Message);
             }
         }
         private async Task CopyToTargetSystemAsync(string destinationId, string extEvent, string destinationBlobFilename, string destinationContainerName, Dictionary<string, string> tusFileMetadata)
@@ -222,33 +215,39 @@ namespace BulkFileUploadFunctionApp
 
             bool isRoutingEnabled = _configuration.GetValue<bool>(".appconfig.featureflag/ROUTING");
 
-            _logger.LogInformation($"Routing Status: {isRoutingEnabled }");
+            _logger.LogInformation($"Routing Status: {isRoutingEnabled}");
 
-            if(currentEvent != null && currentEvent.copyTargets != null) {
+            if (currentEvent != null && currentEvent.copyTargets != null)
+            {
 
                 foreach (CopyTarget copyTarget in currentEvent.copyTargets)
-                {    
+                {
                     _logger.LogInformation("Copy Target: " + copyTarget.target);
 
-                    if (copyTarget.target == _targetEdav) {
+                    if (copyTarget.target == _targetEdav)
+                    {
 
                         // Now copy the file from DeX to the EDAV storage account, also partitioned by date
                         await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
-                    } else if (copyTarget.target == _targetRouting) {
+                    }
+                    else if (copyTarget.target == _targetRouting)
+                    {
 
                         if (isRoutingEnabled)
                         {
                             // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
-                            await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);                     
-                         }
+                            await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                        }
                         else
-                         {
-                         _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
-                         }                        
+                        {
+                            _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
+                        }
                     }
                 }
-            } else {
+            }
+            else
+            {
 
                 _logger.LogInformation("No copy target found. Defaulting to EDAV");
 
@@ -387,7 +386,8 @@ namespace BulkFileUploadFunctionApp
         /// <returns></returns>
         private async Task CopyBlobFromDexToEdavAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
         {
-            try {
+            try
+            {
                 BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
                 BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
@@ -412,11 +412,12 @@ namespace BulkFileUploadFunctionApp
                 {
                     await edavDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
                     dexBlobStream.Close();
-                }                
-            }    
-            catch (Exception ex) {
-              _logger.LogError("Failed to copy from Dex to Edav");
-              ExceptionUtils.LogErrorDetails(ex, _logger);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to copy from Dex to Edav");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
@@ -429,7 +430,8 @@ namespace BulkFileUploadFunctionApp
         /// <returns></returns>
         private async Task CopyBlobFromDexToRoutingAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
         {
-            try {
+            try
+            {
 
                 var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_routingStorageAccountName};AccountKey={_routingStorageAccountKey};EndpointSuffix=core.windows.net";
 
@@ -437,7 +439,7 @@ namespace BulkFileUploadFunctionApp
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
                 BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
 
-                var routingBlobServiceClient = new BlobServiceClient(connectionString);                
+                var routingBlobServiceClient = new BlobServiceClient(connectionString);
 
                 // _routingUploadRootContainerName could be set to empty, then no root container in routing
 
@@ -454,11 +456,12 @@ namespace BulkFileUploadFunctionApp
                 {
                     await routingDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
                     dexBlobStream.Close();
-                }                
-            }    
-            catch (Exception ex) {
-              _logger.LogError("Failed to copy from Dex to ROUTING");
-              ExceptionUtils.LogErrorDetails(ex, _logger);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to copy from Dex to ROUTING");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
@@ -497,8 +500,8 @@ namespace BulkFileUploadFunctionApp
             }
             catch (RequestFailedException ex)
             {
-              _logger.LogError("Failed to copy from TUS to Dex");
-              ExceptionUtils.LogErrorDetails(ex, _logger);
+                _logger.LogError("Failed to copy from TUS to Dex");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
@@ -623,12 +626,13 @@ namespace BulkFileUploadFunctionApp
             return filenameSuffix;
         }
 
-        private async Task<List<DestinationAndEvents>?> GetAllDestinationAndEvents() {
+        private async Task<List<DestinationAndEvents>?> GetAllDestinationAndEvents()
+        {
 
             var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
 
             try
-            {                                       
+            {
                 var blobReader = new BlobReader(_logger);
                 var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
 
@@ -639,80 +643,80 @@ namespace BulkFileUploadFunctionApp
                 _logger.LogError("Failed to fetch Destinations and Events");
                 ExceptionUtils.LogErrorDetails(e, _logger);
 
-                return new List<DestinationAndEvents>();                
+                return new List<DestinationAndEvents>();
             }
         }
     }
 
     public class JsonLogger : ILogger
-{
-    private readonly string _name;
-    private readonly Func<JsonLoggerConfiguration> _getCurrentConfig;
-
-    public JsonLogger(string name, Func<JsonLoggerConfiguration> getCurrentConfig)
     {
-        _name = name;
-        _getCurrentConfig = getCurrentConfig;
-    }
+        private readonly string _name;
+        private readonly Func<JsonLoggerConfiguration> _getCurrentConfig;
 
-    public IDisposable BeginScope<TState>(TState state) => default;
-
-    public bool IsEnabled(LogLevel logLevel)
-    {
-        var config = _getCurrentConfig();
-        return logLevel >= config.LogLevel;
-    }
-
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
-    {
-        if (!IsEnabled(logLevel))
+        public JsonLogger(string name, Func<JsonLoggerConfiguration> getCurrentConfig)
         {
-            return;
+            _name = name;
+            _getCurrentConfig = getCurrentConfig;
         }
 
-        var config = _getCurrentConfig();
-        var timestamp = DateTime.Now.ToString(config.TimestampFormat);
-        var logEntry = new
+        public IDisposable BeginScope<TState>(TState state) => default;
+
+        public bool IsEnabled(LogLevel logLevel)
         {
-            Timestamp = timestamp,
-            LogLevel = logLevel.ToString(),
-            Name = _name,
-            EventId = eventId.Id,
-            Message = formatter(state, exception),
-            // Add other desired fields and conventions here
+            var config = _getCurrentConfig();
+            return logLevel >= config.LogLevel;
+        }
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+        {
+            if (!IsEnabled(logLevel))
+            {
+                return;
+            }
+
+            var config = _getCurrentConfig();
+            var timestamp = DateTime.Now.ToString(config.TimestampFormat);
+            var logEntry = new
+            {
+                Timestamp = timestamp,
+                LogLevel = logLevel.ToString(),
+                Name = _name,
+                EventId = eventId.Id,
+                Message = formatter(state, exception),
+                // Add other desired fields and conventions here
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(logEntry, config.JsonSerializerOptions);
+            Console.WriteLine(json);
+        }
+    }
+
+    public class JsonLoggerConfiguration
+    {
+        public LogLevel LogLevel { get; set; } = LogLevel.Warning;
+        public string TimestampFormat { get; set; } = "yyyy-MM-dd HH:mm:ss.fff";
+        public System.Text.Json.JsonSerializerOptions JsonSerializerOptions { get; set; } = new System.Text.Json.JsonSerializerOptions
+        {
+            WriteIndented = true
         };
-
-        var json = System.Text.Json.JsonSerializer.Serialize(logEntry, config.JsonSerializerOptions);
-        Console.WriteLine(json);
-    }
-}
-
-public class JsonLoggerConfiguration
-{
-    public LogLevel LogLevel { get; set; } = LogLevel.Warning;
-    public string TimestampFormat { get; set; } = "yyyy-MM-dd HH:mm:ss.fff";
-    public System.Text.Json.JsonSerializerOptions JsonSerializerOptions { get; set; } = new System.Text.Json.JsonSerializerOptions
-    {
-        WriteIndented = true
-    };
-    // Add other configuration properties here
-}
-
-public class JsonLoggerProvider : ILoggerProvider
-{
-    private readonly JsonLoggerConfiguration _config;
-    private readonly ConcurrentDictionary<string, JsonLogger> _loggers = new ConcurrentDictionary<string, JsonLogger>();
-
-    public JsonLoggerProvider(JsonLoggerConfiguration config)
-    {
-        _config = config;
+        // Add other configuration properties here
     }
 
-    public ILogger CreateLogger(string categoryName)
+    public class JsonLoggerProvider : ILoggerProvider
     {
-        return _loggers.GetOrAdd(categoryName, name => new JsonLogger(name, () => _config));
-    }
+        private readonly JsonLoggerConfiguration _config;
+        private readonly ConcurrentDictionary<string, JsonLogger> _loggers = new ConcurrentDictionary<string, JsonLogger>();
 
-    public void Dispose() => _loggers.Clear();
-}   
+        public JsonLoggerProvider(JsonLoggerConfiguration config)
+        {
+            _config = config;
+        }
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return _loggers.GetOrAdd(categoryName, name => new JsonLogger(name, () => _config));
+        }
+
+        public void Dispose() => _loggers.Clear();
+    }
 }
