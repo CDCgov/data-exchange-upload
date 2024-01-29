@@ -7,14 +7,9 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Specialized;
 using BulkFileUploadFunctionApp.Model;
 using Azure.Identity;
-using Azure.Storage;
 using Azure.Storage.Sas;
-using Azure.Messaging.EventHubs.Producer;
-using Azure.Messaging.EventHubs;
 using Newtonsoft.Json;
 using BulkFileUploadFunctionApp.Utils;
-using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
 
@@ -41,11 +36,6 @@ namespace BulkFileUploadFunctionApp
         private readonly string _routingStorageAccountName;
 
         private readonly string _routingStorageAccountKey;
-
-        private readonly string _metadataEventHubEndPoint;
-        private readonly string _metadataEventHubHubName;
-        private readonly string _metadataEventHubSharedAccessKeyName;
-        private readonly string _metadataEventHubSharedAccessKey;
 
         private readonly string _edavUploadRootContainerName;
 
@@ -82,11 +72,6 @@ namespace BulkFileUploadFunctionApp
 
             _routingStorageAccountName = GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_NAME") ?? "";
             _routingStorageAccountKey = GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_KEY") ?? "";
-
-            _metadataEventHubEndPoint = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_ENDPOINT_NAME") ?? "";
-            _metadataEventHubHubName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_HUB_NAME") ?? "";
-            _metadataEventHubSharedAccessKeyName = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY_NAME") ?? "";
-            _metadataEventHubSharedAccessKey = GetEnvironmentVariable("DEX_AZURE_EVENTHUB_SHARED_ACCESS_KEY") ?? "";
 
             _edavUploadRootContainerName = GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME") ?? "upload";
             _routingUploadRootContainerName = GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME") ?? "routeingress";
@@ -285,49 +270,6 @@ namespace BulkFileUploadFunctionApp
             _logger.LogInformation($"Info file metadata keys: {string.Join(", ", tusInfoFile.MetaData?.Keys.ToList())}");
 
             return tusInfoFile;
-        }
-
-        /// <summary>
-        /// Obtains a SAS URI for the given blob client.  The SAS token associated with the
-        /// URI returned will be valid for one hour.
-        /// </summary>
-        /// <param name="blobClient">Blob client to use for getting the SAS token</param>
-        /// <param name="storedPolicyName">Optional stored policy name</param>
-        /// <returns></returns>
-        private Uri? GetServiceSasUriForBlob(BlobClient blobClient, string? storedPolicyName = null)
-        {
-            // Check whether this BlobClient object has been authorized with Shared Key.
-            if (blobClient.CanGenerateSasUri)
-            {
-                // Create a SAS token that's valid for one hour.
-                BlobSasBuilder sasBuilder = new()
-                {
-                    BlobContainerName = blobClient.GetParentBlobContainerClient().Name,
-                    BlobName = blobClient.Name,
-                    Resource = "b"
-                };
-
-                if (storedPolicyName == null)
-                {
-                    sasBuilder.ExpiresOn = DateTimeOffset.UtcNow.AddHours(1);
-                    sasBuilder.SetPermissions(BlobSasPermissions.Read |
-                        BlobSasPermissions.Write);
-                }
-                else
-                {
-                    sasBuilder.Identifier = storedPolicyName;
-                }
-
-                Uri sasUri = blobClient.GenerateSasUri(sasBuilder);
-                _logger.LogInformation($"SAS URI for blob is: {sasUri}");
-
-                return sasUri;
-            }
-            else
-            {
-                _logger.LogError("BlobClient must be authorized with Shared Key credentials to create a service SAS.");
-                return null;
-            }
         }
 
         /// <summary>
