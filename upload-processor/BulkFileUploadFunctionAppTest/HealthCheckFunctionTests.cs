@@ -1,70 +1,114 @@
 
-using System.Net;
-using Azure.Storage.Blobs;
-using BulkFileUploadFunctionApp;
-using Castle.Core.Logging;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
-namespace BulkFileUploadFunctionAppTest;
+using BulkFileUploadFunctionApp;
+using System.Threading.Tasks;
+using System.Net;
+using Azure;
+using Azure.Storage.Blobs;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Logging;
 
-[TestClass]
-public class HealthCheckFunctionTests
-{
-    [TestMethod]
-    public async Task HealthCheckFunction_ReturnsHealthyResponse()
+namespace BulkFileUploadFunctionAppTests
+{   
+   // 'HealthCheckFunctionTests' for testing health check functionality with mocked dependencies.
+    [TestClass]
+    public class HealthCheckFunctionTests
     {
-        //Arrange
-        var request = new Mock<HttpRequestData>();
-        var response = request.Object.CreateResponse();
-        var context = new Mock<FunctionContext>();
-        var logger = new Mock<ILogger>();
+        private Mock<IHttpRequestDataWrapper> _mockHttpRequestWrapper;
+        private Mock<IHttpResponseDataWrapper> _mockResponseWrapper;
+        private Mock<FunctionContext> _mockFunctionContext;
+        private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
+        private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
+        private Mock<IServiceProvider> _mockServiceProvider;
+        private Mock<IFunctionLogger> _mockLogger;
 
-        context.Setup(c => c.GetLogger("HealthCheckFunction")).Returns((Microsoft.Extensions.Logging.ILogger)logger.Object);
 
-        // Set up your environment variables
-        Environment.SetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", "DEX_AZURE_STORAGE_ACCOUNT_NAME");
-        Environment.SetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", "DEX_AZURE_STORAGE_ACCOUNT_KEY");
-        // Mock BlobServiceClient and BlobContainerClient
-        var blobServiceClientMock = new Mock<BlobServiceClient>();
-        var blobContainerClientMock = new Mock<BlobContainerClient>();
-        blobServiceClientMock.Setup(x => x.GetBlobContainerClient(It.IsAny<string>())).Returns(blobContainerClientMock.Object);
-      
-        var result = await HealthCheckFunction.Run(request.Object, context.Object);
+        // Initializes mock objects for HTTP request/response, function context, blob service, environment variables, and logger.
+        // Sets up default behavior for these mocks to be used in health check function tests.
+        [TestInitialize]
+        public void Initialize()
+        {
+            _mockHttpRequestWrapper = new Mock<IHttpRequestDataWrapper>();
+            _mockResponseWrapper = new Mock<IHttpResponseDataWrapper>();
+            _mockFunctionContext = new Mock<FunctionContext>();
+            _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
+            _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
+            _mockLogger = new Mock<IFunctionLogger>();
 
-        //Assert
-       Assert.AreEqual(HttpStatusCode.OK, result);
-       
+            _mockHttpRequestWrapper.Setup(m => m.CreateResponse()).Returns(_mockResponseWrapper.Object);
 
-    }
+            _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
+            
+            var mockBlobServiceClient = new Mock<BlobServiceClient>();
+            _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
 
-    [TestMethod]
-    public async Task HealthCheckFunction_ReturnsUnHealthyResponse()
-    {
-        //Arrange
-        var request = new Mock<HttpRequestData>();
-        var response = request.Object.CreateResponse();
-        var context = new Mock<FunctionContext>();
-        var logger = new Mock<ILogger>();
+           // Configures mock service provider for logging services and sets up the function context to use this provider.
+        _mockServiceProvider = new Mock<IServiceProvider>();
 
-        context.Setup(c => c.GetLogger("HealthCheckFunction")).Throws(new Exception("Log error"));
+        _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger)))
+                            .Returns(_mockLogger.Object);
 
-        // Set up your environment variables
-        Environment.SetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", "DEX_AZURE_STORAGE_ACCOUNT_NAME");
-        Environment.SetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", "DEX_AZURE_STORAGE_ACCOUNT_KEY");
-        // Mock BlobServiceClient and BlobContainerClient
-        var blobServiceClientMock = new Mock<BlobServiceClient>();
-        var blobContainerClientMock = new Mock<BlobContainerClient>();
-        blobServiceClientMock.Setup(x => x.GetBlobContainerClient(It.IsAny<string>())).Returns(blobContainerClientMock.Object);
-      
-        var result = await HealthCheckFunction.Run(request.Object, context.Object);
+        _mockFunctionContext.Setup(ctx => ctx.InstanceServices)
+                            .Returns(_mockServiceProvider.Object);
+        }
 
-        //Assert
-       Assert.AreEqual(HttpStatusCode.InternalServerError, result);
-       
+        [TestMethod]
+        public async Task HealthCheckFunction_ReturnsHealthyResponse()
+        {
+            // Arrange
+            // setting up a mock response wrapper to simulate the behavior of the actual response object used in the service.
+            _mockResponseWrapper.Setup(m => m.WriteStringAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+            _mockResponseWrapper.SetupProperty(m => m.StatusCode, HttpStatusCode.OK);
+
+            // Act
+            // Executes the HealthCheckFunction with mocked dependencies to test its behavior.
+            var result = await HealthCheckFunction.Run(
+                _mockHttpRequestWrapper.Object, // HttpRequestData is not directly used in the function
+                _mockFunctionContext.Object,
+                _mockBlobServiceClientFactory.Object,
+                _mockEnvironmentVariableProvider.Object,
+                _mockLogger.Object);
+
+        
+            // Asserts that the HealthCheckFunction returns HttpStatusCode.OK, writes "Healthy!" once to the response, 
+            // and sets the response status code to HttpStatusCode.OK.
+            Assert.AreEqual(HttpStatusCode.OK, result);
+            _mockResponseWrapper.Verify(m => m.WriteStringAsync("Healthy!"), Times.Once());
+            Assert.AreEqual(HttpStatusCode.OK, _mockResponseWrapper.Object.StatusCode);
+        }
+
+        [TestMethod]
+        public async Task HealthCheckFunction_ReturnsNotHealthyResponseOnException()
+        {
+            // Arrange
+            // Configures the response wrapper to complete write tasks, set initial status code to InternalServerError,
+            // and the blob service client factory to throw an exception on blob service client creation.
+            _mockResponseWrapper.Setup(m => m.WriteStringAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
+            _mockResponseWrapper.SetupProperty(m => m.StatusCode, HttpStatusCode.InternalServerError);
+            _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>()))
+                .Throws(new RequestFailedException("Error"));
+
+            // Act
+            // Executes HealthCheckFunction with mocked dependencies to test its response to predefined conditions.
+            var result = await HealthCheckFunction.Run(
+                _mockHttpRequestWrapper.Object, // HttpRequestData is not directly used in the function
+                _mockFunctionContext.Object,
+                _mockBlobServiceClientFactory.Object,
+                _mockEnvironmentVariableProvider.Object,
+                _mockLogger.Object);
+
+            // Assert
+            // Verifies that the function returns InternalServerError, writes "Not Healthy!" once, and sets the response status to InternalServerError.
+            Assert.AreEqual(HttpStatusCode.InternalServerError, result);
+            _mockResponseWrapper.Verify(m => m.WriteStringAsync("Not Healthy!"), Times.Once());
+            Assert.AreEqual(HttpStatusCode.InternalServerError, _mockResponseWrapper.Object.StatusCode);
+        }
 
     }
 }
+
 
 
 
