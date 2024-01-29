@@ -54,6 +54,14 @@ namespace BulkFileUploadFunctionAppTests
                             .Returns(_mockServiceProvider.Object);
         }
 
+        private HealthCheckFunction CreateHealthCheckFunction()
+        {
+            return new HealthCheckFunction(
+                _mockBlobServiceClientFactory.Object,
+                _mockEnvironmentVariableProvider.Object,
+                _mockLogger.Object);
+        }
+
         [TestMethod]
         public async Task HealthCheckFunction_ReturnsHealthyResponse()
         {
@@ -62,14 +70,13 @@ namespace BulkFileUploadFunctionAppTests
             _mockResponseWrapper.Setup(m => m.WriteStringAsync(It.IsAny<string>())).Returns(Task.CompletedTask);
             _mockResponseWrapper.SetupProperty(m => m.StatusCode, HttpStatusCode.OK);
 
+            var healthCheckFunction = CreateHealthCheckFunction();
+
             // Act
             // Executes the HealthCheckFunction with mocked dependencies to test its behavior.
-            var result = await HealthCheckFunction.Run(
+            var result = await healthCheckFunction.Run(
                 _mockHttpRequestWrapper.Object, // HttpRequestData is not directly used in the function
-                _mockFunctionContext.Object,
-                _mockBlobServiceClientFactory.Object,
-                _mockEnvironmentVariableProvider.Object,
-                _mockLogger.Object);
+                _mockFunctionContext.Object);
 
         
             // Asserts that the HealthCheckFunction returns HttpStatusCode.OK, writes "Healthy!" once to the response, 
@@ -90,14 +97,13 @@ namespace BulkFileUploadFunctionAppTests
             _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>()))
                 .Throws(new RequestFailedException("Error"));
 
+            
+            var healthCheckFunction = CreateHealthCheckFunction();
             // Act
             // Executes HealthCheckFunction with mocked dependencies to test its response to predefined conditions.
-            var result = await HealthCheckFunction.Run(
+            var result = await healthCheckFunction.Run(
                 _mockHttpRequestWrapper.Object, // HttpRequestData is not directly used in the function
-                _mockFunctionContext.Object,
-                _mockBlobServiceClientFactory.Object,
-                _mockEnvironmentVariableProvider.Object,
-                _mockLogger.Object);
+                _mockFunctionContext.Object);
 
             // Assert
             // Verifies that the function returns InternalServerError, writes "Not Healthy!" once, and sets the response status to InternalServerError.
