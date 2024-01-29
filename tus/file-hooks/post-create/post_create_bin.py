@@ -13,6 +13,8 @@ from proc_stat_controller import ProcStatController
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 required_metadata_fields = ['meta_destination_id', 'meta_ext_event']
 
 
@@ -32,6 +34,16 @@ def get_required_metadata(metadata_str):
         meta_json['meta_ext_event'],
     ]
 
+def post_create(dest, event, tguid):
+    logger.info(f'Creating trace for upload {tguid} with destination {dest} and event {event}')
+
+    ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
+    trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, dest, event)
+    logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
+
+    # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
+    ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
+    logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
 
 def main():
     
@@ -46,7 +58,6 @@ def main():
       log_level = logging.DEBUG
     
     logging.basicConfig(level=log_level)
-    logger = logging.getLogger(__name__)
 
     tguid = args.id
     metadata = args.metadata
@@ -56,15 +67,7 @@ def main():
 
     # Create upload trace.
     dest, event = get_required_metadata(metadata)
-    logger.info(f'Creating trace for upload {tguid} with destination {dest} and event {event}')
-
-    ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
-    trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, dest, event)
-    logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
-
-    # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
-    ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
-    logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
+    post_create(dest, event, tguid)
 
 
 if __name__ == '__main__':
