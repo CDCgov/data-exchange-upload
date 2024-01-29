@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - BulkFileUploadFunctionApp/**
+      - upload-processor/BulkFileUploadFunctionApp/**
 
 jobs:
   build:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: BulkFileUploadFunctionApp
+        working-directory: upload-processor/BulkFileUploadFunctionApp
     steps:
       - name: Checkout
         uses: actions/checkout@v3
