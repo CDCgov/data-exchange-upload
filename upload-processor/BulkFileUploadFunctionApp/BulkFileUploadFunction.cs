@@ -257,53 +257,6 @@ namespace BulkFileUploadFunctionApp
         }
 
         /// <summary>
-        /// Sends Uploaded File metadata to event hub for downstream consumers to proccess
-        /// </summary>
-        /// <param name="metaData"></param>
-        /// <returns></returns>
-        private async Task<bool> RelayMetaData(Dictionary<string, string> metaData)
-        {
-            var relaySucceeded = false;
-            EventHubProducerClient? producerClient = null;
-            try
-            {
-                var connectionString = $"Endpoint=sb://{_metadataEventHubEndPoint}.servicebus.windows.net/;SharedAccessKeyName={_metadataEventHubSharedAccessKeyName};SharedAccessKey={_metadataEventHubSharedAccessKey};EntityPath={_metadataEventHubHubName}";
-
-                producerClient = new EventHubProducerClient(connectionString);
-                var metaDataEventBody = JsonConvert.SerializeObject(metaData);
-
-                // Create a batch of events 
-                using EventDataBatch eventBatch = await producerClient.CreateBatchAsync();
-
-                var eventData = new EventData(metaDataEventBody);
-                if (!eventBatch.TryAdd(eventData))
-                {
-                    // if it is too large for the batch
-                    throw new Exception("Metadata Event is too large for the batch and cannot be sent.");
-                }
-
-                // Use the producer client to send the batch of events to the event hub
-                await producerClient.SendAsync(eventBatch);
-                relaySucceeded = true;
-                _logger.LogInformation("A batch of 1 metadata events has been published.");
-            }
-            catch (Exception e)
-            {
-                _logger.LogInformation($"Exception caught sending the event batch: {e.Message}");
-            }
-            finally
-            {
-                if (producerClient != null)
-                {
-                    await producerClient.DisposeAsync();
-                }
-            }
-            _logger.LogInformation($"metadata relay result: {relaySucceeded}");
-
-            return relaySucceeded;
-        }
-
-        /// <summary>
         /// Returns the metadata from a tus .info file for the pathname provided.
         /// </summary>
         /// <param name="connectionString">Azure storage account connection string</param>
