@@ -5,7 +5,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Azure.Functions.Worker.Http;
 
-namespace BulkFileUploadFunctionApp
+namespace BulkFileUploadFunctionApp.Services
 {
     public class HttpResponseDataWrapper : IHttpResponseDataWrapper
 {

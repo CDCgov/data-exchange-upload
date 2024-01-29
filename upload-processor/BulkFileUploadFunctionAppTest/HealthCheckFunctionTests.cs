@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using BulkFileUploadFunctionApp;
+using BulkFileUploadFunctionApp.Services;
 using System.Threading.Tasks;
 using System.Net;
 using Azure;

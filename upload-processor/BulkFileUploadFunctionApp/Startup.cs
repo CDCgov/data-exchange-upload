@@ -2,7 +2,7 @@ using Azure.Storage.Blobs;
 
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
-
+using BulkFileUploadFunctionApp.Services;
 
 [assembly: FunctionsStartup(typeof(BulkFileUploadFunctionApp.Startup))]
 namespace BulkFileUploadFunctionApp

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
 
-namespace BulkFileUploadFunctionApp
+namespace BulkFileUploadFunctionApp.Services
 {
     public interface IBlobServiceClientFactory
     {
