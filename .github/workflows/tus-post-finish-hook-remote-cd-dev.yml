@@ -1,0 +1,16 @@
+name: "Tus Post-Finish Hook Remote CD Dev"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - tus/file-hooks/post-finish/**
+
+jobs:
+  dev:
+    uses: ./.github/workflows/remote-cd-trigger-template.yml
+    with:
+      WORKFLOW: tus-post-finish-hook-cd-dev.yml
+    secrets: inherit
