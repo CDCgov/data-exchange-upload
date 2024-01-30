@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace BulkFileUploadFunctionApp.Services
 {
-    public interface IFunctionLogger
+    public interface IFunctionLogger<T>
     {
     void LogInformation(string message);
     void LogError(string message);

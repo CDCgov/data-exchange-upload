@@ -18,12 +18,12 @@ namespace BulkFileUploadFunctionApp
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
 
-        private readonly IFunctionLogger _logger;
+        private readonly IFunctionLogger<HealthCheckFunction> _logger;
 
         // Constructor
         public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory, 
                                IEnvironmentVariableProvider environmentVariableProvider,
-                               IFunctionLogger logger)
+                               IFunctionLogger<HealthCheckFunction> logger)
         {
             _blobServiceClientFactory = blobServiceClientFactory;
             _environmentVariableProvider = environmentVariableProvider;

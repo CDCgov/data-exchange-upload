@@ -32,7 +32,7 @@ var host = new HostBuilder()
         // Add your custom services here
         services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactoryImpl>();
         services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();
-        services.AddSingleton<IFunctionLogger, FunctionLogger>();
+        services.AddSingleton(typeof(IFunctionLogger<>), typeof(FunctionLogger<>));
     })
     .Build();
 

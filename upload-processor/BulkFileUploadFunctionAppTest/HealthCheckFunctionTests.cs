@@ -23,7 +23,7 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
         private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
         private Mock<IServiceProvider> _mockServiceProvider;
-        private Mock<IFunctionLogger> _mockLogger;
+        private Mock<IFunctionLogger<HealthCheckFunction>> _mockLogger;
 
 
         // Initializes mock objects for HTTP request/response, function context, blob service, environment variables, and logger.
@@ -36,7 +36,7 @@ namespace BulkFileUploadFunctionAppTests
             _mockFunctionContext = new Mock<FunctionContext>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
             _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
-            _mockLogger = new Mock<IFunctionLogger>();
+            _mockLogger = new Mock<IFunctionLogger<HealthCheckFunction>>();
 
             _mockHttpRequestWrapper.Setup(m => m.CreateResponse()).Returns(_mockResponseWrapper.Object);
 

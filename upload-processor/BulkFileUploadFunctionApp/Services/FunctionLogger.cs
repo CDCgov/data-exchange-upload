@@ -6,11 +6,11 @@ using Microsoft.Extensions.Logging;
 
 namespace BulkFileUploadFunctionApp.Services
 {
-    public class FunctionLogger : IFunctionLogger
+    public class FunctionLogger<T> : IFunctionLogger<T>
 {
-    private readonly ILogger _logger;
+    private readonly ILogger<T> _logger;
 
-    public FunctionLogger(ILogger logger)
+    public FunctionLogger(ILogger<T> logger)
     {
         _logger = logger;
     }
