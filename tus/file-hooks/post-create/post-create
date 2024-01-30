@@ -1,5 +1,5 @@
 #!/bin/sh
-echo $(</dev/stdin)
+cat /dev/stdin
 
 # upload data containing the metadata is in /dev/stdin
 data=$(</dev/stdin)
