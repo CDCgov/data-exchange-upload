@@ -1,17 +1,14 @@
 
 using System.Net;
-using System.Threading.Tasks;
 using Azure;
 using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp.Services;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
-using Microsoft.Extensions.Logging;
+
 
 namespace BulkFileUploadFunctionApp
 {   
     
-
     public  class HealthCheckFunction
     {
 
@@ -40,7 +37,7 @@ namespace BulkFileUploadFunctionApp
             if (requestWrapper == null)
             {
                  _logger.LogError("requestWrapper is null");
-                 return HttpStatusCode.InternalServerError;
+                // return HttpStatusCode.InternalServerError;
             }
 
 
