@@ -44,34 +44,16 @@ def post_create(dest, event, tguid):
 
 def main(argv):
     
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('-i', '--id', required=True)
-    # parser.add_argument('-m', '--metadata', required=True)
-    # parser.add_argument('-v', '--verbose', action='store_true')
-    # args = parser.parse_args()
     log_level = logging.INFO
     logging.basicConfig(level=log_level)
 
     opts, args = getopt.getopt(argv,"im:",["id=", "metadata="])
 
-    logger.info(args)
-    
     for opt, arg in opts:
         if opt in ("-i", "--id"):
             tguid = arg
         elif opt in ("-m", "--metadata"):
             metadata = arg
-
-    # log_level = logging.INFO
-    # if args.verbose:
-    #   log_level = logging.DEBUG
-    
-    # logging.basicConfig(level=log_level)
-
-    # tguid = args.id
-    # metadata = args.metadata
-
-    # logger.info(f'args: {args}')
 
     if tguid is None:
         raise Exception('No tguid provided')
