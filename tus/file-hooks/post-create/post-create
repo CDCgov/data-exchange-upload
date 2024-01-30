@@ -1,9 +1,8 @@
 #!/bin/sh
+echo $(</dev/stdin)
 
 # upload data containing the metadata is in /dev/stdin
 data=$(</dev/stdin)
-
-echo "$data"
 
 id=$(jq -c .Upload.ID `$data`)
 
