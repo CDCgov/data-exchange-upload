@@ -1,13 +1,12 @@
 #!/bin/sh
-cat /dev/stdin
 
 # upload data containing the metadata is in /dev/stdin
-data=$(</dev/stdin)
+data="$(cat /dev/stdin)"
 
-id=$(jq -c .Upload.ID `$data`)
+id=$(jq '.Upload.ID' `$data`)
 
 # json query the metadata field of the upload data
-metadata=$(jq -c .Upload.MetaData `$data`)
+metadata=$(jq '.Upload.MetaData' `$data`)
 
 # run the python standalone binary to evaluate the metadata
 ./post-create-bin --id "$id" --metadata "$metadata"
