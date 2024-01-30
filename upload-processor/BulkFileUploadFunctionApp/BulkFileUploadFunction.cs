@@ -198,7 +198,7 @@ namespace BulkFileUploadFunctionApp
 
             var currentEvent = currentDestination?.extEvents?.Find(e => e.name == extEvent);
 
-            bool isRoutingEnabled = _configuration.GetValue<bool>(".appconfig.featureflag/ROUTING");
+            bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
 
             _logger.LogInformation($"Routing Status: {isRoutingEnabled}");
 
