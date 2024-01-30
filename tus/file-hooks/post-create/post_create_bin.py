@@ -1,8 +1,8 @@
 import argparse
 import json
 import os
-import sys
 import logging
+import getopt, sys
 
 from dotenv import load_dotenv
 
@@ -42,22 +42,18 @@ def post_create(dest, event, tguid):
     ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
     logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
 
-def main():
+def main(argv):
     
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--id')
-    parser.add_argument('-m', '--metadata')
-    parser.add_argument('-v', '--verbose', action='store_true')
-    args = parser.parse_args()
-
     log_level = logging.INFO
-    if args.verbose:
-      log_level = logging.DEBUG
-    
     logging.basicConfig(level=log_level)
 
-    tguid = args.id
-    metadata = args.metadata
+    opts, args = getopt.getopt(argv,"im:",["id=", "metadata="])
+
+    for opt, arg in opts:
+        if opt in ("-i", "--id"):
+            tguid = arg
+        elif opt in ("-m", "--metadata"):
+            metadata = arg
 
     if tguid is None:
         raise Exception('No tguid provided')
@@ -68,4 +64,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

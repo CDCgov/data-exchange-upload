@@ -1,9 +1,9 @@
 #!/bin/sh
 
+id="$TUS_ID"
+
 # upload data containing the metadata is in /dev/stdin
 data=$(</dev/stdin)
-
-id=$(jq -c .Upload.ID `$data`)
 
 # json query the metadata field of the upload data
 metadata=$(jq -c .Upload.MetaData `$data`)
