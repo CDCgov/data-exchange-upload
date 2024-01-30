@@ -11,7 +11,8 @@
 #
 # output of this step will be dist/post-create-bin
 docker run --rm \
-    -v "${PWD}:/src" \
+    -v "${PWD}:${PWD}" \
+    -w "${PWD}" \
     ociodexdevupload.azurecr.io/pyinstaller:alpine-3.7-python-3.7-pyinstaller-v3.6 \
     --noconfirm \
     --onefile \
