@@ -58,7 +58,7 @@ def main():
     tguid = args.id
     metadata = args.metadata
 
-    logger.info(f'File metadata: {metadata}')
+    logger.info(f'args: {args}')
 
     if tguid is None:
         raise Exception('No tguid provided')
