@@ -38,21 +38,17 @@ namespace BulkFileUploadFunctionApp
             _logger.LogInformation("HealthCheckFunction");
 
             //creating a response for a request and setting its status code to 200 (OK).
-            var responseWrapper = requestWrapper?.CreateResponse();
-            if (responseWrapper == null)
-              {
-                  throw new InvalidOperationException("RequestWrapper cannot be null.");
-              }
+            var responseWrapper = requestWrapper.CreateResponse();
             responseWrapper.StatusCode = HttpStatusCode.OK;
 
             try
             {   //names of the environment variables.
-                string dEX_AZURE_STORAGE_ACCOUNT_NAME = "DEX_AZURE_STORAGE_ACCOUNT_NAME";
+                string dexAzureStorageAccountname = "DEX_AZURE_STORAGE_ACCOUNT_NAME";
                 string dexAzureStorageAccountKey = "DEX_AZURE_STORAGE_ACCOUNT_KEY";
                 string cName = "ndlp-influenzavaccination";
                 
                 //retrieve the values of these environment variables
-                var storageAccountName = _environmentVariableProvider.GetEnvironmentVariable(dEX_AZURE_STORAGE_ACCOUNT_NAME);
+                var storageAccountName = _environmentVariableProvider.GetEnvironmentVariable(dexAzureStorageAccountname);
                 var storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable(dexAzureStorageAccountKey);
 
                 _logger.LogInformation("Container name-->" + cName);
