@@ -38,7 +38,11 @@ namespace BulkFileUploadFunctionApp
             _logger.LogInformation("HealthCheckFunction");
 
             //creating a response for a request and setting its status code to 200 (OK).
-            var responseWrapper = requestWrapper.CreateResponse();
+            var responseWrapper = requestWrapper?.CreateResponse();
+            if (responseWrapper == null)
+              {
+                  throw new InvalidOperationException("RequestWrapper cannot be null.");
+              }
             responseWrapper.StatusCode = HttpStatusCode.OK;
 
             try
