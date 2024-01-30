@@ -6,9 +6,6 @@ import logging
 
 from dotenv import load_dotenv
 
-# Including the common directory because it's above the script's root directory.
-sys.path.append(os.path.join(sys.path[0], '..', 'common'))
-# IDEs will probably complain that it can't find this module.
 from proc_stat_controller import ProcStatController
 
 load_dotenv()

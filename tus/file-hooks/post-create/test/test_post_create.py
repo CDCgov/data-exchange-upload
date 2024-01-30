@@ -5,7 +5,6 @@ from unittest.mock import patch
 from post_create_bin import get_required_metadata
 from post_create_bin import post_create
 
-sys.path.append(os.path.join(sys.path[0], '..', 'common'))
 from proc_stat_controller import ProcStatController
 
 class TestPostCreateMethods(unittest.TestCase):
