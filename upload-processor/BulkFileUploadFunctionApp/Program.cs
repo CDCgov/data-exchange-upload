@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+using BulkFileUploadFunctionApp.Services;
+
 var host = new HostBuilder()
     .ConfigureLogging(builder =>
     {
@@ -26,6 +28,11 @@ var host = new HostBuilder()
     .ConfigureServices(services => {
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
+
+        // Add your custom services here
+        services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactoryImpl>();
+        services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();
+        services.AddSingleton<IFunctionLogger, FunctionLogger>();
     })
     .Build();
 
