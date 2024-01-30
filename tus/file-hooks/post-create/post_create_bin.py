@@ -52,15 +52,12 @@ def main(argv):
     log_level = logging.INFO
     logging.basicConfig(level=log_level)
 
-    opts, args = getopt.getopt(argv,"him:",["id=", "metadata="])
+    opts, args = getopt.getopt(argv,"im:",["id=", "metadata="])
 
     logger.info(args)
     
     for opt, arg in opts:
-        if opt == '-h':
-            print ('post-create-bin.py -m <inputfile>')
-            sys.exit()
-        elif opt in ("-i", "--id"):
+        if opt in ("-i", "--id"):
             tguid = arg
         elif opt in ("-m", "--metadata"):
             metadata = arg
