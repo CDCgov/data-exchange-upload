@@ -1,4 +1,3 @@
-
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using BulkFileUploadFunctionApp;
@@ -12,8 +11,8 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace BulkFileUploadFunctionAppTests
-{   
-   // 'HealthCheckFunctionTests' for testing health check functionality with mocked dependencies.
+{
+    // 'HealthCheckFunctionTests' for testing health check functionality with mocked dependencies.
     [TestClass]
     public class HealthCheckFunctionTests
     {
@@ -41,18 +40,18 @@ namespace BulkFileUploadFunctionAppTests
             _mockHttpRequestWrapper.Setup(m => m.CreateResponse()).Returns(_mockResponseWrapper.Object);
 
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
-            
+
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
 
-           // Configures mock service provider for logging services and sets up the function context to use this provider.
-        _mockServiceProvider = new Mock<IServiceProvider>();
+            // Configures mock service provider for logging services and sets up the function context to use this provider.
+            _mockServiceProvider = new Mock<IServiceProvider>();
 
-        _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger)))
-                            .Returns(_mockLogger.Object);
+            _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger)))
+                                .Returns(_mockLogger.Object);
 
-        _mockFunctionContext.Setup(ctx => ctx.InstanceServices)
-                            .Returns(_mockServiceProvider.Object);
+            _mockFunctionContext.Setup(ctx => ctx.InstanceServices)
+                                .Returns(_mockServiceProvider.Object);
         }
 
         private HealthCheckFunction CreateHealthCheckFunction()
@@ -79,12 +78,13 @@ namespace BulkFileUploadFunctionAppTests
                 _mockHttpRequestWrapper.Object, // HttpRequestData is not directly used in the function
                 _mockFunctionContext.Object);
 
-        
-            // Asserts that the HealthCheckFunction returns HttpStatusCode.OK, writes "Healthy!" once to the response, 
-            // and sets the response status code to HttpStatusCode.OK.
-            Assert.AreEqual(HttpStatusCode.OK, result);
+
+
+            // Check response is not null, status code is OK, and 'Healthy!' was written once.
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
             _mockResponseWrapper.Verify(m => m.WriteStringAsync("Healthy!"), Times.Once());
-            Assert.AreEqual(HttpStatusCode.OK, _mockResponseWrapper.Object.StatusCode);
         }
 
         [TestMethod]
@@ -98,7 +98,7 @@ namespace BulkFileUploadFunctionAppTests
             _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>()))
                 .Throws(new RequestFailedException("Error"));
 
-            
+
             var healthCheckFunction = CreateHealthCheckFunction();
             // Act
             // Executes HealthCheckFunction with mocked dependencies to test its response to predefined conditions.
@@ -107,10 +107,9 @@ namespace BulkFileUploadFunctionAppTests
                 _mockFunctionContext.Object);
 
             // Assert
-            // Verifies that the function returns InternalServerError, writes "Not Healthy!" once, and sets the response status to InternalServerError.
-            Assert.AreEqual(HttpStatusCode.InternalServerError, result);
+            Assert.IsNotNull(result);
+            Assert.AreEqual(HttpStatusCode.InternalServerError, result.StatusCode);
             _mockResponseWrapper.Verify(m => m.WriteStringAsync("Not Healthy!"), Times.Once());
-            Assert.AreEqual(HttpStatusCode.InternalServerError, _mockResponseWrapper.Object.StatusCode);
         }
 
     }

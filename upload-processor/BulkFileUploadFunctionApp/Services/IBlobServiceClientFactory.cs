@@ -1,4 +1,3 @@
-
 using Azure.Storage.Blobs;
 
 namespace BulkFileUploadFunctionApp.Services

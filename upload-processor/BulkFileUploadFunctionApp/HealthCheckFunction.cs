@@ -1,4 +1,3 @@
-
 using System.Net;
 using Azure;
 using Azure.Storage.Blobs;
@@ -7,18 +6,18 @@ using Microsoft.Azure.Functions.Worker;
 
 
 namespace BulkFileUploadFunctionApp
-{   
-    
-    public  class HealthCheckFunction
+{
+
+    public class HealthCheckFunction
     {
 
+        const string TestContainerName = "dextesting-testevent1";
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
-
         private readonly IFunctionLogger<HealthCheckFunction> _logger;
 
         // Constructor
-        public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory, 
+        public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory,
                                IEnvironmentVariableProvider environmentVariableProvider,
                                IFunctionLogger<HealthCheckFunction> logger)
         {
@@ -26,9 +25,9 @@ namespace BulkFileUploadFunctionApp
             _environmentVariableProvider = environmentVariableProvider;
             _logger = logger;
         }
-        
-        [Function("HealthCheckFunction")]        
-        public  async Task<HttpStatusCode> Run(
+
+        [Function("HealthCheckFunction")]
+        public async Task<IHttpResponseDataWrapper> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] IHttpRequestDataWrapper requestWrapper,
             FunctionContext context)
         {
@@ -36,35 +35,34 @@ namespace BulkFileUploadFunctionApp
 
             if (requestWrapper == null)
             {
-                 _logger.LogError("requestWrapper is null");
-                 return HttpStatusCode.OK;
+                _logger.LogInformation("requestWrapper is null");
+                var nullRequest = new HttpResponseDataWrapper(context.GetHttpResponseData());
+                await nullRequest.WriteStringAsync("Request wrapper is null.");
+                nullRequest.StatusCode = HttpStatusCode.OK;
+                return nullRequest;
             }
-
 
             //creating a response for a request and setting its status code to 200 (OK).
             var responseWrapper = requestWrapper.CreateResponse();
             responseWrapper.StatusCode = HttpStatusCode.OK;
 
             try
-            {   //names of the environment variables.
-                string dexAzureStorageAccountname = "DEX_AZURE_STORAGE_ACCOUNT_NAME";
-                string dexAzureStorageAccountKey = "DEX_AZURE_STORAGE_ACCOUNT_KEY";
-                string cName = "ndlp-influenzavaccination";
-                
+            {
                 //retrieve the values of these environment variables
-                var storageAccountName = _environmentVariableProvider.GetEnvironmentVariable(dexAzureStorageAccountname);
-                var storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable(dexAzureStorageAccountKey);
+                var storageAccountName = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME");
+                var storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY");
 
-                _logger.LogInformation("Container name-->" + cName);
+                _logger.LogInformation("Container name-->" + TestContainerName);
                 var connectionString = $"DefaultEndpointsProtocol=https;AccountName={storageAccountName};AccountKey={storageAccountKey};EndpointSuffix=core.windows.net";
-                
+
                 //establishing a connection to Azure Blob Storage and accessing a particular container by using the connection string.
                 BlobServiceClient blobServiceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
-                BlobContainerClient container = blobServiceClient.GetBlobContainerClient(cName);
-                
+                BlobContainerClient container = blobServiceClient.GetBlobContainerClient(TestContainerName);
+
                 // Write "Healthy!" to the response and return HTTP status 200 (OK) without blocking
                 await responseWrapper.WriteStringAsync("Healthy!");
-                return HttpStatusCode.OK;
+                responseWrapper.StatusCode = HttpStatusCode.OK;
+                return responseWrapper;
             }
             catch (RequestFailedException ex)
             {
@@ -72,9 +70,9 @@ namespace BulkFileUploadFunctionApp
                 _logger.LogError(ex, "Error occurred while checking Blob storage container health.");
                 await responseWrapper.WriteStringAsync("Not Healthy!");
                 responseWrapper.StatusCode = HttpStatusCode.InternalServerError;
-                return HttpStatusCode.InternalServerError;
+                return responseWrapper;
             }
         }
     }
-   
+
 }
