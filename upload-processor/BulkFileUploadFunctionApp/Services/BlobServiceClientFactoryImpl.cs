@@ -12,7 +12,7 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 // Handle the case where connectionString is null or empty.
                 // You might want to throw an exception or handle it in another way.
-                throw new ArgumentException("Connection string cannot be null or empty.", nameof(connectionString));
+                throw new ArgumentException("Connection string cannot be null or empty.");
             }
 
             // If the connectionString is valid, create and return a BlobServiceClient instance.

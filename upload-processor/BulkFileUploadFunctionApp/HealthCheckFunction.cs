@@ -32,12 +32,17 @@ namespace BulkFileUploadFunctionApp
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] IHttpRequestDataWrapper requestWrapper,
             FunctionContext context)
         {
-            _logger.LogInformation("HealthCheckFunction");            
+            _logger.LogInformation("HealthCheckFunction");
+
 
             if (requestWrapper == null)
             {
                 _logger.LogInformation("requestWrapper is null");
-                throw new InvalidOperationException("requestWrapper cannot be null.");
+                requestWrapper = new HttpRequestDataWrapper(null); // Ensure this can handle null properly.
+                var response = requestWrapper.CreateResponse();
+                response.StatusCode = HttpStatusCode.OK; // Set the status code as needed.
+                await response.WriteStringAsync("Default response due to null requestWrapper.");
+                return response;
             }
 
             //creating a response for a request and setting its status code to 200 (OK).
