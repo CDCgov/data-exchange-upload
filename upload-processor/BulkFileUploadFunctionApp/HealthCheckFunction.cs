@@ -37,7 +37,7 @@ namespace BulkFileUploadFunctionApp
             if (requestWrapper == null)
             {
                  _logger.LogError("requestWrapper is null");
-                // return HttpStatusCode.InternalServerError;
+                 return HttpStatusCode.OK;
             }
 
 
