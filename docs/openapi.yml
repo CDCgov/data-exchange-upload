@@ -522,9 +522,10 @@ paths:
       description: >-
         Provides upload status for a specific tguid. Tus clients are used to
         initiate the upload. When the upload starts, clients are returned a
-        unique identifer (tguid) used to resume uploads or identify the filename
+        unique identifier (tguid) used to resume uploads or identify the filename
         it is persisted as in blob storage once completed. The tguid will be
-        used for getting a specific uploaded file's status..
+        used for getting a specific uploaded file's status. This endpoint is 
+        deprecated in the development environment. 
       security:
         - bearerAuth: []
       parameters:
@@ -552,7 +553,7 @@ paths:
       description: >-
         Provides upload statuses for the given destination identifier that can
         be optionally filtered by meta_ext_event and date range.  Returned data
-        is paginated.
+        is paginated. This endpoint is deprecated in development environment.
       security:
         - bearerAuth: []
       parameters:
@@ -673,7 +674,7 @@ components:
             - "true"
         password:
           type: string
-          description: SAMS sytem account password.
+          description: SAMS system account password.
         grant_type:
           type: string
           description: Oauth grant type.
