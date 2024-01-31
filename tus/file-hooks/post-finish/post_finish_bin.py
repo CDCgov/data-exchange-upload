@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 def post_finish(upload_id):
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
-    trace_id, parent_span_id = ps_api_controller.get_trace_by_upload_id(upload_id)
-    logger.info(f'Got trace for upload {upload_id} with trace ID {trace_id} and parent span ID {parent_span_id}')
+    span = ps_api_controller.get_span_by_upload_id(upload_id, 'dex-upload')
+    logger.info(f'Got span for upload {upload_id} with trace ID {span.trace_id} and span ID {span.span_id}')
 
-    ps_api_controller.stop_span_for_trace(trace_id, parent_span_id)
-    logger.info(f'Stopped child span for parent span {parent_span_id} with stage name of dex-upload')
+    ps_api_controller.stop_span_for_trace(span.trace_id, span.span_id)
+    logger.info(f'Stopped child span for parent span {span.span_id} with stage name of dex-upload')
 
 
 def main(argv):
