@@ -3,6 +3,7 @@ using Azure;
 using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp.Services;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 
 
 namespace BulkFileUploadFunctionApp
@@ -31,15 +32,12 @@ namespace BulkFileUploadFunctionApp
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] IHttpRequestDataWrapper requestWrapper,
             FunctionContext context)
         {
-            _logger.LogInformation("HealthCheckFunction");
+            _logger.LogInformation("HealthCheckFunction");            
 
             if (requestWrapper == null)
             {
                 _logger.LogInformation("requestWrapper is null");
-                var nullRequest = new HttpResponseDataWrapper(context.GetHttpResponseData());
-                await nullRequest.WriteStringAsync("Request wrapper is null.");
-                nullRequest.StatusCode = HttpStatusCode.OK;
-                return nullRequest;
+                throw new InvalidOperationException("requestWrapper cannot be null.");
             }
 
             //creating a response for a request and setting its status code to 200 (OK).
