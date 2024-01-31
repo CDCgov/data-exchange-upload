@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2023-01-31
+- Added descriptions for the functions in the repo
+- Routing Integration: copy to routing changes
+- Configured test event to send files to routing
+- Metadata update for NDLP accepted values
+- Added integration tests suite to upload repo
+- Metadata configuration changes for routing
+- Integrate app insight Bulk Upload Processor
+- Updated log level from error to information
+- Unit test for bulk upload
+- Metadata definitions added to summary table  ( tus/file-hooks/metadata-verify/definitions/readme.md )
+
 ## [1.2.2] - 2023-11-17
 - NDLP APL historical data configuration
 - Changing all upload configs of NDLP to not append clock ticks to the filename
