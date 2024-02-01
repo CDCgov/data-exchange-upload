@@ -69,7 +69,7 @@ class ProcStatController:
                 self.logger.warning(f"Error sending request to PS API after attempt {self.retry_count}.  Reason: {e}")
                 self.retry_count = self.retry_count + 1
 
-                # Waiting 1 second before trying again.
-                time.sleep(1)
+                # Waiting 2 second before trying again.
+                time.sleep(2)
 
         raise Exception(f"Unable to send successful request to PS API after {MAX_RETRIES} attempts.")
