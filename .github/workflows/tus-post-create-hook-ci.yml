@@ -10,6 +10,9 @@ defaults:
   run:
     working-directory: tus/file-hooks/post-create
 
+env:
+  PS_API_URL: https://ocio-ede-dev-pstatus-api.azurewebsites.net
+
 jobs:
   run-tests:
     uses: ./.github/workflows/tus-hooks-ci-template.yml
