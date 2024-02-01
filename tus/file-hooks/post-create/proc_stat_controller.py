@@ -28,9 +28,8 @@ class ProcStatController:
     def start_span_for_trace(self, trace_id, parent_span_id, stage_name):
         params = {
             "stageName": stage_name,
-            "spanMark": "start"
         }
-        response = requests.put(f'{self.url}/api/trace/addSpan/{trace_id}/{parent_span_id}', params=params)
+        response = requests.put(f'{self.url}/api/trace/startSpan/{trace_id}/{parent_span_id}', params=params)
         response.raise_for_status()
 
         resp_json = response.json()
