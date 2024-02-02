@@ -4,7 +4,7 @@ import logging
 import time
 from requests import Request, Session
 
-MAX_RETRIES = os.getenv("PS_API_MAX_RETRIES") or 4
+MAX_RETRIES = os.getenv("PS_API_MAX_RETRIES") or 6
 
 
 def _handle_trace_response(resp_json):
@@ -18,8 +18,9 @@ def _handle_span_response(resp_json):
 
 
 class ProcStatController:
-    def __init__(self, url):
+    def __init__(self, url, delay_s=1):
         self.url = url
+        self.delay_s = delay_s
         self.session = Session()
         self.retry_count = 0
         self.logger = logging.getLogger(__name__)
@@ -70,6 +71,6 @@ class ProcStatController:
                 self.retry_count = self.retry_count + 1
 
                 # Waiting 2 second before trying again.
-                time.sleep(2)
+                time.sleep(self.delay_s)
 
         raise Exception(f"Unable to send successful request to PS API after {MAX_RETRIES} attempts.")
