@@ -20,7 +20,7 @@ The purpose of Enterprise Data Exchange (DEX) Upload release version 1.2.3 is to
 - Integrate app insight Bulk Upload Processor
 - Updated log level from error to information
 - Unit test for bulk upload
-- Metadata definitions added to summary table  [Metadata Definitions Readme](tus/file-hooks/metadata-verify/definitions/readme.md)
+- Metadata definitions added to summary table  [Metadata Definitions Readme](https://github.com/CDCgov/data-exchange-upload/blob/main/tus/file-hooks/metadata-verify/definitions/readme.md)
 
 ## Reporting Team
 - DEX Upload Team Distribution List - dexuploadapi@cdc.gov
