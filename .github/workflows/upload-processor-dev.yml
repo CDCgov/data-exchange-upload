@@ -1,4 +1,4 @@
-name: "Bulk File Function App Remote CD Dev"
+name: "DEV - Upload Processor"
 
 on:
   workflow_dispatch:

@@ -1,5 +1,4 @@
-name: Trigger CDCent workflow template
-
+name: Template - Remote trigger to CDCent
 on:
   workflow_call:
     inputs:
