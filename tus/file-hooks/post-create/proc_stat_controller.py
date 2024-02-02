@@ -37,3 +37,9 @@ class ProcStatController:
         _handle_trace_response(resp_json)
 
         return resp_json['trace_id'], resp_json['span_id']
+
+    def stop_span_for_trace(self, trace_id, span_id):
+        response = requests.put(f'{self.url}/api/trace/stopSpan/{trace_id}/{span_id}', params=params)
+        response.raise_for_status()
+
+        response.raise_for_status()
