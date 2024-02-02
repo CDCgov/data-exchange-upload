@@ -49,7 +49,7 @@ def post_create(dest, event, tguid):
             logger.debug(f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
 
     except Exception as e:
-        logger.error(f"An exception occurred during metadta verification span: {e}")
+        logger.error(f"An exception occurred during metadata verification span: {e}")
 
     # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
     ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
