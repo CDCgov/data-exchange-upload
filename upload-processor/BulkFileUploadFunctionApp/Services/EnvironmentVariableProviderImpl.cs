@@ -1,5 +1,4 @@
 
-
 namespace BulkFileUploadFunctionApp.Services
 {
     public class EnvironmentVariableProviderImpl : IEnvironmentVariableProvider

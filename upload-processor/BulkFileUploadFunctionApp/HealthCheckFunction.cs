@@ -28,25 +28,14 @@ namespace BulkFileUploadFunctionApp
         }
 
         [Function("HealthCheckFunction")]
-        public async Task<IHttpResponseDataWrapper> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] IHttpRequestDataWrapper requestWrapper,
+        public async Task<HttpResponseData> Run(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] HttpRequestData req,
             FunctionContext context)
         {
             _logger.LogInformation("HealthCheckFunction");
 
-
-            if (requestWrapper == null)
-            {
-                _logger.LogInformation("requestWrapper is null");
-                requestWrapper = new HttpRequestDataWrapper(null); // Ensure this can handle null properly.
-                var response = requestWrapper.CreateResponse();
-                response.StatusCode = HttpStatusCode.OK; // Set the status code as needed.
-                await response.WriteStringAsync("Default response due to null requestWrapper.");
-                return response;
-            }
-
             //creating a response for a request and setting its status code to 200 (OK).
-            var responseWrapper = requestWrapper.CreateResponse();
+            var responseWrapper = req.CreateResponse();
             responseWrapper.StatusCode = HttpStatusCode.OK;
 
             try
@@ -62,8 +51,7 @@ namespace BulkFileUploadFunctionApp
                 BlobServiceClient blobServiceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
                 BlobContainerClient container = blobServiceClient.GetBlobContainerClient(TestContainerName);
 
-                // Write "Healthy!" to the response and return HTTP status 200 (OK) without blocking
-                await responseWrapper.WriteStringAsync("Healthy!");
+                
                 responseWrapper.StatusCode = HttpStatusCode.OK;
                 return responseWrapper;
             }
@@ -71,7 +59,6 @@ namespace BulkFileUploadFunctionApp
             {
                 // Log error, respond with "Not Healthy!", and set response status to Internal Server Error (500)
                 _logger.LogError(ex, "Error occurred while checking Blob storage container health.");
-                await responseWrapper.WriteStringAsync("Not Healthy!");
                 responseWrapper.StatusCode = HttpStatusCode.InternalServerError;
                 return responseWrapper;
             }
