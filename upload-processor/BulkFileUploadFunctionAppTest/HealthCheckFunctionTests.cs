@@ -18,8 +18,6 @@ namespace BulkFileUploadFunctionAppTests
     [TestClass]
     public class HealthCheckFunctionTests
     {
-        private Mock<IHttpRequestDataWrapper> _mockHttpRequestWrapper;
-        private Mock<IHttpResponseDataWrapper> _mockResponseWrapper;
         private Mock<FunctionContext> _mockFunctionContext;
         private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
         private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
@@ -32,14 +30,10 @@ namespace BulkFileUploadFunctionAppTests
         [TestInitialize]
         public void Initialize()
         {
-            _mockHttpRequestWrapper = new Mock<IHttpRequestDataWrapper>();
-            _mockResponseWrapper = new Mock<IHttpResponseDataWrapper>();
             _mockFunctionContext = new Mock<FunctionContext>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
             _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
             _mockLogger = new Mock<IFunctionLogger<HealthCheckFunction>>();
-
-            _mockHttpRequestWrapper.Setup(m => m.CreateResponse()).Returns(_mockResponseWrapper.Object);
 
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
 
@@ -81,10 +75,9 @@ namespace BulkFileUploadFunctionAppTests
                 functionContext);
 
             // Check response is not null, status code is OK, and 'Healthy!' was written once.
-
             Assert.IsNotNull(result);
             Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
-            // _mockResponseWrapper.Verify(m => m.WriteStringAsync("Healthy!"), Times.Once());
+           
         }
 
         [TestMethod]

@@ -11,7 +11,6 @@ namespace BulkFileUploadFunctionApp
 
     public class HealthCheckFunction
     {
-
         const string TestContainerName = "dextesting-testevent1";
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
@@ -35,8 +34,8 @@ namespace BulkFileUploadFunctionApp
             _logger.LogInformation("HealthCheckFunction");
 
             //creating a response for a request and setting its status code to 200 (OK).
-            var responseWrapper = req.CreateResponse();
-            responseWrapper.StatusCode = HttpStatusCode.OK;
+            var response = req.CreateResponse();
+            response.StatusCode = HttpStatusCode.OK;
 
             try
             {
@@ -52,15 +51,15 @@ namespace BulkFileUploadFunctionApp
                 BlobContainerClient container = blobServiceClient.GetBlobContainerClient(TestContainerName);
 
                 
-                responseWrapper.StatusCode = HttpStatusCode.OK;
-                return responseWrapper;
+                response.StatusCode = HttpStatusCode.OK;
+                return response;
             }
             catch (RequestFailedException ex)
             {
                 // Log error, respond with "Not Healthy!", and set response status to Internal Server Error (500)
                 _logger.LogError(ex, "Error occurred while checking Blob storage container health.");
-                responseWrapper.StatusCode = HttpStatusCode.InternalServerError;
-                return responseWrapper;
+                response.StatusCode = HttpStatusCode.InternalServerError;
+                return response;
             }
         }
     }

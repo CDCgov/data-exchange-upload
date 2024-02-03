@@ -29,9 +29,13 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
-        // Add your custom services here
+        // Registers an implementation for the IBlobServiceClientFactory interface to be resolved as a singleton.
         services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactoryImpl>();
+
+        // Registers an implementation for the IEnvironmentVariableProvider interface to be resolved as a singleton.
         services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();
+
+        // Registers a generic implementation for the IFunctionLogger interface to be resolved as a singleton.
         services.AddSingleton(typeof(IFunctionLogger<>), typeof(FunctionLogger<>));
     })
     .Build();
