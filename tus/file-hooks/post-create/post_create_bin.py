@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 required_metadata_fields = ['meta_destination_id', 'meta_ext_event']
 
-
 def get_required_metadata(metadata_str):
     meta_json = json.loads(metadata_str)
     missing_metadata_fields = []
@@ -38,22 +37,25 @@ def post_create(dest, event, tguid):
     trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, dest, event)
     logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
 
+    handle_metadata_verification(ps_api_controller, trace_id, parent_span_id)
+
+    # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
+    ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
+    logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
+
+def handle_metadata_verification(ps_api_controller, trace_id, parent_span_id):
     try:
-        # Start the upload stage metadata verification
+        # Start the upload stage metadata verification span
         trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify")
         logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
 
-        # Stop the upload stage metadata verification
+        # Stop the upload stage metadata verification span
         if metadata_verify_span_id is not None:
             ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
             logger.debug(f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
 
     except Exception as e:
         logger.error(f"An exception occurred during metadata verification span: {e}")
-
-    # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
-    ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
-    logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
 
 def main(argv):
     

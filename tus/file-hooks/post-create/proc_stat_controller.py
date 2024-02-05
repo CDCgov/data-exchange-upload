@@ -1,10 +1,16 @@
 import requests
+import os
 
+MAX_RETRIES = os.getenv("PS_API_MAX_RETRIES") or 6
 
 def _handle_trace_response(resp_json):
     if 'trace_id' not in resp_json or 'span_id' not in resp_json:
         raise Exception('Invalid PS API response: ' + str(resp_json))
 
+
+def _handle_span_response(resp_json):
+    if 'trace_id' not in resp_json or 'span_id' not in resp_json:
+        raise Exception('Invalid PS API response: ' + str(resp_json))
 
 class ProcStatController:
     def __init__(self, url):
@@ -39,5 +45,26 @@ class ProcStatController:
         return resp_json['trace_id'], resp_json['span_id']
 
     def stop_span_for_trace(self, trace_id, span_id):
-        response = requests.put(f'{self.url}/api/trace/stopSpan/{trace_id}/{span_id}', params=params)
-        response.raise_for_status()
+        req = Request('PUT', f'{self.url}/api/trace/stopSpan/{trace_id}/{span_id}')
+        self._send_request_with_retry(req.prepare())
+
+    def _send_request_with_retry(self, req):
+        # Resetting the retry count.
+        self.retry_count = 0
+
+        while self.retry_count < MAX_RETRIES:
+            try:
+                resp = self.session.send(req)
+                resp.raise_for_status()
+
+                if resp.ok:
+                    # Request was handled successfully, return and don't send any more requests.
+                    return resp
+            except requests.exceptions.RequestException as e:
+                self.logger.warning(f"Error sending request to PS API after attempt {self.retry_count}.  Reason: {e}")
+                self.retry_count = self.retry_count + 1
+
+                # Waiting 2 second before trying again.
+                time.sleep(self.delay_s)
+
+        raise Exception(f"Unable to send successful request to PS API after {MAX_RETRIES} attempts.")
