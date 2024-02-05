@@ -40,19 +40,23 @@ def getVersionIntFromStr(version):
     return version
 
 
-def checkIfProgramAndEventAllowed(meta_destination_id, meta_ext_event):
-    allowed_programs_and_events_filename = "allowed_destination_and_events.json"
-    with open(allowed_programs_and_events_filename, 'r') as file:
+def verify_destination_and_event_allowed(dest_id, event_type):
+    config_file = os.path.join(os.path.dirname(__file__), 'allowed_destination_and_events.json')
+
+    with open(config_file, 'r') as file:
         definitions = file.read()
-        definitionsObj = json.loads(definitions, object_hook=lambda d: Namespace(**d))
-        for definition in definitionsObj:
-            if definition.destination_id == meta_destination_id:
+        definitions_dict = json.loads(definitions, object_hook=lambda d: Namespace(**d))
+
+        for definition in definitions_dict:
+            if definition.destination_id == dest_id:
                 # found the destination_id, checking for the ext_event
                 for ext_event in definition.ext_events:
-                    if ext_event.name == meta_ext_event:
+                    if ext_event.name == event_type:
                         return ext_event.definition_filename
-        raise Exception(
-            "Not a recognized combination of meta_destination_id (" + meta_destination_id + ") and meta_ext_event (" + meta_ext_event + ")")
+
+        # If we got here, we couldn't find a valid combo of dest_id and event_type.
+        failure_message = "Not a recognized combination of meta_destination_id (" + dest_id + ") and meta_ext_event (" + event_type + ")"
+        handle_verification_failure(failure_message, dest_id, event_type)
 
 
 def getSchemaVersionToUse(definitionObj, requested_schema_version):
@@ -169,7 +173,7 @@ def verify_metadata(metadata):
     dest_id, event = get_required_metadata(metadata)
 
     # check if the program/event type is on the list of allowed
-    filename = checkIfProgramAndEventAllowed(dest_id, event)
+    filename = verify_destination_and_event_allowed(dest_id, event)
     if filename is not None:
         checkProgramEventMetadata(filename, metadata)
 
