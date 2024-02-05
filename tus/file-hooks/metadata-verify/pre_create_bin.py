@@ -60,20 +60,22 @@ def verify_destination_and_event_allowed(dest_id, event_type):
         handle_verification_failure([failure_message], dest_id, event_type)
 
 
-def get_schema_def_by_version(available_schema_defs, requested_schema_version):
+def get_schema_def_by_version(available_schema_defs, requested_schema_version, meta_json):
     selected_schema = None
 
     if requested_schema_version is not None:
         selected_schema = next(
-            (schema_def for schema_def in available_schema_defs if schema_def.schema_version == requested_schema_version),
+            (schema_def for schema_def in available_schema_defs if
+             schema_def.schema_version == requested_schema_version),
             None)
 
         if selected_schema is None:
             available_schemas = map(lambda schema_def: schema_def.schema_version, available_schema_defs)
-
-            raise Exception(
-                "Requested schema version " + requested_schema_version + " not available.  Available schema versions: " + str(
-                    available_schemas))
+            failure_message = 'Requested schema version ' + requested_schema_version + 'not available.  Available ' \
+                                                                                       'schema versions: ' + str(
+                available_schemas)
+            dest_id, event = get_required_metadata(meta_json)
+            handle_verification_failure([failure_message], dest_id, event)
         else:
             return selected_schema
 
@@ -105,12 +107,7 @@ def checkMetadataAgainstDefinition(definitionObj, meta_json):
     if "schema_version" in meta_json:
         requested_schema_version = str(meta_json["schema_version"])
 
-    schema_to_use = None
-    try:
-        schema_to_use = get_schema_def_by_version(definitionObj, requested_schema_version)
-    except Exception as e:
-        dest_id, event = get_required_metadata(meta_json)
-        handle_verification_failure([e], dest_id, event)
+    schema_to_use = get_schema_def_by_version(definitionObj, requested_schema_version, meta_json)
 
     print("Using schema_version = " + schema_to_use.schema_version)
     missing_metadata_fields = []
