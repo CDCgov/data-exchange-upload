@@ -5,7 +5,7 @@
         {
           "fieldname": "original_filename",
           "allowed_values": null,
-          "required": "false",
+          "required": "true",
           "description": "The name of the file submitted."
         },
         {
