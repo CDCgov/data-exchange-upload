@@ -30,8 +30,7 @@ namespace BulkFileUploadFunctionAppTests
         {
             _mockFunctionContext = new Mock<FunctionContext>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
-            _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
-            //_mockLogger = new Mock<IFunctionLogger<HealthCheckFunction>>();
+            _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();           
 
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
 
