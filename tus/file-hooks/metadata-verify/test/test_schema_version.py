@@ -2,7 +2,7 @@ import unittest
 
 from pre_create_bin import MetaDefinition
 from pre_create_bin import checkMetadataAgainstDefinition
-from pre_create_bin import getSchemaVersionToUse
+from pre_create_bin import get_schema_def_by_version
 
 
 class TestSchemaVersion(unittest.TestCase):
@@ -12,30 +12,28 @@ class TestSchemaVersion(unittest.TestCase):
             MetaDefinition(schema_version='1.1', fields=[])
         ]
 
-        selected_schema_def = getSchemaVersionToUse(schema_defs, None)
+        selected_schema_def = get_schema_def_by_version(schema_defs, None)
 
         self.assertEqual(selected_schema_def.schema_version, '1.0')
 
-    def test_available_schema_version(self):
-        metadata = {
-            "schema_version": "1.2"
-        }
-
-        definitionObj = [
-            MetaDefinition(schema_version="1.2", fields=[])
+    def test_should_return_requested_schema_version(self):
+        schema_defs = [
+            MetaDefinition(schema_version='1.0', fields=[]),
+            MetaDefinition(schema_version='1.1', fields=[])
         ]
-        checkMetadataAgainstDefinition(definitionObj, metadata)
 
-    def test_unavailable_schema_version(self):
-        metadata = {
-            "schema_version": "1.1"
-        }
+        selected_schema_def = get_schema_def_by_version(schema_defs, '1.1')
 
-        definitionObj = [
-            MetaDefinition(schema_version="1.2", fields=[])
+        self.assertEqual(selected_schema_def.schema_version, '1.1')
+
+    def test_should_throw_when_requesting_invalid_version(self):
+        schema_defs = [
+            MetaDefinition(schema_version='1.0', fields=[]),
+            MetaDefinition(schema_version='1.1', fields=[])
         ]
+
         with self.assertRaises(Exception) as context:
-            checkMetadataAgainstDefinition(definitionObj, metadata)
+            get_schema_def_by_version(schema_defs, 'invalid')
 
         self.assertIn('not available', str(context.exception))
 

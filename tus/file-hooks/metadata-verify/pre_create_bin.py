@@ -4,6 +4,7 @@ import os
 import sys
 import uuid
 import logging
+import math
 from argparse import Namespace
 
 from proc_stat_controller import ProcStatController
@@ -59,27 +60,34 @@ def verify_destination_and_event_allowed(dest_id, event_type):
         handle_verification_failure([failure_message], dest_id, event_type)
 
 
-def getSchemaVersionToUse(definitionObj, requested_schema_version):
-    if requested_schema_version != None:
-        available_schemas = []
-        for fieldDef in definitionObj:
-            if requested_schema_version != None and requested_schema_version == fieldDef.schema_version:
-                # found requested schema version
-                return fieldDef
-            available_schemas.append(str(fieldDef.schema_version))
-        raise Exception(
-            "Requested schema version " + requested_schema_version + " not available.  Available schema versions: " + str(
-                available_schemas))
-    # provide the oldest found schema
-    oldest_available_schema_version_int = None
-    oldest_available_schema = None
-    for fieldDef in definitionObj:
-        schema_version_int = getVersionIntFromStr(fieldDef.schema_version)
-        # print("found schema_version_int = " + str(schema_version_int))
-        if oldest_available_schema == None or schema_version_int < oldest_available_schema_version_int:
+def get_schema_def_by_version(available_schema_defs, requested_schema_version):
+    selected_schema = None
+
+    if requested_schema_version is not None:
+        selected_schema = next(
+            (schema_def for schema_def in available_schema_defs if schema_def.schema_version == requested_schema_version),
+            None)
+
+        if selected_schema is None:
+            available_schemas = map(lambda schema_def: schema_def.schema_version, available_schema_defs)
+
+            raise Exception(
+                "Requested schema version " + requested_schema_version + " not available.  Available schema versions: " + str(
+                    available_schemas))
+        else:
+            return selected_schema
+
+    # Get the oldest schema
+    oldest_available_schema_version_int = math.inf
+
+    for schema_def in available_schema_defs:
+        schema_version_int = getVersionIntFromStr(schema_def.schema_version)
+
+        if schema_version_int < oldest_available_schema_version_int:
             oldest_available_schema_version_int = schema_version_int
-            oldest_available_schema = fieldDef
-    return oldest_available_schema
+            selected_schema = schema_def
+
+    return selected_schema
 
 
 def checkProgramEventMetadata(program_event_meta_filename, metadata):
@@ -97,7 +105,13 @@ def checkMetadataAgainstDefinition(definitionObj, meta_json):
     if "schema_version" in meta_json:
         requested_schema_version = str(meta_json["schema_version"])
 
-    schema_to_use = getSchemaVersionToUse(definitionObj, requested_schema_version)
+    schema_to_use = None
+    try:
+        schema_to_use = get_schema_def_by_version(definitionObj, requested_schema_version)
+    except Exception as e:
+        dest_id, event = get_required_metadata(meta_json)
+        handle_verification_failure([e], dest_id, event)
+
     print("Using schema_version = " + schema_to_use.schema_version)
     missing_metadata_fields = []
     validationError = False
@@ -121,7 +135,8 @@ def checkMetadataAgainstDefinition(definitionObj, meta_json):
 
     if len(missing_metadata_fields) > 0:
         for fieldDef in missing_metadata_fields:
-            validation_error_messages.append("Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
+            validation_error_messages.append(
+                "Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
             # print(
             #     "Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
             validationError = True
