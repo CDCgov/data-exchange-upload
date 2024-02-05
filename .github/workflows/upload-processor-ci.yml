@@ -1,4 +1,4 @@
-name: "Bulk File Upload CI Function App CI"
+name: "CI - Upload Processor"
 
 on:
   workflow_dispatch:

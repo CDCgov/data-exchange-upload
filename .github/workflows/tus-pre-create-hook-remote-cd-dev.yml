@@ -1,4 +1,4 @@
-name: "Tus Pre-Create Hook Remote CD Dev"
+name: "DEV - Tus Pre-Create Hook"
 
 on:
   workflow_dispatch:
