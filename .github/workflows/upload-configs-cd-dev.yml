@@ -1,4 +1,4 @@
-name: "Upload Configs CD Dev"
+name: "DEV - Upload Configs"
 
 on:
   workflow_dispatch:

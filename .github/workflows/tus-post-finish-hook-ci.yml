@@ -1,4 +1,4 @@
-name: "Tus Post-Finish Hook CI"
+name: "CI - Tus Post-Finish Hook"
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: "Tus Post-Receive Hook CI"
+name: "CI - Tus Post-Receive Hook"
 
 on:
   workflow_dispatch:

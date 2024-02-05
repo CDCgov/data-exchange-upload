@@ -1,4 +1,4 @@
-name: Tus Hook CI Template
+name: Template - Tus Hook CI 
 
 on:
   workflow_call: # Reusable workflow trigger.
