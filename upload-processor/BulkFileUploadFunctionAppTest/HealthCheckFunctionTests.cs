@@ -22,8 +22,6 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
         private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
         private Mock<IServiceProvider> _mockServiceProvider;
-        private Mock<IFunctionLogger<HealthCheckFunction>> _mockLogger;
-
 
         // Initializes mock objects for HTTP request/response, function context, blob service, environment variables, and logger.
         // Sets up default behavior for these mocks to be used in health check function tests.
@@ -33,7 +31,7 @@ namespace BulkFileUploadFunctionAppTests
             _mockFunctionContext = new Mock<FunctionContext>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
             _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
-            _mockLogger = new Mock<IFunctionLogger<HealthCheckFunction>>();
+            //_mockLogger = new Mock<IFunctionLogger<HealthCheckFunction>>();
 
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
 
@@ -43,9 +41,6 @@ namespace BulkFileUploadFunctionAppTests
             // Configures mock service provider for logging services and sets up the function context to use this provider.
             _mockServiceProvider = new Mock<IServiceProvider>();
 
-            _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger)))
-                                .Returns(_mockLogger.Object);
-
             _mockFunctionContext.Setup(ctx => ctx.InstanceServices)
                                 .Returns(_mockServiceProvider.Object);
         }
@@ -54,8 +49,7 @@ namespace BulkFileUploadFunctionAppTests
         {
             return new HealthCheckFunction(
                 _mockBlobServiceClientFactory.Object,
-                _mockEnvironmentVariableProvider.Object,
-                _mockLogger.Object);
+                _mockEnvironmentVariableProvider.Object);
         }
 
         [TestMethod]
@@ -83,7 +77,7 @@ namespace BulkFileUploadFunctionAppTests
         [TestMethod]
         public async Task HealthCheckFunction_ReturnsNotHealthyResponseOnException()
         {
-            // Arrange            
+            // Arrange
             var functionContext = TestHelpers.CreateFunctionContext();
             var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
             _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>()))

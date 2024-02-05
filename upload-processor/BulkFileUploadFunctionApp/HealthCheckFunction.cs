@@ -4,6 +4,7 @@ using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Logging;
 
 
 namespace BulkFileUploadFunctionApp
@@ -13,17 +14,15 @@ namespace BulkFileUploadFunctionApp
     {
         const string TestContainerName = "dextesting-testevent1";
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
-        private readonly IEnvironmentVariableProvider _environmentVariableProvider;
-        private readonly IFunctionLogger<HealthCheckFunction> _logger;
+        private readonly IEnvironmentVariableProvider _environmentVariableProvider;        
 
         // Constructor
         public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory,
-                               IEnvironmentVariableProvider environmentVariableProvider,
-                               IFunctionLogger<HealthCheckFunction> logger)
+                               IEnvironmentVariableProvider environmentVariableProvider)
         {
             _blobServiceClientFactory = blobServiceClientFactory;
             _environmentVariableProvider = environmentVariableProvider;
-            _logger = logger;
+           
         }
 
         [Function("HealthCheckFunction")]
@@ -31,6 +30,7 @@ namespace BulkFileUploadFunctionApp
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "health")] HttpRequestData req,
             FunctionContext context)
         {
+             var _logger = context.GetLogger<HealthCheckFunction>();
             _logger.LogInformation("HealthCheckFunction");
 
             //creating a response for a request and setting its status code to 200 (OK).

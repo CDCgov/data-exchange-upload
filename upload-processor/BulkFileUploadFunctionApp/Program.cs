@@ -34,9 +34,7 @@ var host = new HostBuilder()
 
         // Registers an implementation for the IEnvironmentVariableProvider interface to be resolved as a singleton.
         services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();
-
-        // Registers a generic implementation for the IFunctionLogger interface to be resolved as a singleton.
-        services.AddSingleton(typeof(IFunctionLogger<>), typeof(FunctionLogger<>));
+       
     })
     .Build();
 
