@@ -34,7 +34,7 @@ class Field:
         self.fieldname, self.allowed_values, self.required, self.description = fieldname, allowed_values, required, description
 
 
-def getVersionIntFromStr(version):
+def get_version_int_from_str(version):
     l = [int(x, 10) for x in version.split('.')]
     l.reverse()
     version = sum(x * (100 ** i) for i, x in enumerate(l))
@@ -82,7 +82,7 @@ def get_schema_def_by_version(available_schema_defs, requested_schema_version, m
     oldest_available_schema_version_int = math.inf
 
     for schema_def in available_schema_defs:
-        schema_version_int = getVersionIntFromStr(schema_def.schema_version)
+        schema_version_int = get_version_int_from_str(schema_def.schema_version)
 
         if schema_version_int < oldest_available_schema_version_int:
             oldest_available_schema_version_int = schema_version_int
@@ -91,53 +91,53 @@ def get_schema_def_by_version(available_schema_defs, requested_schema_version, m
     return selected_schema
 
 
-def checkProgramEventMetadata(program_event_meta_filename, metadata):
+def check_program_event_metadata(program_event_meta_filename, metadata):
     # lookup remaining metadata fields specific to this meta_destination_id and meta_ext_event
     with open(program_event_meta_filename, 'r') as file:
         metadata_definition = file.read()
-        definitionObj = json.loads(metadata_definition, object_hook=lambda d: Namespace(**d))
-        checkMetadataAgainstDefinition(definitionObj, metadata)
+        definition_obj = json.loads(metadata_definition, object_hook=lambda d: Namespace(**d))
+        check_metadata_against_definition(definition_obj, metadata)
 
 
-def checkMetadataAgainstDefinition(definitionObj, meta_json):
+def check_metadata_against_definition(definition_obj, meta_json):
     # check if the schema was provided and if not, default to the oldest schema
     requested_schema_version = None
 
     if "schema_version" in meta_json:
         requested_schema_version = str(meta_json["schema_version"])
 
-    schema_to_use = get_schema_def_by_version(definitionObj, requested_schema_version, meta_json)
+    schema_to_use = get_schema_def_by_version(definition_obj, requested_schema_version, meta_json)
 
     print("Using schema_version = " + schema_to_use.schema_version)
     missing_metadata_fields = []
-    validationError = False
+    found_validation_error = False
     validation_error_messages = []
 
-    for fieldDef in schema_to_use.fields:
-        if fieldDef.required != "false" and not fieldDef.fieldname in meta_json:
-            missing_metadata_fields.append(fieldDef)
+    for field_def in schema_to_use.fields:
+        if field_def.required != "false" and field_def.fieldname not in meta_json:
+            missing_metadata_fields.append(field_def)
 
-        if fieldDef.fieldname in meta_json:
-            fieldValue = meta_json[fieldDef.fieldname]
+        if field_def.fieldname in meta_json:
+            field_value = meta_json[field_def.fieldname]
 
-            if fieldDef.allowed_values != None and len(
-                    fieldDef.allowed_values) > 0 and fieldValue not in fieldDef.allowed_values:
-                validation_error_messages.append(fieldDef.fieldname + ' = ' + fieldValue + 'is not one of the allowed '
+            if field_def.allowed_values is not None and len(
+                    field_def.allowed_values) > 0 and field_value not in field_def.allowed_values:
+                validation_error_messages.append(field_def.fieldname + ' = ' + field_value + 'is not one of the allowed '
                                                                                            'values: ' + json.dumps(
-                    fieldDef.allowed_values))
-                print(fieldDef.fieldname + " = " + fieldValue + " is not one of the allowed values: " + json.dumps(
-                    fieldDef.allowed_values))
-                validationError = True
+                    field_def.allowed_values))
+                print(field_def.fieldname + " = " + field_value + " is not one of the allowed values: " + json.dumps(
+                    field_def.allowed_values))
+                found_validation_error = True
 
     if len(missing_metadata_fields) > 0:
-        for fieldDef in missing_metadata_fields:
+        for field_def in missing_metadata_fields:
             validation_error_messages.append(
-                "Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
+                "Missing required metadata '" + field_def.fieldname + "', description = '" + field_def.description + "'")
             print(
-                "Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
-            validationError = True
+                "Missing required metadata '" + field_def.fieldname + "', description = '" + field_def.description + "'")
+            found_validation_error = True
 
-    if validationError:
+    if found_validation_error:
         raise Exception(stringify_error_messages(validation_error_messages))
 
 
@@ -209,7 +209,7 @@ def verify_metadata(dest_id, event_type, meta_json):
     # check if the program/event type is on the list of allowed
     filename = verify_destination_and_event_allowed(dest_id, event_type)
     if filename is not None:
-        checkProgramEventMetadata(filename, meta_json)
+        check_program_event_metadata(filename, meta_json)
 
 
 def main(argv):
