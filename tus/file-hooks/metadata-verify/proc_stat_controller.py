@@ -83,8 +83,8 @@ class ProcStatController:
 
     def create_report(self, upload_id, destination_id, event_type, payload):
         params = {
-            'destination_id': destination_id,
-            'event_type': event_type
+            'destinationId': destination_id,
+            'eventType': event_type
         }
         req = Request('POST', f'{self.url}/api/report/json/uploadId/{upload_id}', params=params, data=payload)
         self._send_request_with_retry(req.prepare())
