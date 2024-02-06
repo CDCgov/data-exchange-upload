@@ -8,11 +8,6 @@ def _handle_trace_response(resp_json):
     if 'trace_id' not in resp_json or 'span_id' not in resp_json:
         raise Exception('Invalid PS API response: ' + str(resp_json))
 
-
-def _handle_span_response(resp_json):
-    if 'trace_id' not in resp_json or 'span_id' not in resp_json:
-        raise Exception('Invalid PS API response: ' + str(resp_json))
-
 class ProcStatController:
     def __init__(self, url, delay_s=1):
         self.url = url
@@ -53,6 +48,14 @@ class ProcStatController:
 
         return resp_json['trace_id'], resp_json['span_id']
 
+    def upload_report_json(self, upload_id, json_payload):
+        params = {
+            "uploadId": upload_id,
+        }
+        
+        response = requests.put(f'{self.url}/report/json/uploadId/{uploadId}', params=params, json=json_payload)
+        response.raise_for_status()
+        
     def stop_span_for_trace(self, trace_id, span_id):
         req = Request('PUT', f'{self.url}/api/trace/stopSpan/{trace_id}/{span_id}')
         self._send_request_with_retry(req.prepare())
