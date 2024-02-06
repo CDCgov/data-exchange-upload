@@ -58,7 +58,6 @@ def verify_destination_and_event_allowed(dest_id, event_type):
         # If we got here, we couldn't find a valid combo of dest_id and event_type.
         failure_message = "Not a recognized combination of meta_destination_id (" + dest_id + ") and meta_ext_event (" + event_type + ")"
         raise Exception(failure_message)
-        # handle_verification_failure([failure_message], dest_id, event_type)
 
 
 def get_schema_def_by_version(available_schema_defs, requested_schema_version, meta_json):
@@ -76,8 +75,6 @@ def get_schema_def_by_version(available_schema_defs, requested_schema_version, m
                                                                                        'schema versions: ' + str(
                 available_schemas)
             raise Exception(failure_message)
-            # dest_id, event = get_required_metadata(meta_json)
-            # handle_verification_failure([failure_message], dest_id, event)
         else:
             return selected_schema
 
@@ -141,8 +138,6 @@ def checkMetadataAgainstDefinition(definitionObj, meta_json):
             validationError = True
 
     if validationError:
-        # dest_id, event = get_required_metadata(meta_json)
-        # handle_verification_failure(validation_error_messages, dest_id, event)
         raise Exception(stringify_error_messages(validation_error_messages))
 
 
@@ -154,18 +149,7 @@ def get_required_metadata(meta_json):
             missing_metadata_fields.append(field)
 
     if len(missing_metadata_fields) > 0:
-        # failure_message = 'Missing one or more required metadata fields: ' + str(missing_metadata_fields)
         raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
-
-        # dest_id = "not provided"
-        # if 'meta_destination_id' not in missing_metadata_fields:
-        #     dest_id = meta_json['meta_destination_id']
-        #
-        # event_type = "not provided"
-        # if 'meta_ext_event' not in missing_metadata_fields:
-        #     event_type = meta_json['meta_ext_event']
-        #
-        # handle_verification_failure([failure_message], dest_id, event_type)
 
     return [
         meta_json['meta_destination_id'],
