@@ -189,7 +189,8 @@ def report_verification_failure(messages, destination_id, event_type, meta_json)
         'metadata': meta_json,
         'issues': messages
     }
-    ps_api_controller.create_report(upload_id, destination_id, event_type, STAGE_NAME, payload)
+    
+    ps_api_controller.create_report(upload_id, destination_id, event_type, STAGE_NAME, json.dumps(payload))
 
     # Stop the upload stage metadata verification span
     ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
@@ -246,10 +247,11 @@ def main(argv):
         dest_id, event_type = get_required_metadata(meta_json)
         verify_metadata(dest_id, event_type, meta_json)
     except Exception as e:
-        upload_id = report_verification_failure([e], dest_id, event_type, meta_json)
+        error_msg = str(e)
+        upload_id = report_verification_failure([error_msg], dest_id, event_type, meta_json)
         print(json.dumps({
-            'upload_id': upload_id,
-            'message': e
+            'upload_id': str(upload_id),
+            'message': error_msg
         }))
         sys.exit(1)
 
