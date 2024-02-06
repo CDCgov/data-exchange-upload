@@ -57,7 +57,8 @@ def verify_destination_and_event_allowed(dest_id, event_type):
 
         # If we got here, we couldn't find a valid combo of dest_id and event_type.
         failure_message = "Not a recognized combination of meta_destination_id (" + dest_id + ") and meta_ext_event (" + event_type + ")"
-        handle_verification_failure([failure_message], dest_id, event_type)
+        raise Exception(failure_message)
+        # handle_verification_failure([failure_message], dest_id, event_type)
 
 
 def get_schema_def_by_version(available_schema_defs, requested_schema_version, meta_json):
@@ -74,8 +75,9 @@ def get_schema_def_by_version(available_schema_defs, requested_schema_version, m
             failure_message = 'Requested schema version ' + requested_schema_version + 'not available.  Available ' \
                                                                                        'schema versions: ' + str(
                 available_schemas)
-            dest_id, event = get_required_metadata(meta_json)
-            handle_verification_failure([failure_message], dest_id, event)
+            raise Exception(failure_message)
+            # dest_id, event = get_required_metadata(meta_json)
+            # handle_verification_failure([failure_message], dest_id, event)
         else:
             return selected_schema
 
@@ -126,22 +128,22 @@ def checkMetadataAgainstDefinition(definitionObj, meta_json):
                 validation_error_messages.append(fieldDef.fieldname + ' = ' + fieldValue + 'is not one of the allowed '
                                                                                            'values: ' + json.dumps(
                     fieldDef.allowed_values))
-                # print(fieldDef.fieldname + " = " + fieldValue + " is not one of the allowed values: " + json.dumps(
-                #     fieldDef.allowed_values))
+                print(fieldDef.fieldname + " = " + fieldValue + " is not one of the allowed values: " + json.dumps(
+                    fieldDef.allowed_values))
                 validationError = True
 
     if len(missing_metadata_fields) > 0:
         for fieldDef in missing_metadata_fields:
             validation_error_messages.append(
                 "Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
-            # print(
-            #     "Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
+            print(
+                "Missing required metadata '" + fieldDef.fieldname + "', description = '" + fieldDef.description + "'")
             validationError = True
 
     if validationError:
-        dest_id, event = get_required_metadata(meta_json)
-        handle_verification_failure(validation_error_messages, dest_id, event)
-        # raise Exception("Provided metadata: " + metadata)
+        # dest_id, event = get_required_metadata(meta_json)
+        # handle_verification_failure(validation_error_messages, dest_id, event)
+        raise Exception(stringify_error_messages(validation_error_messages))
 
 
 def get_required_metadata(meta_json):
@@ -152,17 +154,18 @@ def get_required_metadata(meta_json):
             missing_metadata_fields.append(field)
 
     if len(missing_metadata_fields) > 0:
-        failure_message = 'Missing one or more required metadata fields: ' + str(missing_metadata_fields)
+        # failure_message = 'Missing one or more required metadata fields: ' + str(missing_metadata_fields)
+        raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
 
-        dest_id = "not provided"
-        if 'meta_destination_id' not in missing_metadata_fields:
-            dest_id = meta_json['meta_destination_id']
-
-        event_type = "not provided"
-        if 'meta_ext_event' not in missing_metadata_fields:
-            event_type = meta_json['meta_ext_event']
-
-        handle_verification_failure([failure_message], dest_id, event_type)
+        # dest_id = "not provided"
+        # if 'meta_destination_id' not in missing_metadata_fields:
+        #     dest_id = meta_json['meta_destination_id']
+        #
+        # event_type = "not provided"
+        # if 'meta_ext_event' not in missing_metadata_fields:
+        #     event_type = meta_json['meta_ext_event']
+        #
+        # handle_verification_failure([failure_message], dest_id, event_type)
 
     return [
         meta_json['meta_destination_id'],
@@ -170,7 +173,7 @@ def get_required_metadata(meta_json):
     ]
 
 
-def handle_verification_failure(messages, destination_id, event_type):
+def handle_verification_failure(messages, destination_id, event_type, meta_json):
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
 
     # Create trace for upload
@@ -183,7 +186,16 @@ def handle_verification_failure(messages, destination_id, event_type):
     logger.debug(
         f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
 
-    # TODO: Send report with metadata failure issues.
+    filename = get_filename_from_metadata(meta_json)
+    # Send report with metadata failure issues.
+    payload = {
+        'schema_version': '0.0.1',
+        'schema_name': 'metadata-verify',
+        'filename': filename,
+        'metadata': meta_json,
+        'issues': messages
+    }
+    ps_api_controller.create_report(upload_id, destination_id, event_type, payload)
 
     # Stop the upload stage metadata verification span
     ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
@@ -197,14 +209,25 @@ def stringify_error_messages(messages):
     return 'Found the following metadata validation errors: ' + ','.join(messages)
 
 
-def verify_metadata(metadata):
-    metadata_json = json.loads(metadata)
-    dest_id, event = get_required_metadata(metadata_json)
+def get_filename_from_metadata(meta_json):
+    filename_metadata_fields = ['filename', 'original_filename', 'meta_ext_filename']
+    filename = None
 
+    for field in meta_json:
+        if field in filename_metadata_fields:
+            filename = meta_json[field]
+
+    if filename is None:
+        raise Exception('No filename provided.')
+
+    return filename
+
+
+def verify_metadata(dest_id, event_type, meta_json):
     # check if the program/event type is on the list of allowed
-    filename = verify_destination_and_event_allowed(dest_id, event)
+    filename = verify_destination_and_event_allowed(dest_id, event_type)
     if filename is not None:
-        checkProgramEventMetadata(filename, metadata_json)
+        checkProgramEventMetadata(filename, meta_json)
 
 
 def main(argv):
@@ -219,9 +242,17 @@ def main(argv):
             sys.exit()
         elif opt in ("-m", "--metadata"):
             metadata = arg
+
+    meta_json = None
+    dest_id = None
+    event_type = None
+
     try:
-        verify_metadata(metadata)
+        meta_json = json.loads(metadata)
+        dest_id, event_type = get_required_metadata(meta_json)
+        verify_metadata(dest_id, event_type, meta_json)
     except Exception as e:
+        handle_verification_failure([e], dest_id, event_type, meta_json)
         print(e)
         sys.exit(1)
 
