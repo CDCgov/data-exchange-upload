@@ -48,13 +48,13 @@ class ProcStatController:
 
         return resp_json['trace_id'], resp_json['span_id']
 
-    def create_report_json(self, upload_id, destination_id, event_type, json_payload):
+    def create_report_json(self, upload_id, destination_id, event_type, json_payload):        
         params = {
             'destinationId': destination_id,
             'eventType': event_type
         }
 
-        response = requests.put(f'{self.url}/report/json/uploadId/{upload_id}', params={}, json=json_payload)
+        response = requests.put(f'{self.url}/report/json/uploadId/{upload_id}', params=params, json=json_payload)
         response.raise_for_status()
         
     def stop_span_for_trace(self, trace_id, span_id):

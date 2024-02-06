@@ -26,8 +26,8 @@ def get_required_metadata(metadata_json_dict):
         raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
 
     return [
-        meta_json['meta_destination_id'],
-        meta_json['meta_ext_event']
+        metadata_json_dict['meta_destination_id'],
+        metadata_json_dict['meta_ext_event']
     ]
 
 def get_filename_from_metadata(metadata_json_dict):
@@ -59,7 +59,7 @@ def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_i
 
     try:
         # Start the upload stage metadata verification span
-        trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify", json_payload)
+        trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify", metadata_json_dict)
         logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
 
         create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, dest, event)
