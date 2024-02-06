@@ -59,7 +59,7 @@ def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_i
 
     try:
         # Start the upload stage metadata verification span
-        trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify", metadata_json_dict)
+        trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify")
         logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
 
         create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, dest, event)

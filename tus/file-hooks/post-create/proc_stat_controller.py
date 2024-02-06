@@ -25,8 +25,9 @@ class ProcStatController:
             'destinationId': destination_id,
             'eventType': event_type
         }
-        response = requests.post(f'{self.url}/api/trace', params=params)
-        response.raise_for_status()
+
+        request = Request('POST', f'{self.url}/api/trace', params=params)
+        response = self._send_request_with_retry(request.prepare())
 
         resp_json = response.json()
 
@@ -34,13 +35,13 @@ class ProcStatController:
 
         return resp_json['trace_id'], resp_json['span_id']
 
-    def start_span_for_trace(self, trace_id, parent_span_id, stage_name, json_payload):
+    def start_span_for_trace(self, trace_id, parent_span_id, stage_name):
         params = {
             "stageName": stage_name,
         }
         
-        response = requests.put(f'{self.url}/api/trace/startSpan/{trace_id}/{parent_span_id}', params=params, json=json_payload)
-        response.raise_for_status()
+        request = Request('PUT', f'{self.url}/api/trace/stopSpan/{trace_id}/{span_id}', params=params)
+        response = self._send_request_with_retry(request.prepare())
 
         resp_json = response.json()
 
@@ -54,8 +55,8 @@ class ProcStatController:
             'eventType': event_type
         }
 
-        response = requests.put(f'{self.url}/report/json/uploadId/{upload_id}', params=params, json=json_payload)
-        response.raise_for_status()
+        request = Request('PUT', f'{self.url}/report/json/uploadId/{upload_id}', params=params, json=json_payload)
+        self._send_request_with_retry(request.prepare())
         
     def stop_span_for_trace(self, trace_id, span_id):
         req = Request('PUT', f'{self.url}/api/trace/stopSpan/{trace_id}/{span_id}')
