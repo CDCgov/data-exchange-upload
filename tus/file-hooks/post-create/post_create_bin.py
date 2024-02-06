@@ -3,7 +3,6 @@ import json
 import os
 import logging
 import getopt, sys
-import ast
 from datetime import datetime 
 
 from dotenv import load_dotenv
@@ -55,7 +54,6 @@ def post_create(dest, event, metadata_json_dict, tguid):
     # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
     ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
     logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
-
 
 def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, dest, event, metadata_json_dict, tguid):
 
@@ -109,7 +107,7 @@ def main(argv):
         raise Exception('No tguid provided')
 
     # convert metadata json string to a dictionary
-    metadata_json_dict = ast.literal_eval(metadata)
+    metadata_json_dict = json.loads(metadata)
 
     # Create upload trace.
     dest, event = get_required_metadata(metadata_json_dict)
