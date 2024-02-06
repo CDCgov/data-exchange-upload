@@ -81,10 +81,11 @@ class ProcStatController:
         req = Request('PUT', f'{self.url}/api/trace/stopSpan/{trace_id}/{parent_span_id}')
         self._send_request_with_retry(req.prepare())
 
-    def create_report(self, upload_id, destination_id, event_type, payload):
+    def create_report(self, upload_id, destination_id, event_type, stage_name, payload):
         params = {
             'destinationId': destination_id,
-            'eventType': event_type
+            'eventType': event_type,
+            'stageName': stage_name
         }
         req = Request('POST', f'{self.url}/api/report/json/uploadId/{upload_id}', params=params, data=payload)
         self._send_request_with_retry(req.prepare())

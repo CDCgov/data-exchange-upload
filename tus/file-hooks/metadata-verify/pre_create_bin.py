@@ -14,7 +14,8 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-required_metadata_fields = ['meta_destination_id', 'meta_ext_event']
+REQUIRED_METADATA_FIELDS = ['meta_destination_id', 'meta_ext_event']
+STAGE_NAME = 'dex-metadata-verify'
 
 
 class AllowedDestinationEvents:
@@ -147,7 +148,7 @@ def check_metadata_against_definition(definition_obj, meta_json):
 def get_required_metadata(meta_json):
     missing_metadata_fields = []
 
-    for field in required_metadata_fields:
+    for field in REQUIRED_METADATA_FIELDS:
         if field not in meta_json:
             missing_metadata_fields.append(field)
 
@@ -175,7 +176,7 @@ def report_verification_failure(messages, destination_id, event_type, meta_json)
 
     # Start the upload stage metadata verification span
     trace_id, metadata_verify_span_id \
-        = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, 'dex-metadata-verify')
+        = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, STAGE_NAME)
     logger.debug(
         f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
 
@@ -183,12 +184,12 @@ def report_verification_failure(messages, destination_id, event_type, meta_json)
     # Send report with metadata failure issues.
     payload = {
         'schema_version': '0.0.1',
-        'schema_name': 'dex-metadata-verify',
+        'schema_name': STAGE_NAME,
         'filename': filename,
         'metadata': meta_json,
         'issues': messages
     }
-    ps_api_controller.create_report(upload_id, destination_id, event_type, payload)
+    ps_api_controller.create_report(upload_id, destination_id, event_type, STAGE_NAME, payload)
 
     # Stop the upload stage metadata verification span
     ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
