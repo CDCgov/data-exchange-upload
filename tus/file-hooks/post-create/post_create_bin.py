@@ -16,12 +16,11 @@ logger = logging.getLogger(__name__)
 
 required_metadata_fields = ['meta_destination_id', 'meta_ext_event']
 
-def get_required_metadata(metadata_str):
-    meta_json = json.loads(metadata_str)
+def get_required_metadata(metadata_json_dict):
     missing_metadata_fields = []
 
     for field in required_metadata_fields:
-        if field not in meta_json:
+        if field not in metadata_json_dict:
             missing_metadata_fields.append(field)
 
     if len(missing_metadata_fields) > 0:
@@ -44,28 +43,28 @@ def get_filename_from_metadata(metadata_json_dict):
 
     return filename
 
-def post_create(dest, event, metadata, tguid):
+def post_create(dest, event, metadata_json_dict, tguid):
     logger.info(f'Creating trace for upload {tguid} with destination {dest} and event {event}')
 
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
     trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, dest, event)
     logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
 
-    create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, metadata, tguid)
+    create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, dest, event, metadata_json_dict, tguid)
 
     # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
     ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
     logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
 
 
-def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, metadata, tguid):
+def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, dest, event, metadata_json_dict, tguid):
 
     try:
         # Start the upload stage metadata verification span
         trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify", json_payload)
         logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
 
-        upload_metadata_verification_report_json(ps_api_controller, metadata, tguid)
+        create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, dest, event)
 
         # Stop the upload stage metadata verification span
         if metadata_verify_span_id is not None:
@@ -75,12 +74,9 @@ def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_i
     except Exception as e:
         logger.error(f"An exception occurred during creation of metadata verification span: {e}")
 
-def upload_metadata_verification_report_json(ps_api_controller, metadata, tguid):
+def create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, dest, event):
 
     try:
-        # convert metadata json string to a dictionary
-        metadata_json_dict = ast.literal_eval(metadata)
-
         json_payload = { 
             "schema_version": "0.0.1",
             "schema_name": "dex-metadata-verify",
@@ -90,7 +86,7 @@ def upload_metadata_verification_report_json(ps_api_controller, metadata, tguid)
             "issues": []
         }
 
-        upload_report_json(tguid, json_payload)
+        ps_api_controller.create_report_json(tguid, dest, event, json_payload)
 
     except Exception as e:
         logger.error(f"An exception occurred uploading metadata verification report json: {e}")
@@ -112,9 +108,12 @@ def main(argv):
     if tguid is None:
         raise Exception('No tguid provided')
 
+    # convert metadata json string to a dictionary
+    metadata_json_dict = ast.literal_eval(metadata)
+
     # Create upload trace.
-    dest, event = get_required_metadata(metadata)
-    post_create(dest, event, metadata, tguid)
+    dest, event = get_required_metadata(metadata_json_dict)
+    post_create(dest, event, metadata_json_dict, tguid)
 
 
 if __name__ == '__main__':
