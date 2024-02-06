@@ -6,8 +6,11 @@ import uuid
 import logging
 import math
 from argparse import Namespace
+from dotenv import load_dotenv
 
 from proc_stat_controller import ProcStatController
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
