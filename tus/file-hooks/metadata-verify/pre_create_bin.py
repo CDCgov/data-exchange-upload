@@ -186,6 +186,8 @@ def report_verification_failure(messages, destination_id, event_type, meta_json)
     logger.debug(
         f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
 
+    return upload_id
+
 
 def stringify_error_messages(messages):
     return 'Found the following metadata validation errors: ' + ','.join(messages)
@@ -234,8 +236,11 @@ def main(argv):
         dest_id, event_type = get_required_metadata(meta_json)
         verify_metadata(dest_id, event_type, meta_json)
     except Exception as e:
-        report_verification_failure([e], dest_id, event_type, meta_json)
-        print(e)
+        upload_id = report_verification_failure([e], dest_id, event_type, meta_json)
+        print(json.dumps({
+            'upload_id': upload_id,
+            'message': e
+        }))
         sys.exit(1)
 
 
