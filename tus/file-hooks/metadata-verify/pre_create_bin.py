@@ -157,7 +157,7 @@ def get_required_metadata(meta_json):
     ]
 
 
-def handle_verification_failure(messages, destination_id, event_type, meta_json):
+def report_verification_failure(messages, destination_id, event_type, meta_json):
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
 
     # Create trace for upload
@@ -185,8 +185,6 @@ def handle_verification_failure(messages, destination_id, event_type, meta_json)
     ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
     logger.debug(
         f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
-
-    raise Exception(stringify_error_messages(messages))
 
 
 def stringify_error_messages(messages):
@@ -236,7 +234,7 @@ def main(argv):
         dest_id, event_type = get_required_metadata(meta_json)
         verify_metadata(dest_id, event_type, meta_json)
     except Exception as e:
-        handle_verification_failure([e], dest_id, event_type, meta_json)
+        report_verification_failure([e], dest_id, event_type, meta_json)
         print(e)
         sys.exit(1)
 
