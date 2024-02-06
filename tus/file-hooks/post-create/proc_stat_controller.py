@@ -1,5 +1,6 @@
 import requests
 import os
+import json
 
 MAX_RETRIES = os.getenv("PS_API_MAX_RETRIES") or 6
 
@@ -13,6 +14,13 @@ def _handle_span_response(resp_json):
         raise Exception('Invalid PS API response: ' + str(resp_json))
 
 class ProcStatController:
+    def __init__(self, url, delay_s=1):
+        self.url = url
+        self.delay_s = delay_s
+        self.session = Session()
+        self.retry_count = 0
+        self.logger = logging.getLogger(__name__)
+
     def __init__(self, url):
         self.url = url
 
@@ -31,11 +39,12 @@ class ProcStatController:
 
         return resp_json['trace_id'], resp_json['span_id']
 
-    def start_span_for_trace(self, trace_id, parent_span_id, stage_name):
+    def start_span_for_trace(self, trace_id, parent_span_id, stage_name, json_payload):
         params = {
             "stageName": stage_name,
         }
-        response = requests.put(f'{self.url}/api/trace/startSpan/{trace_id}/{parent_span_id}', params=params)
+        
+        response = requests.put(f'{self.url}/api/trace/startSpan/{trace_id}/{parent_span_id}', params=params, json=json_payload)
         response.raise_for_status()
 
         resp_json = response.json()
