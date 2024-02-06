@@ -160,7 +160,13 @@ def get_required_metadata(meta_json):
     ]
 
 
-def report_verification_failure(messages, meta_json, destination_id='NOT_PROVIDED', event_type='NOT_PROVIDED'):
+def report_verification_failure(messages, destination_id, event_type, meta_json):
+    if destination_id is None:
+        destination_id = 'NOT_PROVIDED'
+
+    if event_type is None:
+        event_type = 'NOT_PROVIDED'
+
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
 
     # Create trace for upload
@@ -239,7 +245,7 @@ def main(argv):
         dest_id, event_type = get_required_metadata(meta_json)
         verify_metadata(dest_id, event_type, meta_json)
     except Exception as e:
-        upload_id = report_verification_failure([e], meta_json, dest_id, event_type)
+        upload_id = report_verification_failure([e], dest_id, event_type, meta_json)
         print(json.dumps({
             'upload_id': upload_id,
             'message': e
