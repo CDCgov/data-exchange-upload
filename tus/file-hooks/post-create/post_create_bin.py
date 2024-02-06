@@ -14,6 +14,7 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 required_metadata_fields = ['meta_destination_id', 'meta_ext_event']
+STAGE_NAME = 'dex-metadata-verify'
 
 def get_required_metadata(metadata_json_dict):
     missing_metadata_fields = []
@@ -77,14 +78,14 @@ def create_metadata_verification_report_json(ps_api_controller, metadata_json_di
     try:
         json_payload = { 
             "schema_version": "0.0.1",
-            "schema_name": "dex-metadata-verify",
+            "schema_name": STAGE_NAME,
             "filename": get_filename_from_metadata(metadata_json_dict),
             "timestamp": datetime.now().isoformat(),
             "metadata": metadata_json_dict,
             "issues": []
         }
 
-        ps_api_controller.create_report_json(tguid, dest, event, json_payload)
+        ps_api_controller.create_report_json(tguid, dest, event, STAGE_NAME, json_payload)
 
     except Exception as e:
         logger.error(f"An exception occurred uploading metadata verification report json: {e}")
