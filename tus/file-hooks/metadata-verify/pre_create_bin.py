@@ -208,8 +208,8 @@ def get_filename_from_metadata(meta_json):
     filename_metadata_fields = ['filename', 'original_filename', 'meta_ext_filename']
     filename = None
 
-    for field in meta_json:
-        if field in filename_metadata_fields:
+    for field in filename_metadata_fields:
+        if field in meta_json:
             filename = meta_json[field]
 
     if filename is None:
