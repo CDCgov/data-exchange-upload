@@ -81,8 +81,7 @@ def create_metadata_verification_report_json(ps_api_controller, metadata_json_di
             "schema_name": STAGE_NAME,
             "filename": get_filename_from_metadata(metadata_json_dict),
             "timestamp": datetime.now().isoformat(),
-            "metadata": metadata_json_dict,
-            "issues": []
+            "metadata": metadata_json_dict
         }
 
         ps_api_controller.create_report_json(tguid, dest, event, STAGE_NAME, json_payload)
