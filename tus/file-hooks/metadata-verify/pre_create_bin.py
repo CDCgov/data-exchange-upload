@@ -211,6 +211,7 @@ def get_filename_from_metadata(meta_json):
     for field in filename_metadata_fields:
         if field in meta_json:
             filename = meta_json[field]
+            break
 
     if filename is None:
         raise Exception('No filename provided.')
