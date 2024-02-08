@@ -38,3 +38,4 @@ tus/file-hooks/post-create/post_create_bin.spec
 **/.gradle
 tests/integration/java/build/
 tests/integration/java/bin
+tests/integration/kotlin/build/
