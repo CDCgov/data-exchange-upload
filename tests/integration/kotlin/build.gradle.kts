@@ -5,6 +5,10 @@ plugins {
     application
 }
 
+kotlin {
+    jvmToolchain(15)
+}
+
 group = "me.cfarmer"
 version = "1.0-SNAPSHOT"
 
@@ -14,14 +18,15 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation("org.testng:testng:7.7.0")
 }
 
 tasks.test {
-    useJUnitPlatform()
+    useTestNG()
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = "15"
 }
 
 application {
