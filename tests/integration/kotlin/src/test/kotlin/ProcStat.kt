@@ -10,7 +10,7 @@ import io.restassured.response.ValidatableResponse
 import org.hamcrest.Matchers.*
 import org.testng.TestNGException
 import org.testng.annotations.BeforeGroups
-import util.Groups
+import util.Constants
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
@@ -31,39 +31,67 @@ class ProcStat {
         uploadClient = UploadClient(Env.UPLOAD_URL, authToken)
     }
 
-    @BeforeGroups(groups = [Groups.PROC_STAT_TRACE_HAPPY_PATH])
-    fun procStatHappyPathSetup() {
+    @BeforeGroups(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
+    fun procStatMetadataVerifyHappyPathSetup() {
         val metadata = Metadata.generateRequiredMetadataForFile(testFile)
         uploadId = uploadClient.uploadFile(testFile, metadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
-        Thread.sleep(5_000)
+        Thread.sleep(5_000) // Hard delay to wait for PS API to settle.
+
         traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
             .then()
+            .statusCode(200)
     }
 
-    @Test(groups = [Groups.PROC_STAT_TRACE_HAPPY_PATH])
+    @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
     fun shouldCreateTraceWhenFileUploaded() {
         traceResponse
-            .statusCode(200)
             .body("upload_id", equalTo(uploadId))
     }
 
-    @Test(groups = [Groups.PROC_STAT_TRACE_HAPPY_PATH])
+    @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
     fun shouldHaveMetadataVerifySpanWhenFileUploaded() {
         val jsonPath = traceResponse
-            .statusCode(200)
             .extract().jsonPath()
 
         val stageNames = jsonPath.getList<String>("spans.stage_name")
         assertContains(stageNames, "metadata-verify")
     }
 
-    @Test(groups = [Groups.PROC_STAT_TRACE_HAPPY_PATH])
+    @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
     fun shouldHaveMetadataVerifyStatusCompleteWhenFileUploaded() {
         val jsonPath = traceResponse
-            .statusCode(200)
             .extract().jsonPath()
 
         val metadataVerifyStatus = jsonPath.getList<String>("spans.status").first()
-        assertEquals(metadataVerifyStatus, "complete")
+        assertEquals("complete", metadataVerifyStatus)
+    }
+
+    @BeforeGroups(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
+    fun procStatUploadStatusHappyPathSetup() {
+        val metadata = Metadata.generateRequiredMetadataForFile(testFile)
+        uploadId = uploadClient.uploadFile(testFile, metadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
+        Thread.sleep(12_000) // Hard delay to wait for PS API to settle.
+
+        traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
+    }
+
+    @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
+    fun shouldHaveUploadStatusCompleteWhenFileUploaded() {
+        val jsonPath = traceResponse
+            .extract().jsonPath()
+
+        val uploadStatus = jsonPath.getList<String>("spans.status").last()
+        assertEquals("complete", uploadStatus)
+    }
+
+    @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
+    fun shouldHaveUploadStatusSpanWhenFileUploaded() {
+        val jsonPath = traceResponse
+            .extract().jsonPath()
+
+        val stageNames = jsonPath.getList<String>("spans.stage_name")
+        assertContains(stageNames, "dex-upload")
     }
 }
