@@ -34,6 +34,9 @@ var host = new HostBuilder()
 
         // Registers an implementation for the IEnvironmentVariableProvider interface to be resolved as a singleton.
         services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();
+
+        // Registers an implementation for the IStorageContentReader interface to be resolved as a singleton.
+        services.AddSingleton<IStorageContentReader, StorageContentReader>();
        
     })
     .Build();
