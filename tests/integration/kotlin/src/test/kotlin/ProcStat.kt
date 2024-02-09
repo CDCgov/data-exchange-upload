@@ -81,7 +81,7 @@ class ProcStat {
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
-    fun shouldHaveNullIssuesArrayWhenFileUplaoded() {
+    fun shouldHaveNullIssuesArrayWhenFileUploaded() {
         val jsonPath = reportResponse
             .extract().jsonPath()
         val metadataVerifyReport = jsonPath.getList("reports", Report::class.java).first()
