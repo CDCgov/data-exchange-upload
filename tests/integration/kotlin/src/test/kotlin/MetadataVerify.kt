@@ -4,14 +4,14 @@ import org.testng.Assert
 import org.testng.annotations.BeforeClass
 import org.testng.annotations.Test
 import tus.UploadClient
+import util.Constants.Companion.TEST_DESTINATION
+import util.Constants.Companion.TEST_EVENT
 import util.Env
 import java.io.File
 
 
 @Test()
 class MetadataVerify {
-    private val TEST_DESTINATION = "dextesting"
-    private val TEST_EVENT = "testevent1"
     // TODO: Handle test file not found.
     private val testFile = File(MetadataVerify::class.java.getResource("10KB-test-file").file)
     private val authClient = AuthClient(Env.UPLOAD_URL)

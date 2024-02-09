@@ -23,8 +23,9 @@ dependencies {
     testImplementation("com.squareup.okhttp3:okhttp:4.12.0")
     testImplementation("com.fasterxml.jackson.core:jackson-core:2.9.9")
     testImplementation("com.fasterxml.jackson.core:jackson-annotations:2.9.9")
-    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.9.9")
+    testImplementation("com.fasterxml.jackson.core:jackson-databind:2.14.0-rc1")
     testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9")
+    testImplementation("io.rest-assured:rest-assured:5.4.0")
 }
 
 tasks.test {
