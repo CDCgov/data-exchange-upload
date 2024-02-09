@@ -2,6 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using BulkFileUploadFunctionApp;
 using BulkFileUploadFunctionApp.Services;
+using BulkFileUploadFunctionApp.Model;
 using System.Threading.Tasks;
 using System.Net;
 using Azure;
@@ -11,6 +12,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionAppTests
 {
@@ -22,6 +24,7 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
         private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
         private Mock<IServiceProvider> _mockServiceProvider;
+        private Mock<IStorageContentReader> _mockStorageContentReader;
 
         // Initializes mock objects for HTTP request/response, function context, blob service, environment variables, and logger.
         // Sets up default behavior for these mocks to be used in health check function tests.
@@ -30,7 +33,12 @@ namespace BulkFileUploadFunctionAppTests
         {
             _mockFunctionContext = new Mock<FunctionContext>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
-            _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();           
+            _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
+            _mockStorageContentReader = new Mock<IStorageContentReader>();
+
+            var expectedContent = "[{\"destinationId\":\"destination1\",\"extEvents\":[{\"name\":\"event1\"}]}]";
+            _mockStorageContentReader.Setup(x => x.GetContent(It.IsAny<BlobServiceClient>(), It.IsAny<string>(), It.IsAny<string>()))
+                                    .Returns(expectedContent);
 
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
 
@@ -48,7 +56,8 @@ namespace BulkFileUploadFunctionAppTests
         {
             return new HealthCheckFunction(
                 _mockBlobServiceClientFactory.Object,
-                _mockEnvironmentVariableProvider.Object);
+                _mockEnvironmentVariableProvider.Object,
+                _mockStorageContentReader.Object);
         }
 
         [TestMethod]
@@ -67,10 +76,13 @@ namespace BulkFileUploadFunctionAppTests
                 httpRequestData,
                 functionContext);
 
-            // Check response is not null, status code is OK, and 'Healthy!' was written once.
-            Assert.IsNotNull(result);
+            // Assert
             Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
-           
+            result.Body.Position = 0;
+            var responseBody = new StreamReader(result.Body).ReadToEnd();
+            var healthCheckResponse = JsonSerializer.Deserialize<HealthCheckResponse>(responseBody);
+            Assert.IsNotNull(healthCheckResponse);
+            Assert.AreEqual("UP", healthCheckResponse.Status);
         }
 
         [TestMethod]
@@ -144,7 +156,8 @@ namespace BulkFileUploadFunctionAppTests
                 // Creates a mock HttpResponseData object.
                 var httpResponseData = new Mock<HttpResponseData>(functionContext);
                 // Sets up properties to simulate a real HTTP response.
-                httpResponseData.SetupProperty(res => res.Body);
+                var responseStream = new MemoryStream();
+                httpResponseData.Setup(res => res.Body).Returns(responseStream);
                 httpResponseData.SetupProperty(res => res.StatusCode);
                 httpResponseData.Setup(res => res.Headers).Returns(new HttpHeadersCollection());
                 return httpResponseData.Object;
