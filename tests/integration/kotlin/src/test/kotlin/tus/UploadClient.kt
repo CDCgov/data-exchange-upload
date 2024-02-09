@@ -50,6 +50,7 @@ class UploadClient(url: String, private val authToken: String) {
         }
 
         executor.makeAttempts()
+
         return uploadId
     }
 
