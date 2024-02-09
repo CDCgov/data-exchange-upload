@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class Report (
-    @get:JsonProperty("stage_name") val stageName: String,
-    val content: ReportContent,
-    val issues: Array<String>?
+data class ReportContent(
+    @get:JsonProperty("schema_name") val schemaName: String,
+    val offset: Int?,
+    val size: Int?
 )
