@@ -24,6 +24,7 @@ class ProcStat {
     private lateinit var uploadClient: UploadClient
     private lateinit var uploadId: String
     private lateinit var traceResponse: ValidatableResponse
+    private lateinit var reportResponse: ValidatableResponse
 
     @BeforeClass()
     fun beforeClass() {
@@ -38,6 +39,10 @@ class ProcStat {
         Thread.sleep(5_000) // Hard delay to wait for PS API to settle.
 
         traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
+
+        reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId")
             .then()
             .statusCode(200)
     }
@@ -64,6 +69,12 @@ class ProcStat {
 
         val metadataVerifyStatus = jsonPath.getList<String>("spans.status").first()
         assertEquals("complete", metadataVerifyStatus)
+    }
+    
+    @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
+    fun shouldHaveMetadataVerifyReportWhenFileUploaded() {
+        reportResponse
+            .body("upload_id", equalTo(uploadId))
     }
 
     @BeforeGroups(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
