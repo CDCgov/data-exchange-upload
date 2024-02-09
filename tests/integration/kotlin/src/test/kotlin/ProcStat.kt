@@ -7,12 +7,14 @@ import util.Metadata
 import java.io.File
 import io.restassured.RestAssured.*
 import io.restassured.response.ValidatableResponse
+import model.Report
 import org.hamcrest.Matchers.*
 import org.testng.TestNGException
 import org.testng.annotations.BeforeGroups
 import util.Constants
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @Test()
 class ProcStat {
@@ -75,6 +77,17 @@ class ProcStat {
     fun shouldHaveMetadataVerifyReportWhenFileUploaded() {
         reportResponse
             .body("upload_id", equalTo(uploadId))
+            .body("reports.stage_name", hasItem("dex-metadata-verify"))
+    }
+
+    @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
+    fun shouldHaveNullIssuesArrayWhenFileUplaoded() {
+        val jsonPath = reportResponse
+            .extract().jsonPath()
+        val metadataVerifyReport = jsonPath.getList("reports", Report::class.java).first()
+
+        assertEquals("dex-metadata-verify", metadataVerifyReport.stageName)
+        assertNull(metadataVerifyReport.issues)
     }
 
     @BeforeGroups(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
