@@ -14,6 +14,7 @@ import org.testng.annotations.BeforeGroups
 import util.Constants
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 @Test()
@@ -78,6 +79,7 @@ class ProcStat {
         reportResponse
             .body("upload_id", equalTo(uploadId))
             .body("reports.stage_name", hasItem("dex-metadata-verify"))
+            .body("reports.content.schema_name", hasItem("dex-metadata-verify"))
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
@@ -99,6 +101,9 @@ class ProcStat {
         traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
             .then()
             .statusCode(200)
+        reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
@@ -117,5 +122,25 @@ class ProcStat {
 
         val stageNames = jsonPath.getList<String>("spans.stage_name")
         assertContains(stageNames, "dex-upload")
+    }
+
+    @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
+    fun shouldHaveUploadStatusReportWhenFileUploaded() {
+        reportResponse
+            .body("upload_id", equalTo(uploadId))
+            .body("reports.stage_name", hasItem("dex-upload"))
+            .body("reports.content.schema_name", hasItem("upload"))
+    }
+
+    @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
+    fun shouldHaveEqualOffsetAndSizeWhenFileUploaded() {
+        val jsonPath = reportResponse
+            .extract().jsonPath()
+
+        val uploadReport = jsonPath.getList("reports", Report::class.java)
+            .find { it.stageName == "dex-upload" }
+
+        assertNotNull(uploadReport)
+        assertEquals(uploadReport.content.size, uploadReport.content.offset)
     }
 }
