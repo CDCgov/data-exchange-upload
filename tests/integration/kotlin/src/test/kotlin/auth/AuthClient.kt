@@ -32,8 +32,8 @@ class AuthClient(private val url: String) {
             throw IOException("Error getting token.")
         }
 
-        // TODO: Handle when body is empty.
-        val respBody: AuthResponse = objectMapper.readValue(resp.body?.string() ?: "", AuthResponse::class.java)
+        val respBody: AuthResponse = objectMapper.readValue(resp.body?.string()
+            ?: throw IOException("Empty SAMS response"), AuthResponse::class.java)
         return respBody.accessToken
     }
 }
