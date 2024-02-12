@@ -12,6 +12,7 @@ import org.hamcrest.Matchers.*
 import org.testng.TestNGException
 import org.testng.annotations.BeforeGroups
 import util.Constants
+import util.TestFile
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -19,7 +20,7 @@ import kotlin.test.assertNull
 
 @Test()
 class ProcStat {
-    private val testFile = File(MetadataVerify::class.java.getResource("10KB-test-file").file)
+    private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
     private val authClient = AuthClient(Env.UPLOAD_URL)
     private val procStatReqSpec = given().apply {
         baseUri(Env.PROC_STAT_URL)

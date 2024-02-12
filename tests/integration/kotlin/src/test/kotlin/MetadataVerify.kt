@@ -7,13 +7,12 @@ import tus.UploadClient
 import util.Constants.Companion.TEST_DESTINATION
 import util.Constants.Companion.TEST_EVENT
 import util.Env
-import java.io.File
+import util.TestFile
 
 
 @Test()
 class MetadataVerify {
-    // TODO: Handle test file not found.
-    private val testFile = File(MetadataVerify::class.java.getResource("10KB-test-file").file)
+    private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
     private val authClient = AuthClient(Env.UPLOAD_URL)
     private lateinit var uploadClient: UploadClient
 
