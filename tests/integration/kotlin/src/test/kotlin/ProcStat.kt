@@ -2,9 +2,8 @@ import auth.AuthClient
 import org.testng.annotations.BeforeClass
 import org.testng.annotations.Test
 import tus.UploadClient
-import util.Env
+import util.EnvConfig
 import util.Metadata
-import java.io.File
 import io.restassured.RestAssured.*
 import io.restassured.response.ValidatableResponse
 import model.Report
@@ -21,9 +20,9 @@ import kotlin.test.assertNull
 @Test()
 class ProcStat {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
-    private val authClient = AuthClient(Env.UPLOAD_URL)
+    private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
     private val procStatReqSpec = given().apply {
-        baseUri(Env.PROC_STAT_URL)
+        baseUri(EnvConfig.PROC_STAT_URL)
     }
     private lateinit var uploadClient: UploadClient
     private lateinit var uploadId: String
@@ -32,8 +31,8 @@ class ProcStat {
 
     @BeforeClass()
     fun beforeClass() {
-        val authToken = authClient.getToken(Env.SAMS_USERNAME, Env.SAMS_PASSWORD)
-        uploadClient = UploadClient(Env.UPLOAD_URL, authToken)
+        val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
+        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
     @BeforeGroups(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])

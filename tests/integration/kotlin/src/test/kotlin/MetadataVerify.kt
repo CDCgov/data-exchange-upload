@@ -6,20 +6,20 @@ import org.testng.annotations.Test
 import tus.UploadClient
 import util.Constants.Companion.TEST_DESTINATION
 import util.Constants.Companion.TEST_EVENT
-import util.Env
+import util.EnvConfig
 import util.TestFile
 
 
 @Test()
 class MetadataVerify {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
-    private val authClient = AuthClient(Env.UPLOAD_URL)
+    private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
     private lateinit var uploadClient: UploadClient
 
     @BeforeClass()
     fun beforeClass() {
-        val authToken = authClient.getToken(Env.SAMS_USERNAME, Env.SAMS_PASSWORD)
-        uploadClient = UploadClient(Env.UPLOAD_URL, authToken)
+        val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
+        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
     @Test()
