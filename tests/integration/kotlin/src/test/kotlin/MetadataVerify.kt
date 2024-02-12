@@ -55,8 +55,7 @@ class MetadataVerify {
             "meta_ext_source" to "INTEGRATION-TEST"
         ) as HashMap<String, String>
 
-        val uploadId = uploadClient.uploadFile(testFile, metadata)
-        Assert.assertNotNull(uploadId)
+        uploadClient.uploadFile(testFile, metadata)
     }
 
     @Test(expectedExceptions = [ProtocolException::class])
@@ -67,8 +66,7 @@ class MetadataVerify {
             "meta_ext_source" to "INTEGRATION-TEST"
         )
 
-        val uploadId = uploadClient.uploadFile(testFile, metadata)
-        Assert.assertNotNull(uploadId)
+        uploadClient.uploadFile(testFile, metadata)
     }
 }
 
