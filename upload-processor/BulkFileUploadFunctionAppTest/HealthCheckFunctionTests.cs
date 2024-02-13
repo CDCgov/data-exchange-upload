@@ -24,7 +24,6 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
         private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
         private Mock<IServiceProvider> _mockServiceProvider;
-        private Mock<IStorageContentReader> _mockStorageContentReader;
 
         // Initializes mock objects for HTTP request/response, function context, blob service, environment variables, and logger.
         // Sets up default behavior for these mocks to be used in health check function tests.
@@ -34,11 +33,6 @@ namespace BulkFileUploadFunctionAppTests
             _mockFunctionContext = new Mock<FunctionContext>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
             _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
-            _mockStorageContentReader = new Mock<IStorageContentReader>();
-
-            var expectedContent = "[{\"destinationId\":\"destination1\",\"extEvents\":[{\"name\":\"event1\"}]}]";
-            _mockStorageContentReader.Setup(x => x.GetContent(It.IsAny<BlobServiceClient>(), It.IsAny<string>(), It.IsAny<string>()))
-                                    .Returns(expectedContent);
 
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
 
@@ -56,8 +50,7 @@ namespace BulkFileUploadFunctionAppTests
         {
             return new HealthCheckFunction(
                 _mockBlobServiceClientFactory.Object,
-                _mockEnvironmentVariableProvider.Object,
-                _mockStorageContentReader.Object);
+                _mockEnvironmentVariableProvider.Object);
         }
 
         [TestMethod]
@@ -93,7 +86,6 @@ namespace BulkFileUploadFunctionAppTests
             var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
             _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>()))
                 .Throws(new RequestFailedException("Error"));
-
 
             var healthCheckFunction = CreateHealthCheckFunction();
             // Act

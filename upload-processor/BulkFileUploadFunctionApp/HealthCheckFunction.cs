@@ -11,23 +11,19 @@ using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp
 {
-
     public class HealthCheckFunction
     {
-        const string TestContainerName = "tusd-file-hooks";
-        const string TestBlobName = "allowed_destination_and_events.json";
+        public string[] StorageNames = { "EDAV Blob Container", "Routing Blob Container" };
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
-        private readonly IStorageContentReader _storageContentReader;
 
         // Constructor
         public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory,
-                               IEnvironmentVariableProvider environmentVariableProvider,
-                               IStorageContentReader storageContentReader)
+                               IEnvironmentVariableProvider environmentVariableProvider)
         {
             _blobServiceClientFactory = blobServiceClientFactory;
             _environmentVariableProvider = environmentVariableProvider;
-            _storageContentReader = storageContentReader;
+
         }
 
         [Function("HealthCheckFunction")]
@@ -50,34 +46,37 @@ namespace BulkFileUploadFunctionApp
             //creating a response for a request and setting its status code to 200 (OK).
             var response = req.CreateResponse();
             response.StatusCode = HttpStatusCode.OK;
+            string storageAccountName = string.Empty;
+            string storageAccountKey = string.Empty;
+            string connectionString = string.Empty;
 
             try
             {
-                //retrieve the values of these environment variables
-                var storageAccountName = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME");
-                var storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY");
-
-                _logger.LogInformation("Container name-->" + TestContainerName);
-                var connectionString = $"DefaultEndpointsProtocol=https;AccountName={storageAccountName};AccountKey={storageAccountKey};EndpointSuffix=core.windows.net";
-
-                //establishing a connection to Azure Blob Storage and accessing a particular container by using the connection string.
-                BlobServiceClient blobServiceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
-                
-                // Retrieve content from a specific blob.
-                string destinations = _storageContentReader.GetContent(blobServiceClient, TestContainerName, TestBlobName);
-
-                _logger.LogInformation("destinations-->" + destinations);
-                 
-                // Deserialize JSON content to a list of destination and events.
-                List<DestinationAndEvents> destinationAndEvents = JsonSerializer.Deserialize<List<DestinationAndEvents>>(destinations)!;
-                
-                // Concatenate destination names for health checks.
-                List<string> listOfDestinations = GetConcatenatedDestinationEventNames(destinationAndEvents);
-                 
-                 // Perform health checks for each destination.
-                foreach (var destination in listOfDestinations)
+                // Perform health checks for each destination.
+                foreach (var storage in StorageNames)
                 {
-                    HealthCheckResult checkResult = await CheckBlobStorageHealthAsync(destination, connectionString, blobServiceClient);
+                    if (storage == "Routing Blob Container")
+                    {
+                        // Retrieve the values of these environment variables
+                        storageAccountName = _environmentVariableProvider.GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_NAME");
+                        storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_KEY");
+                    }
+                    else
+                    {
+                        storageAccountName = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME");
+                        storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY");
+                    }
+
+                    if (string.IsNullOrEmpty(storageAccountName) || string.IsNullOrEmpty(storageAccountKey))
+                    {
+                        throw new InvalidOperationException("Storage account name or key is not configured.");
+                    }
+                    connectionString = $"DefaultEndpointsProtocol=https;AccountName={storageAccountName};AccountKey={storageAccountKey};EndpointSuffix=core.windows.net";
+                    BlobServiceClient blobServiceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
+
+                    _logger.LogInformation($"Checking health for destination: {storage}");                
+
+                    HealthCheckResult checkResult = await CheckBlobStorageHealthAsync(storage, blobServiceClient);
                     healthCheckResponse.DependencyHealthChecks.Add(checkResult);
                 }
 
@@ -107,51 +106,25 @@ namespace BulkFileUploadFunctionApp
             }
         }
 
-        private async Task<HealthCheckResult> CheckBlobStorageHealthAsync(string destination, string connectionString, BlobServiceClient blobServiceClient)
+        private async Task<HealthCheckResult> CheckBlobStorageHealthAsync(string destination, BlobServiceClient blobServiceClient)
         {
             try
             {
                 // Check connectivity by getting blob container reference.
-                BlobContainerClient container = blobServiceClient.GetBlobContainerClient(destination);
-
-                // Verify the existence of the container as a lightweight operation to check health.
-                await container.ExistsAsync();
-                
+                BlobContainerClient container = blobServiceClient.GetBlobContainerClient(destination == "Routing Blob Container" ? "test-routing" : "dextesting-testevent1");
+               
                 // If successful, return a healthy result for this destination.
                 return new HealthCheckResult(destination, "UP", "Healthy");
-
             }
             catch (RequestFailedException ex)
-            {    
-                // In case of any exceptions, consider the destination down and return the error message.
-                return new HealthCheckResult(destination, "DOWN", ex.Message);
-            }
-        }
-
-        public List<string> GetConcatenatedDestinationEventNames(List<DestinationAndEvents> destinations)
-        {
-            // Create a list to hold concatenated destination and event names.
-            var concatenatedList = new List<string>();
-            if (destinations == null) return concatenatedList;
-            
-            // Iterate through each destination and its events, concatenating their names.
-            foreach (var destination in destinations)
             {
-                if (destination?.extEvents == null) continue;
-                foreach (var extEvent in destination.extEvents)
-                {
-                    if (extEvent?.name == null) continue;
-                    string concatenated = $"{destination.destinationId}-{extEvent.name}"; // Concatenate destination ID and event name.
-                    concatenatedList.Add(concatenated); // Add the concatenated name to the list.
-                }
-
+                // In case of any exceptions, consider the destination down and return the error message.
+                return new HealthCheckResult(destination, "DOWN", "Unhealthy");
             }
-
-            return concatenatedList;
         }
 
         public static string ToIso8601Duration(TimeSpan timeSpan)
-        {   
+        {
             // Convert TimeSpan to ISO format.
             return "P" +
                    (timeSpan.Days > 0 ? $"{timeSpan.Days}D" : "") +
