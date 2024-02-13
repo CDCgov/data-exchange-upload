@@ -33,11 +33,7 @@ var host = new HostBuilder()
         services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactoryImpl>();
 
         // Registers an implementation for the IEnvironmentVariableProvider interface to be resolved as a singleton.
-        services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();
-
-        // Registers an implementation for the IStorageContentReader interface to be resolved as a singleton.
-        services.AddSingleton<IStorageContentReader, StorageContentReader>();
-       
+        services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();       
     })
     .Build();
 
