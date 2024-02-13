@@ -29,6 +29,12 @@ var host = new HostBuilder()
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
 
+        // Register Proc Stat Http Service.
+        services.AddHttpClient<IProcStatClient, ProcStatClient>(client =>
+        {
+            client.BaseAddress = new Uri(Environment.GetEnvironmentVariable("PS_API_URL") ?? "");
+        });
+
         // Registers an implementation for the IBlobServiceClientFactory interface to be resolved as a singleton.
         services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactoryImpl>();
 

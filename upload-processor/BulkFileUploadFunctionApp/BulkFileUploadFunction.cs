@@ -4,14 +4,13 @@ using Azure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Specialized;
 using BulkFileUploadFunctionApp.Model;
 using Azure.Identity;
-using Azure.Storage.Sas;
 using Newtonsoft.Json;
 using BulkFileUploadFunctionApp.Utils;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
+using BulkFileUploadFunctionApp.Services;
 
 namespace BulkFileUploadFunctionApp
 {
@@ -50,17 +49,20 @@ namespace BulkFileUploadFunctionApp
 
         private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
 
+        private readonly IProcStatClient _procStatClient;
+
 
         public static string? GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IConfiguration configuration)
+        public BulkFileUploadFunction(IProcStatClient procStatClient, ILoggerFactory loggerFactory, IConfiguration configuration)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
 
             _configuration = configuration;
+            _procStatClient = procStatClient;
 
             _blobCopyHelper = new(_logger);
 
@@ -143,6 +145,8 @@ namespace BulkFileUploadFunctionApp
 
                 GetRequiredMetaData(tusInfoFile, out string destinationId, out string extEvent);
 
+                // TODO: Start copy span here.
+
                 var uploadConfig = UploadConfig.Default;
                 try
                 {
@@ -186,6 +190,8 @@ namespace BulkFileUploadFunctionApp
                 await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
                 await CopyToTargetSystemAsync(destinationId, extEvent, destinationBlobFilename, destinationContainerName, tusFileMetadata);
+
+                // TODO: Stop copy span here.
             }
             catch (Exception e)
             {
@@ -215,6 +221,8 @@ namespace BulkFileUploadFunctionApp
                         // Now copy the file from DeX to the EDAV storage account, also partitioned by date
                         await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
+                        // TODO: Send success copy to edav report.
+
                     }
                     else if (copyTarget.target == _targetRouting)
                     {
@@ -223,6 +231,8 @@ namespace BulkFileUploadFunctionApp
                         {
                             // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
                             await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+
+                            // TODO: Send success copy to routing report.
                         }
                         else
                         {
