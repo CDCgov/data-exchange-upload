@@ -7,19 +7,20 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using Azure.Identity;
 
 
 namespace BulkFileUploadFunctionApp
 {
     public class HealthCheckFunction
     {
-        public string[] StorageNames = { "EDAV Blob Container", "Routing Blob Container" };
+        private readonly string[] StorageNames = { "DEX Blob Container", "EDAV Blob Container", "Routing Blob Container" };
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
 
         // Constructor
         public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory,
-                               IEnvironmentVariableProvider environmentVariableProvider)
+                                    IEnvironmentVariableProvider environmentVariableProvider)
         {
             _blobServiceClientFactory = blobServiceClientFactory;
             _environmentVariableProvider = environmentVariableProvider;
@@ -46,37 +47,51 @@ namespace BulkFileUploadFunctionApp
             //creating a response for a request and setting its status code to 200 (OK).
             var response = req.CreateResponse();
             response.StatusCode = HttpStatusCode.OK;
-            string storageAccountName = string.Empty;
-            string storageAccountKey = string.Empty;
-            string connectionString = string.Empty;
-
             try
             {
+                string storageAccountName = string.Empty;
+                string storageAccountKey = string.Empty;
+                string connectionString = string.Empty;
+                string edavAzureStorageAccountName = string.Empty;
+                string containerName = string.Empty;
+
+                BlobServiceClient blobServiceClient = null;
+                HealthCheckResult checkResult = null;
+
                 // Perform health checks for each destination.
                 foreach (var storage in StorageNames)
                 {
-                    if (storage == "Routing Blob Container")
+                    if (storage == "EDAV Blob Container")
                     {
+                        containerName = "dextesting-testevent1";
+                        edavAzureStorageAccountName = _environmentVariableProvider.GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
+                        blobServiceClient = new BlobServiceClient(
+                         new Uri($"https://{edavAzureStorageAccountName}.blob.core.windows.net"),
+                         new DefaultAzureCredential() // using Service Principal
+                     );
+                    }
+                    else if (storage == "Routing Blob Container")
+                    {
+                        containerName = "test-routing";
                         // Retrieve the values of these environment variables
                         storageAccountName = _environmentVariableProvider.GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_NAME");
                         storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_KEY");
+                        connectionString = $"DefaultEndpointsProtocol=https;AccountName={storageAccountName};AccountKey={storageAccountKey};EndpointSuffix=core.windows.net";
+                        blobServiceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
                     }
                     else
                     {
+                        containerName = "dextesting-testevent1";
                         storageAccountName = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME");
                         storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY");
+                        connectionString = $"DefaultEndpointsProtocol=https;AccountName={storageAccountName};AccountKey={storageAccountKey};EndpointSuffix=core.windows.net";
+                        blobServiceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
                     }
 
-                    if (string.IsNullOrEmpty(storageAccountName) || string.IsNullOrEmpty(storageAccountKey))
-                    {
-                        throw new InvalidOperationException("Storage account name or key is not configured.");
-                    }
-                    connectionString = $"DefaultEndpointsProtocol=https;AccountName={storageAccountName};AccountKey={storageAccountKey};EndpointSuffix=core.windows.net";
-                    BlobServiceClient blobServiceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
+                    _logger.LogInformation($"Checking health for destination: {storage}");
 
-                    _logger.LogInformation($"Checking health for destination: {storage}");                
+                    checkResult = await CheckBlobStorageHealthAsync(storage, containerName, blobServiceClient,_logger);
 
-                    HealthCheckResult checkResult = await CheckBlobStorageHealthAsync(storage, blobServiceClient);
                     healthCheckResponse.DependencyHealthChecks.Add(checkResult);
                 }
 
@@ -106,19 +121,21 @@ namespace BulkFileUploadFunctionApp
             }
         }
 
-        private async Task<HealthCheckResult> CheckBlobStorageHealthAsync(string destination, BlobServiceClient blobServiceClient)
+        private async Task<HealthCheckResult> CheckBlobStorageHealthAsync(string destination, string containerName,BlobServiceClient blobServiceClient,ILogger logger)
         {
             try
             {
                 // Check connectivity by getting blob container reference.
-                BlobContainerClient container = blobServiceClient.GetBlobContainerClient(destination == "Routing Blob Container" ? "test-routing" : "dextesting-testevent1");
-               
+                BlobContainerClient container = blobServiceClient.GetBlobContainerClient(containerName);
+
                 // If successful, return a healthy result for this destination.
+                logger.LogInformation($"Health check passed for container: {containerName}");
                 return new HealthCheckResult(destination, "UP", "Healthy");
             }
             catch (RequestFailedException ex)
             {
                 // In case of any exceptions, consider the destination down and return the error message.
+                logger.LogError(ex, "Error occurred while checking {containerName} container health.");
                 return new HealthCheckResult(destination, "DOWN", "Unhealthy");
             }
         }
