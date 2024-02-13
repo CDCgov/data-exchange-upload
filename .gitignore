@@ -36,5 +36,7 @@ tus/file-hooks/post-create/post_create_bin.spec
 
 # Java
 **/.gradle
+**/local.properties
 tests/integration/java/build/
 tests/integration/java/bin
+tests/integration/kotlin/build/
