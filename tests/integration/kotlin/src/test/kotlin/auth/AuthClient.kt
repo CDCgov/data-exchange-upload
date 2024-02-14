@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets
 
 class AuthClient(private val url: String) {
     private val httpClient = OkHttpClient()
-    private val objectMapper = ObjectMapper().registerModule(KotlinModule())
+    private val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
 
     fun getToken(username: String, password: String): String {
         val body = FormBody.Builder(Charset.forName(StandardCharsets.UTF_8.name()))

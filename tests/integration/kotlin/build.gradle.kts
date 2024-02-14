@@ -6,7 +6,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(15)
+    jvmToolchain(11)
 }
 
 group = "me.cfarmer"
@@ -33,7 +33,7 @@ tasks.test {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "15"
+    kotlinOptions.jvmTarget = "11"
 }
 
 application {
