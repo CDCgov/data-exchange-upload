@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Security.Cryptography.X509Certificates;
 using BulkFileUploadFunctionApp.Model;
+using Newtonsoft.Json;
 
 namespace BulkFileUploadFunctionApp.Services
 {
@@ -26,19 +28,32 @@ namespace BulkFileUploadFunctionApp.Services
             throw new NotImplementedException();
         }
 
-        public string GetTraceByUploadId(string uploadId)
+        public async Task<Trace> GetTraceByUploadId(string uploadId)
         {
-            throw new NotImplementedException();
+            var response = await _httpClient.GetAsync($"/api/trace/uploadId/{uploadId}");
+            response.EnsureSuccessStatusCode();
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            // TODO: Handle empty body.
+            return JsonConvert.DeserializeObject<Trace>(responseBody);
         }
 
-        public string StartSpanForTrace(string traceId, string parentSpanId, string stageName)
+        public async Task<string> StartSpanForTrace(string traceId, string parentSpanId, string stageName)
         {
-            throw new NotImplementedException();
+            var response = await _httpClient.PutAsync($"/api/trace/startSpan/{traceId}/{parentSpanId}?stageName={stageName}", null);
+            response.EnsureSuccessStatusCode();
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            return responseBody;
         }
 
-        public string StopSpanForTrace(string traceId, string parentSpanId)
+        public async Task<string> StopSpanForTrace(string traceId, string parentSpanId)
         {
-            throw new NotImplementedException();
+            var response = await _httpClient.PutAsync($"/api/trace/stopSpan/{traceId}/{parentSpanId}", null);
+            response.EnsureSuccessStatusCode();
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            return responseBody;
         }
     }
 }

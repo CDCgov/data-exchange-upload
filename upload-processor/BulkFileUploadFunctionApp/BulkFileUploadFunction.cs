@@ -50,6 +50,7 @@ namespace BulkFileUploadFunctionApp
         private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
 
         private readonly IProcStatClient _procStatClient;
+        private readonly string _stageName = "dex-file-copy";
 
 
         public static string? GetEnvironmentVariable(string name)
@@ -146,6 +147,8 @@ namespace BulkFileUploadFunctionApp
                 GetRequiredMetaData(tusInfoFile, out string destinationId, out string extEvent);
 
                 // TODO: Start copy span here.
+                var trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
+                await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
 
                 var uploadConfig = UploadConfig.Default;
                 try
@@ -192,6 +195,7 @@ namespace BulkFileUploadFunctionApp
                 await CopyToTargetSystemAsync(destinationId, extEvent, destinationBlobFilename, destinationContainerName, tusFileMetadata);
 
                 // TODO: Stop copy span here.
+                await _procStatClient.StopSpanForTrace(trace.TraceId, trace.SpanId);
             }
             catch (Exception e)
             {
