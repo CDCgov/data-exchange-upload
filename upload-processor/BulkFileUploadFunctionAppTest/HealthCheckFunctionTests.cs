@@ -24,6 +24,9 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
         private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
         private Mock<IServiceProvider> _mockServiceProvider;
+        private Mock<ILogger<HealthCheckFunction>> _loggerMock;
+        private Mock<ILoggerFactory> _loggerFactoryMock;
+
 
         // Initializes mock objects for HTTP request/response, function context, blob service, environment variables, and logger.
         // Sets up default behavior for these mocks to be used in health check function tests.
@@ -33,24 +36,31 @@ namespace BulkFileUploadFunctionAppTests
             _mockFunctionContext = new Mock<FunctionContext>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
             _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
+            // Configures mock service provider for logging services and sets up the function context to use this provider.
+            _mockServiceProvider = new Mock<IServiceProvider>();
 
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
 
-            // Configures mock service provider for logging services and sets up the function context to use this provider.
-            _mockServiceProvider = new Mock<IServiceProvider>();
-
             _mockFunctionContext.Setup(ctx => ctx.InstanceServices)
                                 .Returns(_mockServiceProvider.Object);
+            _loggerFactoryMock = new Mock<ILoggerFactory>();
+            _loggerMock = new Mock<ILogger<HealthCheckFunction>>();
+            _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
+
+            // Assuming you need to set up your logger mock, for example:
+            _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger<HealthCheckFunction>)))
+                                .Returns(_loggerMock.Object);
         }
 
         private HealthCheckFunction CreateHealthCheckFunction()
         {
             return new HealthCheckFunction(
                 _mockBlobServiceClientFactory.Object,
-                _mockEnvironmentVariableProvider.Object);
+                _mockEnvironmentVariableProvider.Object,
+                _loggerFactoryMock.Object);
         }
 
         [TestMethod]
@@ -60,7 +70,6 @@ namespace BulkFileUploadFunctionAppTests
             // setting up a mock response wrapper to simulate the behavior of the actual response object used in the service.
             var functionContext = TestHelpers.CreateFunctionContext();
             var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
-
             var healthCheckFunction = CreateHealthCheckFunction();
 
             // Act
@@ -111,8 +120,11 @@ namespace BulkFileUploadFunctionAppTests
         public static FunctionContext CreateFunctionContext()
         {
             var services = new ServiceCollection();
-            services.AddLogging(builder => builder.AddConsole());
+            // Explicitly mock ILogger<HealthCheckFunction> and add to services
+            var mockLogger = new Mock<ILogger<HealthCheckFunction>>();
+            services.AddSingleton<ILogger<HealthCheckFunction>>(mockLogger.Object);
 
+            services.AddLogging(builder => builder.AddConsole());
             var serviceProvider = services.BuildServiceProvider();
 
             // Creates a mock FunctionContext.
