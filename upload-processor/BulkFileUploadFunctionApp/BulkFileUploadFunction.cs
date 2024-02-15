@@ -146,9 +146,9 @@ namespace BulkFileUploadFunctionApp
 
                 GetRequiredMetaData(tusInfoFile, out string destinationId, out string extEvent);
 
-                // TODO: Start copy span here.
+                // TODO: Null checks for trace and span.
                 var trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
-                await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
+                var copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
 
                 var uploadConfig = UploadConfig.Default;
                 try
@@ -194,8 +194,7 @@ namespace BulkFileUploadFunctionApp
 
                 await CopyToTargetSystemAsync(destinationId, extEvent, destinationBlobFilename, destinationContainerName, tusFileMetadata);
 
-                // TODO: Stop copy span here.
-                await _procStatClient.StopSpanForTrace(trace.TraceId, trace.SpanId);
+                await _procStatClient.StopSpanForTrace(trace.TraceId, copySpan.SpanId);
             }
             catch (Exception e)
             {

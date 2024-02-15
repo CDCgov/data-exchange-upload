@@ -44,18 +44,19 @@ namespace BulkFileUploadFunctionApp.Services
             return JsonConvert.DeserializeObject<Trace>(responseBody);
         }
 
-        public async Task<string> StartSpanForTrace(string traceId, string parentSpanId, string stageName)
+        public async Task<Span> StartSpanForTrace(string traceId, string parentSpanId, string stageName)
         {
             var response = await _httpClient.PutAsync($"/api/trace/startSpan/{traceId}/{parentSpanId}?stageName={stageName}", null);
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadAsStringAsync();
-            return responseBody;
+            // TODO: Handle empty body.
+            return JsonConvert.DeserializeObject<Span>(responseBody);
         }
 
-        public async Task<string> StopSpanForTrace(string traceId, string parentSpanId)
+        public async Task<string> StopSpanForTrace(string traceId, string childSpanId)
         {
-            var response = await _httpClient.PutAsync($"/api/trace/stopSpan/{traceId}/{parentSpanId}", null);
+            var response = await _httpClient.PutAsync($"/api/trace/stopSpan/{traceId}/{childSpanId}", null);
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadAsStringAsync();
