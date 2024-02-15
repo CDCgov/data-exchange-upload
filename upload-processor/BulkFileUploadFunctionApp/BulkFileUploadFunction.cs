@@ -11,6 +11,7 @@ using BulkFileUploadFunctionApp.Utils;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
 using BulkFileUploadFunctionApp.Services;
+using BulkFileUploadFunctionApp.Exceptions;
 
 namespace BulkFileUploadFunctionApp
 {
@@ -226,11 +227,15 @@ namespace BulkFileUploadFunctionApp
                             var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
                             await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
                         }
-                        catch (Exception ex) // TODO: Catch specific excpetions to report side effect errors more accuratly.
+                        catch (RequestFailedException ex)
                         {
                             _logger.LogError("Failed to copy from Dex to Edav");
                             ExceptionUtils.LogErrorDetails(ex, _logger);
                             // TODO: Send failure report to PS API.
+                        }
+                        catch (ProcStatClientException ex)
+                        {
+                            ExceptionUtils.LogErrorDetails(ex, _logger);
                         }
                     }
                     else if (copyTarget.target == _targetRouting)
@@ -245,11 +250,15 @@ namespace BulkFileUploadFunctionApp
                                 var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
                                 await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
                             }
-                            catch (Exception ex)
+                            catch (RequestFailedException ex)
                             {
                                 _logger.LogError("Failed to copy from Dex to ROUTING");
                                 ExceptionUtils.LogErrorDetails(ex, _logger);
                                 // TODO: Send failure report to PS API.
+                            }
+                            catch (ProcStatClientException ex)
+                            {
+                                ExceptionUtils.LogErrorDetails(ex, _logger);
                             }
                         }
                         else
@@ -272,11 +281,15 @@ namespace BulkFileUploadFunctionApp
                     var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
                     await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
                 }
-                catch (Exception ex)
+                catch (RequestFailedException ex)
                 {
                     _logger.LogError("Failed to copy from Dex to Edav");
                     ExceptionUtils.LogErrorDetails(ex, _logger);
                     // TODO: Send failure report to PS API.
+                }
+                catch (ProcStatClientException ex)
+                {
+                    ExceptionUtils.LogErrorDetails(ex, _logger);
                 }
             }
         }
