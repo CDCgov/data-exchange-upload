@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using BulkFileUploadFunctionApp.Model;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -27,16 +28,14 @@ namespace BulkFileUploadFunctionApp.Services
         }
         public async Task CreateReport(string uploadId, string destinationId, string eventType, string stageName, CopyReport payload)
         {
-            var content = new StringContent(payload.ToString());
-            var response = await _httpClient.PostAsync($"/api/report/json/uploadId/{uploadId}?destinationId={destinationId}&eventType={eventType}", content);
+            var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync($"/api/report/json/uploadId/{uploadId}?destinationId={destinationId}&eventType={eventType}&stageName={stageName}", content);
             response.EnsureSuccessStatusCode();
         }
 
         public async Task<Trace> GetTraceByUploadId(string uploadId)
         {
             var response = await _httpClient.GetAsync($"/api/trace/uploadId/{uploadId}");
-            _logger.LogInformation($"*****{response.Content.ReadAsStringAsync().Result}");
-
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadAsStringAsync();
