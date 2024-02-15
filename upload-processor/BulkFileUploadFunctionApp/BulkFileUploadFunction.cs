@@ -52,7 +52,6 @@ namespace BulkFileUploadFunctionApp
         private readonly IProcStatClient _procStatClient;
         private readonly string _stageName = "dex-file-copy";
 
-
         public static string? GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
@@ -192,7 +191,7 @@ namespace BulkFileUploadFunctionApp
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
                 await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
-                await CopyToTargetSystemAsync(destinationId, extEvent, destinationBlobFilename, destinationContainerName, tusFileMetadata);
+                await CopyToTargetSystemAsync(blobCreatedUrl, destinationId, extEvent, destinationBlobFilename, destinationContainerName, tusFileMetadata);
 
                 await _procStatClient.StopSpanForTrace(trace.TraceId, copySpan.SpanId);
             }
@@ -201,7 +200,7 @@ namespace BulkFileUploadFunctionApp
                 _logger.LogError(e.Message);
             }
         }
-        private async Task CopyToTargetSystemAsync(string destinationId, string eventType, string destinationBlobFilename, string destinationContainerName, Dictionary<string, string> tusFileMetadata)
+        private async Task CopyToTargetSystemAsync(string sourceBlobUrl, string destinationId, string eventType, string destinationBlobFilename, string destinationContainerName, Dictionary<string, string> tusFileMetadata)
         {
             var uploadId = tusFileMetadata["tus_tguid"];
             var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
@@ -224,8 +223,7 @@ namespace BulkFileUploadFunctionApp
                             // Now copy the file from DeX to the EDAV storage account, also partitioned by date
                             var destPath = await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
                             // Send copy success report
-                            // TODO: Get path of upload in tus storage account.  Use for sourceUrl.
-                            var successReport = new CopyReport(sourceUrl: destinationBlobFilename, destUrl: destPath, result: "success");
+                            var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
                             await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
                         }
                         catch (Exception ex) // TODO: Catch specific excpetions to report side effect errors more accuratly.
@@ -244,14 +242,14 @@ namespace BulkFileUploadFunctionApp
                                 // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
                                 var destPath = await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
                                 // Send copy success report
-                                // TODO: Get path of upload in tus storage account.  Use for sourceUrl.
-                                var successReport = new CopyReport(sourceUrl: destinationBlobFilename, destUrl: destPath, result: "success");
+                                var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
                                 await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
                             }
                             catch (Exception ex)
                             {
                                 _logger.LogError("Failed to copy from Dex to ROUTING");
                                 ExceptionUtils.LogErrorDetails(ex, _logger);
+                                // TODO: Send failure report to PS API.
                             }
                         }
                         else
@@ -271,8 +269,7 @@ namespace BulkFileUploadFunctionApp
                     // Now copy the file from DeX to the EDAV storage account, also partitioned by date
                     var destPath = await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
                     // Send copy success report
-                    // TODO: Get path of upload in tus storage account.  Use for sourceUrl.
-                    var successReport = new CopyReport(sourceUrl: destinationBlobFilename, destUrl: destPath, result: "success");
+                    var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
                     await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
                 }
                 catch (Exception ex)
@@ -386,7 +383,7 @@ namespace BulkFileUploadFunctionApp
                 dexBlobStream.Close();
             }
 
-            return routingContainerClient.Uri.ToString();
+            return routingDestBlobClient.Uri.ToString();
         }
 
         /// <summary>
