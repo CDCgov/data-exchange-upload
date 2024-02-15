@@ -64,7 +64,7 @@ namespace BulkFileUploadFunctionApp
 
                 var endTime = DateTime.UtcNow;
                 var duration = endTime - startTime;
-                healthCheckResponse.TotalChecksDuration = ToIso8601Duration(duration);
+                healthCheckResponse.TotalChecksDuration = duration.ToString("c");
 
                 _logger.LogInformation("TotalChecksDuration-->" + healthCheckResponse.TotalChecksDuration);
 
@@ -88,16 +88,6 @@ namespace BulkFileUploadFunctionApp
             }
         }
 
-        public static string ToIso8601Duration(TimeSpan timeSpan)
-        {
-            // Convert TimeSpan to ISO format.
-            return "P" +
-                   (timeSpan.Days > 0 ? $"{timeSpan.Days}D" : "") +
-                   "T" +
-                   (timeSpan.Hours > 0 ? $"{timeSpan.Hours}H" : "") +
-                   (timeSpan.Minutes > 0 ? $"{timeSpan.Minutes}M" : "") +
-                   (timeSpan.Seconds > 0 || timeSpan.Milliseconds > 0 ? $"{timeSpan.Seconds}.{timeSpan.Milliseconds:D3}S" : "");
-        }
     }
 
 }
