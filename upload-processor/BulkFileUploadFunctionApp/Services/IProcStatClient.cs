@@ -9,6 +9,6 @@ namespace BulkFileUploadFunctionApp.Services
         Task<Trace> GetTraceByUploadId(string uploadId);
         Task<string> StartSpanForTrace(string traceId, string parentSpanId, string stageName);
         Task<string> StopSpanForTrace(string traceId, string parentSpanId);
-        void CreateReport(string uploadId, string destinationId, string eventType, string stageName, CopyReport payload);
+        Task CreateReport(string uploadId, string destinationId, string eventType, string stageName, CopyReport payload);
     }
 }
