@@ -11,7 +11,6 @@ using BulkFileUploadFunctionApp.Utils;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
 using BulkFileUploadFunctionApp.Services;
-using BulkFileUploadFunctionApp.Exceptions;
 
 namespace BulkFileUploadFunctionApp
 {
@@ -233,8 +232,9 @@ namespace BulkFileUploadFunctionApp
                             ExceptionUtils.LogErrorDetails(ex, _logger);
                             // TODO: Send failure report to PS API.
                         }
-                        catch (ProcStatClientException ex)
+                        catch (HttpRequestException ex)
                         {
+                            _logger.LogError("Failed to send report to PS API.");
                             ExceptionUtils.LogErrorDetails(ex, _logger);
                         }
                     }
@@ -256,8 +256,9 @@ namespace BulkFileUploadFunctionApp
                                 ExceptionUtils.LogErrorDetails(ex, _logger);
                                 // TODO: Send failure report to PS API.
                             }
-                            catch (ProcStatClientException ex)
+                            catch (HttpRequestException ex)
                             {
+                                _logger.LogError("Failed to send report to PS API.");
                                 ExceptionUtils.LogErrorDetails(ex, _logger);
                             }
                         }
@@ -287,8 +288,9 @@ namespace BulkFileUploadFunctionApp
                     ExceptionUtils.LogErrorDetails(ex, _logger);
                     // TODO: Send failure report to PS API.
                 }
-                catch (ProcStatClientException ex)
+                catch (HttpRequestException ex)
                 {
+                    _logger.LogError("Failed to send report to PS API.");
                     ExceptionUtils.LogErrorDetails(ex, _logger);
                 }
             }
