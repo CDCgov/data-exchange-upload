@@ -22,9 +22,9 @@ namespace BulkFileUploadFunctionApp
 
         private readonly IConfiguration _configuration;
 
-        private readonly UploadProcessingService _uploadProcessingService;
+        private readonly IUploadProcessingService _uploadProcessingService;
 
-        private readonly UploadEventHubService _uploadEventHubService;
+        private readonly IUploadEventHubService _uploadEventHubService;
 
         // private readonly BlobCopyHelper _blobCopyHelper;
 
@@ -61,7 +61,7 @@ namespace BulkFileUploadFunctionApp
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IConfiguration configuration, UploadProcessingService uploadProcessingService, UploadEventHubService uploadEventHubService)
+        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IConfiguration configuration, IUploadProcessingService uploadProcessingService, IUploadEventHubService uploadEventHubService)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
 

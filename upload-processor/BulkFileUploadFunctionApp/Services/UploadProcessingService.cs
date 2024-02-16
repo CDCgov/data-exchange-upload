@@ -8,7 +8,7 @@ using BulkFileUploadFunctionApp.Model;
 
 namespace BulkFileUploadFunctionApp.Services
 {
-    public class UploadProcessingService
+    public class UploadProcessingService : IUploadProcessingService
     {
         private readonly ILogger _logger;
         private readonly IConfiguration _configuration;

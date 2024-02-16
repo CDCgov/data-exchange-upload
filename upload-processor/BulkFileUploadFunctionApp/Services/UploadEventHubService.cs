@@ -9,7 +9,7 @@ using BulkFileUploadFunctionApp.Model;
 
 namespace BulkFileUploadFunctionApp.Services
 {
-    public class UploadEventHubService
+    public class UploadEventHubService : IUploadEventHubService
     {
         private readonly ILogger _logger;
         private readonly string _uploadEventHubNamespaceConnectionString;
