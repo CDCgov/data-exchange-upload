@@ -129,6 +129,7 @@ namespace BulkFileUploadFunctionApp
                 throw new Exception("Blob url may not be null");
 
             var result = await _uploadProcessingService.CopyBlobToDex(blobCreatedUrl);
+
             string destinationId = result.Item1;
             string extEvent = result.Item2;
             string destinationBlobFilename = result.Item3;
@@ -200,7 +201,7 @@ namespace BulkFileUploadFunctionApp
         }
 
         private void PublishRetryEvent(BlobCopyStage copyStage, string sourceBlobUri, string dexContainerName, string dexBlobFilename, Dictionary<string, string> fileMetadata)
-        {
+        {            
             BlobCopyRetryEvent blobCopyRetryEvent = new BlobCopyRetryEvent();
             blobCopyRetryEvent.copyRetryStage = copyStage;
             blobCopyRetryEvent.retryAttempt = 1;

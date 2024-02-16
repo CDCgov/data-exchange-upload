@@ -229,7 +229,7 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogError("Failed to copy from Dex to Edav");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                throw;
+                throw ex;
             }
         }
 
