@@ -97,7 +97,6 @@ namespace BulkFileUploadFunctionApp
         public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
             _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count()}");
-            _logger.LogInformation($"Received events: {eventHubTriggerEvents}");
 
             foreach (var blobCreatedEventJson in eventHubTriggerEvents)
             {
