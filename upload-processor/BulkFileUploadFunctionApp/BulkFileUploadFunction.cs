@@ -105,7 +105,6 @@ namespace BulkFileUploadFunctionApp
 
                 StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 
-                // TODO: PS API fail report if any of these conditions are true.
                 if (blobCreatedEvents == null)
                     throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
 
@@ -185,7 +184,8 @@ namespace BulkFileUploadFunctionApp
                 catch (RequestFailedException ex)
                 {
                     ExceptionUtils.LogErrorDetails(ex, _logger);
-                    // TODO: Send failure report to PS API.
+                    CopyReport failReport = new CopyReport(sourceUrl: blobCreatedUrl, destUrl: destinationContainerName, result: "failure", errorDesc: $"Failed to copy from Tus to DEX. {ex.Message}");
+                    await _procStatClient.CreateReport(tusInfoFile.ID, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
                     throw new Exception("Failed to copy from Tus to DEX.  Aborting attempt to copy to destination storage accounts.");
                 }
 
@@ -226,7 +226,8 @@ namespace BulkFileUploadFunctionApp
                     {
                         _logger.LogError("Failed to copy from Dex to Edav");
                         ExceptionUtils.LogErrorDetails(ex, _logger);
-                        // TODO: Send failure report to PS API.
+                        CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: $"Failed to copy from Tus to DEX. {ex.Message}");
+                        await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
                     }
                     catch (HttpRequestException ex)
                     {
@@ -250,7 +251,8 @@ namespace BulkFileUploadFunctionApp
                         {
                             _logger.LogError("Failed to copy from Dex to ROUTING");
                             ExceptionUtils.LogErrorDetails(ex, _logger);
-                            // TODO: Send failure report to PS API.
+                            CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: $"Failed to copy from Tus to DEX. {ex.Message}");
+                            await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
                         }
                         catch (HttpRequestException ex)
                         {

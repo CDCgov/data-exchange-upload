@@ -31,7 +31,17 @@ namespace BulkFileUploadFunctionApp.Model
             this.FileSourceBlobUrl = sourceUrl;
             this.FileDestinationBlobUrl = destUrl;
             this.Result = result;
-            this.SchemaVersion = Report.DEFAULT_SCHEMA_VERSION;
+            this.SchemaVersion = DEFAULT_SCHEMA_VERSION;
         }
+        public CopyReport(string sourceUrl, string destUrl, string result, string? errorDesc)
+        {
+            this.SchemaName = "dex-file-copy";
+            this.FileSourceBlobUrl = sourceUrl;
+            this.FileDestinationBlobUrl = destUrl;
+            this.Result = result;
+            this.ErrorDescription = errorDesc;
+            this.SchemaVersion = DEFAULT_SCHEMA_VERSION;
+        }
+
     }
 }
