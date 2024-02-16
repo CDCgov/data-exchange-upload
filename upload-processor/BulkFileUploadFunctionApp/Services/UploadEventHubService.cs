@@ -32,7 +32,8 @@ namespace BulkFileUploadFunctionApp.Services
         public async Task PublishRetryEvent(BlobCopyRetryEvent blobCopyRetryEvent)
         {
             _logger.LogInformation("Publishing Retry Event: " + blobCopyRetryEvent);
-
+            _logger.LogInformation("Retry Attempt: " + blobCopyRetryEvent.retryAttempt);
+            
             blobCopyRetryEvent.retryAttempt = blobCopyRetryEvent.retryAttempt + 1;
             string jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
 
