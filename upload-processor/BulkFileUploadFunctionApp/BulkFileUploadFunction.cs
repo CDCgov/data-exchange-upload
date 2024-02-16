@@ -93,6 +93,7 @@ namespace BulkFileUploadFunctionApp
         public async Task Run([EventHubTrigger("%AzureEventHubName%", Connection = "AzureEventHubConnectionString", ConsumerGroup = "%AzureEventHubConsumerGroup%")] string[] eventHubTriggerEvents)
         {
             _logger.LogInformation($"Received events count: {eventHubTriggerEvents.Count()}");
+            _logger.LogInformation($"Received events: {eventHubTriggerEvents}");
 
             foreach (var blobCreatedEventJson in eventHubTriggerEvents)
             {
@@ -101,19 +102,20 @@ namespace BulkFileUploadFunctionApp
 
                 StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 
+                // TODO: PS API fail report if any of these conditions are true.
                 if (blobCreatedEvents == null)
                     throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
 
-                if (blobCreatedEvents.Count() < 1)
+                if (blobCreatedEvents.Count() == 0)
                     throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
-                // TODO: Check length.
-                StorageBlobCreatedEvent blobCreatedEvent = blobCreatedEvents[0];
-                if (blobCreatedEvent == null)
-                    throw new Exception("Unexpected data content of event; there should be at least one element in the array");
+                foreach(StorageBlobCreatedEvent blobCreatedEvent in blobCreatedEvents)
+                {
+                    if (blobCreatedEvent.Data?.Url == null)
+                        throw new Exception("Unexpected data content of event; no blob create event url found.");
 
-                await ProcessBlobCreatedEvent(blobCreatedEvent?.Data?.Url);
-
+                    await ProcessBlobCreatedEvent(blobCreatedEvent.Data.Url);
+                }
             } // .foreach 
 
         } // .Task Run        
@@ -124,12 +126,8 @@ namespace BulkFileUploadFunctionApp
         /// <param name="blobCreatedUrl"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        private async Task ProcessBlobCreatedEvent(string? blobCreatedUrl)
+        private async Task ProcessBlobCreatedEvent(string blobCreatedUrl)
         {
-            if (blobCreatedUrl == null)
-                // TODO: Send failure report to PS API.
-                throw new Exception("Blob url may not be null");
-
             _logger.LogInformation($"TUS_AZURE_OBJECT_PREFIX={_tusAzureObjectPrefix}, TUS_AZURE_STORAGE_CONTAINER={_tusAzureStorageContainer}, DEX_AZURE_STORAGE_ACCOUNT_NAME={_dexAzureStorageAccountName}");
 
             try
