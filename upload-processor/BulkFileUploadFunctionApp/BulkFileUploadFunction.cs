@@ -22,6 +22,8 @@ namespace BulkFileUploadFunctionApp
 
         private readonly BlobCopyHelper _blobCopyHelper;
 
+        private readonly string _dexStorageAccountConnectionString;
+
         private readonly string _tusAzureObjectPrefix;
 
         private readonly string _tusAzureStorageContainer;
@@ -66,6 +68,7 @@ namespace BulkFileUploadFunctionApp
 
             _blobCopyHelper = new(_logger);
 
+
             _tusAzureObjectPrefix = GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX") ?? "tus-prefix";
             _tusAzureStorageContainer = GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER") ?? "bulkuploads";
             _dexAzureStorageAccountName = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
@@ -81,6 +84,7 @@ namespace BulkFileUploadFunctionApp
             _tusHooksFolder = GetEnvironmentVariable("TUSD_HOOKS_FOLDER") ?? "tusd-file-hooks";
 
             _destinationAndEvents = GetAllDestinationAndEvents();
+            _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
         }
 
         /// <summary>
@@ -129,40 +133,28 @@ namespace BulkFileUploadFunctionApp
         private async Task ProcessBlobCreatedEvent(string blobCreatedUrl)
         {
             _logger.LogInformation($"TUS_AZURE_OBJECT_PREFIX={_tusAzureObjectPrefix}, TUS_AZURE_STORAGE_CONTAINER={_tusAzureStorageContainer}, DEX_AZURE_STORAGE_ACCOUNT_NAME={_dexAzureStorageAccountName}");
+            _logger.LogInformation($"Processing blob url: {blobCreatedUrl}");
+
+            // Get tus info file.
+            var sourceBlobUri = new Uri(blobCreatedUrl);
+            string tusInfoFilename = sourceBlobUri.Segments.Last();
+            var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
+            TusInfoFile tusInfoFile = await GetTusFileInfo(tusInfoFilename);
+
+            if (tusInfoFile.ID == null)
+            {
+                throw new TusInfoFileException("Malformed tus info file.  No ID provided.");
+            }
+
+            GetRequiredMetaData(tusInfoFile, out string destinationId, out string eventType);
+
+            // Get upload config file.
+            UploadConfig uploadConfig = await GetUploadConfig(destinationId, eventType);
 
             try
             {
-                _logger.LogInformation($"Processing blob url: {blobCreatedUrl}");
-
-                var sourceBlobUri = new Uri(blobCreatedUrl);
-                string tusPayloadFilename = sourceBlobUri.Segments.Last();
-                _logger.LogInformation($"tusPayloadFilename is = {tusPayloadFilename}");
-
-                var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
-                var sourceContainerName = _tusAzureStorageContainer;
-                var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusPayloadFilename}";
-                var tusInfoFile = await GetTusFileInfo(connectionString, sourceContainerName, tusPayloadPathname);
-
-                GetRequiredMetaData(tusInfoFile, out string destinationId, out string extEvent);
-
-                // TODO: Null checks for trace and span.
-                var trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
-                var copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
-
-                var uploadConfig = UploadConfig.Default;
-                try
-                {
-                    // Determine the filename and subfolder creation schemes for this destination/event.
-                    var configFilename = $"{destinationId}-{extEvent}.json";
-                    var blobReader = new BlobReader(_logger);
-                    uploadConfig = await blobReader.GetObjectFromBlobJsonContent<UploadConfig>(connectionString, "upload-configs", configFilename);
-                    _logger.LogInformation($"Upload config: FilenameMetadataField={uploadConfig.FilenameMetadataField}, FilenameSuffix={uploadConfig.FilenameSuffix}, FolderStructure={uploadConfig.FolderStructure}");
-                }
-                catch (Exception e)
-                {
-                    // use default upload config
-                    _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {extEvent}: exception = ${e.Message}");
-                }
+                Trace trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
+                Span copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
 
                 // Determine the destination filename based on the upload config and metadata values provided with the source file.
                 GetFilenameFromMetaData(tusInfoFile, uploadConfig.FilenameMetadataField, out string filename);
@@ -179,18 +171,17 @@ namespace BulkFileUploadFunctionApp
 
                 // Container name is "{meta_destination_id}-{extEvent}"
                 // There are some restrictions on container names -- underscores not allowed, must be all lowercase
-                var destinationContainerName = $"{destinationId.ToLower()}-{extEvent.ToLower()}";
+                var destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
 
-                var tusFileMetadata = tusInfoFile?.MetaData ?? new Dictionary<string, string>();
-                tusFileMetadata.Add("tus_tguid", tusPayloadFilename);
-                tusFileMetadata.Remove("filename");
-                tusFileMetadata.Add("orig_filename", filename);
+                tusInfoFile.MetaData.Add("tus_tguid", tusInfoFile.ID);
+                tusInfoFile.MetaData.Remove("filename");
+                tusInfoFile.MetaData.Add("orig_filename", filename);
 
                 // Copy the blob to the DeX storage account specific to the program, partitioned by
                 string? dexBlobUrl = null;
                 try
                 {
-                    dexBlobUrl = await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                    dexBlobUrl = await CopyBlobFromTusToDexAsync(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
                 }
                 catch (RequestFailedException ex)
                 {
@@ -199,7 +190,7 @@ namespace BulkFileUploadFunctionApp
                     throw new Exception("Failed to copy from Tus to DEX.  Aborting attempt to copy to destination storage accounts.");
                 }
 
-                await CopyToTargetSystemAsync(dexBlobUrl, destinationId, extEvent, destinationBlobFilename, destinationContainerName, tusFileMetadata);
+                await CopyToTargetSystemAsync(dexBlobUrl, destinationId, eventType, destinationBlobFilename, destinationContainerName, tusInfoFile.MetaData);
 
 
                 await _procStatClient.StopSpanForTrace(trace.TraceId, copySpan.SpanId);
@@ -284,9 +275,14 @@ namespace BulkFileUploadFunctionApp
         /// <param name="tusPayloadPathname">Full path of the file to get info on</param>
         /// <returns></returns>
         /// <exception cref="TusInfoFileException"></exception>
-        private async Task<TusInfoFile> GetTusFileInfo(string connectionString, string sourceContainerName, string tusPayloadPathname)
+        private async Task<TusInfoFile> GetTusFileInfo(string tusInfoFilename)
         {
             TusInfoFile tusInfoFile;
+            
+            _logger.LogInformation($"tusPayloadFilename is = {tusInfoFilename}");
+
+            var sourceContainerName = _tusAzureStorageContainer;
+            var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
 
             try
             {
@@ -295,7 +291,12 @@ namespace BulkFileUploadFunctionApp
                 _logger.LogInformation($"Retrieving tus info file: {tusInfoPathname}");
 
                 var blobReader = new BlobReader(_logger);
-                tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(connectionString, sourceContainerName, tusInfoPathname);
+                tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, sourceContainerName, tusInfoPathname);
+
+                if (tusInfoFile.MetaData == null)
+                {
+                    tusInfoFile.MetaData = new Dictionary<string, string>();
+                }
             }
             catch (Exception e)
             {
@@ -305,6 +306,25 @@ namespace BulkFileUploadFunctionApp
             _logger.LogInformation($"Info file metadata keys: {string.Join(", ", tusInfoFile.MetaData?.Keys.ToList())}");
 
             return tusInfoFile;
+        }
+
+        private async Task<UploadConfig> GetUploadConfig(string destinationId, string eventType)
+        {
+            var uploadConfig = UploadConfig.Default;
+
+            try
+            {
+                // Determine the filename and subfolder creation schemes for this destination/event.
+                var configFilename = $"{destinationId}-{eventType}.json";
+                var blobReader = new BlobReader(_logger);
+                uploadConfig = await blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
+                _logger.LogInformation($"Upload config: FilenameMetadataField={uploadConfig.FilenameMetadataField}, FilenameSuffix={uploadConfig.FilenameSuffix}, FolderStructure={uploadConfig.FolderStructure}");
+            } catch (Exception e)
+            {
+                _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {eventType}.  Using default config. Exception = ${e.Message}");
+            }
+
+            return uploadConfig;
         }
 
         /// <summary>
