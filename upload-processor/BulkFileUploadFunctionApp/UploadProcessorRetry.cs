@@ -17,13 +17,13 @@ namespace BulkFileUploadFunctionApp
     public class UploadProcessorRetry
     {
         private readonly ILogger _logger;
-        private readonly UploadProcessingService _uploadProcessingService;
+        private readonly IUploadProcessingService _uploadProcessingService;
 
-        private readonly UploadEventHubService _uploadEventHubService;
+        private readonly IUploadEventHubService _uploadEventHubService;
 
         private const int MAX_RETRY_ATTEMPTS = 3;
         
-        public UploadProcessorRetry(ILoggerFactory loggerFactory, UploadProcessingService uploadProcessingService, UploadEventHubService uploadEventHubService)
+        public UploadProcessorRetry(ILoggerFactory loggerFactory, IUploadProcessingService uploadProcessingService, IUploadEventHubService uploadEventHubService)
         {
             _logger = loggerFactory.CreateLogger<UploadProcessorRetry>();
 
