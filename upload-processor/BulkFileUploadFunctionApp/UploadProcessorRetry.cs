@@ -55,6 +55,7 @@ namespace BulkFileUploadFunctionApp
 
                 if(blobCopyRetryEvent.retryAttempt <= MAX_RETRY_ATTEMPTS) {
 
+                    await Task.Delay(1000 * blobCopyRetryEvent.retryAttempt);
                     _logger.LogInformation($"Copy retry attempt: {blobCopyRetryEvent.retryAttempt} Stage: {blobCopyRetryEvent.copyRetryStage}");
 
                     switch (blobCopyRetryEvent.copyRetryStage)
@@ -62,36 +63,36 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToDex:
                             try
                             {
-                                _uploadProcessingService.CopyBlobToDex(blobCopyRetryEvent.sourceBlobUri);
+                                await _uploadProcessingService.CopyBlobToDex(blobCopyRetryEvent.sourceBlobUri);
                             }
                             catch (Exception ex)
                             {
                                 blobCopyRetryEvent.retryAttempt += 1; 
-                                _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
+                                await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
                             }
                             break;
 
                         case BlobCopyStage.CopyToEdav:
                             try
                             {
-                                _uploadProcessingService.CopyBlobFromDexToEdavAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyBlobFromDexToEdavAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
                             }
                             catch (Exception ex)
                             {
                                 blobCopyRetryEvent.retryAttempt += 1; 
-                                _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
+                                await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
                             }                          
                             break;
 
                         case BlobCopyStage.CopyToRouting:
                             try
                             {
-                                _uploadProcessingService.CopyBlobFromDexToRoutingAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyBlobFromDexToRoutingAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
                             }
                             catch (Exception ex)
                             {
                                 blobCopyRetryEvent.retryAttempt += 1; 
-                                _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
+                                await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
                             }                            
                             break;
                         
@@ -101,7 +102,7 @@ namespace BulkFileUploadFunctionApp
                     }
                 } else {
 
-                    _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
+                   await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
                 }
             }
         }
