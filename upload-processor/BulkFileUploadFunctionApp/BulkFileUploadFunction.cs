@@ -107,6 +107,7 @@ namespace BulkFileUploadFunctionApp
                 if (blobCreatedEvents.Count() < 1)
                     throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
+                // TODO: Check length.
                 StorageBlobCreatedEvent blobCreatedEvent = blobCreatedEvents[0];
                 if (blobCreatedEvent == null)
                     throw new Exception("Unexpected data content of event; there should be at least one element in the array");
@@ -213,32 +214,53 @@ namespace BulkFileUploadFunctionApp
         private async Task CopyToTargetSystemAsync(string sourceBlobUrl, string destinationId, string eventType, string destinationBlobFilename, string destinationContainerName, Dictionary<string, string> tusFileMetadata)
         {
             var uploadId = tusFileMetadata["tus_tguid"];
-            var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
-            var currentEvent = currentDestination?.extEvents?.Find(e => e.name == eventType);
-            bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
+            
+            CopyTarget[] targets = GetCopyTargets(destinationId, eventType);
 
+            bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
             _logger.LogInformation($"Routing Status: {isRoutingEnabled}");
 
-            if (currentEvent != null && currentEvent.copyTargets != null)
+            foreach (CopyTarget copyTarget in targets)
             {
+                _logger.LogInformation("Copy Target: " + copyTarget.target);
 
-                foreach (CopyTarget copyTarget in currentEvent.copyTargets)
+                if (copyTarget.target == _targetEdav)
                 {
-                    _logger.LogInformation("Copy Target: " + copyTarget.target);
-
-                    if (copyTarget.target == _targetEdav)
+                    try
+                    {
+                        // Now copy the file from DeX to the EDAV storage account, also partitioned by date
+                        var destPath = await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                        // Send copy success report
+                        var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
+                        await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+                    }
+                    catch (RequestFailedException ex)
+                    {
+                        _logger.LogError("Failed to copy from Dex to Edav");
+                        ExceptionUtils.LogErrorDetails(ex, _logger);
+                        // TODO: Send failure report to PS API.
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        _logger.LogError("Failed to send report to PS API.");
+                        ExceptionUtils.LogErrorDetails(ex, _logger);
+                    }
+                }
+                else if (copyTarget.target == _targetRouting)
+                {
+                    if (isRoutingEnabled)
                     {
                         try
                         {
-                            // Now copy the file from DeX to the EDAV storage account, also partitioned by date
-                            var destPath = await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                            // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
+                            var destPath = await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
                             // Send copy success report
                             var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
                             await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
                         }
                         catch (RequestFailedException ex)
                         {
-                            _logger.LogError("Failed to copy from Dex to Edav");
+                            _logger.LogError("Failed to copy from Dex to ROUTING");
                             ExceptionUtils.LogErrorDetails(ex, _logger);
                             // TODO: Send failure report to PS API.
                         }
@@ -248,60 +270,10 @@ namespace BulkFileUploadFunctionApp
                             ExceptionUtils.LogErrorDetails(ex, _logger);
                         }
                     }
-                    else if (copyTarget.target == _targetRouting)
+                    else
                     {
-                        if (isRoutingEnabled)
-                        {
-                            try
-                            {
-                                // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
-                                var destPath = await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                                // Send copy success report
-                                var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-                                await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
-                            }
-                            catch (RequestFailedException ex)
-                            {
-                                _logger.LogError("Failed to copy from Dex to ROUTING");
-                                ExceptionUtils.LogErrorDetails(ex, _logger);
-                                // TODO: Send failure report to PS API.
-                            }
-                            catch (HttpRequestException ex)
-                            {
-                                _logger.LogError("Failed to send report to PS API.");
-                                ExceptionUtils.LogErrorDetails(ex, _logger);
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
-                        }
+                        _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
                     }
-                }
-            }
-            else
-            {
-
-                _logger.LogInformation("No copy target found. Defaulting to EDAV");
-
-                try
-                {
-                    // Now copy the file from DeX to the EDAV storage account, also partitioned by date
-                    var destPath = await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                    // Send copy success report
-                    var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-                    await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
-                }
-                catch (RequestFailedException ex)
-                {
-                    _logger.LogError("Failed to copy from Dex to Edav");
-                    ExceptionUtils.LogErrorDetails(ex, _logger);
-                    // TODO: Send failure report to PS API.
-                }
-                catch (HttpRequestException ex)
-                {
-                    _logger.LogError("Failed to send report to PS API.");
-                    ExceptionUtils.LogErrorDetails(ex, _logger);
                 }
             }
         }
@@ -364,7 +336,7 @@ namespace BulkFileUploadFunctionApp
             await edavContainerClient.CreateIfNotExistsAsync();
 
             BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
-
+            
             using var dexBlobStream = await dexBlobClient.OpenReadAsync();
             {
                 await edavDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
@@ -585,6 +557,26 @@ namespace BulkFileUploadFunctionApp
 
                 return new List<DestinationAndEvents>();
             }
+        }
+
+        private CopyTarget[] GetCopyTargets(string destinationId, string eventType)
+        {
+            // Default to copy to edav.
+            CopyTarget[] targets = { new(_targetEdav) };
+            var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
+            var currentEvent = currentDestination?.extEvents?.Find(e => e.name == eventType);
+
+            if (currentEvent != null && currentEvent.copyTargets != null && currentEvent.copyTargets.Count > 0) 
+            {
+                targets = currentEvent.copyTargets.ToArray();
+            }
+
+            if (targets.Length == 0)
+            {
+                _logger.LogInformation($"No copy targets configured for {destinationId} and {eventType}");
+            }
+
+            return targets;
         }
     }
 

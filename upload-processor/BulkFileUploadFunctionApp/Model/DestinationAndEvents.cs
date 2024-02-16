@@ -24,8 +24,5 @@ namespace BulkFileUploadFunctionApp.Model
         public List<CopyTarget>? copyTargets { get; set; }
     }
     
-    public class CopyTarget
-    {
-        public string? target { get; set; }
-    } 
+    public record CopyTarget(string target);
 }
