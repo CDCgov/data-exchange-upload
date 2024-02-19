@@ -413,25 +413,36 @@ namespace BulkFileUploadFunctionApp
         private async Task<string> CopyBlobFromTusToDexAsync(string connectionString, string sourceContainerName, string sourceBlobName, string destinationContainerName,
             string destinationBlobName, IDictionary<string, string> destinationMetadata)
         {
-            _logger.LogInformation($"Creating destination container client, container name: {destinationContainerName}");
+            try {
+                _logger.LogInformation($"Creating destination container client, container name: {destinationContainerName}");
 
-            var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
-            var destinationContainerClient = new BlobContainerClient(connectionString, destinationContainerName);
+                var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
+                var destinationContainerClient = new BlobContainerClient(connectionString, destinationContainerName);
 
-            // Create the destination container if not exists
-            await destinationContainerClient.CreateIfNotExistsAsync();
+                // Create the destination container if not exists
+                await destinationContainerClient.CreateIfNotExistsAsync();
 
-            _logger.LogInformation("Creating source blob client");
+                _logger.LogInformation("Creating source blob client");
 
-            // Create a BlobClient representing the source blob to copy.
-            BlobClient sourceBlob = sourceContainerClient.GetBlobClient(sourceBlobName);
+                // Create a BlobClient representing the source blob to copy.
+                BlobClient sourceBlob = sourceContainerClient.GetBlobClient(sourceBlobName);
 
-            // Get a BlobClient representing the destination blob with a unique name.
-            BlobClient destBlob = destinationContainerClient.GetBlobClient(destinationBlobName);
+                // Get a BlobClient representing the destination blob with a unique name.
+                BlobClient destBlob = destinationContainerClient.GetBlobClient(destinationBlobName);
 
-            await _blobCopyHelper.CopyBlobAsync(sourceBlob, destBlob, destinationMetadata);
+                await _blobCopyHelper.CopyBlobAsync(sourceBlob, destBlob, destinationMetadata);
 
-            return destBlob.Uri.ToString();
+                return destBlob.Uri.ToString();
+            } catch { (RequestFailedException ex) {
+                _logger.LogError("Failed to copy from TUS to DEX"); 
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+                throw new Exception("Failed to copy from TUS to DEX. Aborting attempt to copy to destination storage accounts."); 
+            }
+            catch (Exception ex) {
+                _logger.LogError($"An error occurred while copy from TUS to DEX: {ex.Message}");
+                throw;
+            }
+    
         }
 
         /// <summary>
