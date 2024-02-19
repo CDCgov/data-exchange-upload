@@ -76,8 +76,7 @@ namespace BulkFileUploadFunctionApp
                                 }
                                 catch (Exception ex)
                                 {
-                                    blobCopyRetryEvent.retryAttempt += 1; 
-                                    await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
+                                    await RePublishEvent(blobCopyRetryEvent);
                                 }
                                 break;
 
@@ -88,8 +87,7 @@ namespace BulkFileUploadFunctionApp
                                 }
                                 catch (Exception ex)
                                 {
-                                    blobCopyRetryEvent.retryAttempt += 1; 
-                                    await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
+                                    await RePublishEvent(blobCopyRetryEvent);
                                 }                          
                                 break;
 
@@ -100,8 +98,7 @@ namespace BulkFileUploadFunctionApp
                                 }
                                 catch (Exception ex)
                                 {
-                                    blobCopyRetryEvent.retryAttempt += 1; 
-                                    await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
+                                    await RePublishEvent(blobCopyRetryEvent);
                                 }                            
                                 break;
                             
@@ -111,14 +108,24 @@ namespace BulkFileUploadFunctionApp
                         }
                     } else {
 
-                        blobCopyRetryEvent.retryAttempt = 1;
-                        await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
+                        await RePublishEvent(blobCopyRetryEvent);
                     }
                 }
             } catch(Exception ex) {
 
                 _logger.LogError($"Failed to process retry event: " + blobCopyRetryEvent);
                 ExceptionUtils.LogErrorDetails(ex, _logger);                
+            }
+        }
+
+        private async Task RePublishEvent(BlobCopyRetryEvent blobCopyRetryEvent) {
+            
+            if (blobCopyRetryEvent.retryAttempt == MAX_RETRY_ATTEMPTS) {
+                blobCopyRetryEvent.retryAttempt = 1;
+                await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
+            } else {
+                blobCopyRetryEvent.retryAttempt += 1;
+                await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
             }
         }
     }
