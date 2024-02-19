@@ -111,6 +111,7 @@ namespace BulkFileUploadFunctionApp
                         }
                     } else {
 
+                        blobCopyRetryEvent.retryAttempt = 1;
                         await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
                     }
                 }

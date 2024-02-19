@@ -67,7 +67,6 @@ namespace BulkFileUploadFunctionApp
                     string eventJsonString = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
 
                     BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
-                    replayEvent.retryAttempt = 1;
 
                     _logger.LogInformation("Replaying event: " + replayEvent);
 

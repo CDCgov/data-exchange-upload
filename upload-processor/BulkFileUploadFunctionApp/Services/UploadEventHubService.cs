@@ -33,22 +33,14 @@ namespace BulkFileUploadFunctionApp.Services
         {
             try 
             {
-                _logger.LogInformation("Publishing Retry Event: " + blobCopyRetryEvent);
-                _logger.LogInformation("Retry Attempt: " + blobCopyRetryEvent.retryAttempt);
-                
-                blobCopyRetryEvent.retryAttempt = blobCopyRetryEvent.retryAttempt + 1;
+                _logger.LogInformation("Publishing Retry Event: {@BlobCopyRetryEvent}", blobCopyRetryEvent);
+                _logger.LogInformation("Retry Attempt: {RetryAttempt}", blobCopyRetryEvent.retryAttempt);
+
                 string jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
 
-                // Create an event data batch
-                using (EventDataBatch eventBatch = await _retryEventHubProducerClient.CreateBatchAsync())
-                {
-                    // Add the event data to the batch
-                    eventBatch.TryAdd(new EventData(Encoding.UTF8.GetBytes(jsonPayload)));
+                await PublishEventAsync(_retryEventHubProducerClient, jsonPayload);
 
-                    // Publish the batch of events to the event hub
-                    await _retryEventHubProducerClient.SendAsync(eventBatch);
-                    _logger.LogInformation("Retry event published successfully");
-                }
+                _logger.LogInformation("Retry event published successfully");
 
             } catch (Exception e) {
 
@@ -62,24 +54,28 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogInformation("Publishing Replay Event: " + blobCopyRetryEvent);
 
-                // publish event to replay 
-                blobCopyRetryEvent.retryAttempt = 1;
                 string jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
 
-                // Create an event data batch
-                using (EventDataBatch eventBatch = await _replayEventHubProducerClient.CreateBatchAsync())
-                {
-                    // Add the event data to the batch
-                    eventBatch.TryAdd(new EventData(Encoding.UTF8.GetBytes(jsonPayload)));
+                await PublishEventAsync(_replayEventHubProducerClient, jsonPayload);
 
-                    // Publish the batch of events to the event hub
-                    await _replayEventHubProducerClient.SendAsync(eventBatch);
-                    _logger.LogInformation("Replay event published successfully");
-                }
+                _logger.LogInformation("Replay event published successfully");
                 
             } catch (Exception e) {
 
                 _logger.LogError("Failed to publish Replay event: " + blobCopyRetryEvent);
+            }
+        }
+
+        private async Task PublishEventAsync(EventHubProducerClient producerClient, string jsonPayload)
+        {
+            // Create an event data batch
+            using (EventDataBatch eventBatch = await producerClient.CreateBatchAsync())
+            {
+                // Add the event data to the batch
+                eventBatch.TryAdd(new EventData(Encoding.UTF8.GetBytes(jsonPayload)));
+
+                // Publish the batch of events to the event hub
+                await producerClient.SendAsync(eventBatch);
             }
         }
     }
