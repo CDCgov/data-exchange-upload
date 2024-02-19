@@ -23,8 +23,8 @@ namespace BulkFileUploadFunctionApp.Services
             _logger = loggerFactory.CreateLogger<UploadEventHubService>();
 
             _uploadEventHubNamespaceConnectionString = Environment.GetEnvironmentVariable("AzureEventHubConnectionString", EnvironmentVariableTarget.Process);
-            _retryEventHubName = Environment.GetEnvironmentVariable("RetryEventHubName", EnvironmentVariableTarget.Process);            
-            _replayEventHubName = Environment.GetEnvironmentVariable("ReplayEventHubName", EnvironmentVariableTarget.Process);            
+            _retryEventHubName = Environment.GetEnvironmentVariable("RetryEventHubName", EnvironmentVariableTarget.Process);
+            _replayEventHubName = Environment.GetEnvironmentVariable("ReplayEventHubName", EnvironmentVariableTarget.Process);
 
             _retryEventHubProducerClient = new EventHubProducerClient(_uploadEventHubNamespaceConnectionString, _retryEventHubName);
             _replayEventHubProducerClient = new EventHubProducerClient(_uploadEventHubNamespaceConnectionString, _replayEventHubName);
@@ -52,7 +52,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             } catch (Exception e) {
 
-                _logger.LogInformation("Retry event publish Failed");
+                _logger.LogError("Failed to publish Retry event: " + blobCopyRetryEvent);
             }
         }
 
@@ -76,9 +76,10 @@ namespace BulkFileUploadFunctionApp.Services
                     await _replayEventHubProducerClient.SendAsync(eventBatch);
                     _logger.LogInformation("Replay event published successfully");
                 }
+                
             } catch (Exception e) {
 
-                _logger.LogInformation("Replay event publish Failed");
+                _logger.LogError("Failed to publish Replay event: " + blobCopyRetryEvent);
             }
         }
     }
