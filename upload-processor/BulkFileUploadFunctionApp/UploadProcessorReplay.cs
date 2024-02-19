@@ -29,7 +29,7 @@ namespace BulkFileUploadFunctionApp
 
             _uploadEventHubNamespaceConnectionString = Environment.GetEnvironmentVariable("AzureEventHubConnectionString", EnvironmentVariableTarget.Process);
             _replayEventHubName = Environment.GetEnvironmentVariable("ReplayEventHubName", EnvironmentVariableTarget.Process);
-            _consumerGroup = Environment.GetEnvironmentVariable("EventHubConsumerGroup", EnvironmentVariableTarget.Process);
+            _consumerGroup = Environment.GetEnvironmentVariable("AzureEventHubConsumerGroup", EnvironmentVariableTarget.Process);
         }
 
         [Function("UploadProcessorReplay")]
