@@ -31,11 +31,13 @@ namespace BulkFileUploadFunctionApp.Services
         }
         public async Task PublishRetryEvent(BlobCopyRetryEvent blobCopyRetryEvent)
         {
+            string jsonPayload = null;
+
             try 
             {
-                _logger.LogInformation("Publishing Retry Event: " + blobCopyRetryEvent);
+                jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
 
-                string jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
+                _logger.LogInformation("Publishing Retry Event: " + jsonPayload);
 
                 await PublishEventAsync(_retryEventHubProducerClient, jsonPayload);
 
@@ -43,17 +45,19 @@ namespace BulkFileUploadFunctionApp.Services
 
             } catch (Exception e) {
 
-                _logger.LogError("Failed to publish Retry event: " + blobCopyRetryEvent);
+                _logger.LogError("Failed to publish Retry event: " + jsonPayload);
             }
         }
 
         public async Task PublishReplayEvent(BlobCopyRetryEvent blobCopyRetryEvent)
         {
+            string jsonPayload = null;
+
             try 
             {
-                _logger.LogInformation("Publishing Replay Event: " + blobCopyRetryEvent);
+                jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
 
-                string jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
+                _logger.LogInformation("Publishing Replay Event: " + jsonPayload);
 
                 await PublishEventAsync(_replayEventHubProducerClient, jsonPayload);
 
@@ -61,7 +65,7 @@ namespace BulkFileUploadFunctionApp.Services
                 
             } catch (Exception e) {
 
-                _logger.LogError("Failed to publish Replay event: " + blobCopyRetryEvent);
+                _logger.LogError("Failed to publish Replay event: " + jsonPayload);
             }
         }
 
