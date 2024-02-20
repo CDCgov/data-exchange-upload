@@ -26,6 +26,8 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IServiceProvider> _mockServiceProvider;
         private Mock<ILogger<HealthCheckFunction>> _loggerMock;
         private Mock<ILoggerFactory> _loggerFactoryMock;
+        private Mock<IFeatureManagementExecutor> _featureManagementExecutorMock;
+        private Mock<IProcStatClient> _procStatClientMock;
 
 
         // Initializes mock objects for HTTP request/response, function context, blob service, environment variables, and logger.
@@ -49,10 +51,15 @@ namespace BulkFileUploadFunctionAppTests
             _loggerFactoryMock = new Mock<ILoggerFactory>();
             _loggerMock = new Mock<ILogger<HealthCheckFunction>>();
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
+            _procStatClientMock = new Mock<IProcStatClient>();
+            _featureManagementExecutorMock = new Mock<IFeatureManagementExecutor>();
 
-            // Assuming you need to set up your logger mock, for example:
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger<HealthCheckFunction>)))
                                 .Returns(_loggerMock.Object);
+            _mockServiceProvider.Setup(provider => provider.GetService(typeof(IFeatureManagementExecutor)))
+                .Returns(_featureManagementExecutorMock.Object);
+            _mockServiceProvider.Setup(provider => provider.GetService(typeof(IProcStatClient)))
+                .Returns(_procStatClientMock.Object);
         }
 
         private HealthCheckFunction CreateHealthCheckFunction()
@@ -60,7 +67,9 @@ namespace BulkFileUploadFunctionAppTests
             return new HealthCheckFunction(
                 _mockBlobServiceClientFactory.Object,
                 _mockEnvironmentVariableProvider.Object,
-                _loggerFactoryMock.Object);
+                _loggerFactoryMock.Object,
+                _featureManagementExecutorMock.Object,
+                _procStatClientMock.Object);
         }
 
         [TestMethod]
