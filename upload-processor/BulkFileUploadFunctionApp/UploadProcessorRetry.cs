@@ -21,7 +21,7 @@ namespace BulkFileUploadFunctionApp
 
         private readonly IUploadEventHubService _uploadEventHubService;
 
-        private const int MAX_RETRY_ATTEMPTS = 3;
+        private const int MAX_RETRY_ATTEMPTS = 2;
         
         public UploadProcessorRetry(ILoggerFactory loggerFactory, IUploadProcessingService uploadProcessingService, IUploadEventHubService uploadEventHubService)
         {
@@ -72,7 +72,7 @@ namespace BulkFileUploadFunctionApp
                             case BlobCopyStage.CopyToDex:
                                 try
                                 {
-                                    await _uploadProcessingService.CopyBlobToDex(blobCopyRetryEvent.sourceBlobUri);
+                                    await _uploadProcessingService.ProcessBlob(blobCopyRetryEvent.sourceBlobUri);
                                 }
                                 catch (Exception ex)
                                 {
@@ -119,7 +119,7 @@ namespace BulkFileUploadFunctionApp
         }
 
         private async Task RePublishEvent(BlobCopyRetryEvent blobCopyRetryEvent) {
-            
+
             if (blobCopyRetryEvent.retryAttempt == MAX_RETRY_ATTEMPTS) {
                 blobCopyRetryEvent.retryAttempt = 1;
                 await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);

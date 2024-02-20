@@ -24,7 +24,15 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _routingUploadRootContainerName;
         private readonly string _tusHooksFolder;
 
-        public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration)
+        private readonly Task<List<DestinationAndEvents>?> _destinationAndEvents;
+        private readonly string _targetEdav = "dex_edav";
+        private readonly string _targetRouting = "dex_routing";
+        private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
+
+        private readonly IUploadEventHubService _uploadEventHubService;
+
+
+        public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IUploadEventHubService uploadEventHubService)
         {
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _configuration = configuration;
@@ -43,6 +51,10 @@ namespace BulkFileUploadFunctionApp.Services
             _routingUploadRootContainerName = Environment.GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME", EnvironmentVariableTarget.Process) ?? "routeingress";
 
             _tusHooksFolder = Environment.GetEnvironmentVariable("TUSD_HOOKS_FOLDER", EnvironmentVariableTarget.Process) ?? "tusd-file-hooks";
+
+            _destinationAndEvents = GetAllDestinationAndEvents();
+
+            _uploadEventHubService = uploadEventHubService;
         }
 
         /// <summary>
@@ -51,7 +63,7 @@ namespace BulkFileUploadFunctionApp.Services
         /// <param name="blobCreatedUrl"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public async Task<(string, string, string, string, Dictionary<string, string>)> CopyBlobToDex(string? blobCreatedUrl)
+        public async Task ProcessBlob(string? blobCreatedUrl)
         {
             if (blobCreatedUrl == null)
                 throw new Exception("Blob url may not be null");
@@ -113,14 +125,22 @@ namespace BulkFileUploadFunctionApp.Services
                 tusFileMetadata.Add("orig_filename", filename);
 
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
-                await CopyBlobFromTusToDexAsync(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-
-                return (destinationId, extEvent, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                try
+                {
+                    await CopyBlobFromTusToDex(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                }
+                catch(Exception ex) 
+                {
+                    PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                    return;
+                }
+                
+                await CopyBlobFromDexToTarget(blobCreatedUrl, destinationId, extEvent, destinationContainerName, destinationBlobFilename, tusFileMetadata);
             }
             catch (Exception ex)
             {
+                _logger.LogInformation($"Failed to process Blob: {blobCreatedUrl}");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                throw ex;
             }
         }
 
@@ -134,7 +154,7 @@ namespace BulkFileUploadFunctionApp.Services
         /// <param name="destinationBlobName">Destination blob filename</param>
         /// <param name="destinationMetadata">Metadata to be associated with the destination blob file</param>
         /// <returns></returns>
-        private async Task CopyBlobFromTusToDexAsync(string connectionString, string sourceContainerName, string sourceBlobName, string destinationContainerName,
+        private async Task CopyBlobFromTusToDex(string connectionString, string sourceContainerName, string sourceBlobName, string destinationContainerName,
             string destinationBlobName, IDictionary<string, string> destinationMetadata)
         {
             try
@@ -162,6 +182,78 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogError("Failed to copy from TUS to Dex");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
                 throw ex;
+            }
+        }
+
+        private async Task CopyBlobFromDexToTarget(string blobCreatedUrl, string destinationId, string extEvent, string destinationContainerName, string destinationBlobFilename, Dictionary<string, string> tusFileMetadata)
+        {
+            var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
+            if(currentDestination == null) {
+                _logger.LogError($"No matching configuration found for destination: {destinationId}" );
+                return;
+            } 
+
+            var currentEvent = currentDestination?.extEvents?.Find(e => e.name == extEvent);
+            if(currentEvent == null) {
+                _logger.LogError($"No matching event:{extEvent} found for destination:{destinationId}");
+                return;
+            }
+
+            if (currentEvent != null && currentEvent.copyTargets != null && currentEvent.copyTargets.Any())
+            {
+                foreach (CopyTarget copyTarget in currentEvent.copyTargets)
+                {
+                    _logger.LogInformation("Copy Target: " + copyTarget.target);
+
+                    if (copyTarget.target == _targetEdav)
+                    {
+                        // Now copy the file from DeX to the EDAV storage account, also partitioned by date
+                        try 
+                        {
+                            await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                        }
+                        catch(Exception e) 
+                        {
+                            PublishRetryEvent(BlobCopyStage.CopyToEdav, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                        }                        
+                    }
+                    else if (copyTarget.target == _targetRouting)
+                    {
+                        bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
+                        _logger.LogInformation($"Routing Status: {isRoutingEnabled}");
+
+                        if (isRoutingEnabled)
+                        {
+                            // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
+                            try
+                            {
+                                await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                            }
+                            catch(Exception e)
+                            {
+                                PublishRetryEvent(BlobCopyStage.CopyToRouting, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                            }                
+                        }
+                        else
+                        {
+                            _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogInformation("No copy target found. Defaulting to EDAV");
+
+                // Now copy the file from DeX to the EDAV storage account, also partitioned by date
+                try
+                {
+                    await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                }
+                catch(Exception e)
+                {                    
+                    PublishRetryEvent(BlobCopyStage.CopyToEdav, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                }
             }
         }
 
@@ -405,6 +497,45 @@ namespace BulkFileUploadFunctionApp.Services
             }
 
             return filenameSuffix;
+        }
+        private async Task<List<DestinationAndEvents>?> GetAllDestinationAndEvents()
+        {
+            var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
+
+            try
+            {
+                var blobReader = new BlobReader(_logger);
+                var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
+
+                return destinationAndEvents;
+            }
+            catch (Exception e)
+            {
+                _logger.LogError("Failed to fetch Destinations and Events");
+                ExceptionUtils.LogErrorDetails(e, _logger);
+
+                return new List<DestinationAndEvents>();
+            }
+        }
+
+        private async Task PublishRetryEvent(BlobCopyStage copyStage, string sourceBlobUri, string dexContainerName, string dexBlobFilename, Dictionary<string, string> fileMetadata)
+        {            
+            try 
+            {
+                BlobCopyRetryEvent blobCopyRetryEvent = new BlobCopyRetryEvent();
+                blobCopyRetryEvent.copyRetryStage = copyStage;
+                blobCopyRetryEvent.retryAttempt = 1;
+                blobCopyRetryEvent.sourceBlobUri = sourceBlobUri;
+                blobCopyRetryEvent.dexContainerName = dexContainerName;
+                blobCopyRetryEvent.dexBlobFilename = dexBlobFilename;
+                blobCopyRetryEvent.fileMetadata = fileMetadata;
+
+                await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
+            }
+            catch (Exception ex)
+            {
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+            }
         }
     }
 }

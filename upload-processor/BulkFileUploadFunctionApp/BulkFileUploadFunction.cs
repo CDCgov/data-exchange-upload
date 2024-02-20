@@ -22,35 +22,27 @@ namespace BulkFileUploadFunctionApp
 
         private readonly IConfiguration _configuration;
         private readonly IUploadProcessingService _uploadProcessingService;
-        private readonly IUploadEventHubService _uploadEventHubService;
         private readonly string _dexAzureStorageAccountName;
         private readonly string _dexAzureStorageAccountKey;
         private readonly string _tusHooksFolder;
-        private readonly Task<List<DestinationAndEvents>?> _destinationAndEvents;
-        private readonly string _targetEdav = "dex_edav";
-        private readonly string _targetRouting = "dex_routing";
-        private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
 
         public static string? GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IConfiguration configuration, IUploadProcessingService uploadProcessingService, IUploadEventHubService uploadEventHubService)
+        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IConfiguration configuration, IUploadProcessingService uploadProcessingService)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
 
             _configuration = configuration;
 
             _uploadProcessingService = uploadProcessingService;
-            _uploadEventHubService = uploadEventHubService;
 
             _dexAzureStorageAccountName = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
             _dexAzureStorageAccountKey = GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY") ?? "";
 
             _tusHooksFolder = GetEnvironmentVariable("TUSD_HOOKS_FOLDER") ?? "tusd-file-hooks";
-
-            _destinationAndEvents = GetAllDestinationAndEvents();
         }
 
         /// <summary>
@@ -91,135 +83,7 @@ namespace BulkFileUploadFunctionApp
             if (blobCreatedUrl == null)
                 throw new Exception("Blob url may not be null");
 
-            string destinationId = null;
-            string extEvent = null;
-            string destinationContainerName = null;
-            string destinationBlobFilename = null;
-            Dictionary<string, string> tusFileMetadata = null;
-
-            try
-            {
-                var result = await _uploadProcessingService.CopyBlobToDex(blobCreatedUrl);
-
-                destinationId = result.Item1;
-                extEvent = result.Item2;
-                destinationContainerName = result.Item3;
-                destinationBlobFilename = result.Item4;
-                tusFileMetadata = result.Item5;
-
-            } catch (Exception ex) {
-
-                PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                return;
-            }
-
-            var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
-            if(currentDestination == null) {
-                _logger.LogError($"No matching configuration found for destination: {destinationId}" );
-                return;
-            } 
-
-            var currentEvent = currentDestination?.extEvents?.Find(e => e.name == extEvent);
-            if(currentEvent == null) {
-                _logger.LogError($"No matching event:{extEvent} found for destination:{destinationId}");
-                return;
-            } 
-
-            if (currentEvent != null && currentEvent.copyTargets != null && currentEvent.copyTargets.Any())
-            {
-                foreach (CopyTarget copyTarget in currentEvent.copyTargets)
-                {
-                    _logger.LogInformation("Copy Target: " + copyTarget.target);
-
-                    if (copyTarget.target == _targetEdav)
-                    {
-                        // Now copy the file from DeX to the EDAV storage account, also partitioned by date
-                        try 
-                        {
-                            await _uploadProcessingService.CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                        }
-                        catch(Exception e) 
-                        {
-                            PublishRetryEvent(BlobCopyStage.CopyToEdav, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                        }                        
-                    }
-                    else if (copyTarget.target == _targetRouting)
-                    {
-                        bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
-                        _logger.LogInformation($"Routing Status: {isRoutingEnabled}");
-
-                        if (isRoutingEnabled)
-                        {
-                            // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
-                            try
-                            {
-                                await _uploadProcessingService.CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                            }
-                            catch(Exception e)
-                            {
-                                PublishRetryEvent(BlobCopyStage.CopyToRouting, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                            }                
-                        }
-                        else
-                        {
-                            _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
-                        }
-                    }
-                }
-            }
-            else
-            {
-                _logger.LogInformation("No copy target found. Defaulting to EDAV");
-
-                // Now copy the file from DeX to the EDAV storage account, also partitioned by date
-                try
-                {
-                    await _uploadProcessingService.CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                }
-                catch(Exception e)
-                {                    
-                    PublishRetryEvent(BlobCopyStage.CopyToEdav, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                }
-            }
-        }
-
-        private async Task PublishRetryEvent(BlobCopyStage copyStage, string sourceBlobUri, string dexContainerName, string dexBlobFilename, Dictionary<string, string> fileMetadata)
-        {            
-            try 
-            {
-                BlobCopyRetryEvent blobCopyRetryEvent = new BlobCopyRetryEvent();
-                blobCopyRetryEvent.copyRetryStage = copyStage;
-                blobCopyRetryEvent.retryAttempt = 1;
-                blobCopyRetryEvent.sourceBlobUri = sourceBlobUri;
-                blobCopyRetryEvent.dexContainerName = dexContainerName;
-                blobCopyRetryEvent.dexBlobFilename = dexBlobFilename;
-                blobCopyRetryEvent.fileMetadata = fileMetadata;
-
-                await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
-            }
-            catch (Exception ex)
-            {
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-            }
-        }
-        private async Task<List<DestinationAndEvents>?> GetAllDestinationAndEvents()
-        {
-            var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
-
-            try
-            {
-                var blobReader = new BlobReader(_logger);
-                var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
-
-                return destinationAndEvents;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("Failed to fetch Destinations and Events");
-                ExceptionUtils.LogErrorDetails(e, _logger);
-
-                return new List<DestinationAndEvents>();
-            }
+            await _uploadProcessingService.ProcessBlob(blobCreatedUrl);
         }
     }
 
