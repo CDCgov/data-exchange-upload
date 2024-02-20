@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BulkFileUploadFunctionApp.Services
+﻿namespace BulkFileUploadFunctionApp.Services
 {
     public interface IFeatureManagementExecutor
     {
-        public IFeatureManagementExecutor ExecuteIfEnabledAsync(string flagName, Action callback);
-        public IFeatureManagementExecutor ExecuteIfDisabledAsync(string flagName, Action callback);
+        public Task<IFeatureManagementExecutor> ExecuteIfEnabledAsync(string flagName, Func<Task> callback);
+        public IFeatureManagementExecutor ExecuteIfEnabled(string flagName, Action callback);
+        public Task<IFeatureManagementExecutor> ExecuteIfDisabledAsync(string flagName, Func<Task> callback);
+        public IFeatureManagementExecutor ExecuteIfDisabled(string flagName, Action callback);
     }
 }

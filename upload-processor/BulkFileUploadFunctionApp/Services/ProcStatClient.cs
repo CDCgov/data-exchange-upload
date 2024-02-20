@@ -19,13 +19,14 @@ namespace BulkFileUploadFunctionApp.Services
             _logger = logger;
         }
 
-        public async Task<string> GetHealthCheck()
+        public async Task<HealthCheckResponse> GetHealthCheck()
         {
             var response = await _httpClient.GetAsync("/api/health");
             response.EnsureSuccessStatusCode();
 
             var responseBody = await response.Content.ReadAsStringAsync();
-            return responseBody;
+            // TODO: Handle empty body.
+            return JsonConvert.DeserializeObject<HealthCheckResponse>(responseBody);
         }
         public async Task CreateReport(string uploadId, string destinationId, string eventType, string stageName, CopyReport payload)
         {

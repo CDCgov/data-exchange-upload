@@ -15,10 +15,12 @@ namespace BulkFileUploadFunctionApp.Services
             _configurationRefresher = configurationRefresherProvider.Refreshers.First();
             _configuration = configuration;
         }
-        public IFeatureManagementExecutor ExecuteIfEnabledAsync(string flagName, Action callback)
+
+        public IFeatureManagementExecutor ExecuteIfEnabled(string flagName, Action callback)
         {
             _configurationRefresher.TryRefreshAsync();
             bool isEnabled = _configuration.GetValue<bool>($"FeatureManagement:{flagName}");
+
 
             if (isEnabled)
             {
@@ -28,7 +30,34 @@ namespace BulkFileUploadFunctionApp.Services
             return this;
         }
 
-        public IFeatureManagementExecutor ExecuteIfDisabledAsync(string flagName, Action callback)
+        public async Task<IFeatureManagementExecutor> ExecuteIfEnabledAsync(string flagName, Func<Task> callback)
+        {
+            await _configurationRefresher.TryRefreshAsync();
+            bool isEnabled = _configuration.GetValue<bool>($"FeatureManagement:{flagName}");
+
+
+            if (isEnabled)
+            {
+                await callback();
+            }
+
+            return this;
+        }
+
+        public async Task<IFeatureManagementExecutor> ExecuteIfDisabledAsync(string flagName, Func<Task> callback)
+        {
+            await _configurationRefresher.TryRefreshAsync();
+            bool isEnabled = _configuration.GetValue<bool>($"FeatureManagement:{flagName}");
+
+            if (!isEnabled)
+            {
+                await callback();
+            }
+
+            return this;
+        }
+
+        public IFeatureManagementExecutor ExecuteIfDisabled(string flagName, Action callback)
         {
             _configurationRefresher.TryRefreshAsync();
             bool isEnabled = _configuration.GetValue<bool>($"FeatureManagement:{flagName}");

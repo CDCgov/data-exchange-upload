@@ -22,18 +22,21 @@ namespace BulkFileUploadFunctionApp
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
         private readonly ILogger _logger;
         private readonly IFeatureManagementExecutor _featureManagementExecutor;
+        private readonly IProcStatClient _procStatClient;
 
         // Constructor
         public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory,
                                     IEnvironmentVariableProvider environmentVariableProvider,
                                     ILoggerFactory loggerFactory,
-                                    IFeatureManagementExecutor featureManagementExecutor)
+                                    IFeatureManagementExecutor featureManagementExecutor,
+                                    IProcStatClient procStatClient)
         {
             _blobServiceClientFactory = blobServiceClientFactory;
             _environmentVariableProvider = environmentVariableProvider;
             _logger = loggerFactory.CreateLogger<HealthCheckFunction>();
 
             _featureManagementExecutor = featureManagementExecutor;
+            _procStatClient = procStatClient;
         }
 
         [Function("HealthCheckFunction")]
@@ -69,14 +72,11 @@ namespace BulkFileUploadFunctionApp
                 }
 
                 // Perform health check for Processing Status.
-                _featureManagementExecutor
-                    .ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
+                await _featureManagementExecutor
+                    .ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                     {
-                        _logger.LogInformation("Proc stat enabled!");
-                    })
-                    .ExecuteIfDisabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
-                    {
-                        _logger.LogInformation("Proc stat disabled!");
+                        HealthCheckResponse procStatHealthCheck = await _procStatClient.GetHealthCheck();
+                        healthCheckResponse.DependencyHealthChecks.Add(procStatHealthCheck.ToHealthCheckResult("Processing Status API"));
                     });
 
                 var endTime = DateTime.UtcNow;
