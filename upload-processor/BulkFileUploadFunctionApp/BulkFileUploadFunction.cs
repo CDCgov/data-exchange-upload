@@ -54,17 +54,20 @@ namespace BulkFileUploadFunctionApp
         private readonly IProcStatClient _procStatClient;
         private readonly string _stageName = "dex-file-copy";
 
+        private readonly IFeatureManagementExecutor _featureManagementExecutor;
+
         public static string? GetEnvironmentVariable(string name)
         {
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction(IProcStatClient procStatClient, ILoggerFactory loggerFactory, IConfiguration configuration)
+        public BulkFileUploadFunction(IProcStatClient procStatClient, ILoggerFactory loggerFactory, IConfiguration configuration, IFeatureManagementExecutor featureManagementExecutor)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
 
             _configuration = configuration;
             _procStatClient = procStatClient;
+            _featureManagementExecutor = featureManagementExecutor;
 
             _blobCopyHelper = new(_logger);
 
@@ -184,8 +187,13 @@ namespace BulkFileUploadFunctionApp
                 catch (RequestFailedException ex)
                 {
                     ExceptionUtils.LogErrorDetails(ex, _logger);
-                    CopyReport failReport = new CopyReport(sourceUrl: blobCreatedUrl, destUrl: destinationContainerName, result: "failure", errorDesc: $"Failed to copy from Tus to DEX. {ex.Message}");
-                    await _procStatClient.CreateReport(tusInfoFile.ID, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+
+                    _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                    {
+                        CopyReport failReport = new CopyReport(sourceUrl: blobCreatedUrl, destUrl: destinationContainerName, result: "failure", errorDesc: $"Failed to copy from Tus to DEX. {ex.Message}");
+                        await _procStatClient.CreateReport(tusInfoFile.ID, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+                    });
+                    
                     throw new Exception("Failed to copy from Tus to DEX.  Aborting attempt to copy to destination storage accounts.");
                 }
 
@@ -219,15 +227,22 @@ namespace BulkFileUploadFunctionApp
                         // Now copy the file from DeX to the EDAV storage account, also partitioned by date
                         var destPath = await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
                         // Send copy success report
-                        var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-                        await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+                        _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                        {
+                            var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
+                            await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+                        });
                     }
                     catch (RequestFailedException ex)
                     {
                         _logger.LogError("Failed to copy from Dex to Edav");
                         ExceptionUtils.LogErrorDetails(ex, _logger);
-                        CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: $"Failed to copy from Tus to DEX. {ex.Message}");
-                        await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+
+                        _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                        {
+                            CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: $"Failed to copy from Tus to DEX. {ex.Message}");
+                            await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+                        });
                     }
                     catch (HttpRequestException ex)
                     {
@@ -244,15 +259,21 @@ namespace BulkFileUploadFunctionApp
                             // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
                             var destPath = await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
                             // Send copy success report
-                            var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-                            await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+                            _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                            {
+                                var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
+                                await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+                            });
                         }
                         catch (RequestFailedException ex)
                         {
                             _logger.LogError("Failed to copy from Dex to ROUTING");
                             ExceptionUtils.LogErrorDetails(ex, _logger);
-                            CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: $"Failed to copy from Tus to DEX. {ex.Message}");
-                            await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+                            _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                            {
+                                CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: $"Failed to copy from Tus to DEX. {ex.Message}");
+                                await _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+                            });
                         }
                         catch (HttpRequestException ex)
                         {

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using BulkFileUploadFunctionApp.Services;
+using Microsoft.FeatureManagement;
 
 var host = new HostBuilder()
     .ConfigureLogging(builder =>
@@ -22,12 +23,18 @@ var host = new HostBuilder()
     .ConfigureAppConfiguration(builder =>
         {
             string cs = Environment.GetEnvironmentVariable("FEATURE_MANAGER_CONNECTION_STRING") ?? "";
-            builder.AddAzureAppConfiguration(cs);
+            builder.AddAzureAppConfiguration(options =>
+            {
+                options.Connect(cs)
+                       .UseFeatureFlags();
+            });
         })
     .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices(services => {
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
+        services.AddAzureAppConfiguration();
+        services.AddFeatureManagement();
 
         // Register Proc Stat Http Service.
         services.AddHttpClient<IProcStatClient, ProcStatClient>(client =>
@@ -39,7 +46,9 @@ var host = new HostBuilder()
         services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactoryImpl>();
 
         // Registers an implementation for the IEnvironmentVariableProvider interface to be resolved as a singleton.
-        services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();       
+        services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();  
+        
+        services.AddSingleton<IFeatureManagementExecutor, FeatureManagementExecutor>();
     })
     .Build();
 

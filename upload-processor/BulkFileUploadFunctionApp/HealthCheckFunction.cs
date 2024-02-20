@@ -9,6 +9,8 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using Azure.Identity;
+using Microsoft.Extensions.Configuration.AzureAppConfiguration;
+using Microsoft.Extensions.Configuration;
 
 
 namespace BulkFileUploadFunctionApp
@@ -19,15 +21,19 @@ namespace BulkFileUploadFunctionApp
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
         private readonly ILogger _logger;
+        private readonly IFeatureManagementExecutor _featureManagementExecutor;
 
         // Constructor
         public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory,
                                     IEnvironmentVariableProvider environmentVariableProvider,
-                                    ILoggerFactory loggerFactory)
+                                    ILoggerFactory loggerFactory,
+                                    IFeatureManagementExecutor featureManagementExecutor)
         {
             _blobServiceClientFactory = blobServiceClientFactory;
             _environmentVariableProvider = environmentVariableProvider;
             _logger = loggerFactory.CreateLogger<HealthCheckFunction>();
+
+            _featureManagementExecutor = featureManagementExecutor;
         }
 
         [Function("HealthCheckFunction")]
@@ -61,6 +67,17 @@ namespace BulkFileUploadFunctionApp
                     HealthCheckResult checkResult = await healthCheckResultUtil.GetResult(storage);
                     healthCheckResponse.DependencyHealthChecks.Add(checkResult);
                 }
+
+                // Perform health check for Processing Status.
+                _featureManagementExecutor
+                    .ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
+                    {
+                        _logger.LogInformation("Proc stat enabled!");
+                    })
+                    .ExecuteIfDisabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
+                    {
+                        _logger.LogInformation("Proc stat disabled!");
+                    });
 
                 var endTime = DateTime.UtcNow;
                 var duration = endTime - startTime;

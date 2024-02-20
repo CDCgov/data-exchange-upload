@@ -11,7 +11,9 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<ProcStatClient> _logger;
 
-        public ProcStatClient(HttpClient httpClient, ILogger<ProcStatClient> logger)
+        public ProcStatClient(
+            HttpClient httpClient, 
+            ILogger<ProcStatClient> logger)
         {
             _httpClient = httpClient;
             _logger = logger;
