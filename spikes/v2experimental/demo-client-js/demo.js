@@ -14,6 +14,9 @@
   const chunkInput      = document.querySelector('#chunksize')
   const parallelInput   = document.querySelector('#paralleluploads')
   const endpointInput   = document.querySelector('#endpoint')
+  const metadataInput   = document.querySelector('#metadata_json')
+  metadataInput.value =  '{"meta_destination_id":"dextesting", "destination":"dextesting-testevent1"}'
+
 
   function reset (startTimeUpload, fileListBytesUploaded, fileListBytesTotal) {
 
@@ -67,6 +70,12 @@
       parallelUploads = 1
     } // .if
 
+    let metadataJSON = JSON.parse(metadataInput.value)
+    let metadataJSONstr = JSON.stringify(metadataJSON, null, 4)
+    console.log(`metadata JSON: ${metadataJSONstr}`)
+
+
+
     // toggleBtn.textContent = 'pause upload'
 
     const fileListBytesTotal = fileList.reduce( 
@@ -88,11 +97,9 @@
       let prevFileBytesUploaded = 0
 
       const metadata = {
-        // REQUIRED
-        meta_destination_id: "dextesting", // final container destination: dextesting-testevent1,
-        meta_ext_event: "testevent1",
+        ...metadataJSON,
   
-        // REQUIRED: original file name, see metadata for destination file repo
+        // REQUIRED: original file name
         filename: file.name, 
       } // .metadata
 
