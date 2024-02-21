@@ -1,4 +1,4 @@
-BulkFileUploadFunctionApp/Properties/ServiceDependencies/ocio-ede-dev-bulk-file-upload-processor - Zip Deploy/profile.arm.json
+upload-processor/BulkFileUploadFunctionApp/Properties/ServiceDependencies/ocio-ede-dev-bulk-file-upload-processor - Zip Deploy/
 
 bulk-upload-service/bin/
 
