@@ -22,9 +22,8 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<FunctionContext> _mockFunctionContext;
         private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
         private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
-        // private Mock<IConfiguration> _mockConfiguration;
-        private Mock<IConfigurationRefresher> _configurationRefresherMock = new Mock<IConfigurationRefresher>();
-        private Mock<IConfigurationRefresherProvider> _configurationRefresherProviderMock = new Mock<IConfigurationRefresherProvider>();
+        private Mock<IConfigurationRefresher> _configurationRefresherMock;
+        private Mock<IConfigurationRefresherProvider> _configurationRefresherProviderMock;
         private Mock<IServiceProvider> _mockServiceProvider;
         private Mock<ILogger<HealthCheckFunction>> _loggerMock;
         private Mock<ILoggerFactory> _loggerFactoryMock;
@@ -39,25 +38,16 @@ namespace BulkFileUploadFunctionAppTests
         [TestInitialize]
         public void Initialize()
         {
+            // Instantiate mocks.
             _mockFunctionContext = new Mock<FunctionContext>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
             _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
-            _configurationRefresherProviderMock.Setup(m => m.Refreshers).Returns(new List<IConfigurationRefresher>{_configurationRefresherMock.Object});
-            // Configures mock service provider for logging services and sets up the function context to use this provider.
+            _configurationRefresherMock = new Mock<IConfigurationRefresher>();
+            _configurationRefresherProviderMock = new Mock<IConfigurationRefresherProvider>();
             _mockServiceProvider = new Mock<IServiceProvider>();
-
-            _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
-
-            var mockBlobServiceClient = new Mock<BlobServiceClient>();
-            _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
-
-            _mockFunctionContext.Setup(ctx => ctx.InstanceServices)
-                                .Returns(_mockServiceProvider.Object);
             _loggerFactoryMock = new Mock<ILoggerFactory>();
             _loggerMock = new Mock<ILogger<HealthCheckFunction>>();
-            _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             _procStatClientMock = new Mock<IProcStatClient>();
-            _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
 
             _testConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
             {
@@ -65,6 +55,17 @@ namespace BulkFileUploadFunctionAppTests
             }).Build();
             _testFeatureManagementExecutor = new FeatureManagementExecutor(_configurationRefresherProviderMock.Object, _testConfiguration);
 
+            // Setup mocks.
+            _configurationRefresherProviderMock.Setup(m => m.Refreshers).Returns(new List<IConfigurationRefresher>{_configurationRefresherMock.Object});
+            _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
+            _mockFunctionContext.Setup(ctx => ctx.InstanceServices)
+                                .Returns(_mockServiceProvider.Object);
+
+            var mockBlobServiceClient = new Mock<BlobServiceClient>();
+            _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
+
+            _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
+            _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger<HealthCheckFunction>)))
                                 .Returns(_loggerMock.Object);
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(IFeatureManagementExecutor)))
