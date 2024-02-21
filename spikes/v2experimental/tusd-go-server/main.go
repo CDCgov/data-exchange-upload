@@ -8,6 +8,10 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
+func health(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("running ok"))
+} // .health
+
 func main() {
 	// Create a new FileStore instance which is responsible for
 	// storing the uploaded file on disk in the specified directory.
@@ -17,7 +21,7 @@ func main() {
 	// by implementing the tusd.DataStore interface.
 	store := filestore.FileStore{
 		Path: "./uploads",
-	}
+	} // .store
 
 	// A storage backend for tusd may consist of multiple different parts which
 	// handle upload creation, locking, termination and so on. The composer is a
@@ -32,10 +36,11 @@ func main() {
 		BasePath:              "/files/",
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
-	})
+	}) // .handler
+
 	if err != nil {
 		panic(fmt.Errorf("unable to create handler: %s", err))
-	}
+	} // .if
 
 	// Start another goroutine for receiving events from the handler whenever
 	// an upload is completed. The event will contains details about the upload
@@ -45,14 +50,18 @@ func main() {
 			event := <-handler.CompleteUploads
 			fmt.Printf("Upload %s finished\n", event.Upload.ID)
 		}
-	}()
+	}() // .go func
 
 	// Right now, nothing has happened since we need to start the HTTP server on
 	// our own. In the end, tusd will start listening on and accept request at
 	// http://localhost:8080/files
 	http.Handle("/files/", http.StripPrefix("/files/", handler))
+
+	http.HandleFunc("/health", health)
+
 	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic(fmt.Errorf("unable to listen: %s", err))
-	}
-}
+	} // .if
+
+} // .main
