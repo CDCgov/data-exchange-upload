@@ -1,6 +1,4 @@
 ﻿using Microsoft.Extensions.Configuration.AzureAppConfiguration;
-using Microsoft.FeatureManagement;
-using System;
 using Microsoft.Extensions.Configuration;
 
 namespace BulkFileUploadFunctionApp.Services
