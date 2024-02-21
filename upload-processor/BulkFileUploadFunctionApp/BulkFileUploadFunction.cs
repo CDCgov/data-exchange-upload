@@ -119,7 +119,13 @@ namespace BulkFileUploadFunctionApp
                     if (blobCreatedEvent.Data?.Url == null)
                         throw new Exception("Unexpected data content of event; no blob create event url found.");
 
-                    await ProcessBlobCreatedEvent(blobCreatedEvent.Data.Url);
+                    try
+                    {
+                        await ProcessBlobCreatedEvent(blobCreatedEvent.Data.Url);
+                    } catch (Exception ex)
+                    {
+                        ExceptionUtils.LogErrorDetails(ex, _logger);
+                    }
                 }
             } // .foreach 
 
