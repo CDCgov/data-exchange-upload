@@ -1,18 +1,17 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
 using BulkFileUploadFunctionApp;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Model;
-using System.Threading.Tasks;
 using System.Net;
 using Azure;
 using Azure.Storage.Blobs;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.AzureAppConfiguration;
+using BulkFileUploadFunctionApp.Utils;
 
 namespace BulkFileUploadFunctionAppTests
 {
@@ -23,11 +22,16 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<FunctionContext> _mockFunctionContext;
         private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
         private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
+        // private Mock<IConfiguration> _mockConfiguration;
+        private Mock<IConfigurationRefresher> _configurationRefresherMock = new Mock<IConfigurationRefresher>();
+        private Mock<IConfigurationRefresherProvider> _configurationRefresherProviderMock = new Mock<IConfigurationRefresherProvider>();
         private Mock<IServiceProvider> _mockServiceProvider;
         private Mock<ILogger<HealthCheckFunction>> _loggerMock;
         private Mock<ILoggerFactory> _loggerFactoryMock;
-        private Mock<IFeatureManagementExecutor> _featureManagementExecutorMock;
         private Mock<IProcStatClient> _procStatClientMock;
+
+        private IConfiguration _testConfiguration;
+        private IFeatureManagementExecutor _testFeatureManagementExecutor;
 
 
         // Initializes mock objects for HTTP request/response, function context, blob service, environment variables, and logger.
@@ -38,6 +42,7 @@ namespace BulkFileUploadFunctionAppTests
             _mockFunctionContext = new Mock<FunctionContext>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
             _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
+            _configurationRefresherProviderMock.Setup(m => m.Refreshers).Returns(new List<IConfigurationRefresher>{_configurationRefresherMock.Object});
             // Configures mock service provider for logging services and sets up the function context to use this provider.
             _mockServiceProvider = new Mock<IServiceProvider>();
 
@@ -52,12 +57,18 @@ namespace BulkFileUploadFunctionAppTests
             _loggerMock = new Mock<ILogger<HealthCheckFunction>>();
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             _procStatClientMock = new Mock<IProcStatClient>();
-            _featureManagementExecutorMock = new Mock<IFeatureManagementExecutor>();
+            _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
+
+            _testConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+            {
+                {$"FeatureManagement:{Constants.PROC_STAT_FEATURE_FLAG_NAME}", "true"}
+            }).Build();
+            _testFeatureManagementExecutor = new FeatureManagementExecutor(_configurationRefresherProviderMock.Object, _testConfiguration);
 
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger<HealthCheckFunction>)))
                                 .Returns(_loggerMock.Object);
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(IFeatureManagementExecutor)))
-                .Returns(_featureManagementExecutorMock.Object);
+                .Returns(_testFeatureManagementExecutor);
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(IProcStatClient)))
                 .Returns(_procStatClientMock.Object);
         }
@@ -68,7 +79,7 @@ namespace BulkFileUploadFunctionAppTests
                 _mockBlobServiceClientFactory.Object,
                 _mockEnvironmentVariableProvider.Object,
                 _loggerFactoryMock.Object,
-                _featureManagementExecutorMock.Object,
+                _testFeatureManagementExecutor,
                 _procStatClientMock.Object);
         }
 
@@ -76,6 +87,9 @@ namespace BulkFileUploadFunctionAppTests
         public async Task HealthCheckFunction_ReturnsHealthyResponse()
         {
             // Arrange
+            // Setup service mocks.
+            
+
             // setting up a mock response wrapper to simulate the behavior of the actual response object used in the service.
             var functionContext = TestHelpers.CreateFunctionContext();
             var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
@@ -94,6 +108,7 @@ namespace BulkFileUploadFunctionAppTests
             var healthCheckResponse = JsonSerializer.Deserialize<HealthCheckResponse>(responseBody);
             Assert.IsNotNull(healthCheckResponse);
             Assert.AreEqual("UP", healthCheckResponse.Status);
+            Assert.AreEqual(4, healthCheckResponse.DependencyHealthChecks.Count);
         }
 
         [TestMethod]
@@ -115,7 +130,32 @@ namespace BulkFileUploadFunctionAppTests
             // Assert
             Assert.IsNotNull(result);
             Assert.AreEqual(HttpStatusCode.InternalServerError, result.StatusCode);
+        }
 
+        [TestMethod]
+        public async Task HealthCheckFunction_ReturnsDownWhenPSAPIReturnsDown()
+        {
+            // Arrange
+            var functionContext = TestHelpers.CreateFunctionContext();
+            var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
+
+            _procStatClientMock.Setup(mock => mock.GetHealthCheck())
+                .Throws(new RequestFailedException("Error connecting to PS API"));
+
+            var healthCheckFunction = CreateHealthCheckFunction();
+
+            // Act
+            var result = await healthCheckFunction.Run(
+                httpRequestData,
+                functionContext);
+
+            // Assert
+            Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
+            result.Body.Position = 0;
+            var responseBody = new StreamReader(result.Body).ReadToEnd();
+            var healthCheckResponse = JsonSerializer.Deserialize<HealthCheckResponse>(responseBody);
+            Assert.IsNotNull(healthCheckResponse);
+            Assert.AreEqual("DOWN", healthCheckResponse.Status);
         }
 
     }
@@ -177,6 +217,13 @@ namespace BulkFileUploadFunctionAppTests
             });
 
             return httpRequestDataMock.Object;
+        }
+
+        public static HealthCheckResponse CreateUpResponse()
+        {
+            var healthCheckResponse = new HealthCheckResponse();
+            healthCheckResponse.Status = "UP";
+            return healthCheckResponse;
         }
     }
 }

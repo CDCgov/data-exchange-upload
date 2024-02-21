@@ -58,9 +58,9 @@ namespace BulkFileUploadFunctionApp
             //creating a response for a request and setting its status code to 200 (OK).
             var response = req.CreateResponse();
             response.StatusCode = HttpStatusCode.OK;
+            // Perform health checks for each destination.
             try
             {
-                // Perform health checks for each destination.
                 foreach (var storage in StorageNames)
                 {
                     HealthCheckResultUtil healthCheckResultUtil = new HealthCheckResultUtil(_blobServiceClientFactory,
@@ -70,39 +70,50 @@ namespace BulkFileUploadFunctionApp
                     HealthCheckResult checkResult = await healthCheckResultUtil.GetResult(storage);
                     healthCheckResponse.DependencyHealthChecks.Add(checkResult);
                 }
-
-                // Perform health check for Processing Status.
-                await _featureManagementExecutor
-                    .ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                    {
-                        HealthCheckResponse procStatHealthCheck = await _procStatClient.GetHealthCheck();
-                        healthCheckResponse.DependencyHealthChecks.Add(procStatHealthCheck.ToHealthCheckResult("Processing Status API"));
-                    });
-
-                var endTime = DateTime.UtcNow;
-                var duration = endTime - startTime;
-                healthCheckResponse.TotalChecksDuration = duration.ToString("c");
-
-                _logger.LogInformation("TotalChecksDuration-->" + healthCheckResponse.TotalChecksDuration);
-
-                // Determine overall status based on individual checks
-                if (healthCheckResponse.DependencyHealthChecks.Any(d => d.Status == "DOWN"))
-                {
-                    healthCheckResponse.Status = "DOWN"; // Set overall status to DOWN if any check fails.
-                }
-                response.StatusCode = HttpStatusCode.OK;
-                response.Headers.Add("Content-Type", "application/json");
-                await response.WriteStringAsync(JsonSerializer.Serialize(healthCheckResponse));
-
-                return response;
             }
             catch (RequestFailedException ex)
             {
+                // TODO: Append DOWN for a specific storage instead of 500 error.
                 // Log error, respond with "Not Healthy!", and set response status to Internal Server Error (500)
                 _logger.LogError(ex, "Error occurred while checking Blob storage container health.");
                 response.StatusCode = HttpStatusCode.InternalServerError;
                 return response;
             }
+
+
+            // Perform health check for Processing Status.
+            try
+            {
+                await _featureManagementExecutor
+                .ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    HealthCheckResponse procStatHealthCheck = await _procStatClient.GetHealthCheck();
+                    healthCheckResponse.DependencyHealthChecks.Add(procStatHealthCheck.ToHealthCheckResult(Constants.PROC_STAT_SERVICE_NAME));
+                });
+            } catch (Exception ex)
+            {
+                _logger.LogError("Error occured while getting PS API health.");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+                healthCheckResponse.DependencyHealthChecks.Add(new HealthCheckResult(Constants.PROC_STAT_SERVICE_NAME, "DOWN", ex.Message));
+            }
+            
+
+            var endTime = DateTime.UtcNow;
+            var duration = endTime - startTime;
+            healthCheckResponse.TotalChecksDuration = duration.ToString("c");
+
+            _logger.LogInformation("TotalChecksDuration-->" + healthCheckResponse.TotalChecksDuration);
+
+            // Determine overall status based on individual checks
+            if (healthCheckResponse.DependencyHealthChecks.Any(d => d.Status == "DOWN"))
+            {
+                healthCheckResponse.Status = "DOWN"; // Set overall status to DOWN if any check fails.
+            }
+            response.StatusCode = HttpStatusCode.OK;
+            response.Headers.Add("Content-Type", "application/json");
+            await response.WriteStringAsync(JsonSerializer.Serialize(healthCheckResponse));
+
+            return response;
         }
 
     }
