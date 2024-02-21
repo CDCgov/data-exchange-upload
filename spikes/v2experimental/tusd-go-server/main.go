@@ -36,6 +36,8 @@ func main() {
 		BasePath:              "/files/",
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
+		//
+		PreUploadCreateCallback: checkMeta,
 	}) // .handler
 
 	if err != nil {
