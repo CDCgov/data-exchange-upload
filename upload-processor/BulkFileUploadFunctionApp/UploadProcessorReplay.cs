@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 
@@ -62,15 +63,21 @@ namespace BulkFileUploadFunctionApp
 
                 _logger.LogInformation("Replaying events...");
 
+                DateTimeOffset stopReadingAfterTime = DateTimeOffset.UtcNow;
+
                 await foreach (PartitionEvent partitionEvent in replayConsumerClient.ReadEventsAsync())
                 {
-                    string eventJsonString = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
+                    DateTimeOffset enqueueTime = partitionEvent.Data.EnqueuedTime;
 
-                    BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
-
-                    _logger.LogInformation("Replaying event: " + replayEvent);
-
-                    await _uploadEventHubService.PublishRetryEvent(replayEvent);
+                    if (enqueueTime > stopReadingAfterTime)
+                    {
+                        ProcessEvent(partitionEvent);
+                        break; 
+                    } 
+                    else 
+                    {
+                        ProcessEvent(partitionEvent);
+                    }
                 }
             }
             catch (Exception ex)
@@ -85,6 +92,17 @@ namespace BulkFileUploadFunctionApp
                     await replayConsumerClient.CloseAsync();
                 }                
             }
+        }
+
+        private async Task ProcessEvent(PartitionEvent partitionEvent) 
+        {
+            string eventJsonString = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
+
+            _logger.LogInformation("Replaying event: " + eventJsonString);
+
+            BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
+
+            await _uploadEventHubService.PublishRetryEvent(replayEvent);
         }
     }
 }
