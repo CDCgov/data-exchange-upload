@@ -112,5 +112,62 @@ namespace BulkFileUploadFunctionAppTest
 
             Assert.IsFalse(response);
         }
+
+        [TestMethod]
+        public async Task GivenSuccessfulResponse_WhenGetTraceByUploadId_ThenReturnsTrace()
+        {
+            // Arrange.
+            var responseBody = new Trace
+            {
+                TraceId = "1234"
+            };
+            var apiResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonConvert.SerializeObject(responseBody))
+            };
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+
+            // Act.
+            var response = await client.GetTraceByUploadId("5678");
+
+            Assert.AreEqual("1234", response.TraceId);
+        }
+
+        [TestMethod]
+        public async Task GivenNullResponseContent_WhenGetTraceByUploadId_ThenReturnsNull()
+        {
+            // Arrange.
+            var apiResponse = new HttpResponseMessage(HttpStatusCode.OK);
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+
+            // Act.
+            var response = await client.GetTraceByUploadId("5678");
+
+            Assert.IsNull(response);
+        }
+
+        [TestMethod]
+        public async Task GivenException_WhenGetTraceByUploadId_ThenReturnsNull()
+        {
+            // Arrange.
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(() => throw new HttpRequestException()))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+
+            // Act.
+            var response = await client.GetTraceByUploadId("5678");
+
+            Assert.IsNull(response);
+        }
     }
 }

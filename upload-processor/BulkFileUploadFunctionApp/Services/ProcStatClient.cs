@@ -64,17 +64,30 @@ namespace BulkFileUploadFunctionApp.Services
             return true;
         }
 
-        public async Task<Trace> GetTraceByUploadId(string uploadId)
+        public async Task<Trace?> GetTraceByUploadId(string uploadId)
         {
-            var response = await _httpClient.GetAsync($"/api/trace/uploadId/{uploadId}");
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                var response = await _httpClient.GetAsync($"/api/trace/uploadId/{uploadId}");
+                response.EnsureSuccessStatusCode();
 
-            var responseBody = await response.Content.ReadAsStringAsync();
-            // TODO: Handle empty body.
-            return JsonConvert.DeserializeObject<Trace>(responseBody);
+                var responseBody = await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrEmpty(responseBody))
+                {
+                    _logger.LogError("Call to PS API returned empty body.");
+                    return null;
+                }
+
+                return JsonConvert.DeserializeObject<Trace>(responseBody);
+            } catch (Exception ex)
+            {
+                _logger.LogError("Error when calling PS API.");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+                return null;
+            }
         }
 
-        public async Task<Span> StartSpanForTrace(string traceId, string parentSpanId, string stageName)
+        public async Task<Span?> StartSpanForTrace(string traceId, string parentSpanId, string stageName)
         {
             var response = await _httpClient.PutAsync($"/api/trace/startSpan/{traceId}/{parentSpanId}?stageName={stageName}", null);
             response.EnsureSuccessStatusCode();
