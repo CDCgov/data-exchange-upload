@@ -134,7 +134,7 @@ namespace BulkFileUploadFunctionAppTest
             // Act.
             var response = await client.GetTraceByUploadId("5678");
 
-            Assert.AreEqual("1234", response.TraceId);
+            Assert.AreEqual("1234", response?.TraceId);
         }
 
         [TestMethod]
@@ -166,6 +166,63 @@ namespace BulkFileUploadFunctionAppTest
 
             // Act.
             var response = await client.GetTraceByUploadId("5678");
+
+            Assert.IsNull(response);
+        }
+
+        [TestMethod]
+        public async Task GivenSuccessfulResponse_WhenStartSpanForTrace_ThenReturnsSpan()
+        {
+            // Arrange.
+            var responseBody = new Span
+            {
+                SpanId = "1234"
+            };
+            var apiResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonConvert.SerializeObject(responseBody))
+            };
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+
+            // Act.
+            var response = await client.StartSpanForTrace("abcd", "defg", "test stage");
+
+            Assert.AreEqual("1234", response?.SpanId);
+        }
+
+        [TestMethod]
+        public async Task GivenNullResponseContent_WhenStartSpanForTrace_ThenReturnsNull()
+        {
+            // Arrange.
+            var apiResponse = new HttpResponseMessage(HttpStatusCode.OK);
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+
+            // Act.
+            var response = await client.StartSpanForTrace("abcd", "defg", "test stage");
+
+            Assert.IsNull(response);
+        }
+
+        [TestMethod]
+        public async Task GivenException_WhenStartSpanForTrace_ThenReturnsNull()
+        {
+            // Arrange.
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(() => throw new HttpRequestException()))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+
+            // Act.
+            var response = await client.StartSpanForTrace("abcd", "defg", "test stage");
 
             Assert.IsNull(response);
         }
