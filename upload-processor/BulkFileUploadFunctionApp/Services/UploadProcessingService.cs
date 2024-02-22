@@ -219,7 +219,7 @@ namespace BulkFileUploadFunctionApp.Services
                     }
                     else if (copyTarget.target == _targetRouting)
                     {
-                        bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
+                        bool isRoutingEnabled = _configuration.GetValue<bool>("ROUTING");
                         _logger.LogInformation($"Routing Status: {isRoutingEnabled}");
 
                         if (isRoutingEnabled)

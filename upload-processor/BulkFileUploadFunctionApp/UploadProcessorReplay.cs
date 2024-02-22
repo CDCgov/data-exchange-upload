@@ -71,12 +71,12 @@ namespace BulkFileUploadFunctionApp
 
                     if (enqueueTime > stopReadingAfterTime)
                     {
-                        ProcessEvent(partitionEvent);
+                        await ProcessEvent(partitionEvent);
                         break; 
                     } 
                     else 
                     {
-                        ProcessEvent(partitionEvent);
+                        await ProcessEvent(partitionEvent);
                     }
                 }
             }
