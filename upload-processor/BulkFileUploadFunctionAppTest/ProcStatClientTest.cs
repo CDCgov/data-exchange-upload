@@ -226,5 +226,26 @@ namespace BulkFileUploadFunctionAppTest
 
             Assert.IsNull(response);
         }
+
+        [TestMethod]
+        public async Task GivenSuccessfulResponse_WhenStopSpanForTrace_ThenReturnsId()
+        {
+            // Arrange.
+            var responseBody = "1234";
+            var apiResponse = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(responseBody)
+            };
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+
+            // Act.
+            var response = await client.StopSpanForTrace("abcd", "defg");
+
+            Assert.AreEqual("1234", response);
+        }
     }
 }
