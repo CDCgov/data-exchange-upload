@@ -53,10 +53,10 @@ namespace BulkFileUploadFunctionAppTests
             {
                 {$"FeatureManagement:{Constants.PROC_STAT_FEATURE_FLAG_NAME}", "true"}
             }).Build();
+            _configurationRefresherProviderMock.Setup(m => m.Refreshers).Returns(new List<IConfigurationRefresher> { _configurationRefresherMock.Object });
             _testFeatureManagementExecutor = new FeatureManagementExecutor(_configurationRefresherProviderMock.Object, _testConfiguration);
 
             // Setup mocks.
-            _configurationRefresherProviderMock.Setup(m => m.Refreshers).Returns(new List<IConfigurationRefresher>{_configurationRefresherMock.Object});
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
             _mockFunctionContext.Setup(ctx => ctx.InstanceServices)
                                 .Returns(_mockServiceProvider.Object);
