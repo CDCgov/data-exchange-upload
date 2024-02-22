@@ -21,10 +21,9 @@ namespace BulkFileUploadFunctionAppTest
         }
 
         [TestMethod]
-        public async Task GivenSuccessfulResponse_WhenGetHealthCheck_ThenReturnsOk()
+        public async Task GivenSuccessfulResponse_WhenGetHealthCheck_ThenReturnsUp()
         {
             // Arrange.
-            var request = new HttpRequestMessage(HttpMethod.Get, "/api/health");
             var responseBody = new HealthCheckResponse
             {
                 Status = "UP"
@@ -45,5 +44,73 @@ namespace BulkFileUploadFunctionAppTest
             Assert.AreEqual("UP", response.Status);
         }
 
+        [TestMethod]
+        public async Task GivenNullResponseContent_WhenGetHealthCheck_ThenReturnsDown()
+        {
+            // Arrange.
+            var apiResponse = new HttpResponseMessage(HttpStatusCode.OK);
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+
+            // Act.
+            var response = await client.GetHealthCheck();
+
+            Assert.AreEqual("DOWN", response.Status);
+        }
+
+        [TestMethod]
+        public async Task GivenException_WhenGetHealthCheck_ThenReturnsDown()
+        {
+            // Arrange.
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(() => throw new HttpRequestException()))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+
+            // Act.
+            var response = await client.GetHealthCheck();
+
+            Assert.AreEqual("DOWN", response.Status);
+        }
+
+        [TestMethod]
+        public async Task GivenSuccessfulResponse_WhenCreateReport_ThenReturnsTrue()
+        {
+            // Arrange.
+            var apiResponse = new HttpResponseMessage(HttpStatusCode.OK);
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+            var testReport = new CopyReport("test source Url", "test dest Url", "success");
+
+            // Act.
+            var response = await client.CreateReport("test upload ID", "test dest ID", "test event type", "test stage name", testReport);
+
+            Assert.IsTrue(response);
+        }
+
+        [TestMethod]
+        public async Task GivenFailErrorCode_WhenCreateReport_ThenReturnsFalse()
+        {
+            // Arrange.
+            var apiResponse = new HttpResponseMessage(HttpStatusCode.InternalServerError);
+            var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
+            {
+                BaseAddress = new Uri("http://localhost")
+            };
+            var client = new ProcStatClient(httpClient, _mockLogger.Object);
+            var testReport = new CopyReport("test source Url", "test dest Url", "success");
+
+            // Act.
+            var response = await client.CreateReport("test upload ID", "test dest ID", "test event type", "test stage name", testReport);
+
+            Assert.IsFalse(response);
+        }
     }
 }

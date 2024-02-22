@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Text;
 using BulkFileUploadFunctionApp.Model;
+using BulkFileUploadFunctionApp.Utils;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -21,18 +22,46 @@ namespace BulkFileUploadFunctionApp.Services
 
         public async Task<HealthCheckResponse> GetHealthCheck()
         {
-            var response = await _httpClient.GetAsync("/api/health");
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                var response = await _httpClient.GetAsync("/api/health");
+                response.EnsureSuccessStatusCode();
 
-            var responseBody = await response.Content.ReadAsStringAsync();
-            // TODO: Handle empty body.
-            return JsonConvert.DeserializeObject<HealthCheckResponse>(responseBody);
+                var responseBody = await response.Content.ReadAsStringAsync();
+                if (string.IsNullOrEmpty(responseBody))
+                {
+                    _logger.LogError("Call to PS API returned empty body.");
+                    return new HealthCheckResponse()
+                    {
+                        Status = "DOWN"
+                    };
+                }
+                return JsonConvert.DeserializeObject<HealthCheckResponse>(responseBody);
+            } catch (Exception ex)
+            {
+                _logger.LogError("Error when calling PS API.");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+                return new HealthCheckResponse()
+                {
+                    Status = "DOWN"
+                };
+            }
         }
-        public async Task CreateReport(string uploadId, string destinationId, string eventType, string stageName, CopyReport payload)
+        public async Task<bool> CreateReport(string uploadId, string destinationId, string eventType, string stageName, CopyReport payload)
         {
-            var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"/api/report/json/uploadId/{uploadId}?destinationId={destinationId}&eventType={eventType}&stageName={stageName}", content);
-            response.EnsureSuccessStatusCode();
+            try
+            {
+                var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PostAsync($"/api/report/json/uploadId/{uploadId}?destinationId={destinationId}&eventType={eventType}&stageName={stageName}", content);
+                response.EnsureSuccessStatusCode();
+            } catch (Exception ex)
+            {
+                _logger.LogError("Error when calling PS API.");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+                return false;
+            }
+
+            return true;
         }
 
         public async Task<Trace> GetTraceByUploadId(string uploadId)
