@@ -15,7 +15,7 @@
         "daart-hl7": {
             "sender_id": null,
             "data_producer_id": null,
-            "jurisdiction": null,
+            "jurisdiction": "reporting_jurisdiction",
             "received_filename": "original_filename"
         },
         "dex-hl7-hl7ingress": {
