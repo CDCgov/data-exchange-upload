@@ -16,7 +16,7 @@ func checkMeta(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, er
 	if !ok {
 		httpResponse := tusd.HTTPResponse{
 			StatusCode: 400,
-			Body: "filename not found in manifest",
+			Body: "filename not found in the provided manifest",
 		} // .httpResponse
 		return httpResponse, tusd.FileInfoChanges{}, nil 
 	} // .ok

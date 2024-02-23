@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"log/slog"
+	"os"
 
 	"github.com/tus/tusd/v2/pkg/filestore"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
@@ -11,6 +13,8 @@ import (
 func health(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("running ok"))
 } // .health
+
+const serverPort = ":8080"
 
 func main() {
 	// Create a new FileStore instance which is responsible for
@@ -61,7 +65,9 @@ func main() {
 
 	http.HandleFunc("/health", health)
 
-	err = http.ListenAndServe(":8080", nil)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger.Info("starting server", "port", serverPort)
+	err = http.ListenAndServe(serverPort, nil)
 	if err != nil {
 		panic(fmt.Errorf("unable to listen: %s", err))
 	} // .if
