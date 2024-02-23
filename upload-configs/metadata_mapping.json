@@ -8,6 +8,7 @@
         },
         "aims-celr-hl7": {
             "sender_id": "meta_username",
+            "data_producer_id": null,
             "jurisdiciton": "meta_organization",
             "received_filename": "meta_ext_filename"
         },
