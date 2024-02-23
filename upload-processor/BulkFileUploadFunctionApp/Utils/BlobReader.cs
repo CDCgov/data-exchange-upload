@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
-    internal class BlobReader
+    internal class BlobReader : IBlobReader
     {
         private readonly ILogger _logger;
 

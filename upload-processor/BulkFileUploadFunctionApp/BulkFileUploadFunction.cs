@@ -11,16 +11,21 @@ using BulkFileUploadFunctionApp.Utils;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
 using BulkFileUploadFunctionApp.Services;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("BulkFileUploadFunctionAppTest")]
 namespace BulkFileUploadFunctionApp
 {
     public class BulkFileUploadFunction
     {
+        
         private readonly ILogger _logger;
 
         private readonly IConfiguration _configuration;
 
-        private readonly BlobCopyHelper _blobCopyHelper;
+        private readonly IBlobCopyHelper _blobCopyHelper;
+
+        private readonly IBlobReader _blobReader;
 
         private readonly string _dexStorageAccountConnectionString;
 
@@ -59,14 +64,17 @@ namespace BulkFileUploadFunctionApp
             return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        public BulkFileUploadFunction(IProcStatClient procStatClient, ILoggerFactory loggerFactory, IConfiguration configuration)
+        public BulkFileUploadFunction(IProcStatClient procStatClient, BlobCopyHelperFactory blobCopyHelperFactory, BlobReaderFactory blobReaderFactory ,ILoggerFactory loggerFactory, IConfiguration configuration)
         {
+
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
 
             _configuration = configuration;
             _procStatClient = procStatClient;
+            _blobCopyHelper = blobCopyHelperFactory.CreateInstance(_logger);
+            _blobReader = blobReaderFactory.CreateInstance(_logger);
 
-            _blobCopyHelper = new(_logger);
+            //_blobCopyHelper = new(_logger);
 
 
             _tusAzureObjectPrefix = GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX") ?? "tus-prefix";
@@ -288,9 +296,10 @@ namespace BulkFileUploadFunctionApp
                 string tusInfoPathname = tusPayloadPathname + ".info";
 
                 _logger.LogInformation($"Retrieving tus info file: {tusInfoPathname}");
-
-                var blobReader = new BlobReader(_logger);
-                tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, sourceContainerName, tusInfoPathname);
+                // TODO: Change to use IBlobReader
+                //var blobReader = new BlobReader(_logger);
+                
+                tusInfoFile = await _blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, sourceContainerName, tusInfoPathname);
 
                 if (tusInfoFile.MetaData == null)
                 {
@@ -315,8 +324,9 @@ namespace BulkFileUploadFunctionApp
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
                 var configFilename = $"{destinationId}-{eventType}.json";
-                var blobReader = new BlobReader(_logger);
-                uploadConfig = await blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
+                // TODO: Change to use IBlobReader
+                //var blobReader = new BlobReader(_logger);
+                uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
                 _logger.LogInformation($"Upload config: FilenameMetadataField={uploadConfig.FilenameMetadataField}, FilenameSuffix={uploadConfig.FilenameSuffix}, FolderStructure={uploadConfig.FolderStructure}");
             } catch (Exception e)
             {
@@ -562,8 +572,9 @@ namespace BulkFileUploadFunctionApp
 
             try
             {
-                var blobReader = new BlobReader(_logger);
-                var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
+                // TODO: Change to use IBlobReader
+                //var blobReader = new BlobReader(_logger);
+                var destinationAndEvents = await _blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
 
                 return destinationAndEvents;
             }

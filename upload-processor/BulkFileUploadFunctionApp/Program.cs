@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 using BulkFileUploadFunctionApp.Services;
+using BulkFileUploadFunctionApp.Utils;
 
 var host = new HostBuilder()
     .ConfigureLogging(builder =>
@@ -40,6 +41,12 @@ var host = new HostBuilder()
 
         // Registers an implementation for the IEnvironmentVariableProvider interface to be resolved as a singleton.
         services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();       
+
+        // Registers an implementation for the IBlobCopyHelper interface to be resolved as a singleton.
+        services.AddSingleton<IBlobCopyHelper, BlobCopyHelper>();
+
+        // Registers an implementation for the IBlobReader interface to be resolved as a singleton.
+        services.AddSingleton<IBlobReader, BlobReader>();
     })
     .Build();
 
