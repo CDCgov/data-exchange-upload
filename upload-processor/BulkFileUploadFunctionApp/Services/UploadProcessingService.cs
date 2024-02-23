@@ -83,6 +83,8 @@ namespace BulkFileUploadFunctionApp.Services
             string? destinationId = null;
             string? eventType = null;
 
+            string? dexBlobUrl = null;
+
             try
             {
                 _logger.LogInformation($"Processing blob url: {blobCreatedUrl}");
@@ -131,22 +133,34 @@ namespace BulkFileUploadFunctionApp.Services
                     trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
                     copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
                 });
+               
+                try 
+                {
+                    // Copy the blob to the DeX storage account specific to the program, partitioned by date
+                    dexBlobUrl = await CopyBlobFromTusToDex(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                }
+                catch(Exception ex)
+                {
+                    await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
-                // Copy the blob to the DeX storage account specific to the program, partitioned by date
-                string dexBlobUrl = await CopyBlobFromTusToDex(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                    // CREATE FAILURE REPORT
+                    string errorDesc = $"Failed to copy from Tus to DEX. {ex.Message}";
+                    SendFailureReport(tusInfoFile.ID, destinationId, eventType, blobCreatedUrl, destinationContainerName, errorDesc);
+
+                    return;
+                }
 
                 await CopyBlobFromDexToTarget(dexBlobUrl, destinationId, eventType, destinationContainerName, destinationBlobFilename, tusFileMetadata);                
             }
             catch (Exception ex)
             {
-                _logger.LogInformation($"Failed to process Blob: {blobCreatedUrl}");
+                _logger.LogInformation($"Errors during blob processing: {blobCreatedUrl}");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                
-                await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
-                // CREATE FAILURE REPORT
-                string errorDesc = $"Failed to copy from Tus to DEX. {ex.Message}";
-                SendFailureReport(tusInfoFile.ID, destinationId, eventType, blobCreatedUrl, destinationContainerName, errorDesc);
+                if(dexBlobUrl == null) {
+
+                    await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                }
             }
             finally
             {
