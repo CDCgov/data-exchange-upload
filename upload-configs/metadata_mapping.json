@@ -1,0 +1,75 @@
+{
+    "v2": {
+        "aims-celr-csv": {
+            "sender_id": "meta_username",
+            "data_producer_id": null,
+            "jurisdiciton": "meta_organization",
+            "received_filename": "meta_ext_filename"
+        },
+        "aims-celr-hl7": {
+            "sender_id": "meta_username",
+            "jurisdiciton": "meta_organization",
+            "received_filename": "meta_ext_filename"
+        },
+        "daart-hl7": {
+            "sender_id": null,
+            "data_producer_id": null,
+            "jurisdiciton": null,
+            "received_filename": "original_filename"
+        },
+        "dex-hl7-hl7ingress": {
+            "sender_id": null,
+            "data_producer_id": null,
+            "jurisdiciton": null,
+            "received_filename": "original_filename"
+        },
+        "ndlp-rsvPrevention": {
+            "sender_id": "meta_ext_source",
+            "data_producer_id": null,
+            "jurisdiciton": "meta_ext_entity",
+            "received_filename": "meta_ext_filename"
+        },
+        "ndlp-influenzaVaccination": {
+            "sender_id": "meta_ext_source",
+            "data_producer_id": null,
+            "jurisdiciton": "meta_ext_entity",
+            "received_filename": "meta_ext_filename"
+        },
+        "ndlp-covidbridgeVaccination": {
+            "sender_id": "meta_ext_source",
+            "data_producer_id": null,
+            "jurisdiciton": "meta_ext_entity",
+            "received_filename": "meta_ext_filename"
+        },
+        "ndlp-covidallmonthlyVaccination": {
+            "sender_id": "meta_ext_source",
+            "data_producer_id": null,
+            "jurisdiciton": "meta_ext_entity",
+            "received_filename": "meta_ext_filename"
+        },
+        "ndlp-routineImmunization": {
+            "sender_id": "meta_ext_source",
+            "data_producer_id": null,
+            "jurisdiciton": "meta_ext_entity",
+            "received_filename": "meta_ext_filename"
+        },
+        "ndlp-aplHistoricalData": {
+            "sender_id": null,
+            "data_producer_id": null,
+            "jurisdiciton": null,
+            "received_filename": "filename"
+        },
+        "pulsenet-LocalSequenceFile": {
+            "sender_id": null,
+            "data_producer_id": null,
+            "jurisdiciton": null,
+            "received_filename": "filename"
+        },
+        "dextesting-testevent1": {
+            "sender_id": "meta_ext_source",
+            "data_producer_id": null,
+            "jurisdiciton": "meta_ext_entity",
+            "received_filename": "filename"
+        }
+    }
+}
