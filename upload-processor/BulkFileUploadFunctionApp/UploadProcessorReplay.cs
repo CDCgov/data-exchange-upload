@@ -63,12 +63,14 @@ namespace BulkFileUploadFunctionApp
 
                 _logger.LogInformation("Replaying events...");
 
+                // Get current timestanp when the trigger was invoked
                 DateTimeOffset stopReadingAfterTime = DateTimeOffset.UtcNow;
 
                 await foreach (PartitionEvent partitionEvent in replayConsumerClient.ReadEventsAsync())
                 {
                     DateTimeOffset enqueueTime = partitionEvent.Data.EnqueuedTime;
 
+                    // Do not process evets submitted after the trigger was invoked to avoid going into a loop in case of retry failures
                     if (enqueueTime > stopReadingAfterTime)
                     {
                         await ProcessEvent(partitionEvent);
