@@ -69,7 +69,7 @@ namespace BulkFileUploadFunctionApp.Services
         /// <param name="blobCreatedUrl"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public async Task ProcessBlob(string? blobCreatedUrl)
+        public async Task ProcessBlob(string blobCreatedUrl)
         {
             _logger.LogInformation($"TUS_AZURE_OBJECT_PREFIX={_tusAzureObjectPrefix}, TUS_AZURE_STORAGE_CONTAINER={_tusAzureStorageContainer}, DEX_AZURE_STORAGE_ACCOUNT_NAME={_dexAzureStorageAccountName}");
 
@@ -79,7 +79,6 @@ namespace BulkFileUploadFunctionApp.Services
             string? destinationContainerName = null;
             string? destinationBlobFilename = null;
             Dictionary<string, string> tusFileMetadata = null;
-            TusInfoFile? tusInfoFile = null;
             string? destinationId = null;
             string? eventType = null;
 
@@ -90,14 +89,26 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogInformation($"Processing blob url: {blobCreatedUrl}");
 
                 var sourceBlobUri = new Uri(blobCreatedUrl);
-                string tusPayloadFilename = sourceBlobUri.Segments.Last();
-                _logger.LogInformation($"tusPayloadFilename is = {tusPayloadFilename}");
+                string tusInfoFilename = sourceBlobUri.Segments.Last();
 
-                var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
-                var sourceContainerName = _tusAzureStorageContainer;
-                var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusPayloadFilename}";
+                _logger.LogInformation($"tusPayloadFilename is = {tusInfoFilename}");
+
+                var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
                 
-                tusInfoFile = await GetTusFileInfo(connectionString, sourceContainerName, tusPayloadPathname);
+                TusInfoFile tusInfoFile = await GetTusFileInfo(tusInfoFilename);
+
+                if (tusInfoFile.ID == null)
+                {
+                    _logger.LogError("Malformed tus info file.  No ID provided.");
+                    return;
+                }
+
+                // START SPAN
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
+                    copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
+                });
 
                 GetRequiredMetaData(tusInfoFile, out destinationId, out eventType);
 
@@ -123,21 +134,14 @@ namespace BulkFileUploadFunctionApp.Services
                 destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
 
                 tusFileMetadata = tusInfoFile?.MetaData ?? new Dictionary<string, string>();
-                tusFileMetadata.Add("tus_tguid", tusPayloadFilename);
+                tusFileMetadata.Add("tus_tguid", tusInfoFile.ID);
                 tusFileMetadata.Remove("filename");
                 tusFileMetadata.Add("orig_filename", filename);
-
-                // START SPAN
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
-                    copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
-                });
                
                 try 
                 {
                     // Copy the blob to the DeX storage account specific to the program, partitioned by date
-                    dexBlobUrl = await CopyBlobFromTusToDex(connectionString, sourceContainerName, tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                    dexBlobUrl = await CopyBlobFromTusToDex(tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
                 }
                 catch(Exception ex)
                 {
@@ -157,10 +161,7 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogInformation($"Errors during blob processing: {blobCreatedUrl}");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
 
-                if(dexBlobUrl == null) {
-
-                    await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                }
+                await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
             }
             finally
             {
@@ -224,22 +225,20 @@ namespace BulkFileUploadFunctionApp.Services
         /// <summary>
         /// Copies a blob from the tus upload folder to the DEX storage account
         /// </summary>
-        /// <param name="connectionString">Connection string for both the source and destination storage account</param>
-        /// <param name="sourceContainerName">Source container name for the file to copy</param>
         /// <param name="sourceBlobName">Source blob filename to copy</param>
         /// <param name="destinationContainerName">Destination container name for the copied file</param>
         /// <param name="destinationBlobName">Destination blob filename</param>
         /// <param name="destinationMetadata">Metadata to be associated with the destination blob file</param>
         /// <returns></returns>
-        private async Task<string> CopyBlobFromTusToDex(string connectionString, string sourceContainerName, string sourceBlobName, string destinationContainerName,
+        private async Task<string> CopyBlobFromTusToDex(string sourceBlobName, string destinationContainerName,
             string destinationBlobName, IDictionary<string, string> destinationMetadata)
         {
             try
             {
                 _logger.LogInformation($"Creating destination container client, container name: {destinationContainerName}");
 
-                var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
-                var destinationContainerClient = new BlobContainerClient(connectionString, destinationContainerName);
+                var sourceContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, _tusAzureStorageContainer);
+                var destinationContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, destinationContainerName);
 
                 // Create the destination container if not exists
                 await destinationContainerClient.CreateIfNotExistsAsync();
@@ -422,12 +421,10 @@ namespace BulkFileUploadFunctionApp.Services
         /// <summary>
         /// Returns the metadata from a tus .info file for the pathname provided.
         /// </summary>
-        /// <param name="connectionString">Azure storage account connection string</param>
-        /// <param name="sourceContainerName">Container where the file to get info for resides</param>
         /// <param name="tusPayloadPathname">Full path of the file to get info on</param>
         /// <returns></returns>
         /// <exception cref="TusInfoFileException"></exception>
-        private async Task<TusInfoFile> GetTusFileInfo(string connectionString, string sourceContainerName, string tusPayloadPathname)
+        private async Task<TusInfoFile> GetTusFileInfo(string tusPayloadPathname)
         {
             TusInfoFile tusInfoFile;
 
@@ -439,7 +436,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 var blobReader = new BlobReader(_logger);
 
-                tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(connectionString, sourceContainerName, tusInfoPathname);
+                tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoPathname);
             }
             catch (Exception e)
             {
@@ -637,35 +634,19 @@ namespace BulkFileUploadFunctionApp.Services
 
         private void SendSuccessReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destPath)
         {
-            try
+            _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
             {
-                _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
-                {
-                    var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-                    _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
-                });
-            }
-            catch(Exception ex)
-            {
-                _logger.LogError("Failed to send success report to PS API.");
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-            }
+                var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
+                _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+            });
         }
         private void SendFailureReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destinationContainerName, string error)
         {
-            try 
+            _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
             {
-                _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
-                {
-                    CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: error);
-                    _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
-                });
-            }
-            catch(Exception ex)
-            {
-                _logger.LogError("Failed to send failure report to PS API.");
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-            }
+                CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: error);
+                _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+            });
         }
     }
 }
