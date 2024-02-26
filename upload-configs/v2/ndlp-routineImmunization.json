@@ -1,0 +1,21 @@
+{
+   "filename_suffix": "none",
+   "folder_structure": "date_YYYY_MM_DD",
+   "metadata_fields": [
+      {
+         "field_name": "sender_id",
+         "compat_field_name": "meta_ext_source"
+      },
+      {
+         "field_name": "data_producer_id"
+      },
+      {
+         "field_name": "jurisdiction",
+         "compat_field_name": "meta_ext_entity"
+      },
+      {
+         "field_name": "received_filename",
+         "compat_field_name": "meta_ext_filename"
+      }
+   ]
+}

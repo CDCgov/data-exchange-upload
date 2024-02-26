@@ -1,0 +1,19 @@
+{
+   "filename_suffix": "none",
+   "folder_structure": "root",
+   "metadata_fields": [
+      {
+         "field_name": "sender_id"
+      },
+      {
+         "field_name": "data_producer_id"
+      },
+      {
+         "field_name": "jurisdiction"
+      },
+      {
+         "field_name": "received_filename",
+         "compat_field_name": "filename"
+      }
+   ]
+}

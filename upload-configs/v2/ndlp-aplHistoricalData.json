@@ -1,0 +1,20 @@
+{
+   "filename_suffix": "none",
+   "folder_structure": "date_YYYY_MM_DD",
+   "metadata_fields": [
+      {
+         "field_name": "sender_id",
+         "default_value": "johns-hopkins-apl"
+      },
+      {
+         "field_name": "data_producer_id"
+      },
+      {
+         "field_name": "jurisdiction"
+      },
+      {
+         "field_name": "received_filename",
+         "compat_field_name": "filename"
+      }
+   ]
+}
