@@ -5,6 +5,7 @@ using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 
 using BulkFileUploadFunctionApp.Model;
+using BulkFileUploadFunctionApp.Utils;
 
 
 namespace BulkFileUploadFunctionApp.Services
@@ -31,41 +32,39 @@ namespace BulkFileUploadFunctionApp.Services
         }
         public async Task PublishRetryEvent(BlobCopyRetryEvent blobCopyRetryEvent)
         {
-            string jsonPayload = null;
+            string jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
 
             try 
             {
-                jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
-
                 _logger.LogInformation("Publishing Retry Event: " + jsonPayload);
 
                 await PublishEventAsync(_retryEventHubProducerClient, jsonPayload);
 
                 _logger.LogInformation("Retry event published successfully");
 
-            } catch (Exception e) {
+            } catch (Exception ex) {
 
                 _logger.LogError("Failed to publish Retry event: " + jsonPayload);
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
         public async Task PublishReplayEvent(BlobCopyRetryEvent blobCopyRetryEvent)
         {
-            string jsonPayload = null;
+            string jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
 
             try 
             {
-                jsonPayload = JsonSerializer.Serialize(blobCopyRetryEvent);
-
                 _logger.LogInformation("Publishing Replay Event: " + jsonPayload);
 
                 await PublishEventAsync(_replayEventHubProducerClient, jsonPayload);
 
                 _logger.LogInformation("Replay event published successfully");
                 
-            } catch (Exception e) {
+            } catch (Exception ex) {
 
                 _logger.LogError("Failed to publish Replay event: " + jsonPayload);
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 

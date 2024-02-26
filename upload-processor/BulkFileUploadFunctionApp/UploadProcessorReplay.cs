@@ -70,16 +70,13 @@ namespace BulkFileUploadFunctionApp
                 {
                     DateTimeOffset enqueueTime = partitionEvent.Data.EnqueuedTime;
 
+                    await ProcessEvent(partitionEvent);
+
                     // Do not process evets submitted after the trigger was invoked to avoid going into a loop in case of retry failures
                     if (enqueueTime > stopReadingAfterTime)
                     {
-                        await ProcessEvent(partitionEvent);
                         break; 
                     } 
-                    else 
-                    {
-                        await ProcessEvent(partitionEvent);
-                    }
                 }
             }
             catch (Exception ex)
