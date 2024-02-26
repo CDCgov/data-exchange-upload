@@ -153,41 +153,33 @@ namespace BulkFileUploadFunctionApp.Services
             finally
             {
                 // STOP SPAN
-                try
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                    if (trace == null)
                     {
-                        if (trace == null)
-                        {
-                            _logger.LogError("Trace was null when expecting a value.");
-                        }
+                        _logger.LogError("Trace was null when expecting a value.");
+                    }
 
-                        if (copySpan == null)
-                        {
-                            _logger.LogError("Span was null when expecting a value.");
-                        }
+                    if (copySpan == null)
+                    {
+                        _logger.LogError("Span was null when expecting a value.");
+                    }
 
-                        if (trace?.TraceId != null)
+                    if (trace?.TraceId != null)
+                    {
+                        if (copySpan?.SpanId != null)
                         {
-                            if (copySpan?.SpanId != null)
-                            {
-                                await _procStatClient.StopSpanForTrace(trace.TraceId, copySpan.SpanId);
-                            } else
-                            {
-                                _logger.LogError($"Span ID was null when expecting a value. {copySpan}");
-                            }
+                            await _procStatClient.StopSpanForTrace(trace.TraceId, copySpan.SpanId);
                         } else
                         {
-                            _logger.LogError($"Trace ID was null when expecting a value. {trace}");
-
+                            _logger.LogError($"Span ID was null when expecting a value. {copySpan}");
                         }
-                    });
-                } 
-                catch(Exception ex)
-                {
-                    _logger.LogError("Failed to stop copy span in PS API.");
-                    ExceptionUtils.LogErrorDetails(ex, _logger);
-                }
+                    } else
+                    {
+                        _logger.LogError($"Trace ID was null when expecting a value. {trace}");
+
+                    }
+                });                
             }
         }
         private async Task<UploadConfig> GetUploadConfig(string destinationId, string eventType)
