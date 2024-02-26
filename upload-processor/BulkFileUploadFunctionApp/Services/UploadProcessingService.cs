@@ -82,7 +82,7 @@ namespace BulkFileUploadFunctionApp.Services
             string? destinationId = null;
             string? eventType = null;
 
-            string? dexBlobUrl = null;
+            TusInfoFile? tusInfoFile = null;
 
             try
             {
@@ -90,25 +90,23 @@ namespace BulkFileUploadFunctionApp.Services
 
                 var sourceBlobUri = new Uri(blobCreatedUrl);
                 string tusInfoFilename = sourceBlobUri.Segments.Last();
-
                 _logger.LogInformation($"tusPayloadFilename is = {tusInfoFilename}");
-
-                var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
-                
-                TusInfoFile tusInfoFile = await GetTusFileInfo(tusInfoFilename);
-
-                if (tusInfoFile.ID == null)
-                {
-                    _logger.LogError("Malformed tus info file.  No ID provided.");
-                    return;
-                }
 
                 // START SPAN
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
+                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFilename.Replace(".info", ""));
                     copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
                 });
+
+                var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
+                
+                tusInfoFile = await GetTusFileInfo(tusInfoFilename);
+
+                if (tusInfoFile.ID == null)
+                {
+                    throw new Exception("Malformed tus info file. No ID provided.");               
+                }
 
                 GetRequiredMetaData(tusInfoFile, out destinationId, out eventType);
 
@@ -138,21 +136,8 @@ namespace BulkFileUploadFunctionApp.Services
                 tusFileMetadata.Remove("filename");
                 tusFileMetadata.Add("orig_filename", filename);
                
-                try 
-                {
-                    // Copy the blob to the DeX storage account specific to the program, partitioned by date
-                    dexBlobUrl = await CopyBlobFromTusToDex(tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-                }
-                catch(Exception ex)
-                {
-                    await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-
-                    // CREATE FAILURE REPORT
-                    string errorDesc = $"Failed to copy from Tus to DEX. {ex.Message}";
-                    SendFailureReport(tusInfoFile.ID, destinationId, eventType, blobCreatedUrl, destinationContainerName, errorDesc);
-
-                    return;
-                }
+                // Copy the blob to the DeX storage account specific to the program, partitioned by date
+                string dexBlobUrl = await CopyBlobFromTusToDex(tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
                 await CopyBlobFromDexToTarget(dexBlobUrl, destinationId, eventType, destinationContainerName, destinationBlobFilename, tusFileMetadata);                
             }
@@ -160,8 +145,10 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogInformation($"Errors during blob processing: {blobCreatedUrl}");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-
                 await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+
+                // CREATE FAILURE REPORT
+                SendFailureReport(tusInfoFile.ID, destinationId, eventType, blobCreatedUrl, destinationContainerName, $"Failed to copy from Tus to DEX. {ex.Message}");
             }
             finally
             {
@@ -288,8 +275,7 @@ namespace BulkFileUploadFunctionApp.Services
                         await PublishRetryEvent(BlobCopyStage.CopyToEdav, sourceBlobUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
                         // Send copy failure report
-                        string errorDesc =  $"Failed to copy from Dex to ROUTING. {ex.Message}";
-                        SendFailureReport(uploadId, destinationId, eventType, sourceBlobUrl, destinationContainerName, errorDesc);
+                        SendFailureReport(uploadId, destinationId, eventType, sourceBlobUrl, destinationContainerName, $"Failed to copy from Dex to EDAV. {ex.Message}");
                     }
                 }
                 else if (copyTarget.target == _targetRouting)
@@ -313,8 +299,7 @@ namespace BulkFileUploadFunctionApp.Services
                             await PublishRetryEvent(BlobCopyStage.CopyToRouting, sourceBlobUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
 
                             // Send copy failure report
-                            string errorDesc =  $"Failed to copy from Dex to ROUTING. {ex.Message}";
-                            SendFailureReport(uploadId, destinationId, eventType, sourceBlobUrl, destinationContainerName, errorDesc);
+                            SendFailureReport(uploadId, destinationId, eventType, sourceBlobUrl, destinationContainerName, $"Failed to copy from Dex to ROUTING. {ex.Message}");
                         }
                     }
                     else
