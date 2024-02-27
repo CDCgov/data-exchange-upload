@@ -544,7 +544,7 @@ namespace BulkFileUploadFunctionApp.Services
             tusInfoFile.MetaData.Add("upload_id", tusInfoFile.ID);
             tusInfoFile.MetaData.Add("trace_id", traceId);
             tusInfoFile.MetaData.Add("span_id", spanId);
-            tusInfoFile.MetaData.Remove("filename");
+            tusInfoFile.MetaData.Remove("filename"); // Remove filename field to use standard received_filename field.
         }
 
         private async Task<List<DestinationAndEvents>?> GetAllDestinationAndEvents()
