@@ -78,7 +78,6 @@ namespace BulkFileUploadFunctionApp.Services
 
             string? destinationContainerName = null;
             string? destinationBlobFilename = null;
-            Dictionary<string, string> tusFileMetadata = null;
             string? destinationId = null;
             string? eventType = null;
 
@@ -132,15 +131,15 @@ namespace BulkFileUploadFunctionApp.Services
                 destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
 
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
-                string dexBlobUrl = await CopyBlobFromTusToDex(tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                string dexBlobUrl = await CopyBlobFromTusToDex(tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
 
-                await CopyBlobFromDexToTarget(dexBlobUrl, destinationId, eventType, destinationContainerName, destinationBlobFilename, tusFileMetadata);                
+                await CopyBlobFromDexToTarget(dexBlobUrl, destinationId, eventType, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);                
             }
             catch (Exception ex)
             {
                 _logger.LogInformation($"Errors during blob processing: {blobCreatedUrl}");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
 
                 // CREATE FAILURE REPORT
                 SendFailureReport(tusInfoFile.ID, destinationId, eventType, blobCreatedUrl, destinationContainerName, $"Failed to copy from Tus to DEX. {ex.Message}");
@@ -180,16 +179,21 @@ namespace BulkFileUploadFunctionApp.Services
         private async Task<UploadConfig> GetUploadConfig(MetadataVersion version, string destinationId, string eventType)
         {
             var uploadConfig = UploadConfig.Default;
+            var configFilename = $"{version}/{destinationId}-{eventType}.json";
 
             try
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
-                var configFilename = $"{version}/{destinationId}-{eventType}.json";
                 var blobReader = new BlobReader(_logger);
                 uploadConfig = await blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
             } catch (Exception e)
             {
                 _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {eventType}.  Using default config. Exception = ${e.Message}");
+            }
+
+            if (uploadConfig == null)
+            {
+                throw new UploadConfigException($"Unable to parse JSON for upload config {configFilename}");
             }
 
             return uploadConfig;
@@ -442,39 +446,6 @@ namespace BulkFileUploadFunctionApp.Services
         }
 
         /// <summary>
-        /// Provides the filename from the metadata using the upload config to tell us what field to look for.
-        /// </summary>
-        /// <param name="metadata">Contains all the tus file metadata</param>
-        /// <param name="metadataFields">All metadata fields for a particular use case</param>
-        /// <param name="filenameFieldName">The filename e</param>
-        /// <exception cref="UploadConfigException"></exception>
-        /// <exception cref="TusInfoFileException"></exception>
-        /*
-        private string GetFilenameFromMetaData(Dictionary<string, string?> metadata, List<MetadataField> metadataFields, string filenameFieldName)
-        {
-            string? filename;
-            MetadataField filenameField;
-
-            try
-            {
-                filenameField = metadataFields.Single(field => field.FieldName == filenameFieldName);
-            } catch (InvalidOperationException ex)
-            {
-                throw new UploadConfigException($"The metadata field value for filename ({filenameFieldName}) provided is either empty or missing");
-            }
-
-            filename = metadata.GetValueOrDefault(filenameFieldName, null);
-
-            if (filename == null)
-            {
-                throw new TusInfoFileException($"No filename provided for field {filenameFieldName} and metadata {metadata}");
-            }
-
-            return filename;
-        }
-        */
-
-        /// <summary>
         /// Determines the folder path from the upload configuration.
         /// </summary>
         /// <param name="uploadConfig"></param>
@@ -534,10 +505,38 @@ namespace BulkFileUploadFunctionApp.Services
 
         private void HydrateMetadata(TusInfoFile tusInfoFile, UploadConfig uploadConfig, string traceId, string spanId)
         {
+            if (tusInfoFile.MetaData == null || tusInfoFile.ID == null)
+            {
+                throw new ArgumentNullException("Metadata cannot be null.");
+            }
+
+            if (uploadConfig.MetadataFields == null)
+            {
+                throw new ArgumentNullException("Metadata fields cannot be null.");
+            }
+            
             // Add use-case specific fields and their values.
             foreach (MetadataField field in uploadConfig.MetadataFields)
             {
-                tusInfoFile.MetaData.Add(field.FieldName, tusInfoFile.MetaData.GetValueOrDefault(field.CompatFieldName, null));
+                if (field.FieldName == null)
+                {
+                    _logger.LogError("Cannot parse field with null field name.");
+                    continue;
+                }
+
+                if (field.DefaultValue != null)
+                {
+                    tusInfoFile.MetaData.Add(field.FieldName, field.DefaultValue);
+                    continue;
+                }
+
+                if (field.CompatFieldName != null)
+                {
+                    tusInfoFile.MetaData.Add(field.FieldName, tusInfoFile.MetaData.GetValueOrDefault(field.CompatFieldName, ""));
+                    continue;
+                }
+
+                tusInfoFile.MetaData.Add(field.FieldName, "");
             }
 
             // Add common fields and their values.
