@@ -78,7 +78,6 @@ namespace BulkFileUploadFunctionApp.Services
 
             string? destinationContainerName = null;
             string? destinationBlobFilename = null;
-            Dictionary<string, string> tusFileMetadata = null;
             string? destinationId = null;
             string? eventType = null;
 
@@ -89,8 +88,8 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogInformation($"Processing blob url: {blobCreatedUrl}");
 
                 var sourceBlobUri = new Uri(blobCreatedUrl);
-                string tusInfoFilename = sourceBlobUri.Segments.Last();
-                _logger.LogInformation($"tusPayloadFilename is = {tusInfoFilename}");
+                string tusInfoFilename = $"{sourceBlobUri.Segments.Last()}.info";
+                _logger.LogInformation($"tusPayloadFilename is {tusInfoFilename}");
 
                 // START SPAN
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
@@ -101,7 +100,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
                 
-                tusInfoFile = await GetTusFileInfo(tusInfoFilename);
+                tusInfoFile = await GetTusFileInfo(tusPayloadPathname);
 
                 if (tusInfoFile.ID == null)
                 {
@@ -110,11 +109,11 @@ namespace BulkFileUploadFunctionApp.Services
 
                 GetRequiredMetaData(tusInfoFile, out destinationId, out eventType);
 
-                // Get upload config file.
-                UploadConfig uploadConfig = await GetUploadConfig(destinationId, eventType);
-              
-                // Determine the destination filename based on the upload config and metadata values provided with the source file.
-                GetFilenameFromMetaData(tusInfoFile, uploadConfig.FilenameMetadataField, out string filename);
+                // Get V2 upload config file.
+                UploadConfig uploadConfig = await GetUploadConfig(MetadataVersion.V2, destinationId, eventType);
+
+                HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);
+                string? filename = tusInfoFile.MetaData.GetValueOrDefault("received_filename", null);
 
                 var dateTimeNow = DateTime.UtcNow;
 
@@ -131,21 +130,16 @@ namespace BulkFileUploadFunctionApp.Services
                 // There are some restrictions on container names -- underscores not allowed, must be all lowercase
                 destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
 
-                tusFileMetadata = tusInfoFile?.MetaData ?? new Dictionary<string, string>();
-                tusFileMetadata.Add("tus_tguid", tusInfoFile.ID);
-                tusFileMetadata.Remove("filename");
-                tusFileMetadata.Add("orig_filename", filename);
-               
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
-                string dexBlobUrl = await CopyBlobFromTusToDex(tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                string dexBlobUrl = await CopyBlobFromTusToDex(tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
 
-                await CopyBlobFromDexToTarget(dexBlobUrl, destinationId, eventType, destinationContainerName, destinationBlobFilename, tusFileMetadata);                
+                await CopyBlobFromDexToTarget(dexBlobUrl, destinationId, eventType, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);                
             }
             catch (Exception ex)
             {
                 _logger.LogInformation($"Errors during blob processing: {blobCreatedUrl}");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
+                await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
 
                 // CREATE FAILURE REPORT
                 SendFailureReport(tusInfoFile.ID, destinationId, eventType, blobCreatedUrl, destinationContainerName, $"Failed to copy from Tus to DEX. {ex.Message}");
@@ -182,20 +176,24 @@ namespace BulkFileUploadFunctionApp.Services
                 });                
             }
         }
-        private async Task<UploadConfig> GetUploadConfig(string destinationId, string eventType)
+        private async Task<UploadConfig> GetUploadConfig(MetadataVersion version, string destinationId, string eventType)
         {
             var uploadConfig = UploadConfig.Default;
+            var configFilename = $"{version}/{destinationId}-{eventType}.json";
 
             try
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
-                var configFilename = $"{destinationId}-{eventType}.json";
                 var blobReader = new BlobReader(_logger);
                 uploadConfig = await blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
-                _logger.LogInformation($"Upload config: FilenameMetadataField={uploadConfig.FilenameMetadataField}, FilenameSuffix={uploadConfig.FilenameSuffix}, FolderStructure={uploadConfig.FolderStructure}");
             } catch (Exception e)
             {
                 _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {eventType}.  Using default config. Exception = ${e.Message}");
+            }
+
+            if (uploadConfig == null)
+            {
+                throw new UploadConfigException($"Unable to parse JSON for upload config {configFilename}");
             }
 
             return uploadConfig;
@@ -401,19 +399,17 @@ namespace BulkFileUploadFunctionApp.Services
         /// <param name="tusPayloadPathname">Full path of the file to get info on</param>
         /// <returns></returns>
         /// <exception cref="TusInfoFileException"></exception>
-        private async Task<TusInfoFile> GetTusFileInfo(string tusPayloadPathname)
+        private async Task<TusInfoFile> GetTusFileInfo(string tusInfoFilename)
         {
             TusInfoFile tusInfoFile;
 
             try
             {
-                string tusInfoPathname = tusPayloadPathname + ".info";
-
-                _logger.LogInformation($"Retrieving tus info file: {tusInfoPathname}");
+                _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
 
                 var blobReader = new BlobReader(_logger);
 
-                tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoPathname);
+                tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
             }
             catch (Exception e)
             {
@@ -447,45 +443,6 @@ namespace BulkFileUploadFunctionApp.Services
             if (metaExtEvent == null)
                 throw new TusInfoFileException("meta_ext_event is a required metadata field and is missing from the tus info file");
             extEvent = metaExtEvent;
-        }
-
-        /// <summary>
-        /// Provides the filename from the metadata using the upload config to tell us what field to look for.
-        /// </summary>
-        /// <param name="tusInfoFile">Contains all the tus file metadata</param>
-        /// <param name="metadataFilenameFieldName">Metadata filename field name to use</param>
-        /// <param name="filename">Outputted filename to use</param>
-        /// <exception cref="UploadConfigException"></exception>
-        /// <exception cref="TusInfoFileException"></exception>
-        private void GetFilenameFromMetaData(TusInfoFile tusInfoFile, string? metadataFilenameFieldName, out string filename)
-        {
-            filename = "";
-            if (metadataFilenameFieldName != null)
-            {
-                var prefFilenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault(metadataFilenameFieldName, null);
-                if (prefFilenameFromMetaData != null && prefFilenameFromMetaData.Length > 0)
-                    filename = prefFilenameFromMetaData;
-                else
-                    throw new UploadConfigException($"The metadata field value for filename ({metadataFilenameFieldName}) provided is either empty or missing");
-            }
-
-            if (filename == "")
-            {
-                var filenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("filename", null);
-                var extfilenameFromMetaData = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_filename", null);
-
-                // this is needed for DEX HL7 and is a required field in dex_hl7_metadata_definition.json
-                var originalFileName = tusInfoFile.MetaData!.GetValueOrDefault("original_filename", null);
-
-                if (filenameFromMetaData != null)
-                    filename = filenameFromMetaData;
-                else if (extfilenameFromMetaData != null)
-                    filename = extfilenameFromMetaData;
-                else if (originalFileName != null)
-                    filename = originalFileName;
-                else
-                    throw new TusInfoFileException("filename, meta_ext_filename, or original_filename is a required metadata field and is missing from the tus info file");
-            }
         }
 
         /// <summary>
@@ -545,6 +502,58 @@ namespace BulkFileUploadFunctionApp.Services
 
             return filenameSuffix;
         }
+
+        private void HydrateMetadata(TusInfoFile tusInfoFile, UploadConfig uploadConfig, string traceId, string spanId)
+        {
+            if (tusInfoFile.MetaData == null || tusInfoFile.ID == null)
+            {
+                throw new ArgumentNullException("Metadata cannot be null.");
+            }
+
+            if (uploadConfig.MetadataConfig == null || uploadConfig.MetadataConfig.Fields == null)
+            {
+                throw new ArgumentNullException("Metadata fields cannot be null.");
+            }
+
+            // Add use-case specific fields and their values.
+            foreach (MetadataField field in uploadConfig.MetadataConfig.Fields)
+            {
+                if (field.FieldName == null)
+                {
+                    _logger.LogError("Cannot parse field with null field name.");
+                    continue;
+                }
+
+                // Skip if field already provided.
+                if (tusInfoFile.MetaData.ContainsKey(field.FieldName))
+                {
+                    continue;
+                }
+
+                if (field.DefaultValue != null)
+                {
+                    tusInfoFile.MetaData[field.FieldName] = field.DefaultValue;
+                    continue;
+                }
+
+                if (field.CompatFieldName != null)
+                {
+                    tusInfoFile.MetaData[field.FieldName] = tusInfoFile.MetaData.GetValueOrDefault(field.CompatFieldName, "");
+                    continue;
+                }
+
+                tusInfoFile.MetaData.Add(field.FieldName, "");
+            }
+
+            // Add common fields and their values.
+            tusInfoFile.MetaData["version"] = uploadConfig.MetadataConfig.Version;
+            tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
+            tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
+            tusInfoFile.MetaData["trace_id"] = traceId;
+            tusInfoFile.MetaData["span_id"] = spanId;
+            tusInfoFile.MetaData.Remove("filename"); // Remove filename field to use standard received_filename field.
+        }
+
         private async Task<List<DestinationAndEvents>?> GetAllDestinationAndEvents()
         {
             var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
