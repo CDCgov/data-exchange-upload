@@ -510,13 +510,13 @@ namespace BulkFileUploadFunctionApp.Services
                 throw new ArgumentNullException("Metadata cannot be null.");
             }
 
-            if (uploadConfig.MetadataFields == null)
+            if (uploadConfig.MetadataConfig == null || uploadConfig.MetadataConfig.Fields == null)
             {
                 throw new ArgumentNullException("Metadata fields cannot be null.");
             }
-            
+
             // Add use-case specific fields and their values.
-            foreach (MetadataField field in uploadConfig.MetadataFields)
+            foreach (MetadataField field in uploadConfig.MetadataConfig.Fields)
             {
                 if (field.FieldName == null)
                 {
@@ -524,15 +524,21 @@ namespace BulkFileUploadFunctionApp.Services
                     continue;
                 }
 
+                // Skip if field already provided.
+                if (tusInfoFile.MetaData.ContainsKey(field.FieldName))
+                {
+                    continue;
+                }
+
                 if (field.DefaultValue != null)
                 {
-                    tusInfoFile.MetaData.Add(field.FieldName, field.DefaultValue);
+                    tusInfoFile.MetaData[field.FieldName] = field.DefaultValue;
                     continue;
                 }
 
                 if (field.CompatFieldName != null)
                 {
-                    tusInfoFile.MetaData.Add(field.FieldName, tusInfoFile.MetaData.GetValueOrDefault(field.CompatFieldName, ""));
+                    tusInfoFile.MetaData[field.FieldName] = tusInfoFile.MetaData.GetValueOrDefault(field.CompatFieldName, "");
                     continue;
                 }
 
@@ -540,10 +546,11 @@ namespace BulkFileUploadFunctionApp.Services
             }
 
             // Add common fields and their values.
-            tusInfoFile.MetaData.Add("tus_tguid", tusInfoFile.ID); // TODO: verify this field can be replaced with upload_id only.
-            tusInfoFile.MetaData.Add("upload_id", tusInfoFile.ID);
-            tusInfoFile.MetaData.Add("trace_id", traceId);
-            tusInfoFile.MetaData.Add("span_id", spanId);
+            tusInfoFile.MetaData["version"] = uploadConfig.MetadataConfig.Version;
+            tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
+            tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
+            tusInfoFile.MetaData["trace_id"] = traceId;
+            tusInfoFile.MetaData["span_id"] = spanId;
             tusInfoFile.MetaData.Remove("filename"); // Remove filename field to use standard received_filename field.
         }
 
