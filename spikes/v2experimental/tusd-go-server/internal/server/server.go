@@ -73,7 +73,8 @@ func (s Server) Serve() error {
 	// http://localhost:8080/files
 	http.Handle("/files/", http.StripPrefix("/files/", handler))
 
-	http.HandleFunc("/health", health)
+	http.HandleFunc("/health", s.health)
+	http.HandleFunc("/version", s.version)
 
 	return http.ListenAndServe(s.config.ServerPort, nil)
 
