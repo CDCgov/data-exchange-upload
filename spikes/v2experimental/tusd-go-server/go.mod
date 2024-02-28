@@ -1,4 +1,4 @@
-module tusd-go-server
+module github.com/cdcgov/data-exchange-upload/tusd-go-server
 
 go 1.22.0
 

@@ -2,9 +2,13 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"log/slog"
+	"net/http"
 	"os"
+
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/server"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/config"
 
 	"github.com/tus/tusd/v2/pkg/filestore"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
@@ -17,6 +21,12 @@ func health(w http.ResponseWriter, r *http.Request) {
 const serverPort = ":8080"
 
 func main() {
+
+	flags := flags.ParseFlags()
+	config := config.ParseConfig()
+
+	var _ = server.New(flags, config)
+
 	// Create a new FileStore instance which is responsible for
 	// storing the uploaded file on disk in the specified directory.
 	// This path _must_ exist before tusd will store uploads in it.
