@@ -1,7 +1,7 @@
 package tusdhandler
 
 import (
-	"fmt" // TODO change to slog
+	"log/slog"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/config"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
@@ -11,7 +11,8 @@ import (
 
 
 func New(flags flags.Flags, config config.Config) (*tusd.Handler, error) {
-		// Create a new FileStore instance which is responsible for
+		
+	// Create a new FileStore instance which is responsible for
 	// storing the uploaded file on disk in the specified directory.
 	// This path _must_ exist before tusd will store uploads in it.
 	// If you want to save them on a different medium, for example
@@ -39,7 +40,7 @@ func New(flags flags.Flags, config config.Config) (*tusd.Handler, error) {
 	}) // .handler
 
 	if err != nil {
-		fmt.Errorf("unable to create handler: %s", err)
+		slog.Error("tushandler: unable to create new tusd handler", "error", err)
 		return nil, err 
 	} // .if
 

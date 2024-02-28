@@ -71,7 +71,7 @@ func main() {
 	}() // .go
 
 	// ------------------------------------------------------------------
-	// 			Block for Exit, everything above is on goroutines
+	// 	Block for Exit, server above is on goroutine
 	// ------------------------------------------------------------------
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
