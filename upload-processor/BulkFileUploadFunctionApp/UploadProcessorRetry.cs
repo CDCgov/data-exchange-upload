@@ -133,7 +133,8 @@ namespace BulkFileUploadFunctionApp
 
                 blobCopyRetryEvent.retryAttempt = 1;
                 await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
-            } else {               
+            } else {        
+                       
                 // Increment the retry attempt and put the event back on retry loop
                 blobCopyRetryEvent.retryAttempt += 1;
                 await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
