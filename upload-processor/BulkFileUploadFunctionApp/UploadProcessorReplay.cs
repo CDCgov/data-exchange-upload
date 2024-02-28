@@ -5,9 +5,12 @@ using Newtonsoft.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
+using Azure.Storage.Blobs;
 
 using Azure.Messaging.EventHubs;
+using Azure.Messaging.EventHubs.Primitives;
 using Azure.Messaging.EventHubs.Consumer;
+using Azure.Messaging.EventHubs.Processor;
 
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
@@ -22,6 +25,16 @@ namespace BulkFileUploadFunctionApp
         private readonly string _uploadEventHubNamespaceConnectionString;
         private readonly string _replayEventHubName;
         private readonly string _consumerGroup;
+        private readonly string _dexAzureStorageAccountName;
+        private readonly string _dexAzureStorageAccountKey;
+        private readonly string _dexStorageAccountConnectionString;
+        private readonly string _replayCheckpointContainer;
+
+        private DateTimeOffset stopReadingAfterTime;
+
+        private static readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        private static readonly CancellationToken cancellationToken = cancellationTokenSource.Token;
+ 
 
         public UploadProcessorReplay(ILoggerFactory loggerFactory, IUploadEventHubService uploadEventHubService)
         {
@@ -31,6 +44,12 @@ namespace BulkFileUploadFunctionApp
             _uploadEventHubNamespaceConnectionString = Environment.GetEnvironmentVariable("AzureEventHubConnectionString", EnvironmentVariableTarget.Process);
             _replayEventHubName = Environment.GetEnvironmentVariable("ReplayEventHubName", EnvironmentVariableTarget.Process);
             _consumerGroup = Environment.GetEnvironmentVariable("AzureEventHubConsumerGroup", EnvironmentVariableTarget.Process);
+
+            _dexAzureStorageAccountName = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
+            _dexAzureStorageAccountKey = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", EnvironmentVariableTarget.Process) ?? "";
+
+            _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
+            _replayCheckpointContainer = "replay-checkpoint";
         }
 
         [Function("UploadProcessorReplay")]
@@ -55,53 +74,65 @@ namespace BulkFileUploadFunctionApp
 
         private async Task ProcessReplayEventHubEventsAsync() 
         {
-            EventHubConsumerClient replayConsumerClient = null;
+            _logger.LogInformation("Replaying events...");
 
-            try
-            {             
-                replayConsumerClient = new EventHubConsumerClient(_consumerGroup, _uploadEventHubNamespaceConnectionString, _replayEventHubName);
+            var storageClient = new BlobContainerClient(_dexStorageAccountConnectionString, 
+                                                        _replayCheckpointContainer);
 
-                _logger.LogInformation("Replaying events...");
-
-                // Get current timestanp when the trigger was invoked
-                DateTimeOffset stopReadingAfterTime = DateTimeOffset.UtcNow;
-
-                await foreach (PartitionEvent partitionEvent in replayConsumerClient.ReadEventsAsync())
-                {
-                    DateTimeOffset enqueueTime = partitionEvent.Data.EnqueuedTime;
-
-                    await ProcessEvent(partitionEvent);
-
-                    // Do not process evets submitted after the trigger was invoked to avoid going into a loop in case of retry failures
-                    if (enqueueTime > stopReadingAfterTime)
-                    {
-                        break; 
-                    } 
-                }
-            }
-            catch (Exception ex)
+            var processorOptions = new EventProcessorClientOptions
             {
-                _logger.LogError("Error while replaying events.");
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-            }
-            finally
-            {
-                if(replayConsumerClient != null) 
-                {                   
-                    await replayConsumerClient.CloseAsync();
-                }                
-            }
+                MaximumWaitTime = TimeSpan.FromSeconds(5)
+            };
+
+            var replayEventProcessorClient = new EventProcessorClient(storageClient,
+                                                                      _consumerGroup,
+                                                                      _uploadEventHubNamespaceConnectionString,
+                                                                      _replayEventHubName,
+                                                                      processorOptions);
+
+            replayEventProcessorClient.ProcessEventAsync += ProcessEventHandler;
+            replayEventProcessorClient.ProcessErrorAsync += ProcessErrorHandler;
+
+            stopReadingAfterTime = DateTimeOffset.UtcNow;
+
+            await replayEventProcessorClient.StartProcessingAsync();
         }
 
-        private async Task ProcessEvent(PartitionEvent partitionEvent) 
+        async Task ProcessEventHandler(ProcessEventArgs eventArgs)
         {
-            string eventJsonString = Encoding.UTF8.GetString(partitionEvent.Data.Body.ToArray());
+            // Check if cancellation is requested
+            if (cancellationToken.IsCancellationRequested)
+            {
+                // Stop event processing if cancellation is requested
+                return;
+            }
+
+            var eventData = eventArgs.Data;
+
+            string eventJsonString = Encoding.UTF8.GetString(eventData.EventBody.ToArray());
 
             _logger.LogInformation("Replaying event: " + eventJsonString);
 
             BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
 
             await _uploadEventHubService.PublishRetryEvent(replayEvent);
+
+            // Cancel processing events if enqueued time exceeds the start time
+            if (eventArgs.Data.EnqueuedTime >= stopReadingAfterTime)
+            {
+                await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
+
+                // Request cancellation
+                cancellationTokenSource.Cancel();
+            }
+        }
+
+        Task ProcessErrorHandler(ProcessErrorEventArgs errorArgs)
+        {
+            // Handle any errors that occur during event processing
+            _logger.LogInformation($"Error processing Replay event: {errorArgs.Exception.Message}");
+
+            return Task.CompletedTask;
         }
     }
 }
