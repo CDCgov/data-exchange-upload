@@ -2,7 +2,7 @@ package server
 
 import (
 	"net/http"
-)
+) // .import
 
 func (s Server) version(w http.ResponseWriter, r *http.Request) {
 

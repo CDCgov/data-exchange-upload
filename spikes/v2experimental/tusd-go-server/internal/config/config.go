@@ -14,10 +14,10 @@ type Config struct {
 
 } // .flags
 
-func ParseConfig() Config {
+func ParseConfig() (Config, error) {// TODO: does this need to return and error, if not refactor signature and call
 
 	return Config{
 		ServerPort: ":8080", //TODO dynamic from env/file
-	}
+	}, nil 
 
 } // .ParseConfig

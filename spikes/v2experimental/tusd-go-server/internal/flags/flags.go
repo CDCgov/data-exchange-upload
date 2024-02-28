@@ -9,8 +9,8 @@ type Flags struct {
 
 } // .flags
 
-func ParseFlags() Flags {
+func ParseFlags() (Flags, error) { // TODO: does this need to return and error, if not refactor signature and call
 	
-	return Flags{}
+	return Flags{}, nil
 
 } // .ParseFlags
