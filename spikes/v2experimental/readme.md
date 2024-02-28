@@ -45,6 +45,8 @@ By end of current quarter, March13/14, deployed POC in DEV with similar existing
 - Configure the other hooks, (post?) if needed
 - Define error package
 - Integration with processing status based on errors
+- Health endpoint, checks storage connections
+- Version endpoint, using git actions to populate 
 - Configuration for azure store containers:Raw, DEX, EDAV.
 - Write storage config object.
 - Write storage connection, at least one retry. error should be at connection.
