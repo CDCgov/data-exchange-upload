@@ -30,11 +30,11 @@ namespace BulkFileUploadFunctionApp
         private readonly string _dexStorageAccountConnectionString;
         private readonly string _replayCheckpointContainer;
 
-        private DateTimeOffset stopReadingAfterTime;
-
         private static readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         private static readonly CancellationToken cancellationToken = cancellationTokenSource.Token;
- 
+    
+        private DateTimeOffset stopReadingAfterTime;
+
 
         public UploadProcessorReplay(ILoggerFactory loggerFactory, IUploadEventHubService uploadEventHubService)
         {
@@ -93,9 +93,16 @@ namespace BulkFileUploadFunctionApp
             replayEventProcessorClient.ProcessEventAsync += ProcessEventHandler;
             replayEventProcessorClient.ProcessErrorAsync += ProcessErrorHandler;
 
-            stopReadingAfterTime = DateTimeOffset.UtcNow;
+            try {
 
-            await replayEventProcessorClient.StartProcessingAsync();
+                stopReadingAfterTime = DateTimeOffset.UtcNow;
+                await replayEventProcessorClient.StartProcessingAsync(cancellationToken);
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogInformation("Replay stopped");
+                await replayEventProcessorClient.StopProcessingAsync();
+            }            
         }
 
         async Task ProcessEventHandler(ProcessEventArgs eventArgs)
@@ -103,7 +110,7 @@ namespace BulkFileUploadFunctionApp
             // Check if cancellation is requested
             if (cancellationToken.IsCancellationRequested)
             {
-                // Stop event processing if cancellation is requested
+                // If cancellation is requested, stop processing further events
                 return;
             }
 
@@ -121,9 +128,10 @@ namespace BulkFileUploadFunctionApp
             if (eventArgs.Data.EnqueuedTime >= stopReadingAfterTime)
             {
                 await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
+                _logger.LogInformation("Replay Cancelled");
+            } else {
 
-                // Request cancellation
-                cancellationTokenSource.Cancel();
+                await eventArgs.UpdateCheckpointAsync();
             }
         }
 
