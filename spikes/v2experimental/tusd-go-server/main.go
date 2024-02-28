@@ -3,83 +3,48 @@ package main
 import (
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
+	"os/signal"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/server"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/config"
 
-	"github.com/tus/tusd/v2/pkg/filestore"
-	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
-func health(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("running ok"))
-} // .health
 
-const serverPort = ":8080"
 
 func main() {
+
+	// TODO: structured logging, decide if slog is used and config at global level with default outputs
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+
+	// TODO: context object, decide if custom slog is to be passed using the go context object
 
 	flags := flags.ParseFlags()
 	config := config.ParseConfig()
 
-	var _ = server.New(flags, config)
+	var httpServer = server.New(flags, config)
 
-	// Create a new FileStore instance which is responsible for
-	// storing the uploaded file on disk in the specified directory.
-	// This path _must_ exist before tusd will store uploads in it.
-	// If you want to save them on a different medium, for example
-	// a remote FTP server, you can implement your own storage backend
-	// by implementing the tusd.DataStore interface.
-	store := filestore.FileStore{
-		Path: "./uploads",
-	} // .store
+	logger.Info("starting server", "port", config.ServerPort)
 
-	// A storage backend for tusd may consist of multiple different parts which
-	// handle upload creation, locking, termination and so on. The composer is a
-	// place where all those separated pieces are joined together. In this example
-	// we only use the file store but you may plug in multiple.
-	composer := tusd.NewStoreComposer()
-	store.UseIn(composer)
-
-	// Create a new HTTP handler for the tusd server by providing a configuration.
-	// The StoreComposer property must be set to allow the handler to function.
-	handler, err := tusd.NewHandler(tusd.Config{
-		BasePath:              "/files/",
-		StoreComposer:         composer,
-		NotifyCompleteUploads: true,
-		//
-		PreUploadCreateCallback: checkMeta,
-	}) // .handler
-
-	if err != nil {
-		panic(fmt.Errorf("unable to create handler: %s", err))
-	} // .if
-
-	// Start another goroutine for receiving events from the handler whenever
-	// an upload is completed. The event will contains details about the upload
-	// itself and the relevant HTTP request.
 	go func() {
-		for {
-			event := <-handler.CompleteUploads
-			fmt.Printf("Upload %s finished\n", event.Upload.ID)
-		}
-	}() // .go func
+		err := httpServer.Serve()
+		if err != nil {
+			panic(fmt.Errorf("unable to listen: %s", err))
+		} // .if
+	}()
 
-	// Right now, nothing has happened since we need to start the HTTP server on
-	// our own. In the end, tusd will start listening on and accept request at
-	// http://localhost:8080/files
-	http.Handle("/files/", http.StripPrefix("/files/", handler))
+	// ---------------------------------
+	// 			Block for Exit
+	// ---------------------------------
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, os.Interrupt)
+	<-sigint
+	// close connections, TODO if needed
+	logger.Info("closing server by os signal", "port", config.ServerPort)
 
-	http.HandleFunc("/health", health)
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	logger.Info("starting server", "port", serverPort)
-	err = http.ListenAndServe(serverPort, nil)
-	if err != nil {
-		panic(fmt.Errorf("unable to listen: %s", err))
-	} // .if
 
 } // .main

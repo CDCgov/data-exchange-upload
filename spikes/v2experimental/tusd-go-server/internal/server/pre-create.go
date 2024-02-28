@@ -1,7 +1,9 @@
-package main 
+package server 
+
+// TODO: hooks pre-create
 
 import (
-	"log"
+	"log" // TODO: slog 
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
