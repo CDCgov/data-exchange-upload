@@ -1,4 +1,5 @@
 ﻿using System;
+using BulkFileUploadFunctionApp.Utils;
 using Newtonsoft.Json;
 
 namespace BulkFileUploadFunctionApp.Model
@@ -12,7 +13,7 @@ namespace BulkFileUploadFunctionApp.Model
 
         public CopyReport(string sourceUrl, string destUrl, string result, string? errorDesc, string? schemaVersion)
         {
-            this.SchemaName = "dex-file-copy";
+            this.SchemaName = Constants.PROC_STAT_REPORT_STAGE_NAME;
             this.FileSourceBlobUrl = sourceUrl;
             this.FileDestinationBlobUrl = destUrl;
             this.Result = result;
@@ -27,11 +28,21 @@ namespace BulkFileUploadFunctionApp.Model
         // TODO: add success fail enum and verification.
         public CopyReport(string sourceUrl, string destUrl, string result)
         {
-            this.SchemaName = "dex-file-copy";
+            this.SchemaName = Constants.PROC_STAT_REPORT_STAGE_NAME;
             this.FileSourceBlobUrl = sourceUrl;
             this.FileDestinationBlobUrl = destUrl;
             this.Result = result;
-            this.SchemaVersion = Report.DEFAULT_SCHEMA_VERSION;
+            this.SchemaVersion = DEFAULT_SCHEMA_VERSION;
         }
+        public CopyReport(string sourceUrl, string destUrl, string result, string? errorDesc)
+        {
+            this.SchemaName = Constants.PROC_STAT_REPORT_STAGE_NAME;
+            this.FileSourceBlobUrl = sourceUrl;
+            this.FileDestinationBlobUrl = destUrl;
+            this.Result = result;
+            this.ErrorDescription = errorDesc;
+            this.SchemaVersion = DEFAULT_SCHEMA_VERSION;
+        }
+
     }
 }

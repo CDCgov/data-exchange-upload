@@ -1,0 +1,32 @@
+{
+	"filename_suffix": "clock_ticks",
+	"folder_structure": "date_YYYY_MM_DD",
+	"metadata_config": {
+		"version": "2.0",
+		"fields": [
+			{
+				"field_name": "sender_id",
+				"compat_field_name": "meta_username"
+			},
+			{
+				"field_name": "data_producer_id"
+			},
+			{
+				"field_name": "jurisdiction",
+				"compat_field_name": "reporting_jurisdiction"
+			},
+			{
+				"field_name": "received_filename",
+				"compat_field_name": "original_filename"
+			},
+			{
+				"field_name": "data_stream_id",
+				"compat_field_name": "meta_destination_id"
+			},
+			{
+				"field_name": "data_stream_route",
+				"compat_field_name": "meta_ext_event"
+			}
+		]
+	}
+}
