@@ -1,6 +1,6 @@
 ﻿namespace BulkFileUploadFunctionApp.Model
 {
-    internal class UploadConfig
+    public class UploadConfig
     {
         public string? FilenameMetadataField { get; set; }
 
@@ -18,6 +18,16 @@
             FixedFolderPath = null
         };
 
+        public UploadConfig() { }
+
+        // If you want to initialize properties in the constructor, you can add parameters to the constructor
+        public UploadConfig(string filenameMetadataField, string filenameSuffix, string folderStructure, string fixedFolderPath)
+        {
+            FilenameMetadataField = filenameMetadataField;
+            FilenameSuffix = filenameSuffix;
+            FolderStructure = folderStructure;
+            FixedFolderPath = fixedFolderPath;
+        }
     }
     
 }

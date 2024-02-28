@@ -1,7 +1,7 @@
 ﻿
 namespace BulkFileUploadFunctionApp.Model
 {
-    internal class TusStorage
+    public class TusStorage
     {
         public string? Container { get; set; }
 
@@ -31,7 +31,7 @@ namespace BulkFileUploadFunctionApp.Model
     ///    }
     /// }
     /// </summary>
-    internal class TusInfoFile
+    public class TusInfoFile
     {
         public string? ID { get; set; }
 

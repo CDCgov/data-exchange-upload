@@ -36,6 +36,10 @@ var host = new HostBuilder()
             client.BaseAddress = new Uri(Environment.GetEnvironmentVariable("PS_API_URL") ?? "");
         });
 
+        services.AddSingleton<IUploadEventHubService, UploadEventHubService>();
+
+        services.AddSingleton<IUploadProcessingService, UploadProcessingService>();
+
         // Registers an implementation for the IBlobServiceClientFactory interface to be resolved as a singleton.
         services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactoryImpl>();
 
