@@ -179,7 +179,7 @@ namespace BulkFileUploadFunctionApp.Services
         private async Task<UploadConfig> GetUploadConfig(MetadataVersion version, string destinationId, string eventType)
         {
             var uploadConfig = UploadConfig.Default;
-            var configFilename = $"{version}/{destinationId}-{eventType}.json";
+            var configFilename = $"{version.ToString().ToLower()}/{destinationId}-{eventType}.json";
 
             try
             {
