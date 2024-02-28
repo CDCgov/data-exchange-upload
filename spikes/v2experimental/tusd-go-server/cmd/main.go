@@ -36,9 +36,9 @@ func main() {
 		} // .if
 	}()
 
-	// ---------------------------------
-	// 			Block for Exit, everything above is on 
-	// ---------------------------------
+	// ------------------------------------------------------------------
+	// 			Block for Exit, everything above is on goroutines
+	// ------------------------------------------------------------------
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
 	<-sigint
