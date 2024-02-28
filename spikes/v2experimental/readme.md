@@ -43,9 +43,12 @@ By end of current quarter, March13/14, deployed POC in DEV with similar existing
 - Read hooks configuration from the files, current v1 files available
 - Check sender manifest using pre-hooks
 - Configure the other hooks, (post?) if needed
+- Define error package
+- Integration with processing status based on errors
 - Configuration for azure store containers:Raw, DEX, EDAV.
 - Write storage config object.
-- Write copy function (functional style), 1 function copy A -> B, if feasible wrap in interface to work multi-cloud, function takes the config objects.
+- Write storage connection, at least one retry. error should be at connection.
+- Write copy function (functional style), 1 function copy A -> B, if feasible wrap in interface to work multi-cloud, function takes the config objects. retry? 
 - write some unit tests
 - docker file
 - publish to image hub (github actions?)
