@@ -43,7 +43,7 @@ By end of current quarter, March13/14, deployed POC in DEV with similar existing
 - Read hooks configuration from the files, current v1 files available
 - Check sender manifest using pre-hooks
 - Configure the other hooks, (post?) if needed
-- Define error package
+- Define error package, inline with processing status API requirements
 - Integration with processing status based on errors
 - Health endpoint, checks storage connections
 - Version endpoint, using git actions to populate 
