@@ -22,11 +22,31 @@ By end of current quarter, March13/14, deployed POC in DEV with similar existing
 # Steps 
 
 ### Prod. Level:
-- Server including router
-- Configuration
-- Logs
-- Tests (unit)
-- Application structure
-- Multi cloud, based on cofig, azure store or aws s3
-- Docker image
-- Deploy to azure
+- Application layout structure: [golang-standards/project-layout](https://github.com/golang-standards/project-layout)
+- Server including router: `type server struct`, `server.go`, `router.go` 
+- Server custom configuration: [tusd cli flags](https://github.com/tus/tusd/blob/main/cmd/tusd/cli/serve.go)
+- Load environment variables from file [gadotenv](https://github.com/joho/godotenv)
+  - Configuration [envconfig](https://github.com/sethvargo/go-envconfig)
+- Logs [slog](https://go.dev/blog/slog)
+- Errors [errors package](https://pkg.go.dev/errors), [working with errors](https://go.dev/blog/go1.13-errors)
+- Tests (unit) [add a test](https://go.dev/doc/tutorial/add-a-test)
+- Multi cloud, based on config, azure store or aws s3 [tusd cli](https://github.com/tus/tusd/tree/main/cmd/tusd/cli)
+- Docker image [tusd docker](https://github.com/tus/tusd/blob/main/Dockerfile)
+- Deploy to azure and/or k8s
+- Go concurrency [goroutines](https://go.dev/tour/concurrency/1)
+- Go [context](https://pkg.go.dev/context)
+- Go [commnad line flags](https://pkg.go.dev/flag)
+
+### Specifics [from main branch]:
+- Run flags, decide if/what is needed with flags vs. static. [tusd cli flags](https://github.com/tus/tusd/blob/main/cmd/tusd/cli/serve.go)
+- Based on metadata v1 or v2 or both?
+- Read hooks configuration from the files, current v1 files available
+- Check sender manifest using pre-hooks
+- Configure the other hooks, (post?) if needed
+- Configuration for azure store containers:Raw, DEX, EDAV.
+- Write storage config object.
+- Write copy function (functional style), 1 function copy A -> B, if feasible wrap in interface to work multi-cloud, function takes the config objects.
+- write some unit tests
+- docker file
+- publish to image hub (github actions?)
+- deploy - where?
