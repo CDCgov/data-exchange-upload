@@ -3,6 +3,7 @@ using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
 using BulkFileUploadFunctionApp.Services;
+using Newtonsoft.Json;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
@@ -21,12 +22,14 @@ namespace BulkFileUploadFunctionApp.Utils
             _blobServiceClientFactory = blobServiceClientFactory;
         }
 
-        public async Task<T> GetObjectFromBlobJsonContent<T>(string connectionString, string sourceContainerName, string blobPathname)
+        public async Task<T?> GetObjectFromBlobJsonContent<T>(string connectionString, string sourceContainerName, string blobPathname)
         {
+            T? result;
+
             var sourceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
 
-            var sourceContainerClient = sourceClient.GetBlobContainerClient(sourceContainerName);//new BlobContainerClient(connectionString, sourceContainerName);
-
+            var sourceContainerClient = sourceClient.GetBlobContainerClient(sourceContainerName);
+            
             BlobClient sourceBlob = sourceContainerClient.GetBlobClient(blobPathname);
 
             _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
@@ -39,23 +42,14 @@ namespace BulkFileUploadFunctionApp.Utils
 
             _logger.LogInformation("File exists, getting lease on file");
 
-            // BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
+            using (var stream = await sourceBlob.OpenReadAsync())
+            using (var reader = new StreamReader(stream))
+            using (var jsonReader = new JsonTextReader(reader)) 
+            { 
+                result = JsonSerializer.CreateDefault().Deserialize<T>(jsonReader);
+            }
 
-            // Specifying -1 for the lease interval creates an infinite lease
-            // await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
-
-            BlobDownloadResult download = await sourceBlob.DownloadContentAsync();
-            var objectData = download.Content.ToObjectFromJson<T>();
-
-            BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
-
-            //if (sourceProperties.LeaseState == LeaseState.Leased)
-            //{
-                // Release the lease on the source blob
-                //await lease.ReleaseAsync();
-            //}
-
-            return objectData;
+            return result;
         }
     }
 }

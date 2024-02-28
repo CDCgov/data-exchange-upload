@@ -4,9 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
+using Microsoft.FeatureManagement;
 
 var host = new HostBuilder()
     .ConfigureLogging(builder =>
@@ -23,12 +23,18 @@ var host = new HostBuilder()
     .ConfigureAppConfiguration(builder =>
         {
             string cs = Environment.GetEnvironmentVariable("FEATURE_MANAGER_CONNECTION_STRING") ?? "";
-            builder.AddAzureAppConfiguration(cs);
+            builder.AddAzureAppConfiguration(options =>
+            {
+                options.Connect(cs)
+                       .UseFeatureFlags();
+            });
         })
     .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices(services => {
         services.AddApplicationInsightsTelemetryWorkerService();
         services.ConfigureFunctionsApplicationInsights();
+        services.AddAzureAppConfiguration();
+        services.AddFeatureManagement();
 
         // Register Proc Stat Http Service.
         services.AddHttpClient<IProcStatClient, ProcStatClient>(client =>
@@ -51,6 +57,8 @@ var host = new HostBuilder()
 
         // Registers an implementation for the IBlobReader interface to be resolved as a singleton.
         services.AddSingleton<IBlobReader, BlobReader>();
+        
+        services.AddSingleton<IFeatureManagementExecutor, FeatureManagementExecutor>();
     })
     .Build();
 

@@ -87,7 +87,7 @@ namespace BulkFileUploadFunctionApp.Utils
             catch (RequestFailedException ex)
             {
                 // In case of any exceptions, consider the destination down and return the error message.
-                _logger.LogError(ex, "Error occurred while checking {containerName} container health.");
+                _logger.LogError(ex, $"Error occurred while checking {containerName} container health.");
                 return new HealthCheckResult(destination, "DOWN", "Unhealthy");
             }
         }

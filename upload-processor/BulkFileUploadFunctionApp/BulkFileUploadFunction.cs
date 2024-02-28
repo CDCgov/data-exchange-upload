@@ -25,22 +25,14 @@ namespace BulkFileUploadFunctionApp
         private readonly IConfiguration _configuration;
 
         private readonly IUploadProcessingService _uploadProcessingService;
- 
-        public static string? GetEnvironmentVariable(string name)
-        {
-            return Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
-        }
 
-        public BulkFileUploadFunction(
-        ILoggerFactory loggerFactory,
-        IConfiguration configuration,
-        IUploadProcessingService uploadProcessingService)
+        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IConfiguration configuration, IUploadProcessingService uploadProcessingService)
         {
 
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
             _configuration = configuration;
             _uploadProcessingService = uploadProcessingService;
-         }
+        }
 
         /// <summary>
         /// Entrypoint for processing blob created events.  Note this should only be fired when a tus upload completes.
@@ -59,7 +51,6 @@ namespace BulkFileUploadFunctionApp
 
                 StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 
-                // TODO: PS API fail report if any of these conditions are true.
                 if (blobCreatedEvents == null)
                     throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
 
@@ -70,18 +61,18 @@ namespace BulkFileUploadFunctionApp
                 {
                     if (blobCreatedEvent.Data?.Url == null)
                         throw new Exception("Unexpected data content of event; no blob create event url found.");
+
                     try
                     {
                         await ProcessBlobCreatedEvent(blobCreatedEvent.Data.Url);
-                    }
-                    catch (Exception ex)
+                    } catch (Exception ex)
                     {
                         ExceptionUtils.LogErrorDetails(ex, _logger);
                     }
                 }
             } // .foreach 
 
-        } // .Task Run        
+        } // .Task Run 
 
         private async Task ProcessBlobCreatedEvent(string? blobCreatedUrl)
         {
@@ -89,8 +80,7 @@ namespace BulkFileUploadFunctionApp
                 throw new Exception("Blob url may not be null");
 
             await _uploadProcessingService.ProcessBlob(blobCreatedUrl);
-        }
-
+        }       
     }
 
     public class JsonLogger : ILogger

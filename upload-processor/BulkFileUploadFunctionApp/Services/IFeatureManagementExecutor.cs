@@ -1,4 +1,4 @@
-namespace BulkFileUploadFunctionApp.Services
+﻿namespace BulkFileUploadFunctionApp.Services
 {
     public interface IFeatureManagementExecutor
     {
