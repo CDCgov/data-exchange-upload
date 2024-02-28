@@ -77,7 +77,7 @@ namespace BulkFileUploadFunctionApp
             if (blobCreatedUrl == null)
                 throw new Exception("Blob url may not be null");
 
-            await _uploadProcessingService.ProcessBlob(blobCreatedUrl);
+            await _uploadProcessingService.ProcessBlob(blobCreatedUrl, false);
         }       
     }
 

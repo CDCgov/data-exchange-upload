@@ -79,7 +79,12 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToDex:
                             try
                             {
-                                await _uploadProcessingService.ProcessBlob(blobCopyRetryEvent.sourceBlobUri);
+                               bool success =  await _uploadProcessingService.ProcessBlob(blobCopyRetryEvent.sourceBlobUri, true);
+
+                               if(!success) {
+
+                                    await RePublishEvent(blobCopyRetryEvent);
+                               }
                             }
                             catch (Exception ex)
                             {
@@ -134,7 +139,7 @@ namespace BulkFileUploadFunctionApp
                 blobCopyRetryEvent.retryAttempt = 1;
                 await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
             } else {        
-                       
+
                 // Increment the retry attempt and put the event back on retry loop
                 blobCopyRetryEvent.retryAttempt += 1;
                 await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);

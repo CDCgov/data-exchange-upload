@@ -69,7 +69,7 @@ namespace BulkFileUploadFunctionApp.Services
         /// <param name="blobCreatedUrl"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public async Task<bool> ProcessBlob(string blobCreatedUrl)
+        public async Task<bool> ProcessBlob(string blobCreatedUrl, bool retryAttempt)
         {
             _logger.LogInformation($"TUS_AZURE_OBJECT_PREFIX={_tusAzureObjectPrefix}, TUS_AZURE_STORAGE_CONTAINER={_tusAzureStorageContainer}, DEX_AZURE_STORAGE_ACCOUNT_NAME={_dexAzureStorageAccountName}");
 
@@ -141,7 +141,10 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogInformation($"Errors during blob processing: {blobCreatedUrl}");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusInfoFile?.MetaData);
+                
+                if(!retryAttempt) {
+                    await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusInfoFile?.MetaData);
+                }
 
                 // CREATE FAILURE REPORT
                 SendFailureReport(tusInfoFile.ID, destinationId, eventType, blobCreatedUrl, destinationContainerName, $"Failed to copy from Tus to DEX. {ex.Message}");
