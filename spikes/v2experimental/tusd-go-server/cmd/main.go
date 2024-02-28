@@ -37,7 +37,7 @@ func main() {
 	}()
 
 	// ---------------------------------
-	// 			Block for Exit
+	// 			Block for Exit, everything above is on 
 	// ---------------------------------
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
