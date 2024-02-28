@@ -34,17 +34,18 @@ func main() {
 		if err != nil {
 			panic(fmt.Errorf("unable to listen: %s", err))
 		} // .if
-	}()
+	}() // .go
 
 	// ------------------------------------------------------------------
 	// 			Block for Exit, everything above is on goroutines
 	// ------------------------------------------------------------------
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
+
 	<-sigint
+
 	// close connections, TODO if needed
+
 	logger.Info("closing server by os signal", "port", config.ServerPort)
-
-
 
 } // .main
