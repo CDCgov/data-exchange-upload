@@ -91,13 +91,6 @@ namespace BulkFileUploadFunctionApp.Services
                 string tusInfoFilename = $"{sourceBlobUri.Segments.Last()}.info";
                 _logger.LogInformation($"tusPayloadFilename is {tusInfoFilename}");
 
-                // START SPAN
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFilename.Replace(".info", ""));
-                    copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
-                });
-
                 var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
                 
                 tusInfoFile = await GetTusFileInfo(tusPayloadPathname);
@@ -114,6 +107,13 @@ namespace BulkFileUploadFunctionApp.Services
 
                 HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);
                 string? filename = tusInfoFile.MetaData.GetValueOrDefault("received_filename", null);
+
+                // START SPAN
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFilename.Replace(".info", ""));
+                    copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
+                });
 
                 var dateTimeNow = DateTime.UtcNow;
 
@@ -139,7 +139,7 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogInformation($"Errors during blob processing: {blobCreatedUrl}");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
+                await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusInfoFile?.MetaData);
 
                 // CREATE FAILURE REPORT
                 SendFailureReport(tusInfoFile.ID, destinationId, eventType, blobCreatedUrl, destinationContainerName, $"Failed to copy from Tus to DEX. {ex.Message}");
@@ -574,7 +574,7 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
 
-        private async Task PublishRetryEvent(BlobCopyStage copyStage, string sourceBlobUri, string dexContainerName, string dexBlobFilename, Dictionary<string, string> fileMetadata)
+        private async Task PublishRetryEvent(BlobCopyStage copyStage, string sourceBlobUri, string? dexContainerName, string? dexBlobFilename, Dictionary<string, string>? fileMetadata)
         {            
             try 
             {
