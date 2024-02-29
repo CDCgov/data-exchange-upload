@@ -96,6 +96,7 @@ namespace BulkFileUploadFunctionApp
             try {
 
                 stopReadingAfterTime = DateTimeOffset.UtcNow;
+
                 await replayEventProcessorClient.StartProcessingAsync(cancellationToken);
             }
             catch (TaskCanceledException)
@@ -107,31 +108,40 @@ namespace BulkFileUploadFunctionApp
 
         async Task ProcessEventHandler(ProcessEventArgs eventArgs)
         {
-            // Check if cancellation is requested
-            if (cancellationToken.IsCancellationRequested)
+            try
             {
-                // If cancellation is requested, stop processing further events
-                return;
+                // Check if cancellation is requested
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    // If cancellation is requested, stop processing further events
+                    return;
+                }
+
+                var eventData = eventArgs.Data;
+
+                string eventJsonString = Encoding.UTF8.GetString(eventData.EventBody.ToArray());
+
+                _logger.LogInformation("Replaying event: " + eventJsonString);
+
+                BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
+
+                await _uploadEventHubService.PublishRetryEvent(replayEvent);
+
+                // Cancel processing events if enqueued time exceeds the start time
+                if (eventArgs.Data.EnqueuedTime >= stopReadingAfterTime)
+                {
+                    await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
+                    _logger.LogInformation("Replay Cancelled");
+                } else {
+
+                    await eventArgs.UpdateCheckpointAsync();
+                }
             }
-
-            var eventData = eventArgs.Data;
-
-            string eventJsonString = Encoding.UTF8.GetString(eventData.EventBody.ToArray());
-
-            _logger.LogInformation("Replaying event: " + eventJsonString);
-
-            BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
-
-            await _uploadEventHubService.PublishRetryEvent(replayEvent);
-
-            // Cancel processing events if enqueued time exceeds the start time
-            if (eventArgs.Data.EnqueuedTime >= stopReadingAfterTime)
+            catch(Exception ex)
             {
-                await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
-                _logger.LogInformation("Replay Cancelled");
-            } else {
 
-                await eventArgs.UpdateCheckpointAsync();
+                _logger.LogError($"Error during Replay: {ex.Message}");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 

@@ -126,7 +126,7 @@ namespace BulkFileUploadFunctionApp
             } catch(Exception ex) {
 
                 _logger.LogError($"Failed to process retry event: " + blobCopyRetryEvent);
-                ExceptionUtils.LogErrorDetails(ex, _logger);                
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
