@@ -8,7 +8,6 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Azure.Storage.Blobs;
 
 using Azure.Messaging.EventHubs;
-using Azure.Messaging.EventHubs.Primitives;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Processor;
 
@@ -29,8 +28,6 @@ namespace BulkFileUploadFunctionApp
         private readonly string _dexAzureStorageAccountKey;
         private readonly string _dexStorageAccountConnectionString;
         private readonly string _replayCheckpointContainer;
-        private readonly CancellationTokenSource cancellationTokenSource;
-        private readonly CancellationToken cancellationToken;  
         private DateTimeOffset stopReadingAfterTime;
         private EventProcessorClient replayEventProcessorClient;
 
@@ -73,54 +70,44 @@ namespace BulkFileUploadFunctionApp
 
         private async Task ProcessReplayEventHubEventsAsync() 
         {
-            _logger.LogInformation("Replaying events...");
-
-            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-            CancellationToken cancellationToken = cancellationTokenSource.Token;
-
-            var storageClient = new BlobContainerClient(_dexStorageAccountConnectionString, 
-                                                        _replayCheckpointContainer);
-
-            var processorOptions = new EventProcessorClientOptions
+            try
             {
-                MaximumWaitTime = TimeSpan.FromSeconds(5)
-            };
+                _logger.LogInformation("Replaying events...");
 
-            replayEventProcessorClient = new EventProcessorClient(storageClient,
-                                                                  _consumerGroup,
-                                                                  _uploadEventHubNamespaceConnectionString,
-                                                                  _replayEventHubName,
-                                                                  processorOptions);
+                var storageClient = new BlobContainerClient(_dexStorageAccountConnectionString, 
+                                                            _replayCheckpointContainer);
 
-            replayEventProcessorClient.ProcessEventAsync += ProcessEventHandler;
-            replayEventProcessorClient.ProcessErrorAsync += ProcessErrorHandler;
+                var processorOptions = new EventProcessorClientOptions
+                {
+                    MaximumWaitTime = TimeSpan.FromSeconds(5)
+                };
 
-            try {
+                replayEventProcessorClient = new EventProcessorClient(storageClient,
+                                                                    _consumerGroup,
+                                                                    _uploadEventHubNamespaceConnectionString,
+                                                                    _replayEventHubName,
+                                                                    processorOptions);
+
+                replayEventProcessorClient.ProcessEventAsync += ProcessEventHandler;
+                replayEventProcessorClient.ProcessErrorAsync += ProcessErrorHandler;
 
                 stopReadingAfterTime = DateTimeOffset.UtcNow;
 
-                await replayEventProcessorClient.StartProcessingAsync(cancellationToken);                
-            }
-            catch (TaskCanceledException)
+                await replayEventProcessorClient.StartProcessingAsync();
+            } 
+            catch(Exception ex)
             {
-                _logger.LogInformation("Stopping replay on cancellation");
-                await replayEventProcessorClient.StopProcessingAsync();
-            }            
+                _logger.LogError($"Error during events replay: {ex.Message}");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+            }
         }
 
         async Task ProcessEventHandler(ProcessEventArgs eventArgs)
         {
             try
             {
-                // Check if cancellation is requested
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    // If cancellation is requested, stop processing further events
-                    _logger.LogInformation("Replay cancellation requested.");
-                    return;
-                }
-
                 if(!eventArgs.HasEvent) {
+
                     _logger.LogInformation("No replay event found. Stopping replay.");
                     await replayEventProcessorClient.StopProcessingAsync();                   
                     return;
@@ -130,8 +117,7 @@ namespace BulkFileUploadFunctionApp
 
                 if(eventData == null) {
 
-                    _logger.LogInformation("No event json found. Stopping replay.");
-                    await replayEventProcessorClient.StopProcessingAsync();                   
+                    _logger.LogInformation("No event json found.");
                     return;
                 }
 
@@ -146,16 +132,16 @@ namespace BulkFileUploadFunctionApp
                 // Cancel processing events if enqueued time exceeds the start time
                 if (eventArgs.Data.EnqueuedTime >= stopReadingAfterTime)
                 {
-                    _logger.LogInformation("Updating replay checkpoint with cancellation token");
-                    cancellationTokenSource.Cancel();
-                    await eventArgs.UpdateCheckpointAsync(cancellationToken);
+                    _logger.LogInformation("Updating replay checkpoint");
+                    await eventArgs.UpdateCheckpointAsync();
+
+                    _logger.LogInformation("Stopping replay");
+                    await replayEventProcessorClient.StopProcessingAsync();                   
+
                 } else {
 
-                    _logger.LogInformation("Updating replay checkpoint with cancellation token");
-                    cancellationTokenSource.Cancel();
-                    await eventArgs.UpdateCheckpointAsync(cancellationToken);
-                    // _logger.LogInformation("Updating replay checkpoint");
-                    // await eventArgs.UpdateCheckpointAsync();
+                    _logger.LogInformation("Updating replay checkpoint");
+                    await eventArgs.UpdateCheckpointAsync();
                 }
             }
             catch(Exception ex)
@@ -169,6 +155,7 @@ namespace BulkFileUploadFunctionApp
         {
             // Handle any errors that occur during event processing
             _logger.LogInformation($"Error processing Replay event: {errorArgs.Exception.Message}");
+
             return Task.CompletedTask;
         }
     }
