@@ -8,10 +8,11 @@ import config from "./config";
 
 
 
-export async function start(): Promise<void> {
+export async function start(): Promise<{ uploadId: string, accessToken: string }> {
   const [username, password, url, ps_url] = config.validateEnv();
  
-  const loginResponse: LoginResponse | null = await c.login(username, password, url);  
+  const loginResponse: LoginResponse | null = await c.login(username, password, url); 
+  let uploadId = '';  
   
   if (loginResponse === null) {
     console.error("Login failed. Exiting program.");
@@ -56,7 +57,7 @@ export async function start(): Promise<void> {
       const uploadIdPattern = /files\/([a-zA-Z0-9]+)/;
       const matches = url.match(uploadIdPattern);
       if (matches && matches[1]) {
-        const uploadId = matches[1];
+        uploadId = matches[1];
         console.log("Extracted uploadId:", uploadId);        
 
         // Now make a GET request to the PS API with this uploadId
@@ -69,6 +70,7 @@ export async function start(): Promise<void> {
 
   const upload = new tus.Upload(file, options);
   upload.start();
+  return { uploadId, accessToken: loginResponse.accessToken };
 }
 
 export async function getTraceResponse(uploadId: string, accessToken: string): Promise<void> {
