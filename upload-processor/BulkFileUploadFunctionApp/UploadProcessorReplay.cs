@@ -122,7 +122,6 @@ namespace BulkFileUploadFunctionApp
                 if(eventData == null) {
 
                     _logger.LogInformation("No Replay event found");
-                    await eventArgs.UpdateCheckpointAsync();
                     return;
                 }
 
