@@ -114,7 +114,7 @@ namespace BulkFileUploadFunctionApp
                 if (cancellationToken.IsCancellationRequested)
                 {
                     // If cancellation is requested, stop processing further events
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 var eventData = eventArgs.Data;
@@ -122,7 +122,8 @@ namespace BulkFileUploadFunctionApp
                 if(eventData == null) {
 
                     _logger.LogInformation("No Replay event found");
-                    return;
+                    
+                    return Task.CompletedTask;
                 }
 
                 string eventJsonString = Encoding.UTF8.GetString(eventData.EventBody.ToArray());
