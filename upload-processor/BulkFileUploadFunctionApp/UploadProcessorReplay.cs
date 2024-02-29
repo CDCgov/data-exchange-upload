@@ -34,6 +34,7 @@ namespace BulkFileUploadFunctionApp
         private static readonly CancellationToken cancellationToken = cancellationTokenSource.Token;
     
         private DateTimeOffset stopReadingAfterTime;
+        private EventProcessorClient replayEventProcessorClient;
 
 
         public UploadProcessorReplay(ILoggerFactory loggerFactory, IUploadEventHubService uploadEventHubService)
@@ -84,11 +85,11 @@ namespace BulkFileUploadFunctionApp
                 MaximumWaitTime = TimeSpan.FromSeconds(5)
             };
 
-            var replayEventProcessorClient = new EventProcessorClient(storageClient,
-                                                                      _consumerGroup,
-                                                                      _uploadEventHubNamespaceConnectionString,
-                                                                      _replayEventHubName,
-                                                                      processorOptions);
+            replayEventProcessorClient = new EventProcessorClient(storageClient,
+                                                                  _consumerGroup,
+                                                                  _uploadEventHubNamespaceConnectionString,
+                                                                  _replayEventHubName,
+                                                                  processorOptions);
 
             replayEventProcessorClient.ProcessEventAsync += ProcessEventHandler;
             replayEventProcessorClient.ProcessErrorAsync += ProcessErrorHandler;
@@ -122,6 +123,9 @@ namespace BulkFileUploadFunctionApp
                 if(eventData == null) {
 
                     _logger.LogInformation("No Replay event found");
+
+                    await replayEventProcessorClient.StopProcessingAsync();
+                    _logger.LogInformation("Replay stopped");
                     return;
                 }
 
