@@ -1,27 +1,25 @@
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace BulkFileUploadFunctionApp.Model
 {
-    public class DestinationAndEvents
+    public record DestinationAndEvents
     {
-        [JsonPropertyName("destination_id")]
-        public string? destinationId { get; set; }
+        [JsonProperty("destination_id")]
+        public string? destinationId { get; init; }
         
-        [JsonPropertyName("ext_events")]
-        public List<ExtEvent>? extEvents { get; set; }
-
-        public static readonly DestinationAndEvents Default = new DestinationAndEvents();
+        [JsonProperty("ext_events")]
+        public List<ExtEvent>? extEvents { get; init; }
     }
 
-    public class ExtEvent
+    public record ExtEvent
     {
-        public string? name { get; set; }
+        public string? name { get; init; }
 
-        [JsonPropertyName("definition_filename")]
-        public string? definitionFilename { get; set; }
+        [JsonProperty("definition_filename")]
+        public string? definitionFilename { get; init; }
 
-        [JsonPropertyName("copy_targets")]
-        public List<CopyTarget>? copyTargets { get; set; }
+        [JsonProperty("copy_targets")]
+        public List<CopyTarget>? copyTargets { get; init; }
     }
     
     public record CopyTarget(string target);
