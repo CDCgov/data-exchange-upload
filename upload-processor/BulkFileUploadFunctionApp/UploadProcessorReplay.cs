@@ -28,7 +28,7 @@ namespace BulkFileUploadFunctionApp
         private readonly string _dexAzureStorageAccountKey;
         private readonly string _dexStorageAccountConnectionString;
         private readonly string _replayCheckpointContainer;
-        private DateTimeOffset stopReadingAfterTime;
+        private DateTimeOffset stopProcessingAfterTime;
         private EventProcessorClient replayEventProcessorClient;
 
 
@@ -70,36 +70,28 @@ namespace BulkFileUploadFunctionApp
 
         private async Task ProcessReplayEventHubEventsAsync() 
         {
-            try
+            _logger.LogInformation("Replaying events...");
+
+            var storageClient = new BlobContainerClient(_dexStorageAccountConnectionString, 
+                                                        _replayCheckpointContainer);
+
+            var processorOptions = new EventProcessorClientOptions
             {
-                _logger.LogInformation("Replaying events...");
+                MaximumWaitTime = TimeSpan.FromSeconds(5)
+            };
 
-                var storageClient = new BlobContainerClient(_dexStorageAccountConnectionString, 
-                                                            _replayCheckpointContainer);
+            replayEventProcessorClient = new EventProcessorClient(storageClient,
+                                                                _consumerGroup,
+                                                                _uploadEventHubNamespaceConnectionString,
+                                                                _replayEventHubName,
+                                                                processorOptions);
 
-                var processorOptions = new EventProcessorClientOptions
-                {
-                    MaximumWaitTime = TimeSpan.FromSeconds(5)
-                };
+            replayEventProcessorClient.ProcessEventAsync += ProcessEventHandler;
+            replayEventProcessorClient.ProcessErrorAsync += ProcessErrorHandler;
 
-                replayEventProcessorClient = new EventProcessorClient(storageClient,
-                                                                    _consumerGroup,
-                                                                    _uploadEventHubNamespaceConnectionString,
-                                                                    _replayEventHubName,
-                                                                    processorOptions);
+            stopProcessingAfterTime = DateTimeOffset.UtcNow;
 
-                replayEventProcessorClient.ProcessEventAsync += ProcessEventHandler;
-                replayEventProcessorClient.ProcessErrorAsync += ProcessErrorHandler;
-
-                stopReadingAfterTime = DateTimeOffset.UtcNow;
-
-                await replayEventProcessorClient.StartProcessingAsync();
-            } 
-            catch(Exception ex)
-            {
-                _logger.LogError($"Error during events replay: {ex.Message}");
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-            }
+            await replayEventProcessorClient.StartProcessingAsync();
         }
 
         async Task ProcessEventHandler(ProcessEventArgs eventArgs)
@@ -107,41 +99,32 @@ namespace BulkFileUploadFunctionApp
             try
             {
                 if(!eventArgs.HasEvent) {
-
                     _logger.LogInformation("No replay event found. Stopping replay.");
                     await replayEventProcessorClient.StopProcessingAsync();                   
                     return;
                 }
 
                 var eventData = eventArgs.Data;
-
                 if(eventData == null) {
-
-                    _logger.LogInformation("No event json found.");
+                    _logger.LogInformation("No event data found.");
                     return;
                 }
 
                 string eventJsonString = Encoding.UTF8.GetString(eventData.EventBody.ToArray());
 
-                _logger.LogInformation("Replaying event: " + eventJsonString);
-
                 BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
 
+                _logger.LogInformation("Replaying event: " + eventJsonString);
                 await _uploadEventHubService.PublishRetryEvent(replayEvent);
 
-                // Cancel processing events if enqueued time exceeds the start time
-                if (eventArgs.Data.EnqueuedTime >= stopReadingAfterTime)
-                {
-                    _logger.LogInformation("Updating replay checkpoint");
-                    await eventArgs.UpdateCheckpointAsync();
+                _logger.LogInformation("Updating replay checkpoint");
+                await eventArgs.UpdateCheckpointAsync();
 
+                // Cancel processing events if enqueued time exceeds the start time
+                if (eventArgs.Data.EnqueuedTime >= stopProcessingAfterTime)
+                {
                     _logger.LogInformation("Stopping replay");
                     await replayEventProcessorClient.StopProcessingAsync();                   
-
-                } else {
-
-                    _logger.LogInformation("Updating replay checkpoint");
-                    await eventArgs.UpdateCheckpointAsync();
                 }
             }
             catch(Exception ex)
