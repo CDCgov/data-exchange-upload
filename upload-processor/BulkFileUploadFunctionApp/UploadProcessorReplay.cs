@@ -98,6 +98,8 @@ namespace BulkFileUploadFunctionApp
                 stopReadingAfterTime = DateTimeOffset.UtcNow;
 
                 await replayEventProcessorClient.StartProcessingAsync(cancellationToken);
+
+                await WaitForCancellationOrCompletion();
             }
             catch (TaskCanceledException)
             {
@@ -122,7 +124,7 @@ namespace BulkFileUploadFunctionApp
                 if(eventData == null) {
 
                     _logger.LogInformation("No Replay event found");
-                    
+                    await eventArgs.UpdateCheckpointAsync();
                     return Task.CompletedTask;
                 }
 
@@ -146,13 +148,13 @@ namespace BulkFileUploadFunctionApp
             }
             catch(Exception ex)
             {
-
                 _logger.LogError($"Error during Replay: {ex.Message}");
+
                 ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
-        Task ProcessErrorHandler(ProcessErrorEventArgs errorArgs)
+        async Task ProcessErrorHandler(ProcessErrorEventArgs errorArgs)
         {
             // Handle any errors that occur during event processing
             _logger.LogInformation($"Error processing Replay event: {errorArgs.Exception.Message}");
