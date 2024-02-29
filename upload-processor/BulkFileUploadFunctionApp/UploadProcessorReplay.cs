@@ -102,7 +102,7 @@ namespace BulkFileUploadFunctionApp
             }
             catch (TaskCanceledException)
             {
-                _logger.LogInformation("Replay stopped");
+                _logger.LogInformation("Stopping replay on cancellation");
                 await replayEventProcessorClient.StopProcessingAsync();
             }            
         }
@@ -115,6 +115,7 @@ namespace BulkFileUploadFunctionApp
                 if (cancellationToken.IsCancellationRequested)
                 {
                     // If cancellation is requested, stop processing further events
+                    _logger.LogInformation("Replay cancellation requested.");
                     return;
                 }
 
@@ -122,10 +123,8 @@ namespace BulkFileUploadFunctionApp
 
                 if(eventData == null) {
 
-                    _logger.LogInformation("No Replay event found");
-
-                    await replayEventProcessorClient.StopProcessingAsync();
-                    _logger.LogInformation("Replay stopped");
+                    _logger.LogInformation("No replay event found. Stopping replay.");
+                    await replayEventProcessorClient.StopProcessingAsync();                   
                     return;
                 }
 
@@ -140,17 +139,17 @@ namespace BulkFileUploadFunctionApp
                 // Cancel processing events if enqueued time exceeds the start time
                 if (eventArgs.Data.EnqueuedTime >= stopReadingAfterTime)
                 {
+                    _logger.LogInformation("Updating replay checkpoint with cancellation token");
                     await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
-                    _logger.LogInformation("Replay Cancelled");
                 } else {
 
+                    _logger.LogInformation("Updating replay checkpoint");
                     await eventArgs.UpdateCheckpointAsync();
-                }                
+                }
             }
             catch(Exception ex)
             {
-                _logger.LogError($"Error during Replay: {ex.Message}");
-
+                _logger.LogError($"Error during event replay: {ex.Message}");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
@@ -159,7 +158,6 @@ namespace BulkFileUploadFunctionApp
         {
             // Handle any errors that occur during event processing
             _logger.LogInformation($"Error processing Replay event: {errorArgs.Exception.Message}");
-
             return Task.CompletedTask;
         }
     }
