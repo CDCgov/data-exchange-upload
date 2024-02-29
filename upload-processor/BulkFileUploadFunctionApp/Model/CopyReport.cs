@@ -1,15 +1,14 @@
-﻿using System;
+﻿using System.Text.Json.Serialization;
 using BulkFileUploadFunctionApp.Utils;
-using Newtonsoft.Json;
 
 namespace BulkFileUploadFunctionApp.Model
 {
     public record CopyReport : Report
     {
-        [JsonProperty("file_source_blob_url")] public string FileSourceBlobUrl { get; set; }
-        [JsonProperty("file_destination_blob_url")] public string FileDestinationBlobUrl { get; set; }
-        [JsonProperty("result")] public string Result { get; set; }
-        [JsonProperty("error_description")] public string? ErrorDescription { get; set; }
+        [JsonPropertyName("file_source_blob_url")] public string FileSourceBlobUrl { get; set; }
+        [JsonPropertyName("file_destination_blob_url")] public string FileDestinationBlobUrl { get; set; }
+        [JsonPropertyName("result")] public string Result { get; set; }
+        [JsonPropertyName("error_description")] public string? ErrorDescription { get; set; }
 
         public CopyReport(string sourceUrl, string destUrl, string result, string? errorDesc, string? schemaVersion)
         {

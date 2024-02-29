@@ -1,6 +1,6 @@
 ﻿using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
@@ -31,10 +31,8 @@ namespace BulkFileUploadFunctionApp.Utils
             _logger.LogInformation("File exists, getting lease on file");
 
             using (var stream = await sourceBlob.OpenReadAsync())
-            using (var reader = new StreamReader(stream))
-            using (var jsonReader = new JsonTextReader(reader)) 
             { 
-                result = JsonSerializer.CreateDefault().Deserialize<T>(jsonReader);
+                result = await JsonSerializer.DeserializeAsync<T>(stream);
             }
 
             return result;

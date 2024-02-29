@@ -1,13 +1,13 @@
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace BulkFileUploadFunctionApp.Model
 {
     public record DestinationAndEvents
     {
-        [JsonProperty("destination_id")]
+        [JsonPropertyName("destination_id")]
         public string? destinationId { get; init; }
         
-        [JsonProperty("ext_events")]
+        [JsonPropertyName("ext_events")]
         public List<ExtEvent>? extEvents { get; init; }
     }
 
@@ -15,10 +15,10 @@ namespace BulkFileUploadFunctionApp.Model
     {
         public string? name { get; init; }
 
-        [JsonProperty("definition_filename")]
+        [JsonPropertyName("definition_filename")]
         public string? definitionFilename { get; init; }
 
-        [JsonProperty("copy_targets")]
+        [JsonPropertyName("copy_targets")]
         public List<CopyTarget>? copyTargets { get; init; }
     }
     
