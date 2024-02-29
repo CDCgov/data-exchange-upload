@@ -119,26 +119,33 @@ namespace BulkFileUploadFunctionApp
 
                 var eventData = eventArgs.Data;
 
-                if(eventData != null) {
-                    
-                    string eventJsonString = Encoding.UTF8.GetString(eventData.EventBody.ToArray());
+                if(eventData == null) {
 
-                    _logger.LogInformation("Replaying event: " + eventJsonString);
+                    _logger.LogInformation("No Replay event found");
 
-                    BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
+                    await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
+                    _logger.LogInformation("Replay Cancelled");
 
-                    await _uploadEventHubService.PublishRetryEvent(replayEvent);
-
-                    // Cancel processing events if enqueued time exceeds the start time
-                    if (eventArgs.Data.EnqueuedTime >= stopReadingAfterTime)
-                    {
-                        await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
-                        _logger.LogInformation("Replay Cancelled");
-                    } else {
-
-                        await eventArgs.UpdateCheckpointAsync();
-                    }
+                    return;
                 }
+
+                string eventJsonString = Encoding.UTF8.GetString(eventData.EventBody.ToArray());
+
+                _logger.LogInformation("Replaying event: " + eventJsonString);
+
+                BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
+
+                await _uploadEventHubService.PublishRetryEvent(replayEvent);
+
+                // Cancel processing events if enqueued time exceeds the start time
+                if (eventArgs.Data.EnqueuedTime >= stopReadingAfterTime)
+                {
+                    await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
+                    _logger.LogInformation("Replay Cancelled");
+                } else {
+
+                    await eventArgs.UpdateCheckpointAsync();
+                }                
             }
             catch(Exception ex)
             {
