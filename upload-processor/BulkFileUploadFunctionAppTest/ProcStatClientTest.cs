@@ -1,10 +1,9 @@
-﻿using BulkFileUploadFunctionApp;
-using BulkFileUploadFunctionApp.Model;
+﻿using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionAppTest.utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using System.Net;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionAppTest
 {
@@ -30,7 +29,7 @@ namespace BulkFileUploadFunctionAppTest
             };
             var apiResponse = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(JsonConvert.SerializeObject(responseBody))
+                Content = new StringContent(JsonSerializer.Serialize(responseBody))
             };
             var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
             {
@@ -123,7 +122,7 @@ namespace BulkFileUploadFunctionAppTest
             };
             var apiResponse = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(JsonConvert.SerializeObject(responseBody))
+                Content = new StringContent(JsonSerializer.Serialize(responseBody))
             };
             var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
             {
@@ -180,7 +179,7 @@ namespace BulkFileUploadFunctionAppTest
             };
             var apiResponse = new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent(JsonConvert.SerializeObject(responseBody))
+                Content = new StringContent(JsonSerializer.Serialize(responseBody))
             };
             var httpClient = new HttpClient(new MockedHttpMessageHandler(apiResponse))
             {

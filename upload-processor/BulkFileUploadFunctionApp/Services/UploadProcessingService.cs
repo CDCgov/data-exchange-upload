@@ -95,7 +95,11 @@ namespace BulkFileUploadFunctionApp.Services
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     trace = await _procStatClient.GetTraceByUploadId(tusInfoFilename.Replace(".info", ""));
-                    copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
+
+                    if (trace != null)
+                    {
+                        copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
+                    }
                 });
 
                 var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
@@ -112,8 +116,8 @@ namespace BulkFileUploadFunctionApp.Services
                 // Get V2 upload config file.
                 UploadConfig uploadConfig = await GetUploadConfig(MetadataVersion.V2, destinationId, eventType);
 
-                HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);
-                string? filename = tusInfoFile.MetaData.GetValueOrDefault("received_filename", null);
+                HydrateMetadata(tusInfoFile, uploadConfig, trace?.TraceId, trace?.SpanId);
+                string? filename = tusInfoFile?.MetaData.GetValueOrDefault("received_filename", null);
 
                 var dateTimeNow = DateTime.UtcNow;
 
@@ -503,7 +507,7 @@ namespace BulkFileUploadFunctionApp.Services
             return filenameSuffix;
         }
 
-        private void HydrateMetadata(TusInfoFile tusInfoFile, UploadConfig uploadConfig, string traceId, string spanId)
+        private void HydrateMetadata(TusInfoFile tusInfoFile, UploadConfig uploadConfig, string? traceId = "", string? spanId = "")
         {
             if (tusInfoFile.MetaData == null || tusInfoFile.ID == null)
             {
@@ -546,11 +550,11 @@ namespace BulkFileUploadFunctionApp.Services
             }
 
             // Add common fields and their values.
-            tusInfoFile.MetaData["version"] = uploadConfig.MetadataConfig.Version;
+            tusInfoFile.MetaData["version"] = uploadConfig.MetadataConfig.Version ?? "";
             tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
             tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
-            tusInfoFile.MetaData["trace_id"] = traceId;
-            tusInfoFile.MetaData["span_id"] = spanId;
+            tusInfoFile.MetaData["trace_id"] = traceId ?? "";
+            tusInfoFile.MetaData["span_id"] = spanId ?? "";
             tusInfoFile.MetaData.Remove("filename"); // Remove filename field to use standard received_filename field.
         }
 
