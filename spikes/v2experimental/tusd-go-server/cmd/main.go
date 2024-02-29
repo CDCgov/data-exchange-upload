@@ -5,11 +5,11 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/server"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/config"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/server"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/tusdhandler"
-
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/dexmetadatav1"
 ) // .import
 
 
@@ -36,6 +36,16 @@ func main() {
 		logger.Error("error starting service, error parsing config", "error", err)
 		os.Exit(1)
 	} // .if
+
+	// ------------------------------------------------------------------
+	// load metadata v1 config into singleton to check and have available
+	// ------------------------------------------------------------------
+	_, err = dexmetadatav1.Load() // discard as not needed now in main
+	if err != nil {
+		logger.Error("error metadata v1 config not available", "error", err)
+		os.Exit(1)
+	} // .err
+
 
 	// ------------------------------------------------------------------
 	// create tusd handler

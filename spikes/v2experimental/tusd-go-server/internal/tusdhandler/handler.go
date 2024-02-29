@@ -36,7 +36,7 @@ func New(flags flags.Flags, config config.Config) (*tusd.Handler, error) {
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
 		//
-		PreUploadCreateCallback: checkMeta,
+		PreUploadCreateCallback: checkManifestV1,
 	}) // .handler
 
 	if err != nil {

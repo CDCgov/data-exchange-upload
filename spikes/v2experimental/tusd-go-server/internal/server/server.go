@@ -55,6 +55,7 @@ func (s Server) Serve() error {
 
 	http.HandleFunc("/health", s.health)
 	http.HandleFunc("/version", s.version)
+	http.HandleFunc("/metadata/v1", s.configMetaV1)
 
 	return http.ListenAndServe(s.config.ServerPort, nil)
 
