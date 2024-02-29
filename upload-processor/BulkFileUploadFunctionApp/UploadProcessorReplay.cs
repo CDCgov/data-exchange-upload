@@ -148,12 +148,12 @@ namespace BulkFileUploadFunctionApp
                 {
                     _logger.LogInformation("Updating replay checkpoint with cancellation token");
                     cancellationTokenSource.Cancel();
-                    await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
+                    await eventArgs.UpdateCheckpointAsync(cancellationToken);
                 } else {
 
                     _logger.LogInformation("Updating replay checkpoint with cancellation token");
                     cancellationTokenSource.Cancel();
-                    await eventArgs.UpdateCheckpointAsync(eventArgs.CancellationToken);
+                    await eventArgs.UpdateCheckpointAsync(cancellationToken);
                     // _logger.LogInformation("Updating replay checkpoint");
                     // await eventArgs.UpdateCheckpointAsync();
                 }
