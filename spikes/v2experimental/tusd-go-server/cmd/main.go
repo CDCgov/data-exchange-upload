@@ -16,8 +16,25 @@ import (
 func main() {
 
 	// TODO: structured logging, decide if slog is used and config at global level with default outputs
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	loggerHandler := slog.NewJSONHandler(os.Stdout, nil)
+
+    // buildInfo, _ := debug.ReadBuildInfo()
+
+    parentLogger := slog.New(loggerHandler)
+
+    logger := parentLogger.With(
+        slog.Group("app_info",
+			slog.String("System", "OCIO DEX"), // TODO: can come from config
+			slog.String("Product", "Upload API"),
+			slog.String("App", "tusd-go-server"),
+            slog.Int("pid", os.Getpid()),
+        ),
+    )
+
+	logger.Info("starting application...")
+
 	// TODO: context object, decide if custom slog is to be passed using the go context object
+	// OR an internal logger package is to be used.
 
 	// ------------------------------------------------------------------
 	// parse and load cli flags
