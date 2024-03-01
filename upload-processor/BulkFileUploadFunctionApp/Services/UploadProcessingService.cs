@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Azure.Identity;
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp.Services
 {
@@ -119,6 +120,17 @@ namespace BulkFileUploadFunctionApp.Services
                 UploadConfig uploadConfig = await GetUploadConfig(MetadataVersion.V2, destinationId, eventType);
 
                 HydrateMetadata(tusInfoFile, uploadConfig, trace?.TraceId, trace?.SpanId);
+
+                // Report file metadata to PS API.
+                _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
+                {
+                    if (tusInfoFile?.MetaData != null)
+                    {
+                        var metadataReport = new MetadataReport(tusInfoFile.MetaData);
+                        _procStatClient.CreateReport(tusInfoFile.ID, destinationId, eventType, Constants.PROC_STAT_REPORT_METADATA_STAGE_NAME, metadataReport);
+                    }
+                });
+
                 string? filename = tusInfoFile?.MetaData.GetValueOrDefault("received_filename", null);
 
                 var dateTimeNow = DateTime.UtcNow;
