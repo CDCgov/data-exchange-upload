@@ -805,4 +805,5 @@ components:
             - type: string
             - type: number
 
-
+security:
+   - bearerAuth: []
