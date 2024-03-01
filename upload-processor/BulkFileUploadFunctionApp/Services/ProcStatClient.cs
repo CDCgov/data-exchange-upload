@@ -46,7 +46,7 @@ namespace BulkFileUploadFunctionApp.Services
                 };
             }
         }
-        public async Task<bool> CreateReport(string uploadId, string destinationId, string eventType, string stageName, CopyReport payload)
+        public async Task<bool> CreateReport<TReport>(string uploadId, string destinationId, string eventType, string stageName, TReport payload)
         {
             try
             {
