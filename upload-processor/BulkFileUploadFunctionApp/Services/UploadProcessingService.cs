@@ -89,12 +89,13 @@ namespace BulkFileUploadFunctionApp.Services
 
                 var sourceBlobUri = new Uri(blobCreatedUrl);
                 string tusInfoFilename = $"{sourceBlobUri.Segments.Last()}.info";
+                string uploadedFilename = tusInfoFilename.Replace(".info", "");
                 _logger.LogInformation($"tusPayloadFilename is {tusInfoFilename}");
 
                 // START SPAN
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFilename.Replace(".info", ""));
+                    trace = await _procStatClient.GetTraceByUploadId(uploadedFilename);
 
                     if (trace != null)
                     {
@@ -102,7 +103,8 @@ namespace BulkFileUploadFunctionApp.Services
                     }
                 });
 
-                var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
+                string tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
+                string uploadedFilePathname = $"/{_tusAzureObjectPrefix}/{uploadedFilename}";
                 
                 tusInfoFile = await GetTusFileInfo(tusPayloadPathname);
 
@@ -135,7 +137,7 @@ namespace BulkFileUploadFunctionApp.Services
                 destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
 
                 // Copy the blob to the DeX storage account specific to the program, partitioned by date
-                string dexBlobUrl = await CopyBlobFromTusToDex(tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
+                string dexBlobUrl = await CopyBlobFromTusToDex(uploadedFilePathname, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
 
                 await CopyBlobFromDexToTarget(dexBlobUrl, destinationId, eventType, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);                
             }
