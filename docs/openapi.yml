@@ -806,4 +806,5 @@ components:
             - type: number
 
 security:
-   - bearerAuth: []
+  - {}
+  - bearerAuth: []
