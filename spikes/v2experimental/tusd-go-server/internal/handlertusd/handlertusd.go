@@ -1,15 +1,23 @@
 package handlertusd
 
 import (
-	"log/slog"
+	"reflect"
+	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/filestore"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
-func New(flags cliflags.Flags, config appconfig.AppConfig) (*tusd.Handler, error) {
+func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler, error) {
+
+	type Empty struct{}
+	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
+	// add package name to app logger 
+	logger := sloger.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
+
 
 	// Create a new FileStore instance which is responsible for
 	// storing the uploaded file on disk in the specified directory.
@@ -39,9 +47,11 @@ func New(flags cliflags.Flags, config appconfig.AppConfig) (*tusd.Handler, error
 	}) // .handler
 
 	if err != nil {
-		slog.Error("tushandler: unable to create new tusd handler", "error", err)
+		logger.Error("tushandler: unable to create new tusd handler", "error", err)
 		return nil, err
 	} // .if
+
+	logger.Info("started tusd handler")
 
 	// no error
 	return handler, nil

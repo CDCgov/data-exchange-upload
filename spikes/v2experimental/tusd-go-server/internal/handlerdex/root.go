@@ -16,17 +16,15 @@ type RootResp struct {
 func (hd *HandlerDex) root(w http.ResponseWriter, r *http.Request) {
 
 	jsonResp, err := json.Marshal(RootResp{
-		System:     hd.config.System,
-		DexProduct: hd.config.DexProduct,
-		DexApp:     hd.config.DexApp,
+		System:     hd.appConfig.System,
+		DexProduct: hd.appConfig.DexProduct,
+		DexApp:     hd.appConfig.DexApp,
 		ServerTime: time.Now().Format(time.RFC3339),
 	}) // .jsonResp
 	if err != nil {
-
-		// TODO log error
-
-		// TODO: don't expose errors
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errMsg := "error marshal json for root response"
+		hd.logger.Error(errMsg, "error", err.Error())
+		http.Error(w, errMsg, http.StatusInternalServerError)
 		return
 	} // .if
 

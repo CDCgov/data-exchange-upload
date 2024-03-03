@@ -24,11 +24,9 @@ func (hd *HandlerDex) version(w http.ResponseWriter, r *http.Request) {
 		GitShortVersion: GitShortVersion,
 	}) // .jsonResp
 	if err != nil {
-
-		// TODO log error
-
-		// TODO: don't expose errors
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		errMsg := "error marshal json for version response"
+		hd.logger.Error(errMsg, "error", err.Error())
+		http.Error(w, errMsg, http.StatusInternalServerError)
 		return
 	} // .if
 

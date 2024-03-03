@@ -10,14 +10,25 @@ import (
 
 func AppLogger(appConfig appconfig.AppConfig) *slog.Logger{
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	// Configure debug on if needed, otherwise should be off
+	var opts *slog.HandlerOptions
+
+	if appConfig.LoggerDebug {
+
+		opts = &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		} // .opts
+	} // .if
+
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, opts))
 
 	appLogger := logger.With(		
 		slog.Group("app_info",
 			slog.String("System", appConfig.System),
 			slog.String("Product", appConfig.DexProduct),
 			slog.String("App", appConfig.DexApp),
-	))
+	)) // .appLogger
 
 	return appLogger
 } // .AppLogger

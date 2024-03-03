@@ -3,6 +3,7 @@ package serverdex
 import (
 	"fmt"
 	"net/http"
+	"log/slog"
 
 	//
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
@@ -18,6 +19,7 @@ type ServerDex struct {
 	appConfig   appconfig.AppConfig
 	handlerTusd *tusd.Handler
 	handlerDex  *handlerdex.HandlerDex
+	logger *slog.Logger
 } // .ServerDex
 
 func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, error) {

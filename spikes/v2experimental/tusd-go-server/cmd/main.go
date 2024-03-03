@@ -83,7 +83,7 @@ func main() {
 		} // .if
 
 	}() // .go
-	logger.Info("started http server", "port", appConfig.ServerPort)
+	logger.Info("started http server with tusd and dex handlers", "port", appConfig.ServerPort)
 
 	// ------------------------------------------------------------------
 	// 	Block for Exit, server above is on goroutine

@@ -1,19 +1,36 @@
 package handlerdex
 
 import (
+	"net/http"
+	"reflect"
+	"log/slog"
+	"strings"
+
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
-	"net/http"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 ) // .import
 
 type HandlerDex struct {
-	flags  cliflags.Flags
-	config appconfig.AppConfig
+	cliFlags  cliflags.Flags
+	appConfig appconfig.AppConfig
+	logger *slog.Logger
 }
 
-func New(flags cliflags.Flags, config appconfig.AppConfig) (*HandlerDex, error) {
+func New(flags cliflags.Flags, appConfig appconfig.AppConfig) (*HandlerDex, error) {
+	
+	type Empty struct{}
+	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
+	// add package name to app logger 
+	logger := sloger.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
 
-	return &HandlerDex{flags: flags, config: config}, nil
+	logger.Info("started dex handler")
+
+	return &HandlerDex{
+		cliFlags: flags, 
+		appConfig: appConfig,
+		logger: logger,
+		}, nil
 } // .New
 
 func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
