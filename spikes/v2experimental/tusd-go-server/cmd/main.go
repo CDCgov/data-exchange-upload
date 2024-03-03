@@ -8,7 +8,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/config"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/dexmetadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
 ) // .import
 
@@ -62,19 +61,11 @@ func main() {
 		os.Exit(1)
 	} // .err
 
-	// ------------------------------------------------------------------
-	// create tusd handler
-	// ------------------------------------------------------------------
-	handlerTusd, err := handlertusd.New(flags, config)
-	if err != nil {
-		logger.Error("error starting service and tusd handler", "error", err)
-		os.Exit(1)
-	} // .if
 
 	// ------------------------------------------------------------------
-	// create custom http server including tusd handler
+	// create custom http server, includes tusd as-is handler + dex handler
 	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(flags, config, handlerTusd)
+	serverDex, err := serverdex.New(flags, config)
 	if err != nil {
 		logger.Error("error starting service and http server", "error", err)
 		os.Exit(1)

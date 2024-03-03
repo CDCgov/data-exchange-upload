@@ -20,7 +20,7 @@ type ServerDex struct {
 	handlerDex *handlerdex.HandlerDex
 } // .ServerDex
 
-func New(flags flags.Flags, config config.Config, handlerTusd *tusd.Handler) (ServerDex, error) {
+func New(flags flags.Flags, config config.Config) (ServerDex, error) {
 
 	handlerTusd, err := handlertusd.New(flags, config)
 	if err != nil {
