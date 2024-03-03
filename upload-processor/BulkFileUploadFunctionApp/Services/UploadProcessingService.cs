@@ -25,7 +25,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _edavUploadRootContainerName;
         private readonly string _routingUploadRootContainerName;
         private readonly string _tusHooksFolder;
-        private readonly Task<List<DestinationAndEvents>?> _destinationAndEvents;
         private readonly string _targetEdav = "dex_edav";
         private readonly string _targetRouting = "dex_routing";
         private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
@@ -34,6 +33,8 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly IProcStatClient _procStatClient;
         private readonly string _stageName = "dex-file-copy";
         private readonly string _dexStorageAccountConnectionString;
+
+        private List<DestinationAndEvents> _destinationAndEvents;
 
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient, IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService)
@@ -59,8 +60,6 @@ namespace BulkFileUploadFunctionApp.Services
             _routingUploadRootContainerName = Environment.GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME", EnvironmentVariableTarget.Process) ?? "routeingress";
 
             _tusHooksFolder = Environment.GetEnvironmentVariable("TUSD_HOOKS_FOLDER", EnvironmentVariableTarget.Process) ?? "tusd-file-hooks";
-
-            _destinationAndEvents = GetAllDestinationAndEvents();
 
             _uploadEventHubService = uploadEventHubService;
             _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
@@ -126,7 +125,7 @@ namespace BulkFileUploadFunctionApp.Services
                 destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
 
                 // Get copy targets
-                CopyTarget[] targets = GetCopyTargets(destinationId, eventType);
+                CopyTarget[] targets = await GetCopyTargets(destinationId, eventType);
                 _logger.LogInformation($"Copy Targets: {targets}");
                 
                 return new CopyPreqs(uploadId,
@@ -580,13 +579,13 @@ namespace BulkFileUploadFunctionApp.Services
             tusInfoFile.MetaData.Remove("filename"); // Remove filename field to use standard received_filename field.
         }
 
-        private async Task<List<DestinationAndEvents>?> GetAllDestinationAndEvents()
+        private async Task<List<DestinationAndEvents>> GetAllDestinationAndEvents()
         {
             var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
 
             try
             {
-                _logger.LogInformation($"Fetching all Destinations and Events from: {connectionString} {_tusHooksFolder} {_destinationAndEventsFileName}");
+                _logger.LogInformation($"Fetching all Destinations and Events from: {_tusHooksFolder}/{_destinationAndEventsFileName}");
 
                 var blobReader = new BlobReader(_logger);
                 var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
@@ -626,14 +625,17 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
 
-        private CopyTarget[] GetCopyTargets(string destinationId, string eventType)
+        private async Task<CopyTarget[]> GetCopyTargets(string destinationId, string eventType)
         {
             // Default to copy to edav.
             CopyTarget[] targets = { new(_targetEdav) };
 
-            _logger.LogInformation($"Destinations and Events JSON: DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net:{_tusHooksFolder}/{_destinationAndEventsFileName}");
+            if (_destinationAndEvents == null || !_destinationAndEvents.Any())
+            {
+               _destinationAndEvents = await GetAllDestinationAndEvents();
+            }
 
-            var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
+            var currentDestination = _destinationAndEvents.Find(d => d.destinationId == destinationId);
             var currentEvent = currentDestination?.extEvents?.Find(e => e.name == eventType);
 
             if (currentEvent == null) {
