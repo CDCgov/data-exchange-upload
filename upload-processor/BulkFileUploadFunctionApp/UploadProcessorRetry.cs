@@ -79,14 +79,6 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToDex:
                             try
                             {
-                               //bool success =  await _uploadProcessingService.ProcessBlob(blobCopyRetryEvent.sourceBlobUri);
-
-                               //await _uploadProcessingService.GetCopyToDexPreqs(blobCopyRetryEvent.sourceBlobUri);
-
-                            //    if(!success) {
-
-                            //         await RePublishEvent(blobCopyRetryEvent);
-                            //    }
                                 CopyPreqs copyPreqs = await _uploadProcessingService.GetCopyPreqs(blobCopyRetryEvent.sourceBlobUrl);
 
                                 _uploadProcessingService.CopyAll(copyPreqs);
