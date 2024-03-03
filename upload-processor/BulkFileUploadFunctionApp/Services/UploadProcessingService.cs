@@ -3,7 +3,6 @@ using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Azure.Identity;
-using Newtonsoft.Json;
 
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
@@ -587,6 +586,8 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
+                _logger.LogInformation($"Fetching all Destinations and Events from: {connectionString} {_tusHooksFolder} {_destinationAndEventsFileName}");
+
                 var blobReader = new BlobReader(_logger);
                 var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
 
@@ -635,11 +636,10 @@ namespace BulkFileUploadFunctionApp.Services
 
             if (currentEvent == null) {
                 _logger.LogError($"No copy targets configured for {destinationId} and {eventType} - defaulting to EDAV");
-                _logger.LogInformation($"Destination and events: {JsonConvert.SerializeObject(_destinationAndEvents)}");
                 return targets;
             }
 
-            if (currentEvent.copyTargets != null)
+            if (currentEvent != null && currentEvent.copyTargets != null)
             {  
                 if(currentEvent.copyTargets.Count == 0)
                 {
