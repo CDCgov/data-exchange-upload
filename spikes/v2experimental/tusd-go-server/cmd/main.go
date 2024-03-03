@@ -5,9 +5,9 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/config"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/dexmetadatav1"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
 ) // .import
 
@@ -37,7 +37,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
-	flags, err := flags.ParseFlags()
+	flags, err := cliflags.ParseFlags()
 	if err != nil {
 		logger.Error("error starting service, error parsing cli flags", "error", err)
 		os.Exit(1)
@@ -46,7 +46,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// parse and load config
 	// ------------------------------------------------------------------
-	config, err := config.ParseConfig()
+	appConfig, err := appconfig.ParseConfig()
 	if err != nil {
 		logger.Error("error starting service, error parsing config", "error", err)
 		os.Exit(1)
@@ -65,7 +65,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// create custom http server, includes tusd as-is handler + dex handler
 	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(flags, config)
+	serverDex, err := serverdex.New(flags, appConfig)
 	if err != nil {
 		logger.Error("error starting service and http server", "error", err)
 		os.Exit(1)
@@ -74,7 +74,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// Start http custom server, including tusd handler
 	// ------------------------------------------------------------------
-	logger.Info("starting http server, including tusd handler", "port", config.ServerPort)
+	logger.Info("starting http server, including tusd handler", "port", appConfig.ServerPort)
 
 	go func() {
 
@@ -99,6 +99,6 @@ func main() {
 	// close connections, TODO if needed
 	// -----------------------------------------------------------------
 
-	logger.Info("closing server by os signal", "port", config.ServerPort)
+	logger.Info("closing server by os signal", "port", appConfig.ServerPort)
 
 } // .main

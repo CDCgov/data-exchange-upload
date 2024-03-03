@@ -1,4 +1,4 @@
-package flags
+package cliflags
 
 type Flags struct {
 	

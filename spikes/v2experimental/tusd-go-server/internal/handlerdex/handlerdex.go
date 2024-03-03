@@ -2,16 +2,16 @@ package handlerdex
 
 import (
 	"net/http"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/config"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 ) // .import 
 
 type HandlerDex struct {
-    flags flags.Flags
-    config config.Config
+    flags cliflags.Flags
+    config appconfig.AppConfig
 }
 
-func New(flags flags.Flags, config config.Config) (*HandlerDex, error) {
+func New(flags cliflags.Flags, config appconfig.AppConfig) (*HandlerDex, error) {
 
 	return &HandlerDex{flags: flags, config: config}, nil 
 } // .New

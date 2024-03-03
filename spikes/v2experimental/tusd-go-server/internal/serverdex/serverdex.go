@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	//
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/config"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
 
@@ -14,27 +14,27 @@ import (
 ) // .import
 
 type ServerDex struct {
-	flags       flags.Flags
-	config      config.Config
+	cliFlags       cliflags.Flags
+	appConfig      appconfig.AppConfig
 	handlerTusd *tusd.Handler
 	handlerDex *handlerdex.HandlerDex
 } // .ServerDex
 
-func New(flags flags.Flags, config config.Config) (ServerDex, error) {
+func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, error) {
 
-	handlerTusd, err := handlertusd.New(flags, config)
+	handlerTusd, err := handlertusd.New(cliFlags, appConfig)
 	if err != nil {
 		return ServerDex{}, err
 	} // .handlerTusd
 
-	handlerDex, err := handlerdex.New(flags, config)
+	handlerDex, err := handlerdex.New(cliFlags, appConfig)
 	if err != nil {
 		return ServerDex{}, err 
 	} // .handlerDex
 
 	return ServerDex{
-		flags:       flags,
-		config:      config,
+		cliFlags:    cliFlags,
+		appConfig:   appConfig,
 		handlerTusd: handlerTusd,
 		handlerDex: handlerDex,
 	}, nil // .return
@@ -72,11 +72,10 @@ func (s *ServerDex) HttpServer() http.Server {
 	// --------------------------------------------------------------
 	// 		Custom Server, if needed to customize
 	// --------------------------------------------------------------
-	httpServer := http.Server{
-		Addr: s.config.ServerPort,
+	return http.Server{
+
+		Addr: s.appConfig.ServerPort,
 		// etc...
-	} // .server
 
-
-	return httpServer
-} // .Serve
+	} // .httpServer
+} // .HttpServer

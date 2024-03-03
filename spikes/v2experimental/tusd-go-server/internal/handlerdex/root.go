@@ -1,24 +1,33 @@
-package handlerdex 
+package handlerdex
 
 import (
 	"encoding/json"
 	"net/http"
 	"time"
+
 ) // .import
+
+type rootResp struct {
+    System string `json:"system"`
+    DexProduct string `json:"dex_product"`
+    DexApp string `json:"dex_app"` 
+    ServerTime string `json:"server_time"`
+} // .rootAppConfig
 
 
 func (hd *HandlerDex) root(w http.ResponseWriter, r *http.Request) {
 
-	currentTime := time.Now()
-    resp := map[string]interface{}{
+    jsonResp, err := json.Marshal(rootResp{
 
-		// TODO: add from config, Service, App, etc...
-
-        "server_time": currentTime.Format(time.RFC3339),
-    } // .resp\
-
-    jsonResp, err := json.Marshal(resp)
+        System: hd.config.System,
+        DexProduct: hd.config.DexProduct,
+        DexApp: hd.config.DexApp,
+        
+        ServerTime:  time.Now().Format(time.RFC3339),
+    }) // .jsonResp
     if err != nil {
+        // TODO log error 
+        // TODO: don't expose errors
         http.Error(w, err.Error(), http.StatusInternalServerError)
         return
     } // .if 
