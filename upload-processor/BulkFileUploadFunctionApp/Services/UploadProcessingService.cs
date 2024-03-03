@@ -3,6 +3,7 @@ using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Azure.Identity;
+using Newtonsoft.Json;
 
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
@@ -631,10 +632,12 @@ namespace BulkFileUploadFunctionApp.Services
             // Default to copy to edav.
             CopyTarget[] targets = { new(_targetEdav) };
 
-            if(_destinationAndEvents.Result == null) {
-                _logger.LogError($"Empty Destination and Events: {_destinationAndEvents.Result}");
-                throw new Exception("Empty Destination and Events");
+            if (_destinationAndEvents.Result == null) {
+                _logger.LogError($"Empty Destinations and Events: {_destinationAndEvents.Result}");
+                throw new Exception("Empty Destinations and Events");
             }
+
+            _logger.LogInformation($"Destinations and Events: {JsonConvert.SerializeObject(_destinationAndEvents.Result)}");
 
             var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
             var currentEvent = currentDestination?.extEvents?.Find(e => e.name == eventType);
