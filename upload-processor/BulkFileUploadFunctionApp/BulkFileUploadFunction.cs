@@ -84,14 +84,14 @@ namespace BulkFileUploadFunctionApp
             {
                 // publish Retry event
                 await _uploadProcessingService.PublishRetryEvent(BlobCopyStage.CopyToDex,
-                                                                 copyPreqs.UploadId,
-                                                                 copyPreqs.DestinationId,
-                                                                 copyPreqs.EventType,
-                                                                 copyPreqs.SourceBlobUrl,
-                                                                 copyPreqs.DexBlobUrl,
-                                                                 copyPreqs.DestinationContainerName, 
-                                                                 copyPreqs.DestinationBlobName, 
-                                                                 copyPreqs.DestinationMetadata);
+                                                                 null,
+                                                                 null,
+                                                                 null,
+                                                                 blobCreatedUrl,
+                                                                 null,
+                                                                 null, 
+                                                                 null, 
+                                                                 null);
             }
         }       
     }
