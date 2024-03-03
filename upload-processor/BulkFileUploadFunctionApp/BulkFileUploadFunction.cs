@@ -76,7 +76,6 @@ namespace BulkFileUploadFunctionApp
             try
             {
                 copyPreqs = await _uploadProcessingService.GetCopyPreqs(blobCreatedUrl);
-                
                 _logger.LogInformation($"Copy preqs: {JsonConvert.SerializeObject(copyPreqs)}");
                 
  
