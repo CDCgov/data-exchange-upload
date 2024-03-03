@@ -41,7 +41,12 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 		BasePath:              "/files/",
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
-		//
+		// added
+
+		// TODO: 	the tusd logger type is "golang.org/x/exp/slog" vs. app logger "log/slog" ?
+		// TODO: pass the custom app logger
+		// Logger: logger,
+
 		PreUploadCreateCallback: checkManifestV1,
 	}) // .handler
 
