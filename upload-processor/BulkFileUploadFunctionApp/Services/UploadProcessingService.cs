@@ -631,11 +631,13 @@ namespace BulkFileUploadFunctionApp.Services
             // Default to copy to edav.
             CopyTarget[] targets = { new(_targetEdav) };
 
+            _logger.LogInformation($"Destinations and Events JSON: DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net:{_tusHooksFolder}/{_destinationAndEventsFileName}");
+
             var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
             var currentEvent = currentDestination?.extEvents?.Find(e => e.name == eventType);
 
             if (currentEvent == null) {
-                _logger.LogError($"No copy targets configured for {destinationId} and {eventType} - defaulting to EDAV");
+                _logger.LogError($"No copy targets configured for {destinationId} and {eventType} - defaulting to EDAV");                
                 return targets;
             }
 
