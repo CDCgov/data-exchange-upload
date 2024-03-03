@@ -632,6 +632,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             if (_destinationAndEvents == null || !_destinationAndEvents.Any())
             {
+               _logger.LogError("No Destination and events found. Loading all destination and Events");                
                _destinationAndEvents = await GetAllDestinationAndEvents();
             }
 
