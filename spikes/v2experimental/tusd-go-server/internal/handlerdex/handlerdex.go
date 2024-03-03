@@ -17,7 +17,7 @@ type HandlerDex struct {
 	logger    *slog.Logger
 }
 
-func New(flags cliflags.Flags, appConfig appconfig.AppConfig) (*HandlerDex, error) {
+func New(flags cliflags.Flags, appConfig appconfig.AppConfig) *HandlerDex {
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
@@ -30,7 +30,7 @@ func New(flags cliflags.Flags, appConfig appconfig.AppConfig) (*HandlerDex, erro
 		cliFlags:  flags,
 		appConfig: appConfig,
 		logger:    logger,
-	}, nil
+	} // .&HandlerDex
 } // .New
 
 func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {

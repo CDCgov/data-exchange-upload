@@ -49,14 +49,11 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 
 		PreUploadCreateCallback: checkManifestV1,
 	}) // .handler
-
 	if err != nil {
-		logger.Error("tushandler: unable to create new tusd handler", "error", err)
+		logger.Error("error start tusd handler", "error", err)
 		return nil, err
 	} // .if
 
 	logger.Info("started tusd handler")
-
-	// no error
 	return handler, nil
 } // .New

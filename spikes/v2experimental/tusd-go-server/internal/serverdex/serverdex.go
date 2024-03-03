@@ -37,11 +37,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, err
 		return ServerDex{}, err
 	} // .handlerTusd
 
-	handlerDex, err := handlerdex.New(cliFlags, appConfig)
-	if err != nil {
-		logger.Error("error starting dex handler")
-		return ServerDex{}, err
-	} // .handlerDex
+	handlerDex := handlerdex.New(cliFlags, appConfig)
 
 	return ServerDex{
 		cliFlags:    cliFlags,
