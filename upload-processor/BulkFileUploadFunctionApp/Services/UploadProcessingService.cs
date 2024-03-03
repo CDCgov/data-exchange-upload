@@ -586,6 +586,8 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
+                _logger.LogInformation($"Fetching Destinations and Events from  {_tusHooksFolder}/{_destinationAndEventsFileName}");
+
                 var blobReader = new BlobReader(_logger);
                 var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
 
