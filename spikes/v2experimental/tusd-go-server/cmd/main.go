@@ -37,7 +37,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
-	flags, err := cliflags.ParseFlags()
+	cliFlags, err := cliflags.ParseFlags()
 	if err != nil {
 		logger.Error("error starting service, error parsing cli flags", "error", err)
 		os.Exit(1)
@@ -65,7 +65,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// create custom http server, includes tusd as-is handler + dex handler
 	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(flags, appConfig)
+	serverDex, err := serverdex.New(cliFlags, appConfig)
 	if err != nil {
 		logger.Error("error starting service and http server", "error", err)
 		os.Exit(1)
@@ -100,5 +100,4 @@ func main() {
 	// -----------------------------------------------------------------
 
 	logger.Info("closing server by os signal", "port", appConfig.ServerPort)
-
 } // .main
