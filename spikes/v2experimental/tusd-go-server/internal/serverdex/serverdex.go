@@ -41,7 +41,7 @@ func New(flags flags.Flags, config config.Config) (ServerDex, error) {
 
 } // New
 
-func (s *ServerDex) Serve() error {
+func (s *ServerDex) HttpServer() http.Server {
 
 	// --------------------------------------------------------------
 	// 		TUSD handler as-is
@@ -72,10 +72,11 @@ func (s *ServerDex) Serve() error {
 	// --------------------------------------------------------------
 	// 		Custom Server, if needed to customize
 	// --------------------------------------------------------------
-	customServer := http.Server{
+	httpServer := http.Server{
 		Addr: s.config.ServerPort,
-	} // .customServer
+		// etc...
+	} // .server
 
 
-	return customServer.ListenAndServe()
+	return httpServer
 } // .Serve

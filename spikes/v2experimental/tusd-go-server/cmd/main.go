@@ -78,7 +78,8 @@ func main() {
 
 	go func() {
 
-		err := serverDex.Serve()
+		httpServer := serverDex.HttpServer()
+		err := httpServer.ListenAndServe()
 		if err != nil {
 			logger.Error("error starting service, error starting http custom server", "error", err)
 			os.Exit(1)
