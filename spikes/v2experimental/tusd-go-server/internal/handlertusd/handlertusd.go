@@ -15,9 +15,8 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
-	// add package name to app logger 
+	// add package name to app logger
 	logger := sloger.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
-
 
 	// Create a new FileStore instance which is responsible for
 	// storing the uploaded file on disk in the specified directory.

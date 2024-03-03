@@ -7,8 +7,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 )
 
-
-func AppLogger(appConfig appconfig.AppConfig) *slog.Logger{
+func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 
 	// Configure debug on if needed, otherwise should be off
 	var opts *slog.HandlerOptions
@@ -20,16 +19,14 @@ func AppLogger(appConfig appconfig.AppConfig) *slog.Logger{
 		} // .opts
 	} // .if
 
-
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, opts))
 
-	appLogger := logger.With(		
+	appLogger := logger.With(
 		slog.Group("app_info",
 			slog.String("System", appConfig.System),
 			slog.String("Product", appConfig.DexProduct),
 			slog.String("App", appConfig.DexApp),
-	)) // .appLogger
+		)) // .appLogger
 
 	return appLogger
 } // .AppLogger
-

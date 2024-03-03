@@ -1,9 +1,9 @@
 package handlerdex
 
 import (
+	"log/slog"
 	"net/http"
 	"reflect"
-	"log/slog"
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
@@ -14,23 +14,23 @@ import (
 type HandlerDex struct {
 	cliFlags  cliflags.Flags
 	appConfig appconfig.AppConfig
-	logger *slog.Logger
+	logger    *slog.Logger
 }
 
 func New(flags cliflags.Flags, appConfig appconfig.AppConfig) (*HandlerDex, error) {
-	
+
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
-	// add package name to app logger 
+	// add package name to app logger
 	logger := sloger.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
 
 	logger.Info("started dex handler")
 
 	return &HandlerDex{
-		cliFlags: flags, 
+		cliFlags:  flags,
 		appConfig: appConfig,
-		logger: logger,
-		}, nil
+		logger:    logger,
+	}, nil
 } // .New
 
 func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
