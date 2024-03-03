@@ -6,8 +6,8 @@ import (
 	"os/signal"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/dexmetadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/dexmetadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
 ) // .import
 
@@ -60,7 +60,6 @@ func main() {
 		logger.Error("error metadata v1 config not available", "error", err)
 		os.Exit(1)
 	} // .err
-
 
 	// ------------------------------------------------------------------
 	// create custom http server, includes tusd as-is handler + dex handler

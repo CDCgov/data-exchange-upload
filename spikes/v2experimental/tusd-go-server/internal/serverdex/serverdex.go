@@ -14,10 +14,10 @@ import (
 ) // .import
 
 type ServerDex struct {
-	cliFlags       cliflags.Flags
-	appConfig      appconfig.AppConfig
+	cliFlags    cliflags.Flags
+	appConfig   appconfig.AppConfig
 	handlerTusd *tusd.Handler
-	handlerDex *handlerdex.HandlerDex
+	handlerDex  *handlerdex.HandlerDex
 } // .ServerDex
 
 func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, error) {
@@ -29,14 +29,14 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, err
 
 	handlerDex, err := handlerdex.New(cliFlags, appConfig)
 	if err != nil {
-		return ServerDex{}, err 
+		return ServerDex{}, err
 	} // .handlerDex
 
 	return ServerDex{
 		cliFlags:    cliFlags,
 		appConfig:   appConfig,
 		handlerTusd: handlerTusd,
-		handlerDex: handlerDex,
+		handlerDex:  handlerDex,
 	}, nil // .return
 
 } // New
@@ -62,12 +62,10 @@ func (s *ServerDex) HttpServer() http.Server {
 		}
 	}() // .go func
 
-
 	// --------------------------------------------------------------
 	// 		DEX handler, handles all other requests except TUSD path
 	// --------------------------------------------------------------
 	http.Handle("/", s.handlerDex)
-
 
 	// --------------------------------------------------------------
 	// 		Custom Server, if needed to customize

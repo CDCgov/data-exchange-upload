@@ -1,11 +1,10 @@
 package dexmetadatav1
 
 import (
-	"os"
 	"encoding/json"
 	"log/slog"
+	"os"
 ) // .import
-
 
 func Load() (MedaV1Config, error) {
 
@@ -15,14 +14,14 @@ func Load() (MedaV1Config, error) {
 	content, err := os.ReadFile("../../../../tus/file-hooks/metadata-verify/allowed_destination_and_events.json")
 	if err != nil {
 		slog.Error("dexmetadatav1, error reading allowed_destination_and_events file", "error", err)
-		return MedaV1Config{}, err  
+		return MedaV1Config{}, err
 	} // .err
 
 	var destAndEvents []AllowedDestAndEvents
 	err = json.Unmarshal(content, &destAndEvents)
 	if err != nil {
 		slog.Error("dexmetadatav1, error reading allowed_destination_and_events into typed object", "error", err)
-		return MedaV1Config{}, err 
+		return MedaV1Config{}, err
 	} // .err
 
 	return MedaV1Config{

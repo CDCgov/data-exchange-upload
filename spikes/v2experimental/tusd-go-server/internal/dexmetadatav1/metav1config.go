@@ -1,10 +1,8 @@
-package dexmetadatav1 
-
+package dexmetadatav1
 
 // TODO: line-up names with json names `json`
 
 type MedaV1Config struct {
-
 	AllowedDestAndEvents []AllowedDestAndEvents
 
 	// TODO UploadConfig
