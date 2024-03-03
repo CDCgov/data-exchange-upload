@@ -631,12 +631,15 @@ namespace BulkFileUploadFunctionApp.Services
             var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
             var currentEvent = currentDestination?.extEvents?.Find(e => e.name == eventType);
 
+            if (currentEvent == null) {
+                _logger.LogInformation($"No copy targets configured for {destinationId} and {eventType}");
+            }
+
             if (currentEvent != null && currentEvent.copyTargets != null)
             {  
                 if(currentEvent.copyTargets.Count == 0)
                 {
                     _logger.LogInformation($"No copy targets configured for {destinationId} and {eventType}");
-                    _logger.LogInformation("Defaulting to EDAV");
                 }
                 else
                 {
