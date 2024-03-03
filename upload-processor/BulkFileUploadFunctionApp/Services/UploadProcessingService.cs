@@ -126,7 +126,8 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Get copy targets
                 CopyTarget[] targets = GetCopyTargets(destinationId, eventType);
-
+                _logger.LogInformation($"Copy Targets: {targets}");
+                
                 return new CopyPreqs(uploadId,
                                      blobCreatedUrl,
                                      tusPayloadFilename, 
