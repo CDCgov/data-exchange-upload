@@ -79,12 +79,18 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToDex:
                             try
                             {
-                               bool success =  await _uploadProcessingService.ProcessBlob(blobCopyRetryEvent.sourceBlobUri, true);
+                               //bool success =  await _uploadProcessingService.ProcessBlob(blobCopyRetryEvent.sourceBlobUri);
 
-                               if(!success) {
+                               //await _uploadProcessingService.GetCopyToDexPreqs(blobCopyRetryEvent.sourceBlobUri);
 
-                                    await RePublishEvent(blobCopyRetryEvent);
-                               }
+                            //    if(!success) {
+
+                            //         await RePublishEvent(blobCopyRetryEvent);
+                            //    }
+                                CopyPreqs copyPreqs = await _uploadProcessingService.GetCopyPreqs(blobCopyRetryEvent.sourceBlobUrl);
+
+                                _uploadProcessingService.CopyAll(copyPreqs);
+
                             }
                             catch (Exception ex)
                             {
@@ -95,7 +101,7 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToEdav:
                             try
                             {
-                                await _uploadProcessingService.CopyBlobFromDexToEdavAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyFromDexToEdav(blobCopyRetryEvent.uploadId, blobCopyRetryEvent.destinationId, blobCopyRetryEvent.eventType, blobCopyRetryEvent.dexBlobUrl, blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
                             }
                             catch (Exception ex)
                             {
@@ -106,7 +112,7 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToRouting:
                             try
                             {
-                                await _uploadProcessingService.CopyBlobFromDexToRoutingAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyFromDexToRouting(blobCopyRetryEvent.uploadId, blobCopyRetryEvent.destinationId, blobCopyRetryEvent.eventType, blobCopyRetryEvent.dexBlobUrl, blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
                             }
                             catch (Exception ex)
                             {

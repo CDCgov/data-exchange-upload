@@ -15,6 +15,7 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobCopyHelper _blobCopyHelper;
         private readonly string _tusAzureObjectPrefix;
         private readonly string _tusAzureStorageContainer;
+        private readonly string _uploadConfigsStorageContainer;
         private readonly string _dexAzureStorageAccountName;
         private readonly string _dexAzureStorageAccountKey;
         private readonly string _edavAzureStorageAccountName;
@@ -45,6 +46,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             _tusAzureObjectPrefix = Environment.GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX", EnvironmentVariableTarget.Process) ?? "tus-prefix";
             _tusAzureStorageContainer = Environment.GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER", EnvironmentVariableTarget.Process) ?? "bulkuploads";
+            _uploadConfigsStorageContainer = Environment.GetEnvironmentVariable("UPLOAD_CONFIGS_STORAGE_CONTAINER", EnvironmentVariableTarget.Process) ?? "upload-configs";
             _dexAzureStorageAccountName = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
             _dexAzureStorageAccountKey = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", EnvironmentVariableTarget.Process) ?? "";
             _edavAzureStorageAccountName = Environment.GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
@@ -62,59 +64,51 @@ namespace BulkFileUploadFunctionApp.Services
             _uploadEventHubService = uploadEventHubService;
             _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
         }
-
-        /// <summary>
-        /// Processeses the given blob created event from the URL provided.
-        /// </summary>
-        /// <param name="blobCreatedUrl"></param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        public async Task<bool> ProcessBlob(string blobCreatedUrl, bool retryAttempt)
+        public async Task<CopyPreqs> GetCopyPreqs(string blobCreatedUrl)
         {
-            _logger.LogInformation($"TUS_AZURE_OBJECT_PREFIX={_tusAzureObjectPrefix}, TUS_AZURE_STORAGE_CONTAINER={_tusAzureStorageContainer}, DEX_AZURE_STORAGE_ACCOUNT_NAME={_dexAzureStorageAccountName}");
-
-            Trace? trace = null;
-            Span? copySpan = null;
-
-            string? destinationContainerName = null;
-            string? destinationBlobFilename = null;
+            string? uploadId = null;
             string? destinationId = null;
             string? eventType = null;
 
-            TusInfoFile? tusInfoFile = null;
+            string? destinationContainerName = null;
+
+            Trace? trace = null;
 
             try
             {
-                _logger.LogInformation($"Processing blob url: {blobCreatedUrl}");
-
                 var sourceBlobUri = new Uri(blobCreatedUrl);
-                string tusInfoFilename = $"{sourceBlobUri.Segments.Last()}.info";
-                _logger.LogInformation($"tusPayloadFilename is {tusInfoFilename}");
+                string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Last()}";
 
-                var tusPayloadPathname = $"/{_tusAzureObjectPrefix}/{tusInfoFilename}";
-                
-                tusInfoFile = await GetTusFileInfo(tusPayloadPathname);
+                // Get metadata
+                TusInfoFile tusInfoFile = await GetTusInfoFile(tusPayloadFilename);
 
-                if (tusInfoFile.ID == null)
+                // Get trace
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    throw new Exception("Malformed tus info file. No ID provided.");               
-                }
+                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
+                });
 
-                GetRequiredMetaData(tusInfoFile, out destinationId, out eventType);
+                uploadId = tusInfoFile.MetaData!.GetValueOrDefault("tus_tguid", null);
 
-                // Get V2 upload config file.
+                // Get Destination and Event type
+                var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
+                if (metaDestinationId == null)
+                    throw new TusInfoFileException("meta_destination_id is a required metadata field and is missing from the tus info file");
+                destinationId = metaDestinationId;
+
+                var metaExtEvent = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_event", null);
+                if (metaExtEvent == null)
+                    throw new TusInfoFileException("meta_ext_event is a required metadata field and is missing from the tus info file");
+                eventType = metaExtEvent;
+
+                // Get upload configs for destination and event type
                 UploadConfig uploadConfig = await GetUploadConfig(MetadataVersion.V2, destinationId, eventType);
 
+                // Hydrate metadata
                 HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);
                 string? filename = tusInfoFile.MetaData.GetValueOrDefault("received_filename", null);
 
-                // START SPAN
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFilename.Replace(".info", ""));
-                    copySpan = await _procStatClient.StartSpanForTrace(trace.TraceId, trace.SpanId, _stageName);
-                });
-
+                // Get dex folder and filename 
                 var dateTimeNow = DateTime.UtcNow;
 
                 // Determine the folder path and filename suffix from the upload configuration.
@@ -123,66 +117,335 @@ namespace BulkFileUploadFunctionApp.Services
 
                 var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
                 var fileExtension = Path.GetExtension(filename);
-                
-                destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{filenameSuffix}{fileExtension}";
+            
+                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{filenameSuffix}{fileExtension}";
 
                 // Container name is "{meta_destination_id}-{extEvent}"
                 // There are some restrictions on container names -- underscores not allowed, must be all lowercase
                 destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
 
-                // Copy the blob to the DeX storage account specific to the program, partitioned by date
-                string dexBlobUrl = await CopyBlobFromTusToDex(tusPayloadPathname, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
+                // Get copy targets
+                CopyTarget[] targets = GetCopyTargets(destinationId, eventType);
 
-                await CopyBlobFromDexToTarget(dexBlobUrl, destinationId, eventType, destinationContainerName, destinationBlobFilename, tusInfoFile.MetaData);
-
-                return true;
+                return new CopyPreqs(uploadId,
+                                     blobCreatedUrl,
+                                     tusPayloadFilename, 
+                                     destinationId, 
+                                     eventType, 
+                                     destinationContainerName, 
+                                     destinationBlobFilename, 
+                                     tusInfoFile.MetaData, 
+                                     targets,
+                                     trace);
             }
-            catch (Exception ex)
+            catch(Exception ex)
             {
-                _logger.LogInformation($"Errors during blob processing: {blobCreatedUrl}");
+                _logger.LogError("Failed to copy from TUS to Dex");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
                 
-                if(!retryAttempt) {
-                    await PublishRetryEvent(BlobCopyStage.CopyToDex, blobCreatedUrl, destinationContainerName, destinationBlobFilename, tusInfoFile?.MetaData);
-                }
+                // Send copy failure report
+                SendFailureReport(uploadId, destinationId, eventType, blobCreatedUrl, destinationContainerName, $"Failed to get copy preqs: {ex.Message}");
 
-                // CREATE FAILURE REPORT
-                SendFailureReport(tusInfoFile.ID, destinationId, eventType, blobCreatedUrl, destinationContainerName, $"Failed to copy from Tus to DEX. {ex.Message}");
+                throw ex;
+            }
+        }
+        public async Task CopyAll(CopyPreqs copyPreqs)
+        {
+            Span? copySpan = null;
 
-                return false;
+            try
+            {
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    copySpan = await _procStatClient.StartSpanForTrace(copyPreqs.Trace.TraceId, copyPreqs.Trace.SpanId, _stageName);
+                });
+
+                copyPreqs.DexBlobUrl = await CopyFromTusToDex(copyPreqs);
+
+                // copy to targets
+                await CopyFromDexToTarget(copyPreqs);
+            }
+            catch(Exception ex)
+            {
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+                throw ex;
             }
             finally
             {
-                // STOP SPAN
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                if(copySpan != null) 
                 {
-                    if (trace == null)
-                    {
-                        _logger.LogError("Trace was null when expecting a value.");
-                    }
-
-                    if (copySpan == null)
-                    {
-                        _logger.LogError("Span was null when expecting a value.");
-                    }
-
-                    if (trace?.TraceId != null)
-                    {
-                        if (copySpan?.SpanId != null)
-                        {
-                            await _procStatClient.StopSpanForTrace(trace.TraceId, copySpan.SpanId);
-                        } else
-                        {
-                            _logger.LogError($"Span ID was null when expecting a value. {copySpan}");
-                        }
-                    } else
-                    {
-                        _logger.LogError($"Trace ID was null when expecting a value. {trace}");
-
-                    }
-                });                
+                    await _procStatClient.StopSpanForTrace(copyPreqs.Trace.TraceId, copySpan.SpanId);
+                }
             }
         }
+               
+        /// <summary>
+        /// Copies a blob from the tus upload folder to the DEX storage account
+        /// </summary>
+        /// <param name="copyPreqs">Copy preqs</param>
+        /// <returns>dexBlobUrl</returns>
+        private async Task<string> CopyFromTusToDex(CopyPreqs copyPreqs)
+        {
+            try
+            {
+                _logger.LogInformation($"Creating destination container client, container name: {copyPreqs.DestinationContainerName}");
+
+                var sourceContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, _tusAzureStorageContainer);
+                var destinationContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, copyPreqs.DestinationContainerName);
+
+                // Create the destination container if not exists
+                await destinationContainerClient.CreateIfNotExistsAsync();
+
+                _logger.LogInformation("Creating source blob client");
+
+                // Create a BlobClient representing the source blob to copy.
+                BlobClient sourceBlob = sourceContainerClient.GetBlobClient(copyPreqs.TusPayloadFilename);
+
+                // Get a BlobClient representing the destination blob with a unique name.
+                BlobClient destBlob = destinationContainerClient.GetBlobClient(copyPreqs.DestinationBlobName);
+
+                await _blobCopyHelper.CopyBlobAsync(sourceBlob, destBlob, copyPreqs.DestinationMetadata);
+
+                return destBlob.Uri.ToString();
+            }
+            catch (RequestFailedException ex)
+            {
+                _logger.LogError("Failed to copy blob from TUS to Dex");
+
+                // Send copy failure report
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    SendFailureReport(copyPreqs.UploadId, 
+                                      copyPreqs.DestinationId, 
+                                      copyPreqs.EventType, 
+                                      copyPreqs.SourceBlobUrl, 
+                                      copyPreqs.DestinationContainerName, 
+                                      $"Failed to copy blob from TUS to DEX. {ex.Message}");
+                });
+
+                throw ex;
+            }
+        }
+
+        private async Task CopyFromDexToTarget(CopyPreqs copyPreqs)
+        {
+            foreach (CopyTarget copyTarget in copyPreqs.Targets)
+            {
+                _logger.LogInformation("Copy Target: " + copyTarget.target);
+
+                if (copyTarget.target == _targetEdav)
+                {
+                    try
+                    {
+                        await CopyFromDexToEdav(copyPreqs.UploadId, 
+                                                copyPreqs.DestinationId,
+                                                copyPreqs.EventType,
+                                                copyPreqs.DexBlobUrl,
+                                                copyPreqs.DestinationContainerName, 
+                                                copyPreqs.DestinationBlobName, 
+                                                copyPreqs.DestinationMetadata);
+                    }
+                    catch(Exception ex)
+                    {
+                        // publish retry event
+                        await PublishRetryEvent(BlobCopyStage.CopyToEdav,
+                                                copyPreqs.UploadId,
+                                                copyPreqs.DestinationId,
+                                                copyPreqs.EventType,
+                                                copyPreqs.SourceBlobUrl,
+                                                copyPreqs.DexBlobUrl,
+                                                copyPreqs.DestinationContainerName, 
+                                                copyPreqs.DestinationBlobName, 
+                                                copyPreqs.DestinationMetadata);
+                    }
+                }
+                else if (copyTarget.target == _targetRouting)
+                {
+                    bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
+                    _logger.LogInformation($"Routing Status: {isRoutingEnabled}");
+
+                    if (isRoutingEnabled)
+                    {
+                        try
+                        {
+                            await CopyFromDexToRouting(copyPreqs.UploadId, 
+                                                       copyPreqs.DestinationId,
+                                                       copyPreqs.EventType,
+                                                       copyPreqs.DexBlobUrl,
+                                                       copyPreqs.DestinationContainerName, 
+                                                       copyPreqs.DestinationBlobName,
+                                                       copyPreqs.DestinationMetadata);
+                        }
+                        catch(Exception ex)
+                        {
+                            // publish retry event
+                            await PublishRetryEvent(BlobCopyStage.CopyToRouting,
+                                                    copyPreqs.UploadId,
+                                                    copyPreqs.DestinationId,
+                                                    copyPreqs.EventType,
+                                                    copyPreqs.SourceBlobUrl,
+                                                    copyPreqs.DexBlobUrl,
+                                                    copyPreqs.DestinationContainerName, 
+                                                    copyPreqs.DestinationBlobName, 
+                                                    copyPreqs.DestinationMetadata);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
+                    }
+                }
+            }        
+        }
+
+        /// <summary>
+        /// Copies a blob file from DEX to EDAV asynchronously.
+        /// </summary>
+        /// <param name="sourceContainerName">Source container name</param>
+        /// <param name="sourceBlobFilename">Source blob filename</param>
+        /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
+        /// <returns></returns>
+        public async Task CopyFromDexToEdav(string uploadId, string destinationId, string eventType, string dexBlobUrl, string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
+        {
+            string? destinationContainerName = null;
+
+            try
+            {
+                BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
+                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
+                BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
+
+                var edavBlobServiceClient = new BlobServiceClient(
+                    new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
+                    new DefaultAzureCredential() // using Service Principal
+                );
+
+                // _edavUploadRootContainerName could be set to empty, then no root container in edav
+
+                destinationContainerName = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceContainerName : _edavUploadRootContainerName;
+                string destinationBlobFilename = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
+
+                var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
+
+                await edavContainerClient.CreateIfNotExistsAsync();
+
+                BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
+
+                using var dexBlobStream = await dexBlobClient.OpenReadAsync();
+                {
+                    await edavDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
+                    dexBlobStream.Close();
+                }
+
+                // Send copy success report
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    SendSuccessReport(uploadId, destinationId, eventType, dexBlobUrl, edavDestBlobClient.Uri.ToString());
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to copy from Dex to Edav");
+                ExceptionUtils.LogErrorDetails(ex, _logger);               
+
+                // Send copy failure report
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    SendFailureReport(uploadId, 
+                                      destinationId, 
+                                      eventType, 
+                                      dexBlobUrl, 
+                                      destinationContainerName, 
+                                      $"Failed to copy blob from DEX to EDAV. {ex.Message}");
+                });
+
+                throw ex;
+            }
+        }
+
+        /// <summary>
+        /// Copies a blob file from DEX to ROUTING asynchronously.
+        /// </summary>
+        /// <param name="sourceContainerName">Source container name</param>
+        /// <param name="sourceBlobFilename">Source blob filename</param>
+        /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
+        /// <returns></returns>
+        public async Task CopyFromDexToRouting(string uploadId, string destinationId, string eventType, string dexBlobUrl, string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
+        {
+            string? destinationContainerName = null;
+
+            try
+            {
+                var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_routingStorageAccountName};AccountKey={_routingStorageAccountKey};EndpointSuffix=core.windows.net";
+
+                BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
+                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
+                BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
+
+                var routingBlobServiceClient = new BlobServiceClient(connectionString);
+
+                // _routingUploadRootContainerName could be set to empty, then no root container in routing
+
+                destinationContainerName = string.IsNullOrEmpty(_routingUploadRootContainerName) ? sourceContainerName : _routingUploadRootContainerName;
+                string destinationBlobFilename = string.IsNullOrEmpty(_routingUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
+
+                var routingContainerClient = routingBlobServiceClient.GetBlobContainerClient(destinationContainerName);
+
+                await routingContainerClient.CreateIfNotExistsAsync();
+
+                BlobClient routingDestBlobClient = routingContainerClient.GetBlobClient(destinationBlobFilename);
+
+                using var dexBlobStream = await dexBlobClient.OpenReadAsync();
+                {
+                    await routingDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
+                    dexBlobStream.Close();
+                }
+
+                // Send copy success report
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    SendSuccessReport(uploadId, destinationId, eventType, dexBlobUrl, routingDestBlobClient.Uri.ToString());
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to copy from Dex to ROUTING");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+
+                // Send copy failure report
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    SendFailureReport(uploadId, 
+                                      destinationId, 
+                                      eventType, 
+                                      dexBlobUrl, 
+                                      destinationContainerName, 
+                                      $"Failed to copy blob from DEX to ROUTING. {ex.Message}");
+                });
+
+                throw ex;
+            }
+        }
+
+        private async Task<TusInfoFile> GetTusInfoFile(string tusPayloadFilename)
+        {
+            // GET FILE METADATA
+            string tusInfoFilename = $"{tusPayloadFilename}.info";             
+            _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
+
+            var blobReader = new BlobReader(_logger);
+
+            TusInfoFile tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
+
+            if (tusInfoFile.ID == null)
+                throw new Exception("Malformed tus info file. No ID provided.");
+            
+            if (tusInfoFile.MetaData == null)
+                throw new TusInfoFileException("tus info file required metadata is missing");
+
+            return tusInfoFile;
+        }
+
         private async Task<UploadConfig> GetUploadConfig(MetadataVersion version, string destinationId, string eventType)
         {
             var uploadConfig = UploadConfig.Default;
@@ -204,253 +467,7 @@ namespace BulkFileUploadFunctionApp.Services
             }
 
             return uploadConfig;
-        }
-
-        /// <summary>
-        /// Copies a blob from the tus upload folder to the DEX storage account
-        /// </summary>
-        /// <param name="sourceBlobName">Source blob filename to copy</param>
-        /// <param name="destinationContainerName">Destination container name for the copied file</param>
-        /// <param name="destinationBlobName">Destination blob filename</param>
-        /// <param name="destinationMetadata">Metadata to be associated with the destination blob file</param>
-        /// <returns></returns>
-        private async Task<string> CopyBlobFromTusToDex(string sourceBlobName, string destinationContainerName,
-            string destinationBlobName, IDictionary<string, string> destinationMetadata)
-        {
-            try
-            {
-                _logger.LogInformation($"Creating destination container client, container name: {destinationContainerName}");
-
-                var sourceContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, _tusAzureStorageContainer);
-                var destinationContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, destinationContainerName);
-
-                // Create the destination container if not exists
-                await destinationContainerClient.CreateIfNotExistsAsync();
-
-                _logger.LogInformation("Creating source blob client");
-
-                // Create a BlobClient representing the source blob to copy.
-                BlobClient sourceBlob = sourceContainerClient.GetBlobClient(sourceBlobName);
-
-                // Get a BlobClient representing the destination blob with a unique name.
-                BlobClient destBlob = destinationContainerClient.GetBlobClient(destinationBlobName);
-
-                await _blobCopyHelper.CopyBlobAsync(sourceBlob, destBlob, destinationMetadata);
-
-                return destBlob.Uri.ToString();
-            }
-            catch (RequestFailedException ex)
-            {
-                _logger.LogError("Failed to copy from TUS to Dex");
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-                throw ex;
-            }
-        }
-
-        private async Task CopyBlobFromDexToTarget(string sourceBlobUrl, string destinationId, string eventType, string destinationContainerName, string destinationBlobFilename, Dictionary<string, string> tusFileMetadata)
-        {
-            var uploadId = tusFileMetadata["tus_tguid"];
-
-            CopyTarget[] targets = GetCopyTargets(destinationId, eventType);
-
-            foreach (CopyTarget copyTarget in targets)
-            {
-                _logger.LogInformation("Copy Target: " + copyTarget.target);
-
-                if (copyTarget.target == _targetEdav)
-                {
-                    // Now copy the file from DeX to the EDAV storage account, also partitioned by date
-                    try 
-                    {
-                        var destPath = await CopyBlobFromDexToEdavAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
-
-                        // Send copy success report
-                        SendSuccessReport(uploadId, destinationId, eventType, sourceBlobUrl, destPath);
-                    }
-                    catch(Exception ex)
-                    {
-                        await PublishRetryEvent(BlobCopyStage.CopyToEdav, sourceBlobUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-
-                        // Send copy failure report
-                        SendFailureReport(uploadId, destinationId, eventType, sourceBlobUrl, destinationContainerName, $"Failed to copy from Dex to EDAV. {ex.Message}");
-                    }
-                }
-                else if (copyTarget.target == _targetRouting)
-                {
-                    bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
-
-                    _logger.LogInformation($"Routing Status: {isRoutingEnabled}");
-
-                    if (isRoutingEnabled)
-                    {
-                        // Now copy the file from DeX to the ROUTING storage account, also partitioned by date
-                        try
-                        {
-                            var destPath = await CopyBlobFromDexToRoutingAsync(destinationContainerName, destinationBlobFilename, tusFileMetadata);
-
-                            // Send copy success report
-                            SendSuccessReport(uploadId, destinationId, eventType, sourceBlobUrl, destPath);
-                        }
-                        catch(Exception ex)
-                        {
-                            await PublishRetryEvent(BlobCopyStage.CopyToRouting, sourceBlobUrl, destinationContainerName, destinationBlobFilename, tusFileMetadata);
-
-                            // Send copy failure report
-                            SendFailureReport(uploadId, destinationId, eventType, sourceBlobUrl, destinationContainerName, $"Failed to copy from Dex to ROUTING. {ex.Message}");
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
-                    }
-                }
-            }        
-        }
-
-        /// <summary>
-        /// Copies a blob file from DEX to EDAV asynchronously.
-        /// </summary>
-        /// <param name="sourceContainerName">Source container name</param>
-        /// <param name="sourceBlobFilename">Source blob filename</param>
-        /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
-        /// <returns></returns>
-        public async Task<string> CopyBlobFromDexToEdavAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
-        {
-            try
-            {
-                BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
-                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
-                BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
-
-                var edavBlobServiceClient = new BlobServiceClient(
-                    new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
-                    new DefaultAzureCredential() // using Service Principal
-                );
-
-                // _edavUploadRootContainerName could be set to empty, then no root container in edav
-
-                string destinationContainerName = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceContainerName : _edavUploadRootContainerName;
-                string destinationBlobFilename = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
-
-                var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
-
-                await edavContainerClient.CreateIfNotExistsAsync();
-
-                BlobClient edavDestBlobClient = edavContainerClient.GetBlobClient(destinationBlobFilename);
-
-                using var dexBlobStream = await dexBlobClient.OpenReadAsync();
-                {
-                    await edavDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
-                    dexBlobStream.Close();
-                }
-
-                return edavDestBlobClient.Uri.ToString();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to copy from Dex to Edav");
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-                throw ex;
-            }
-        }
-
-        /// <summary>
-        /// Copies a blob file from DEX to ROUTING asynchronously.
-        /// </summary>
-        /// <param name="sourceContainerName">Source container name</param>
-        /// <param name="sourceBlobFilename">Source blob filename</param>
-        /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
-        /// <returns></returns>
-        public async Task<string> CopyBlobFromDexToRoutingAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
-        {
-            try
-            {
-                var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_routingStorageAccountName};AccountKey={_routingStorageAccountKey};EndpointSuffix=core.windows.net";
-
-                BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
-                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
-                BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
-
-                var routingBlobServiceClient = new BlobServiceClient(connectionString);
-
-                // _routingUploadRootContainerName could be set to empty, then no root container in routing
-
-                string destinationContainerName = string.IsNullOrEmpty(_routingUploadRootContainerName) ? sourceContainerName : _routingUploadRootContainerName;
-                string destinationBlobFilename = string.IsNullOrEmpty(_routingUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
-
-                var routingContainerClient = routingBlobServiceClient.GetBlobContainerClient(destinationContainerName);
-
-                await routingContainerClient.CreateIfNotExistsAsync();
-
-                BlobClient routingDestBlobClient = routingContainerClient.GetBlobClient(destinationBlobFilename);
-
-                using var dexBlobStream = await dexBlobClient.OpenReadAsync();
-                {
-                    await routingDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
-                    dexBlobStream.Close();
-                }
-
-                return routingDestBlobClient.Uri.ToString();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError("Failed to copy from Dex to ROUTING");
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-                throw ex;
-            }
-        }
-        
-        /// <summary>
-        /// Returns the metadata from a tus .info file for the pathname provided.
-        /// </summary>
-        /// <param name="tusPayloadPathname">Full path of the file to get info on</param>
-        /// <returns></returns>
-        /// <exception cref="TusInfoFileException"></exception>
-        private async Task<TusInfoFile> GetTusFileInfo(string tusInfoFilename)
-        {
-            TusInfoFile tusInfoFile;
-
-            try
-            {
-                _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
-
-                var blobReader = new BlobReader(_logger);
-
-                tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
-            }
-            catch (Exception e)
-            {
-                throw new TusInfoFileException(e.Message);
-            }
-
-            _logger.LogInformation($"Info file metadata keys: {string.Join(", ", tusInfoFile.MetaData?.Keys.ToList())}");
-
-            return tusInfoFile;
-        }
-
-        /// <summary>
-        /// Checks that all the required metadata fields are present for a given tus file.
-        /// </summary>
-        /// <param name="tusInfoFile">Contains all the tus file metadata</param>
-        /// <param name="destinationId">Destination ID from the tus info file metadata</param>
-        /// <param name="extEvent">External event from the tus info file metadata</param>
-        /// <exception cref="TusInfoFileException"></exception>
-        /// <exception cref="UploadConfigException"></exception>
-        private void GetRequiredMetaData(TusInfoFile tusInfoFile, out string destinationId, out string extEvent)
-        {
-            if (tusInfoFile.MetaData == null)
-                throw new TusInfoFileException("tus info file required metadata is missing");
-
-            var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
-            if (metaDestinationId == null)
-                throw new TusInfoFileException("meta_destination_id is a required metadata field and is missing from the tus info file");
-            destinationId = metaDestinationId;
-
-            var metaExtEvent = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_event", null);
-            if (metaExtEvent == null)
-                throw new TusInfoFileException("meta_ext_event is a required metadata field and is missing from the tus info file");
-            extEvent = metaExtEvent;
-        }
+        }           
 
         /// <summary>
         /// Determines the folder path from the upload configuration.
@@ -581,14 +598,18 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
 
-        private async Task PublishRetryEvent(BlobCopyStage copyStage, string sourceBlobUri, string? dexContainerName, string? dexBlobFilename, Dictionary<string, string>? fileMetadata)
+        public async Task PublishRetryEvent(BlobCopyStage copyStage, string uploadId, string destinationId, string eventType, string sourceBlobUrl, string dexBlobUrl, string? dexContainerName, string? dexBlobFilename, Dictionary<string, string>? fileMetadata)
         {            
             try 
             {
                 BlobCopyRetryEvent blobCopyRetryEvent = new BlobCopyRetryEvent();
                 blobCopyRetryEvent.copyRetryStage = copyStage;
                 blobCopyRetryEvent.retryAttempt = 1;
-                blobCopyRetryEvent.sourceBlobUri = sourceBlobUri;
+                blobCopyRetryEvent.uploadId = uploadId;
+                blobCopyRetryEvent.destinationId = destinationId;
+                blobCopyRetryEvent.eventType = eventType;
+                blobCopyRetryEvent.sourceBlobUrl = sourceBlobUrl;
+                blobCopyRetryEvent.dexBlobUrl = dexBlobUrl;
                 blobCopyRetryEvent.dexContainerName = dexContainerName;
                 blobCopyRetryEvent.dexBlobFilename = dexBlobFilename;
                 blobCopyRetryEvent.fileMetadata = fileMetadata;
@@ -633,6 +654,7 @@ namespace BulkFileUploadFunctionApp.Services
                 _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
             });
         }
+
         private void SendFailureReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destinationContainerName, string error)
         {
             _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>

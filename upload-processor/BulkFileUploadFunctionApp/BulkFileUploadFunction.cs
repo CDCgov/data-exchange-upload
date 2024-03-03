@@ -4,12 +4,13 @@ using Azure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using Azure.Storage.Blobs;
-using BulkFileUploadFunctionApp.Model;
 using Azure.Identity;
 using Newtonsoft.Json;
-using BulkFileUploadFunctionApp.Utils;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Configuration;
+
+using BulkFileUploadFunctionApp.Model;
+using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Services;
 
 namespace BulkFileUploadFunctionApp
@@ -46,7 +47,6 @@ namespace BulkFileUploadFunctionApp
             {
                 _logger.LogInformation($"Received event: {blobCreatedEventJson}");
 
-
                 StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 
                 if (blobCreatedEvents == null)
@@ -58,26 +58,40 @@ namespace BulkFileUploadFunctionApp
                 foreach(StorageBlobCreatedEvent blobCreatedEvent in blobCreatedEvents)
                 {
                     if (blobCreatedEvent.Data?.Url == null)
-                        throw new Exception("Unexpected data content of event; no blob create event url found.");
+                    {
+                        _logger.LogInformation($"Received blob created event with null URL: {blobCreatedEvent}");
+                    } else {
 
-                    try
-                    {
                         await ProcessBlobCreatedEvent(blobCreatedEvent.Data.Url);
-                    } catch (Exception ex)
-                    {
-                        ExceptionUtils.LogErrorDetails(ex, _logger);
-                    }
+                    }                    
                 }
             } // .foreach 
 
         } // .Task Run 
 
-        private async Task ProcessBlobCreatedEvent(string? blobCreatedUrl)
+        private async Task ProcessBlobCreatedEvent(string blobCreatedUrl)
         {
-            if (blobCreatedUrl == null)
-                throw new Exception("Blob url may not be null");
+            CopyPreqs copyPreqs = null;
 
-            await _uploadProcessingService.ProcessBlob(blobCreatedUrl, false);
+            try
+            {
+                copyPreqs = await _uploadProcessingService.GetCopyPreqs(blobCreatedUrl);
+
+                _uploadProcessingService.CopyAll(copyPreqs);
+            }
+            catch(Exception ex)
+            {
+                // publish Retry event
+                await _uploadProcessingService.PublishRetryEvent(BlobCopyStage.CopyToDex,
+                                                                 copyPreqs.UploadId,
+                                                                 copyPreqs.DestinationId,
+                                                                 copyPreqs.EventType,
+                                                                 copyPreqs.SourceBlobUrl,
+                                                                 copyPreqs.DexBlobUrl,
+                                                                 copyPreqs.DestinationContainerName, 
+                                                                 copyPreqs.DestinationBlobName, 
+                                                                 copyPreqs.DestinationMetadata);
+            }
         }       
     }
 
