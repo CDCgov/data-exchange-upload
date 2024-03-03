@@ -6,30 +6,29 @@ import (
 	"os/signal"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/config"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/server"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/tusdhandler"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/dexmetadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/flags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/server"
 ) // .import
-
 
 func main() {
 
 	// TODO: structured logging, decide if slog is used and config at global level with default outputs
 	loggerHandler := slog.NewJSONHandler(os.Stdout, nil)
 
-    // buildInfo, _ := debug.ReadBuildInfo()
+	// buildInfo, _ := debug.ReadBuildInfo()
 
-    parentLogger := slog.New(loggerHandler)
+	parentLogger := slog.New(loggerHandler)
 
-    logger := parentLogger.With(
-        slog.Group("app_info",
+	logger := parentLogger.With(
+		slog.Group("app_info",
 			slog.String("System", "OCIO DEX"), // TODO: can come from config
 			slog.String("Product", "Upload API"),
 			slog.String("App", "tusd-go-server"),
-            slog.Int("pid", os.Getpid()),
-        ),
-    )
+			slog.Int("pid", os.Getpid()),
+		),
+	)
 
 	logger.Info("starting application...")
 
@@ -63,11 +62,10 @@ func main() {
 		os.Exit(1)
 	} // .err
 
-
 	// ------------------------------------------------------------------
 	// create tusd handler
 	// ------------------------------------------------------------------
-	tusdHandler, err := tusdhandler.New(flags, config)
+	handlerTusd, err := handlertusd.New(flags, config)
 	if err != nil {
 		logger.Error("error starting service and tusd handler", "error", err)
 		os.Exit(1)
@@ -76,7 +74,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// create custom http server including tusd handler
 	// ------------------------------------------------------------------
-	httpServer, err := server.New(flags, config, tusdHandler)
+	httpServer, err := server.New(flags, config, handlerTusd)
 	if err != nil {
 		logger.Error("error starting service and http server", "error", err)
 		os.Exit(1)
@@ -88,7 +86,7 @@ func main() {
 	logger.Info("starting http server, including tusd handler", "port", config.ServerPort)
 
 	go func() {
-		
+
 		err := httpServer.Serve()
 		if err != nil {
 			logger.Error("error starting service, error starting http custom server", "error", err)

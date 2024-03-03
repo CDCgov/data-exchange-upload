@@ -1,4 +1,4 @@
-package tusdhandler
+package handlertusd
 
 // TODO: hooks pre-create
 
@@ -17,7 +17,7 @@ func loadConfigMetaV1() (dexmetadatav1.ConfigMetaV1, error) {
 		return dexmetadatav1.ConfigMetaV1{}, err
 	} // .if
 
-	return configMetaV1, nil 
+	return configMetaV1, nil
 
 } // .loadConfigMetaV1
 
@@ -33,9 +33,9 @@ func checkManifestV1(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChang
 
 		httpResponse := tusd.HTTPResponse{
 			StatusCode: 500,
-			Body: "error metadata v1 config not available",
+			Body:       "error metadata v1 config not available",
 		} // .httpResponse
-		return httpResponse, tusd.FileInfoChanges{}, nil 
+		return httpResponse, tusd.FileInfoChanges{}, nil
 	} // .if
 
 	// TODO take out and finalize hook check
@@ -46,15 +46,15 @@ func checkManifestV1(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChang
 	if !ok {
 		httpResponse := tusd.HTTPResponse{
 			StatusCode: 400,
-			Body: "filename not found in the provided manifest",
+			Body:       "filename not found in the provided manifest",
 		} // .httpResponse
-		return httpResponse, tusd.FileInfoChanges{}, nil 
+		return httpResponse, tusd.FileInfoChanges{}, nil
 	} // .ok
 
 	httpResponse := tusd.HTTPResponse{
 		StatusCode: 200,
-		Body: "all good",
+		Body:       "all good",
 	} // .httpResponse
-        
-	return httpResponse, tusd.FileInfoChanges{}, nil 
+
+	return httpResponse, tusd.FileInfoChanges{}, nil
 } // .checkMeta

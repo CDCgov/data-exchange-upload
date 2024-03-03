@@ -1,4 +1,4 @@
-package tusdhandler
+package handlertusd
 
 import (
 	"log/slog"
@@ -9,9 +9,8 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
-
 func New(flags flags.Flags, config config.Config) (*tusd.Handler, error) {
-		
+
 	// Create a new FileStore instance which is responsible for
 	// storing the uploaded file on disk in the specified directory.
 	// This path _must_ exist before tusd will store uploads in it.
@@ -41,9 +40,9 @@ func New(flags flags.Flags, config config.Config) (*tusd.Handler, error) {
 
 	if err != nil {
 		slog.Error("tushandler: unable to create new tusd handler", "error", err)
-		return nil, err 
+		return nil, err
 	} // .if
 
-	// no error 
-	return handler, nil 
+	// no error
+	return handler, nil
 } // .New

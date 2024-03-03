@@ -1,4 +1,4 @@
-package server
+package handlerdex
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/dexmetadatav1"
 ) // .import
 
-func (s Server) configMetaV1(w http.ResponseWriter, r *http.Request) {
+func (hd *HandlerDex) metaV1(w http.ResponseWriter, r *http.Request) {
 
 	configMetaV1, err := dexmetadatav1.Load()
 	if err != nil {
