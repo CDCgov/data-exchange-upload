@@ -34,7 +34,7 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _stageName = "dex-file-copy";
         private readonly string _dexStorageAccountConnectionString;
 
-        private List<DestinationAndEvents> _destinationAndEvents;
+        private List<DestinationAndEvents> _destinationAndEvents = null;
 
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient, IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService)
