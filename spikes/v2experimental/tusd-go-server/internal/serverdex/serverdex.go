@@ -1,4 +1,4 @@
-package server
+package serverdex
 
 import (
 	"fmt"
@@ -13,26 +13,26 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 ) // .import
 
-type Server struct {
+type ServerDex struct {
 	flags       flags.Flags
 	config      config.Config
 	handlerTusd *tusd.Handler
 	handlerDex *handlerdex.HandlerDex
-} // .Server
+} // .ServerDex
 
-func New(flags flags.Flags, config config.Config, handlerTusd *tusd.Handler) (Server, error) {
+func New(flags flags.Flags, config config.Config, handlerTusd *tusd.Handler) (ServerDex, error) {
 
 	handlerTusd, err := handlertusd.New(flags, config)
 	if err != nil {
-		return Server{}, err
+		return ServerDex{}, err
 	} // .handlerTusd
 
 	handlerDex, err := handlerdex.New(flags, config)
 	if err != nil {
-		return Server{}, err 
+		return ServerDex{}, err 
 	} // .handlerDex
 
-	return Server{
+	return ServerDex{
 		flags:       flags,
 		config:      config,
 		handlerTusd: handlerTusd,
@@ -41,7 +41,7 @@ func New(flags flags.Flags, config config.Config, handlerTusd *tusd.Handler) (Se
 
 } // New
 
-func (s Server) Serve() error {
+func (s *ServerDex) Serve() error {
 
 	// --------------------------------------------------------------
 	// 		TUSD handler as-is

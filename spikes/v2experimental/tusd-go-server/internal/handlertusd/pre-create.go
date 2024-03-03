@@ -9,18 +9,6 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
-func loadConfigMetaV1() (dexmetadatav1.ConfigMetaV1, error) {
-
-	configMetaV1, err := dexmetadatav1.Load()
-	if err != nil {
-		slog.Error("error starting service, error loading metadata v1 config files", "error", err)
-		return dexmetadatav1.ConfigMetaV1{}, err
-	} // .if
-
-	return configMetaV1, nil
-
-} // .loadConfigMetaV1
-
 // currently in v1 the required fields are wired in the pre-create hook check
 var REQUIRED_METADATA_FIELDS = [2]string{"meta_destination_id", "meta_ext_event"}
 

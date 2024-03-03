@@ -7,13 +7,13 @@ import (
 ) // .import 
 
 type HandlerDex struct {
-
+    flags flags.Flags
+    config config.Config
 }
 
 func New(flags flags.Flags, config config.Config) (*HandlerDex, error) {
 
-
-	return &HandlerDex{}, nil 
+	return &HandlerDex{flags: flags, config: config}, nil 
 } // .New
 
 func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {

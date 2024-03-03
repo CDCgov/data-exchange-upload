@@ -3,11 +3,11 @@ package dexmetadatav1
 
 // TODO: line-up names with json names `json`
 
-type ConfigMetaV1 struct {
+type MedaV1Config struct {
 
 	AllowedDestAndEvents []AllowedDestAndEvents
 
 	// TODO UploadConfig
 	// TODO custom config file per use-case
 
-} // .ConfigMetaV1
+} // .MedaV1Config
