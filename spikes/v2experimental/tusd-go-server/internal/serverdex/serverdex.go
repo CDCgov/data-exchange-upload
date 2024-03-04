@@ -67,8 +67,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 		for {
 			event := <-sd.handlerTusd.CompleteUploads
 			sd.logger.Info("upload finished", "event.Upload.ID", event.Upload.ID)
-			// fmt.Printf("Upload %s finished\n", event.Upload.ID)
-		}
+		} // .for
 	}() // .go func
 
 	// --------------------------------------------------------------
