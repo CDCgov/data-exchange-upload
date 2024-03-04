@@ -592,6 +592,8 @@ namespace BulkFileUploadFunctionApp.Services
                 var blobReader = new BlobReader(_logger);
                 var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
 
+                _logger.LogInformation($"Destinations And Events: {JsonSerializer.Serialize(destinationAndEvents)}");
+
                 return destinationAndEvents;
             }
             catch (Exception e)
@@ -642,12 +644,14 @@ namespace BulkFileUploadFunctionApp.Services
 
             if (currentEvent == null) {
                 _logger.LogError($"No copy targets configured for {destinationId} and {eventType} - defaulting to EDAV");
+                _logger.LogError($"Destinations And Events: {JsonSerializer.Serialize(_destinationAndEvents)}");
                 return targets;
             }
 
             if (currentEvent.copyTargets == null || currentEvent.copyTargets.Count == 0)
             {
                 _logger.LogError($"No copy targets configured for {destinationId} and {eventType} - defaulting to EDAV");
+                _logger.LogError($"Destinations And Events: {JsonSerializer.Serialize(_destinationAndEvents)}");
                 return targets;
             }
 
