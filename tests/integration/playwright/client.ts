@@ -1,10 +1,5 @@
-import axios from "axios";
-
 export interface LoginResponse {
-  // Define the structure of your login response here
-  // Example:
   access_token: string;
-  // Add other fields as necessary
 }
 
 const c = {
@@ -15,19 +10,23 @@ const c = {
     });
 
     try {
-            
-      const response = await axios.post(`${url}/oauth`, params);
+      const response = await fetch(`${url}/oauth`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params,
+      });
 
-      console.log("Raw response data:", response.data); 
-
-      if (response.status === 200 && response.statusText === "OK") {
-        return response.data as LoginResponse;
-      } else {
+      if (!response.ok) {
         console.error(
           `Client login failed to SAMS, error code is ${response.status}, error message is ${response.statusText}`
         );
         return null;
       }
+
+      const data: LoginResponse = await response.json();
+      return data;
     } catch (error) {
       console.error("An error occurred during login:", error);
       return null;

@@ -8,9 +8,9 @@ interface EnvConfig {
 const config: EnvConfig = {
   validateEnv: () => {
     // Use CI/CD environment variables or fallback to .env variables
-    const username = process.env.SAMS_USERNAME || process.env.ACCOUNT_USERNAME;
-    const password = process.env.SAMS_PASSWORD || process.env.ACCOUNT_PASSWORD;
-    const url = process.env.UPLOAD_URL || process.env.DEX_URL;
+    const username = process.env.SAMS_USERNAME
+    const password = process.env.SAMS_PASSWORD
+    const url = process.env.UPLOAD_URL
     const ps_url = process.env.PS_API_URL;
 
     let error = "No ";
