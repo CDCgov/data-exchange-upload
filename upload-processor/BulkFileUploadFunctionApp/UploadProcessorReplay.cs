@@ -1,14 +1,12 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Newtonsoft.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Azure.Storage.Blobs;
 
 using Azure.Messaging.EventHubs;
-using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Processor;
 
 using BulkFileUploadFunctionApp.Services;
@@ -112,7 +110,7 @@ namespace BulkFileUploadFunctionApp
 
                 string eventJsonString = Encoding.UTF8.GetString(eventData.EventBody.ToArray());
 
-                BlobCopyRetryEvent? replayEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(eventJsonString);
+                BlobCopyRetryEvent? replayEvent = JsonSerializer.Deserialize<BlobCopyRetryEvent>(eventJsonString);
 
                 _logger.LogInformation("Replaying event: " + eventJsonString);
                 await _uploadEventHubService.PublishRetryEvent(replayEvent);

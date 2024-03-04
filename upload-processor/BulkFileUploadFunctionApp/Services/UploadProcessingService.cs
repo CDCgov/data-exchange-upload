@@ -13,11 +13,9 @@ namespace BulkFileUploadFunctionApp.Services
     public class UploadProcessingService : IUploadProcessingService
     {
         private readonly ILogger _logger;
-        private readonly IConfiguration _configuration;
         private readonly BlobCopyHelper _blobCopyHelper;
         private readonly string _tusAzureObjectPrefix;
         private readonly string _tusAzureStorageContainer;
-        private readonly string _uploadConfigsStorageContainer;
         private readonly string _dexAzureStorageAccountName;
         private readonly string _dexAzureStorageAccountKey;
         private readonly string _edavAzureStorageAccountName;
@@ -40,7 +38,6 @@ namespace BulkFileUploadFunctionApp.Services
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient, IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService)
         {
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
-            _configuration = configuration;
             _blobCopyHelper = new(_logger);
 
             _featureManagementExecutor = featureManagementExecutor;
@@ -48,7 +45,6 @@ namespace BulkFileUploadFunctionApp.Services
 
             _tusAzureObjectPrefix = Environment.GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX", EnvironmentVariableTarget.Process) ?? "tus-prefix";
             _tusAzureStorageContainer = Environment.GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER", EnvironmentVariableTarget.Process) ?? "bulkuploads";
-            _uploadConfigsStorageContainer = Environment.GetEnvironmentVariable("UPLOAD_CONFIGS_STORAGE_CONTAINER", EnvironmentVariableTarget.Process) ?? "upload-configs";
             _dexAzureStorageAccountName = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
             _dexAzureStorageAccountKey = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", EnvironmentVariableTarget.Process) ?? "";
             _edavAzureStorageAccountName = Environment.GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
@@ -128,7 +124,6 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Get copy targets
                 CopyTarget[] targets = GetCopyTargets(destinationId, eventType);
-                _logger.LogInformation($"Copy Targets: {targets}");
                 
                 return new CopyPrereqs(uploadId,
                                        blobCreatedUrl,

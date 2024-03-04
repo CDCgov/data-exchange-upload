@@ -54,12 +54,6 @@ namespace BulkFileUploadFunctionApp
         {
             try
             {
-                if(blobCopyRetryEvent.CopyRetryStage == null)
-                {
-                    _logger.LogError($"Failed to process retry event with no stage info: " + blobCopyRetryEvent);
-                    return;
-                }
-
                 if(blobCopyRetryEvent.RetryAttempt <= _maxRetryAttempts) {
 
                     // exponential backoff
@@ -74,7 +68,7 @@ namespace BulkFileUploadFunctionApp
                             {
                                 CopyPrereqs copyPrereqs = await _uploadProcessingService.GetCopyPrereqs(blobCopyRetryEvent.CopyPrereqs.SourceBlobUrl);
 
-                                _uploadProcessingService.CopyAll(copyPrereqs);
+                                await _uploadProcessingService.CopyAll(copyPrereqs);
                             }
                             catch (Exception ex)
                             {
