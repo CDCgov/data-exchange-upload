@@ -44,7 +44,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, err
 		appConfig:   appConfig,
 		handlerTusd: handlerTusd,
 		handlerDex:  handlerDex,
-		logger: logger,
+		logger:      logger,
 	}, nil // .return
 
 } // New

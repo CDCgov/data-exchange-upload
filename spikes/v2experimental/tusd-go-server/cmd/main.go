@@ -9,7 +9,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/dexmetadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 ) // .import
@@ -32,12 +32,9 @@ func main() {
 	// ------------------------------------------------------------------
 	// configure app custom logging
 	// ------------------------------------------------------------------
-	logger := sloger.AppLogger(appConfig)
+	logger := sloger.AppLogger(appConfig).With("pkg", "main")
 
 	logger.Info("started app", "buildInfo.Main.Path", buildInfo.Main.Path)
-
-	// TODO: context object, decide if custom slog is to be passed using the go context object
-	// OR an internal logger package is to be used.
 
 	// ------------------------------------------------------------------
 	// parse and load cli flags
@@ -51,7 +48,8 @@ func main() {
 	// ------------------------------------------------------------------
 	// load metadata v1 config into singleton to check and have available
 	// ------------------------------------------------------------------
-	_, err = dexmetadatav1.Load() // discard as not needed now in main
+	// discard as not needed now only to be loaded
+	_, err = metadatav1.LoadOnce(appConfig)
 	if err != nil {
 		logger.Error("error starting app, metadata v1 config not available", "error", err)
 		os.Exit(appMainExitCode)

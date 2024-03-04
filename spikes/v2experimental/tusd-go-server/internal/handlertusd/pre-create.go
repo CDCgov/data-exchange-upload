@@ -3,19 +3,20 @@ package handlertusd
 // TODO: hooks pre-create
 
 import (
-	"log/slog"
-
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/dexmetadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
+	"log/slog"
 )
 
 // currently in v1 the required fields are wired in the pre-create hook check
 var REQUIRED_METADATA_FIELDS = [2]string{"meta_destination_id", "meta_ext_event"}
 
-// PreUploadCreateCallback func(hook HookEvent) (HTTPResponse, FileInfoChanges, error)
+// pre-create hook
 func checkManifestV1(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 
-	configMetaV1, err := dexmetadatav1.Load()
+	// TODO find a way to move from slog to custom logger if feasible, e.g. wrap function
+
+	configMetaV1, err := metadatav1.Get()
 	if err != nil {
 		slog.Error("error metadata v1 config not available", "error", err)
 
