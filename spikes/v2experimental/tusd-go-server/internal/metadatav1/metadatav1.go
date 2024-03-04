@@ -3,12 +3,19 @@ package metadatav1
 // struct definitions for metadata v1
 
 type MetadataV1 struct {
-	AllowedDestAndEvents []AllowedDestAndEvents
+	AllowedDestAndEvents []AllowedDestAndEvents `json:"allowed_destination_and_events"`
 
-	Definitions AllDefinitions
+	Definitions AllDefinitions `json:"all_definitions"`
 
-	UploadConfigs AllUploadConfigs
+	UploadConfigs AllUploadConfigs `json:"all_upload_configs"`
+
+	// maps to do fast checks in hooks
+	DestIdsEventsNameMap DestIdsEventsNameMap `json:"-"` // no need to expose on http endpoint but could for visibility if needed
+	DestIdEventFileNameMap DestIdEventFileNameMap `json:"-"` // same above
 } // .MetadataV1
+
+type DestIdsEventsNameMap map[string][]string
+type DestIdEventFileNameMap map[string]string
 
 // -----------------------------------------------------
 // Allowed destination and events
