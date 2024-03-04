@@ -6,6 +6,7 @@ class Constants {
         val TEST_EVENT = "testevent1"
         val BULK_UPLOAD_CONTAINER_NAME = "bulkuploads"
         val EDAV_UPLOAD_CONTAINER_NAME = "upload"
+        val ROUTING_UPLOAD_CONTAINER_NAME = "upload"
         val TUS_PREFIX_DIRECTORY_NAME = "tus-prefix"
     }
 

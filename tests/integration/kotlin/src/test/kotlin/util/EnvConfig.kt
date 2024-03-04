@@ -14,5 +14,7 @@ class EnvConfig {
         val SAMS_USERNAME: String = properties?.getProperty("sams.username") ?: System.getenv("SAMS_USERNAME")
         val SAMS_PASSWORD: String = properties?.getProperty("sams.password") ?: System.getenv("SAMS_PASSWORD")
         val DEX_STORAGE_CONNECTION_STRING: String = properties?.getProperty("dex.storage.connection.string") ?: System.getenv("DEX_STORAGE_CONNECTION_STRING")
+        val ROUTING_STORAGE_CONNECTION_STRING: String = properties?.getProperty("routing.storage.connection.string") ?: System.getenv("ROUTING_STORAGE_CONNECTION_STRING")
+        val AZURE_BLOB_SEARCH_DURATION_MILLIS: Long = properties?.getProperty("azure.blob.search.duration.millis")?.toLong() ?: System.getenv("AZURE_BLOB_SEARCH_DURATION_MILLIS")?.toLong() ?: 5_000
     }
 }
