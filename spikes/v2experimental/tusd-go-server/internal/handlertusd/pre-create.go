@@ -125,6 +125,15 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 
 		} // .for
 
+
+		// -----------------------------------------------------------------------------
+
+		// TODO: need to check filename per upload config is sent!
+		// TODO: need to check filename per upload config is sent!
+
+		// -----------------------------------------------------------------------------
+
+		
 		// -----------------------------------------------------------------------------
 		// all checks have passed
 		// -----------------------------------------------------------------------------

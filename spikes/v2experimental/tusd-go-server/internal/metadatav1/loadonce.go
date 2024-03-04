@@ -3,6 +3,7 @@ package metadatav1
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
@@ -30,8 +31,13 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 			// ----------------------------------------------------------------------
 			// allowed destination and events
 			// ----------------------------------------------------------------------
-
-			fileContent, err := os.ReadFile(appConfig.AllowedDestAndEventsPath)
+			allowedDestAndEventsPath, err := filepath.Abs(appConfig.AllowedDestAndEventsPath)
+			if err != nil {
+				logger.Error("error reading file from path", "AllowedDestAndEventsPath", appConfig.AllowedDestAndEventsPath)
+				return nil, err 
+			}// .if 
+			
+			fileContent, err := os.ReadFile(allowedDestAndEventsPath)
 			if err != nil {
 				logger.Error("error loading allowed destination and events from file", "error", err)
 				return nil, err
@@ -65,7 +71,11 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 					// ----------------------------------------------------------------------
 					// definitions, in v1 there is only one definition schema for each destination-event
 					// ----------------------------------------------------------------------
-					defFilePath := appConfig.DefinitionsPath + event.DefinitionFileName
+					defFilePath, err := filepath.Abs(appConfig.DefinitionsPath + event.DefinitionFileName)
+					if err != nil {
+						logger.Error("error reading file from path", "DefinitionsPath", appConfig.DefinitionsPath)
+						return nil, err 
+					}// .if 
 
 					defFileContent, err := os.ReadFile(defFilePath)
 					if err != nil {
@@ -87,7 +97,11 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 					// ----------------------------------------------------------------------
 					updConfFileName := allowed.DestinationId + "-" + event.Name
 					updConfFileNameExt := updConfFileName + ".json"
-					updConfFilePath := appConfig.UploadConfigPath + updConfFileNameExt
+					updConfFilePath, err := filepath.Abs(appConfig.UploadConfigPath + updConfFileNameExt)
+					if err != nil {
+						logger.Error("error reading file from path", "UploadConfigPath", appConfig.UploadConfigPath)
+						return nil, err 
+					}// .if 
 
 					updConfFileContent, err := os.ReadFile(updConfFilePath)
 					if err != nil {
