@@ -49,7 +49,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		if !ok {
 			httpResponse := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "meta_destination_id value is not valid",
+				Body:       "meta_destination_id value is not valid and ext_events are not available",
 			} // .httpResponse
 			return httpResponse, tusd.FileInfoChanges{}, nil
 		} // .ok
@@ -69,7 +69,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		if !slices.Contains(events, metaExtEvent) {
 			httpResponse := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "meta_ext_event value is not valid",
+				Body:       "meta_ext_event value is not valid and not found in ext_events",
 			} // .httpResponse
 			return httpResponse, tusd.FileInfoChanges{}, nil
 		} // .if
@@ -81,7 +81,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		if !ok { // really this should not happen if every destination-event has a schema file
 			httpResponse := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "schema definition file name not found for the meta_destination_id and meta_ext_event combination",
+				Body:       "schema definition file name not found for meta_destination_id and meta_ext_event combination",
 			} // .httpResponse
 			return httpResponse, tusd.FileInfoChanges{}, nil
 		} // .if
@@ -89,7 +89,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		if !ok && len(eventSchemas) == 0 { // this should be also ok, because in v1 every destination-event has one schema file and for some reason the schemas are array of 1
 			httpResponse := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "schema definition not found for the meta_destination_id and meta_ext_event combination",
+				Body:       "schema definition not found for meta_destination_id and meta_ext_event combination",
 			} // .httpResponse
 			return httpResponse, tusd.FileInfoChanges{}, nil
 		} // .if
@@ -105,7 +105,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 				if !ok {
 					httpResponse := tusd.HTTPResponse{
 						StatusCode: http.StatusBadRequest,
-						Body:       "schema definition required field not found: " + field.FieldName,
+						Body:       "schema definition required field not sent: " + field.FieldName,
 					} // .httpResponse
 					return httpResponse, tusd.FileInfoChanges{}, nil
 				} // .if
