@@ -54,28 +54,27 @@ namespace BulkFileUploadFunctionApp
         {
             try
             {
-                if(blobCopyRetryEvent.copyRetryStage == null)
+                if(blobCopyRetryEvent.CopyRetryStage == null)
                 {
                     _logger.LogError($"Failed to process retry event with no stage info: " + blobCopyRetryEvent);
                     return;
                 }
 
-                if(blobCopyRetryEvent.retryAttempt <= _maxRetryAttempts) {
+                if(blobCopyRetryEvent.RetryAttempt <= _maxRetryAttempts) {
 
                     // exponential backoff
-                    await Task.Delay(1000 * blobCopyRetryEvent.retryAttempt);
+                    await Task.Delay(1000 * blobCopyRetryEvent.RetryAttempt);
 
-                    _logger.LogInformation($"Copy retry attempt: {blobCopyRetryEvent.retryAttempt} Stage: {blobCopyRetryEvent.copyRetryStage}");
+                    _logger.LogInformation($"Copy retry attempt: {blobCopyRetryEvent.RetryAttempt} Stage: {blobCopyRetryEvent.CopyRetryStage}");
 
-                    switch (blobCopyRetryEvent.copyRetryStage)
+                    switch (blobCopyRetryEvent.CopyRetryStage)
                     {
                         case BlobCopyStage.CopyToDex:
                             try
                             {
-                                CopyPreqs copyPreqs = await _uploadProcessingService.GetCopyPreqs(blobCopyRetryEvent.sourceBlobUrl);
+                                CopyPrereqs copyPrereqs = await _uploadProcessingService.GetCopyPrereqs(blobCopyRetryEvent.CopyPrereqs.SourceBlobUrl);
 
-                                await _uploadProcessingService.CopyAll(copyPreqs);
-
+                                _uploadProcessingService.CopyAll(copyPrereqs);
                             }
                             catch (Exception ex)
                             {
@@ -86,7 +85,7 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToEdav:
                             try
                             {
-                                await _uploadProcessingService.CopyFromDexToEdav(blobCopyRetryEvent.uploadId, blobCopyRetryEvent.destinationId, blobCopyRetryEvent.eventType, blobCopyRetryEvent.dexBlobUrl, blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyFromDexToEdav(blobCopyRetryEvent.CopyPrereqs);
                             }
                             catch (Exception ex)
                             {
@@ -97,7 +96,7 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToRouting:
                             try
                             {
-                                await _uploadProcessingService.CopyFromDexToRouting(blobCopyRetryEvent.uploadId, blobCopyRetryEvent.destinationId, blobCopyRetryEvent.eventType, blobCopyRetryEvent.dexBlobUrl, blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyFromDexToRouting(blobCopyRetryEvent.CopyPrereqs);
                             }
                             catch (Exception ex)
                             {
@@ -123,16 +122,16 @@ namespace BulkFileUploadFunctionApp
 
         private async Task RePublishEvent(BlobCopyRetryEvent blobCopyRetryEvent) {
 
-            if (blobCopyRetryEvent.retryAttempt == _maxRetryAttempts) {
+            if (blobCopyRetryEvent.RetryAttempt == _maxRetryAttempts) {
 
                 _logger.LogInformation("Reached max retry attempts - sending event to Replay queue");
 
-                blobCopyRetryEvent.retryAttempt = 1;
+                blobCopyRetryEvent.RetryAttempt = 1;
                 await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
             } else {        
 
                 // Increment the retry attempt and put the event back on retry loop
-                blobCopyRetryEvent.retryAttempt += 1;
+                blobCopyRetryEvent.RetryAttempt += 1;
                 await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
             }
         }

@@ -66,7 +66,7 @@ namespace BulkFileUploadFunctionApp.Services
             _uploadEventHubService = uploadEventHubService;
             _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
         }
-        public async Task<CopyPreqs> GetCopyPreqs(string blobCreatedUrl)
+        public async Task<CopyPrereqs> GetCopyPrereqs(string blobCreatedUrl)
         {
             string? uploadId = null;
             string? destinationId = null;
@@ -130,16 +130,16 @@ namespace BulkFileUploadFunctionApp.Services
                 CopyTarget[] targets = GetCopyTargets(destinationId, eventType);
                 _logger.LogInformation($"Copy Targets: {targets}");
                 
-                return new CopyPreqs(uploadId,
-                                     blobCreatedUrl,
-                                     tusPayloadFilename, 
-                                     destinationId, 
-                                     eventType, 
-                                     destinationContainerName, 
-                                     destinationBlobFilename, 
-                                     tusInfoFile.MetaData, 
-                                     targets,
-                                     trace);
+                return new CopyPrereqs(uploadId,
+                                       blobCreatedUrl,
+                                       tusPayloadFilename, 
+                                       destinationId, 
+                                       eventType, 
+                                       destinationContainerName, 
+                                       destinationBlobFilename, 
+                                       tusInfoFile.MetaData, 
+                                       targets,
+                                       trace);
             }
             catch(Exception ex)
             {
@@ -152,7 +152,7 @@ namespace BulkFileUploadFunctionApp.Services
                 throw ex;
             }
         }
-        public async Task CopyAll(CopyPreqs copyPreqs)
+        public async Task CopyAll(CopyPrereqs copyPrereqs)
         {
             Span? copySpan = null;
 
@@ -160,13 +160,13 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    copySpan = await _procStatClient.StartSpanForTrace(copyPreqs.Trace.TraceId, copyPreqs.Trace.SpanId, _stageName);
+                    copySpan = await _procStatClient.StartSpanForTrace(copyPrereqs.Trace.TraceId, copyPrereqs.Trace.SpanId, _stageName);
                 });
 
-                copyPreqs.DexBlobUrl = await CopyFromTusToDex(copyPreqs);
+                copyPrereqs.DexBlobUrl = await CopyFromTusToDex(copyPrereqs);
 
                 // copy to targets
-                await CopyFromDexToTarget(copyPreqs);
+                await CopyFromDexToTarget(copyPrereqs);
             }
             catch(Exception ex)
             {
@@ -177,7 +177,7 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 if(copySpan != null) 
                 {
-                    await _procStatClient.StopSpanForTrace(copyPreqs.Trace.TraceId, copySpan.SpanId);
+                    await _procStatClient.StopSpanForTrace(copyPrereqs.Trace.TraceId, copySpan.SpanId);
                 }
             }
         }
@@ -187,14 +187,14 @@ namespace BulkFileUploadFunctionApp.Services
         /// </summary>
         /// <param name="copyPreqs">Copy preqs</param>
         /// <returns>dexBlobUrl</returns>
-        private async Task<string> CopyFromTusToDex(CopyPreqs copyPreqs)
+        private async Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs)
         {
             try
             {
-                _logger.LogInformation($"Creating destination container client, container name: {copyPreqs.DestinationContainerName}");
+                _logger.LogInformation($"Creating destination container client, container name: {copyPrereqs.DexBlobFolderName}");
 
                 var sourceContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, _tusAzureStorageContainer);
-                var destinationContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, copyPreqs.DestinationContainerName);
+                var destinationContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, copyPrereqs.DexBlobFolderName);
 
                 // Create the destination container if not exists
                 await destinationContainerClient.CreateIfNotExistsAsync();
@@ -202,12 +202,12 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogInformation("Creating source blob client");
 
                 // Create a BlobClient representing the source blob to copy.
-                BlobClient sourceBlob = sourceContainerClient.GetBlobClient(copyPreqs.TusPayloadFilename);
+                BlobClient sourceBlob = sourceContainerClient.GetBlobClient(copyPrereqs.TusPayloadFilename);
 
                 // Get a BlobClient representing the destination blob with a unique name.
-                BlobClient destBlob = destinationContainerClient.GetBlobClient(copyPreqs.DestinationBlobName);
+                BlobClient destBlob = destinationContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
 
-                await _blobCopyHelper.CopyBlobAsync(sourceBlob, destBlob, copyPreqs.DestinationMetadata);
+                await _blobCopyHelper.CopyBlobAsync(sourceBlob, destBlob, copyPrereqs.Metadata);
 
                 return destBlob.Uri.ToString();
             }
@@ -218,11 +218,11 @@ namespace BulkFileUploadFunctionApp.Services
                 // Send copy failure report
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    SendFailureReport(copyPreqs.UploadId, 
-                                      copyPreqs.DestinationId, 
-                                      copyPreqs.EventType, 
-                                      copyPreqs.SourceBlobUrl, 
-                                      copyPreqs.DestinationContainerName, 
+                    SendFailureReport(copyPrereqs.UploadId, 
+                                      copyPrereqs.DestinationId, 
+                                      copyPrereqs.EventType, 
+                                      copyPrereqs.SourceBlobUrl, 
+                                      copyPrereqs.DexBlobFolderName, 
                                       $"Failed to copy blob from TUS to DEX. {ex.Message}");
                 });
 
@@ -230,9 +230,9 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
 
-        private async Task CopyFromDexToTarget(CopyPreqs copyPreqs)
+        private async Task CopyFromDexToTarget(CopyPrereqs copyPrereqs)
         {
-            foreach (CopyTarget copyTarget in copyPreqs.Targets)
+            foreach (CopyTarget copyTarget in copyPrereqs.Targets)
             {
                 _logger.LogInformation("Copy Target: " + copyTarget.target);
 
@@ -240,19 +240,13 @@ namespace BulkFileUploadFunctionApp.Services
                 {
                     try
                     {
-                        await CopyFromDexToEdav(copyPreqs.UploadId, 
-                                                copyPreqs.DestinationId,
-                                                copyPreqs.EventType,
-                                                copyPreqs.DexBlobUrl,
-                                                copyPreqs.DestinationContainerName, 
-                                                copyPreqs.DestinationBlobName, 
-                                                copyPreqs.DestinationMetadata);
+                        await CopyFromDexToEdav(copyPrereqs);
                     }
                     catch(Exception ex)
                     {
                         // publish retry event
                         await PublishRetryEvent(BlobCopyStage.CopyToEdav,
-                                                copyPreqs);
+                                                copyPrereqs);
                     }
                 }
                 else if (copyTarget.target == _targetRouting)
@@ -261,13 +255,7 @@ namespace BulkFileUploadFunctionApp.Services
                     {
                         await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.ROUTING_FEATURE_FLAG_NAME, async () =>
                         {
-                            await CopyFromDexToRouting(copyPreqs.UploadId,
-                                                        copyPreqs.DestinationId,
-                                                        copyPreqs.EventType,
-                                                        copyPreqs.DexBlobUrl,
-                                                        copyPreqs.DestinationContainerName,
-                                                        copyPreqs.DestinationBlobName,
-                                                        copyPreqs.DestinationMetadata);
+                            await CopyFromDexToRouting(copyPrereqs);
                         });
 
                         _featureManagementExecutor.ExecuteIfDisabled(Constants.ROUTING_FEATURE_FLAG_NAME, () =>
@@ -278,7 +266,7 @@ namespace BulkFileUploadFunctionApp.Services
                     {
                         // publish retry event
                         await PublishRetryEvent(BlobCopyStage.CopyToRouting,
-                                                copyPreqs);
+                                                copyPrereqs);
                     }
                     
                 }
@@ -292,15 +280,16 @@ namespace BulkFileUploadFunctionApp.Services
         /// <param name="sourceBlobFilename">Source blob filename</param>
         /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
         /// <returns></returns>
-        public async Task CopyFromDexToEdav(string uploadId, string destinationId, string eventType, string dexBlobUrl, string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
+        /// 
+        public async Task CopyFromDexToEdav(CopyPrereqs copyPrereqs)
         {
             string? destinationContainerName = null;
 
             try
             {
                 BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
-                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
-                BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
+                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(copyPrereqs.DexBlobFolderName);
+                BlobClient dexBlobClient = containerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
 
                 var edavBlobServiceClient = new BlobServiceClient(
                     new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
@@ -309,8 +298,8 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // _edavUploadRootContainerName could be set to empty, then no root container in edav
 
-                destinationContainerName = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceContainerName : _edavUploadRootContainerName;
-                string destinationBlobFilename = string.IsNullOrEmpty(_edavUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
+                destinationContainerName = string.IsNullOrEmpty(_edavUploadRootContainerName) ? copyPrereqs.DexBlobFolderName : _edavUploadRootContainerName;
+                string destinationBlobFilename = string.IsNullOrEmpty(_edavUploadRootContainerName) ? copyPrereqs.DexBlobFileName : $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}";
 
                 var edavContainerClient = edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
@@ -320,14 +309,18 @@ namespace BulkFileUploadFunctionApp.Services
 
                 using var dexBlobStream = await dexBlobClient.OpenReadAsync();
                 {
-                    await edavDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
+                    await edavDestBlobClient.UploadAsync(dexBlobStream, null, copyPrereqs.Metadata);
                     dexBlobStream.Close();
                 }
 
                 // Send copy success report
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    SendSuccessReport(uploadId, destinationId, eventType, dexBlobUrl, edavDestBlobClient.Uri.ToString());
+                    SendSuccessReport(copyPrereqs.UploadId, 
+                                      copyPrereqs.DestinationId, 
+                                      copyPrereqs.EventType, 
+                                      copyPrereqs.DexBlobUrl, 
+                                      edavDestBlobClient.Uri.ToString());
                 });
             }
             catch (Exception ex)
@@ -338,10 +331,10 @@ namespace BulkFileUploadFunctionApp.Services
                 // Send copy failure report
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    SendFailureReport(uploadId, 
-                                      destinationId, 
-                                      eventType, 
-                                      dexBlobUrl, 
+                    SendFailureReport(copyPrereqs.UploadId, 
+                                      copyPrereqs.DestinationId, 
+                                      copyPrereqs.EventType, 
+                                      copyPrereqs.DexBlobUrl, 
                                       destinationContainerName, 
                                       $"Failed to copy blob from DEX to EDAV. {ex.Message}");
                 });
@@ -357,7 +350,7 @@ namespace BulkFileUploadFunctionApp.Services
         /// <param name="sourceBlobFilename">Source blob filename</param>
         /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
         /// <returns></returns>
-        public async Task CopyFromDexToRouting(string uploadId, string destinationId, string eventType, string dexBlobUrl, string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata)
+        public async Task CopyFromDexToRouting(CopyPrereqs copyPrereqs)
         {
             string? destinationContainerName = null;
 
@@ -366,15 +359,15 @@ namespace BulkFileUploadFunctionApp.Services
                 var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_routingStorageAccountName};AccountKey={_routingStorageAccountKey};EndpointSuffix=core.windows.net";
 
                 BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
-                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
-                BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
+                BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(copyPrereqs.DexBlobFolderName);
+                BlobClient dexBlobClient = containerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
 
                 var routingBlobServiceClient = new BlobServiceClient(connectionString);
 
                 // _routingUploadRootContainerName could be set to empty, then no root container in routing
 
-                destinationContainerName = string.IsNullOrEmpty(_routingUploadRootContainerName) ? sourceContainerName : _routingUploadRootContainerName;
-                string destinationBlobFilename = string.IsNullOrEmpty(_routingUploadRootContainerName) ? sourceBlobFilename : $"{sourceContainerName}/{sourceBlobFilename}";
+                destinationContainerName = string.IsNullOrEmpty(_routingUploadRootContainerName) ? copyPrereqs.DexBlobFolderName : _routingUploadRootContainerName;
+                string destinationBlobFilename = string.IsNullOrEmpty(_routingUploadRootContainerName) ? copyPrereqs.DexBlobFileName : $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}";
 
                 var routingContainerClient = routingBlobServiceClient.GetBlobContainerClient(destinationContainerName);
 
@@ -384,14 +377,18 @@ namespace BulkFileUploadFunctionApp.Services
 
                 using var dexBlobStream = await dexBlobClient.OpenReadAsync();
                 {
-                    await routingDestBlobClient.UploadAsync(dexBlobStream, null, destinationMetadata);
+                    await routingDestBlobClient.UploadAsync(dexBlobStream, null, copyPrereqs.Metadata);
                     dexBlobStream.Close();
                 }
 
                 // Send copy success report
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    SendSuccessReport(uploadId, destinationId, eventType, dexBlobUrl, routingDestBlobClient.Uri.ToString());
+                    SendSuccessReport(copyPrereqs.UploadId, 
+                                      copyPrereqs.DestinationId, 
+                                      copyPrereqs.EventType, 
+                                      copyPrereqs.DexBlobUrl, 
+                                      routingDestBlobClient.Uri.ToString());
                 });
             }
             catch (Exception ex)
@@ -402,10 +399,10 @@ namespace BulkFileUploadFunctionApp.Services
                 // Send copy failure report
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    SendFailureReport(uploadId, 
-                                      destinationId, 
-                                      eventType, 
-                                      dexBlobUrl, 
+                    SendFailureReport(copyPrereqs.UploadId, 
+                                      copyPrereqs.DestinationId, 
+                                      copyPrereqs.EventType, 
+                                      copyPrereqs.DexBlobUrl, 
                                       destinationContainerName, 
                                       $"Failed to copy blob from DEX to ROUTING. {ex.Message}");
                 });
@@ -589,21 +586,14 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
 
-        public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPreqs copyPreqs)
+        public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs)
         {            
             try 
             {
                 BlobCopyRetryEvent blobCopyRetryEvent = new BlobCopyRetryEvent();
-                blobCopyRetryEvent.copyRetryStage = copyStage;
-                blobCopyRetryEvent.retryAttempt = 1;
-                blobCopyRetryEvent.uploadId = copyPreqs.UploadId;
-                blobCopyRetryEvent.destinationId = copyPreqs.DestinationId;
-                blobCopyRetryEvent.eventType = copyPreqs.EventType;
-                blobCopyRetryEvent.sourceBlobUrl = copyPreqs.SourceBlobUrl;
-                blobCopyRetryEvent.dexBlobUrl = copyPreqs.DexBlobUrl;
-                blobCopyRetryEvent.dexContainerName = copyPreqs.DestinationContainerName;;
-                blobCopyRetryEvent.dexBlobFilename = copyPreqs.DestinationBlobName;
-                blobCopyRetryEvent.fileMetadata = copyPreqs.DestinationMetadata;
+                blobCopyRetryEvent.CopyRetryStage = copyStage;
+                blobCopyRetryEvent.RetryAttempt = 1;
+                blobCopyRetryEvent.CopyPrereqs = copyPrereqs;
 
                 await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
             }
