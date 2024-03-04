@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+
 using BulkFileUploadFunctionApp.Utils;
 
 namespace BulkFileUploadFunctionApp.Model
@@ -11,8 +12,20 @@ namespace BulkFileUploadFunctionApp.Model
         [JsonPropertyName("retryAttempt")]
         public int retryAttempt { get; set; }
 
-        [JsonPropertyName("sourceBlobUri")]
-        public string? sourceBlobUri { get; set; }
+        [JsonPropertyName("uploadId")]
+        public string? uploadId { get; set; }
+
+        [JsonPropertyName("sourceBlobUrl")]
+        public string? sourceBlobUrl { get; set; }
+
+        [JsonPropertyName("dexBlobUrl")]
+        public string? dexBlobUrl { get; set; }
+
+        [JsonPropertyName("destinationId")]
+        public string? destinationId { get; set; }
+
+        [JsonPropertyName("eventType")]
+        public string? eventType { get; set; }
         
         [JsonPropertyName("dexContainerName")]
         public string? dexContainerName { get; set; }

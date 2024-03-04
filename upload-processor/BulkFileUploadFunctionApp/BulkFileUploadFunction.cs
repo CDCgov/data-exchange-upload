@@ -58,27 +58,37 @@ namespace BulkFileUploadFunctionApp
                 foreach(StorageBlobCreatedEvent blobCreatedEvent in blobCreatedEvents)
                 {
                     if (blobCreatedEvent.Data?.Url == null)
-                        throw new Exception("Unexpected data content of event; no blob create event url found.");
+                    {
+                        _logger.LogInformation($"Received blob created event with null URL: {blobCreatedEvent}");
+                    } else {
 
-                    try
-                    {
                         await ProcessBlobCreatedEvent(blobCreatedEvent.Data.Url);
-                    } catch (Exception ex)
-                    {
-                        ExceptionUtils.LogErrorDetails(ex, _logger);
-                    }
+                    }                    
                 }
             } // .foreach 
 
         } // .Task Run 
 
-        private async Task ProcessBlobCreatedEvent(string? blobCreatedUrl)
+        private async Task ProcessBlobCreatedEvent(string blobCreatedUrl)
         {
-            if (blobCreatedUrl == null)
-                throw new Exception("Blob url may not be null");
+            CopyPreqs copyPreqs = new CopyPreqs();
+            copyPreqs.SourceBlobUrl = blobCreatedUrl;
 
-            await _uploadProcessingService.ProcessBlob(blobCreatedUrl);
-        }       
+            try
+            {
+                copyPreqs = await _uploadProcessingService.GetCopyPreqs(blobCreatedUrl);
+                _logger.LogInformation($"Copy preqs: {JsonConvert.SerializeObject(copyPreqs)}");
+                
+ 
+                _uploadProcessingService.CopyAll(copyPreqs);
+            }
+            catch(Exception ex)
+            {
+                // publish Retry event
+                await _uploadProcessingService.PublishRetryEvent(BlobCopyStage.CopyToDex,
+                                                                 copyPreqs);
+            }
+        }
     }
 
     public class JsonLogger : ILogger

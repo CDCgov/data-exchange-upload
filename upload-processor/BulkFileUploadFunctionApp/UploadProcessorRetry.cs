@@ -79,7 +79,10 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToDex:
                             try
                             {
-                                await _uploadProcessingService.ProcessBlob(blobCopyRetryEvent.sourceBlobUri);
+                                CopyPreqs copyPreqs = await _uploadProcessingService.GetCopyPreqs(blobCopyRetryEvent.sourceBlobUrl);
+
+                                _uploadProcessingService.CopyAll(copyPreqs);
+
                             }
                             catch (Exception ex)
                             {
@@ -90,7 +93,7 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToEdav:
                             try
                             {
-                                await _uploadProcessingService.CopyBlobFromDexToEdavAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyFromDexToEdav(blobCopyRetryEvent.uploadId, blobCopyRetryEvent.destinationId, blobCopyRetryEvent.eventType, blobCopyRetryEvent.dexBlobUrl, blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
                             }
                             catch (Exception ex)
                             {
@@ -101,7 +104,7 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToRouting:
                             try
                             {
-                                await _uploadProcessingService.CopyBlobFromDexToRoutingAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyFromDexToRouting(blobCopyRetryEvent.uploadId, blobCopyRetryEvent.destinationId, blobCopyRetryEvent.eventType, blobCopyRetryEvent.dexBlobUrl, blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
                             }
                             catch (Exception ex)
                             {
@@ -121,7 +124,7 @@ namespace BulkFileUploadFunctionApp
             } catch(Exception ex) {
 
                 _logger.LogError($"Failed to process retry event: " + blobCopyRetryEvent);
-                ExceptionUtils.LogErrorDetails(ex, _logger);                
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
@@ -133,7 +136,8 @@ namespace BulkFileUploadFunctionApp
 
                 blobCopyRetryEvent.retryAttempt = 1;
                 await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
-            } else {               
+            } else {        
+
                 // Increment the retry attempt and put the event back on retry loop
                 blobCopyRetryEvent.retryAttempt += 1;
                 await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
