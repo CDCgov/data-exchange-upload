@@ -6,7 +6,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/slogerxexp"
 	"github.com/tus/tusd/v2/pkg/filestore"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
@@ -16,7 +16,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
 	// add package name to app logger
-	logger := sloger.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
+	logger := slogerxexp.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
 
 	// Create a new FileStore instance which is responsible for
 	// storing the uploaded file on disk in the specified directory.
@@ -41,11 +41,12 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 		BasePath:              "/files/",
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
+
 		// added
 
-		// TODO: 	the tusd logger type is "golang.org/x/exp/slog" vs. app logger "log/slog" ?
-		// TODO: pass the custom app logger
-		// Logger: logger,
+		// TODO: the tusd logger type is "golang.org/x/exp/slog" vs. app logger "log/slog"
+		// TODO: switch to the log/slog when tusd is on that
+		Logger: logger,
 
 		PreUploadCreateCallback: checkManifestV1,
 	}) // .handler
