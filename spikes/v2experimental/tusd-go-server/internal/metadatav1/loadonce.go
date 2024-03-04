@@ -52,7 +52,6 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 			destIdsEventsNameMap := make(DestIdsEventsNameMap)
 			destIdEventFileNameMap := make(DestIdEventFileNameMap)
 
-
 			for _, allowed := range allowedDestAndEvents {
 
 				destIdsEventsNameMap[allowed.DestinationId] = []string{}
@@ -61,7 +60,7 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 				for _, event := range extEvents {
 
 					destIdsEventsNameMap[allowed.DestinationId] = append(destIdsEventsNameMap[allowed.DestinationId], event.Name)
-					destIdEventFileNameMap[allowed.DestinationId + event.Name] = event.DefinitionFileName
+					destIdEventFileNameMap[allowed.DestinationId+event.Name] = event.DefinitionFileName
 
 					// ----------------------------------------------------------------------
 					// definitions, in v1 there is only one definition schema for each destination-event
@@ -73,7 +72,7 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 						logger.Error("error loading definition from file", "error", err, "event.DefinitionFileName", event.DefinitionFileName)
 						return nil, err
 					} // .err
-					
+
 					var definition []Definition
 					err = json.Unmarshal(defFileContent, &definition)
 					if err != nil {
@@ -113,12 +112,11 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 			// ----------------------------------------------------------------------
 			metaV1Instance = &MetadataV1{
 
-				AllowedDestAndEvents: allowedDestAndEvents,
-				Definitions:          allDefinitions,
-				UploadConfigs:        allUploadConfigs,
-				DestIdsEventsNameMap: destIdsEventsNameMap,
-				DestIdEventFileNameMap: destIdEventFileNameMap, 
-
+				AllowedDestAndEvents:   allowedDestAndEvents,
+				Definitions:            allDefinitions,
+				UploadConfigs:          allUploadConfigs,
+				DestIdsEventsNameMap:   destIdsEventsNameMap,
+				DestIdEventFileNameMap: destIdEventFileNameMap,
 			} // .metaV1Instance
 
 			logger.Info("loaded metadata v1")

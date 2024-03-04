@@ -17,6 +17,8 @@ import (
 func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 	return func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 
+		// TODO: add ps integration to send report on failure
+
 		senderManifest := hook.Upload.MetaData
 
 		// -----------------------------------------------------------------------------
@@ -70,19 +72,19 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 				Body:       "meta_ext_event value is not valid",
 			} // .httpResponse
 			return httpResponse, tusd.FileInfoChanges{}, nil
-		}// .if
+		} // .if
 
 		// -----------------------------------------------------------------------------
 		// check schema for the meta_destination_id - meta_ext_event
 		// -----------------------------------------------------------------------------
-		eventDefFileName, ok := configMetaV1.DestIdEventFileNameMap[metaDestinationId + metaExtEvent]
+		eventDefFileName, ok := configMetaV1.DestIdEventFileNameMap[metaDestinationId+metaExtEvent]
 		if !ok { // really this should not happen if every destination-event has a schema file
 			httpResponse := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       "schema definition file name not found for the meta_destination_id and meta_ext_event combination",
 			} // .httpResponse
 			return httpResponse, tusd.FileInfoChanges{}, nil
-		} // .if 
+		} // .if
 		eventSchemas, ok := configMetaV1.Definitions[eventDefFileName]
 		if !ok && len(eventSchemas) == 0 { // this should be also ok, because in v1 every destination-event has one schema file and for some reason the schemas are array of 1
 			httpResponse := tusd.HTTPResponse{
@@ -90,7 +92,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 				Body:       "schema definition not found for the meta_destination_id and meta_ext_event combination",
 			} // .httpResponse
 			return httpResponse, tusd.FileInfoChanges{}, nil
-		}// .if 
+		} // .if
 		schema := eventSchemas[0] // this was checked above
 		schemaFields := schema.Fields
 
@@ -116,12 +118,12 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 							Body:       "schema definition required field value not valid for field name: " + field.FieldName,
 						} // .httpResponse
 						return httpResponse, tusd.FileInfoChanges{}, nil
-					}// .if	
-				}// .if 
+					} // .if
+				} // .if
 
-			}// .if 
+			} // .if
 
-		}// .for
+		} // .for
 
 		// -----------------------------------------------------------------------------
 		// all checks have passed

@@ -10,7 +10,7 @@ type MetadataV1 struct {
 	UploadConfigs AllUploadConfigs `json:"all_upload_configs"`
 
 	// maps to do fast checks in hooks
-	DestIdsEventsNameMap DestIdsEventsNameMap `json:"-"` // no need to expose on http endpoint but could for visibility if needed
+	DestIdsEventsNameMap   DestIdsEventsNameMap   `json:"-"` // no need to expose on http endpoint but could for visibility if needed
 	DestIdEventFileNameMap DestIdEventFileNameMap `json:"-"` // same above
 } // .MetadataV1
 
