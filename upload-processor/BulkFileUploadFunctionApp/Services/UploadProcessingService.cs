@@ -257,32 +257,30 @@ namespace BulkFileUploadFunctionApp.Services
                 }
                 else if (copyTarget.target == _targetRouting)
                 {
-                    bool isRoutingEnabled = _configuration.GetValue<bool>("FeatureManagement:ROUTING");
-                    _logger.LogInformation($"Routing Status: {isRoutingEnabled}");
+                    try
+                    {
+                        await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.ROUTING_FEATURE_FLAG_NAME, async () =>
+                        {
+                            await CopyFromDexToRouting(copyPreqs.UploadId,
+                                                        copyPreqs.DestinationId,
+                                                        copyPreqs.EventType,
+                                                        copyPreqs.DexBlobUrl,
+                                                        copyPreqs.DestinationContainerName,
+                                                        copyPreqs.DestinationBlobName,
+                                                        copyPreqs.DestinationMetadata);
+                        });
 
-                    if (isRoutingEnabled)
-                    {
-                        try
+                        _featureManagementExecutor.ExecuteIfDisabled(Constants.ROUTING_FEATURE_FLAG_NAME, () =>
                         {
-                            await CopyFromDexToRouting(copyPreqs.UploadId, 
-                                                       copyPreqs.DestinationId,
-                                                       copyPreqs.EventType,
-                                                       copyPreqs.DexBlobUrl,
-                                                       copyPreqs.DestinationContainerName, 
-                                                       copyPreqs.DestinationBlobName,
-                                                       copyPreqs.DestinationMetadata);
-                        }
-                        catch(Exception ex)
-                        {
-                            // publish retry event
-                            await PublishRetryEvent(BlobCopyStage.CopyToRouting,
-                                                    copyPreqs);
-                        }
-                    }
-                    else
+                            _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
+                        });
+                    } catch (Exception ex)
                     {
-                        _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
+                        // publish retry event
+                        await PublishRetryEvent(BlobCopyStage.CopyToRouting,
+                                                copyPreqs);
                     }
+                    
                 }
             }        
         }

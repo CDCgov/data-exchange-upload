@@ -3,13 +3,10 @@
 using Azure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp.Model;
-using Azure.Identity;
 using Newtonsoft.Json;
 using BulkFileUploadFunctionApp.Utils;
 using System.Collections.Concurrent;
-using Microsoft.Extensions.Configuration;
 using BulkFileUploadFunctionApp.Services;
 
 namespace BulkFileUploadFunctionApp
@@ -18,15 +15,11 @@ namespace BulkFileUploadFunctionApp
     {
         private readonly ILogger _logger;
 
-        private readonly IConfiguration _configuration;
-
         private readonly IUploadProcessingService _uploadProcessingService;
 
-        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IConfiguration configuration, IUploadProcessingService uploadProcessingService)
+        public BulkFileUploadFunction(ILoggerFactory loggerFactory, IUploadProcessingService uploadProcessingService)
         {
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
-
-            _configuration = configuration;
 
             _uploadProcessingService = uploadProcessingService;
         }
@@ -80,7 +73,7 @@ namespace BulkFileUploadFunctionApp
                 _logger.LogInformation($"Copy preqs: {JsonConvert.SerializeObject(copyPreqs)}");
                 
  
-                _uploadProcessingService.CopyAll(copyPreqs);
+                await _uploadProcessingService.CopyAll(copyPreqs);
             }
             catch(Exception ex)
             {

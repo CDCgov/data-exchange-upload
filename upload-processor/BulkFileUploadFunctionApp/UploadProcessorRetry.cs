@@ -1,16 +1,9 @@
-using Azure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-
-using System;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp
 {
@@ -43,7 +36,7 @@ namespace BulkFileUploadFunctionApp
                 {
                     _logger.LogInformation($"Received blob copy retry event: {blobCopyRetryEventJson}");
 
-                    BlobCopyRetryEvent? blobCopyRetryEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(blobCopyRetryEventJson);
+                    BlobCopyRetryEvent? blobCopyRetryEvent = JsonSerializer.Deserialize<BlobCopyRetryEvent>(blobCopyRetryEventJson);
 
                     if (blobCopyRetryEvent != null) {
 
@@ -81,7 +74,7 @@ namespace BulkFileUploadFunctionApp
                             {
                                 CopyPreqs copyPreqs = await _uploadProcessingService.GetCopyPreqs(blobCopyRetryEvent.sourceBlobUrl);
 
-                                _uploadProcessingService.CopyAll(copyPreqs);
+                                await _uploadProcessingService.CopyAll(copyPreqs);
 
                             }
                             catch (Exception ex)
