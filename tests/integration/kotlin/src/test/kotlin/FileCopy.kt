@@ -3,6 +3,7 @@ import com.azure.identity.DefaultAzureCredentialBuilder
 import com.azure.storage.blob.BlobContainerClient
 import com.azure.storage.blob.models.BlobListDetails
 import com.azure.storage.blob.models.ListBlobsOptions
+import org.joda.time.DateTime
 import org.testng.Assert
 import org.testng.TestNGException
 import org.testng.annotations.BeforeClass
@@ -15,6 +16,7 @@ import util.EnvConfig
 import util.Metadata
 import util.TestFile
 import java.time.Duration
+import java.util.*
 
 @Test()
 class FileCopy {
@@ -63,11 +65,16 @@ class FileCopy {
     @Test(groups = [Constants.Groups.DEX_USE_CASE_DEX_TESTING])
     fun shouldCopyToEdavContainer() {
         val options = ListBlobsOptions()
-            .setPrefix("dextesting-testevent1/2024/03/01")
+            .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(), "dextesting-testevent1"))
             .setDetails(BlobListDetails().setRetrieveMetadata(true))
         val edavUploadBlob = edavContainerClient.listBlobs(options, Duration.ofMillis(5000))
             .first { blob -> blob.metadata?.containsValue(uploadId) == true }
 
         Assert.assertNotNull(edavUploadBlob)
+    }
+
+    @Test(groups = [Constants.Groups.DEX_USE_CASE_DEX_TESTING])
+    fun shouldCopyToRoutingContainer() {
+
     }
 }
