@@ -74,7 +74,7 @@ class FileCopy {
             .first { blob -> blob.metadata?.containsValue(uploadId) == true }
 
         Assert.assertNotNull(edavUploadBlob)
-        // TODO: assert size equal
+        Assert.assertEquals(edavUploadBlob.properties.contentLength, testFile.length())
     }
 
     @Test(groups = [Constants.Groups.DEX_USE_CASE_DEX_TESTING])
@@ -86,6 +86,6 @@ class FileCopy {
             .first { blob -> blob.metadata?.containsValue(uploadId) == true }
 
         Assert.assertNotNull(routingUploadBlob)
-        // TODO: assert size equal
+        Assert.assertEquals(routingUploadBlob.properties.contentLength, testFile.length())
     }
 }
