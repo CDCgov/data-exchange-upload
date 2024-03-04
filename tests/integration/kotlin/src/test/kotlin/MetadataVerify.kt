@@ -1,5 +1,9 @@
 import auth.AuthClient
+import io.restassured.RestAssured.given
+import io.restassured.http.ContentType
+import io.restassured.path.json.JsonPath
 import io.tus.java.client.ProtocolException
+import org.hamcrest.CoreMatchers.equalTo
 import org.testng.Assert
 import org.testng.annotations.BeforeClass
 import org.testng.annotations.Test
@@ -8,6 +12,8 @@ import util.Constants.Companion.TEST_DESTINATION
 import util.Constants.Companion.TEST_EVENT
 import util.EnvConfig
 import util.TestFile
+
+
 
 
 @Test()
@@ -25,10 +31,10 @@ class MetadataVerify {
     @Test()
     fun shouldUploadFileGivenRequiredMetadata() {
         val metadata = hashMapOf(
-            "filename" to testFile.name,
-            "meta_destination_id" to TEST_DESTINATION,
-            "meta_ext_event" to TEST_EVENT,
-            "meta_ext_source" to "INTEGRATION-TEST"
+                "filename" to testFile.name,
+                "meta_destination_id" to TEST_DESTINATION,
+                "meta_ext_event" to TEST_EVENT,
+                "meta_ext_source" to "INTEGRATION-TEST"
         ) as HashMap<String, String>
 
         val uploadId = uploadClient.uploadFile(testFile, metadata)
@@ -38,9 +44,9 @@ class MetadataVerify {
     @Test(expectedExceptions = [ProtocolException::class])
     fun shouldReturnErrorWhenDestinationIDNotProvided() {
         val metadata = hashMapOf(
-            "filename" to testFile.name,
-            "meta_ext_event" to TEST_EVENT,
-            "meta_ext_source" to "INTEGRATION-TEST"
+                "filename" to testFile.name,
+                "meta_ext_event" to TEST_EVENT,
+                "meta_ext_source" to "INTEGRATION-TEST"
         ) as HashMap<String, String>
 
         uploadClient.uploadFile(testFile, metadata)
@@ -49,9 +55,9 @@ class MetadataVerify {
     @Test(expectedExceptions = [ProtocolException::class])
     fun shouldReturnErrorWhenEventNotProvided() {
         val metadata = hashMapOf(
-            "filename" to testFile.name,
-            "meta_destination_id" to TEST_DESTINATION,
-            "meta_ext_source" to "INTEGRATION-TEST"
+                "filename" to testFile.name,
+                "meta_destination_id" to TEST_DESTINATION,
+                "meta_ext_source" to "INTEGRATION-TEST"
         ) as HashMap<String, String>
 
         uploadClient.uploadFile(testFile, metadata)
@@ -60,12 +66,13 @@ class MetadataVerify {
     @Test(expectedExceptions = [ProtocolException::class])
     fun shouldReturnErrorWhenFilenameNotProvided() {
         val metadata = hashMapOf(
-            "meta_destination_id" to TEST_DESTINATION,
-            "meta_ext_event" to TEST_EVENT,
-            "meta_ext_source" to "INTEGRATION-TEST"
+                "meta_destination_id" to TEST_DESTINATION,
+                "meta_ext_event" to TEST_EVENT,
+                "meta_ext_source" to "INTEGRATION-TEST"
         )
 
         uploadClient.uploadFile(testFile, metadata)
     }
 }
+
 
