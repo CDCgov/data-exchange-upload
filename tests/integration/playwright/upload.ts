@@ -2,7 +2,7 @@ import fs from 'fs';
 import * as tus from 'tus-js-client';
 
 export async function uploadFileAndGetId(accessToken, fileName, url, metadata: Record<string, string>) {
-    //const url = process.env.UPLOAD_URL || process.env.DEX_URL;
+    
     const file = fs.createReadStream(fileName);
 
     return new Promise((resolve, reject) => {
@@ -21,7 +21,6 @@ export async function uploadFileAndGetId(accessToken, fileName, url, metadata: R
 
                 try {
                     const uploadId = extractUploadId(upload.url);
-                    console.log("Extracted uploadId:", uploadId);
                     resolve(uploadId);
                 } catch (error) {
                     console.error("Failed to extract uploadId:", error);
