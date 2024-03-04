@@ -3,7 +3,7 @@ import axios from "axios";
 export interface LoginResponse {
   // Define the structure of your login response here
   // Example:
-  accessToken: string;
+  access_token: string;
   // Add other fields as necessary
 }
 
