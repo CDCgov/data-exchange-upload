@@ -13,10 +13,6 @@ namespace BulkFileUploadFunctionApp.Services
     
         public Task CopyFromDexToRouting(CopyPrereqs copyPrereqs);
 
-        // public Task CopyFromDexToEdav(string uploadId, string destinationId, string eventType, string dexBlobUrl, string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata);
-    
-        // public Task CopyFromDexToRouting(string uploadId, string destinationId, string eventType, string dexBlobUrl, string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata);
-
         public Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs);
     }
 }
