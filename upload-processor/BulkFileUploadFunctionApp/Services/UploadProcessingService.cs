@@ -3,7 +3,7 @@ using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Azure.Identity;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
@@ -636,8 +636,6 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogError($"Empty Destinations and Events: {_destinationAndEvents.Result}");
                 throw new Exception("Empty Destinations and Events");
             }
-
-            _logger.LogInformation($"Destinations and Events: {JsonConvert.SerializeObject(_destinationAndEvents.Result)}");
 
             var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
             var currentEvent = currentDestination?.extEvents?.Find(e => e.name == eventType);
