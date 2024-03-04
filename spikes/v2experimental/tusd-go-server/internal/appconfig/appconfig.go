@@ -5,7 +5,7 @@ type AppConfig struct {
 	DexProduct string
 	DexApp     string
 
-	LoggerDebug bool
+	LoggerDebugOn bool
 
 	ServerPort string
 

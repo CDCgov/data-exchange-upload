@@ -12,7 +12,7 @@ func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 	// Configure debug on if needed, otherwise should be off
 	var opts *slog.HandlerOptions
 
-	if appConfig.LoggerDebug {
+	if appConfig.LoggerDebugOn {
 
 		opts = &slog.HandlerOptions{
 			Level: slog.LevelDebug,

@@ -48,7 +48,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 		// TODO: switch to the log/slog when tusd is on that
 		Logger: logger,
 
-		PreUploadCreateCallback: checkManifestV1,
+		PreUploadCreateCallback: checkManifestV1(logger),
 	}) // .handler
 	if err != nil {
 		logger.Error("error start tusd handler", "error", err)
