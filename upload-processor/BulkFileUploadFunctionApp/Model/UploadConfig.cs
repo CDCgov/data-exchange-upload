@@ -1,18 +1,17 @@
-﻿namespace BulkFileUploadFunctionApp.Model
+﻿
+using System.Text.Json.Serialization;
+
+namespace BulkFileUploadFunctionApp.Model
 {
-    internal class UploadConfig
+    public record UploadConfig
     {
-        public string? FilenameMetadataField { get; set; }
-
-        public string? FilenameSuffix { get; set; }
-
-        public string? FolderStructure { get; set; }
-
-        public string? FixedFolderPath { get; set; }
+        [JsonPropertyName("filename_suffix")] public string? FilenameSuffix { get; init; }
+        [JsonPropertyName("folder_structure")] public string? FolderStructure { get; init; }
+        [JsonPropertyName("fixed_folder_path")] public string? FixedFolderPath { get; init; }
+        [JsonPropertyName("metadata_config")] public MetadataConfig? MetadataConfig { get; init; }
 
         public static readonly UploadConfig Default = new UploadConfig()
         {
-            FilenameMetadataField = "filename",
             FilenameSuffix = "clock_ticks",
             FolderStructure = "date_YYYY_MM_DD",
             FixedFolderPath = null

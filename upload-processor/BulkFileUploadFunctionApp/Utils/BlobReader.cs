@@ -1,7 +1,6 @@
-﻿using Azure.Storage.Blobs.Models;
-using Azure.Storage.Blobs.Specialized;
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
@@ -14,8 +13,9 @@ namespace BulkFileUploadFunctionApp.Utils
             _logger = logger;
         }
 
-        public async Task<T> GetObjectFromBlobJsonContent<T>(string connectionString, string sourceContainerName, string blobPathname)
+        public async Task<T?> GetObjectFromBlobJsonContent<T>(string connectionString, string sourceContainerName, string blobPathname)
         {
+            T? result;
             var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
 
             BlobClient sourceBlob = sourceContainerClient.GetBlobClient(blobPathname);
@@ -30,23 +30,12 @@ namespace BulkFileUploadFunctionApp.Utils
 
             _logger.LogInformation("File exists, getting lease on file");
 
-            // BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
+            using (var stream = await sourceBlob.OpenReadAsync())
+            { 
+                result = await JsonSerializer.DeserializeAsync<T>(stream);
+            }
 
-            // Specifying -1 for the lease interval creates an infinite lease
-            // await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
-
-            BlobDownloadResult download = await sourceBlob.DownloadContentAsync();
-            var objectData = download.Content.ToObjectFromJson<T>();
-
-            BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
-
-            //if (sourceProperties.LeaseState == LeaseState.Leased)
-            //{
-                // Release the lease on the source blob
-                //await lease.ReleaseAsync();
-            //}
-
-            return objectData;
+            return result;
         }
     }
 }

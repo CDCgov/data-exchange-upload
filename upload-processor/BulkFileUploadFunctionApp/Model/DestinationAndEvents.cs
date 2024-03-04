@@ -2,30 +2,25 @@ using System.Text.Json.Serialization;
 
 namespace BulkFileUploadFunctionApp.Model
 {
-    public class DestinationAndEvents
+    public record DestinationAndEvents
     {
         [JsonPropertyName("destination_id")]
-        public string? destinationId { get; set; }
+        public string? destinationId { get; init; }
         
         [JsonPropertyName("ext_events")]
-        public List<ExtEvent>? extEvents { get; set; }
-
-        public static readonly DestinationAndEvents Default = new DestinationAndEvents();
+        public List<ExtEvent>? extEvents { get; init; }
     }
 
-    public class ExtEvent
+    public record ExtEvent
     {
-        public string? name { get; set; }
+        public string? name { get; init; }
 
         [JsonPropertyName("definition_filename")]
-        public string? definitionFilename { get; set; }
+        public string? definitionFilename { get; init; }
 
         [JsonPropertyName("copy_targets")]
-        public List<CopyTarget>? copyTargets { get; set; }
+        public List<CopyTarget>? copyTargets { get; init; }
     }
     
-    public class CopyTarget
-    {
-        public string? target { get; set; }
-    } 
+    public record CopyTarget(string target);
 }
