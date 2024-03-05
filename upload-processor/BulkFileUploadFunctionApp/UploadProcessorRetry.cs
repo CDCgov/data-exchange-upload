@@ -1,16 +1,9 @@
-using Azure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-
-using System;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp
 {
@@ -43,7 +36,7 @@ namespace BulkFileUploadFunctionApp
                 {
                     _logger.LogInformation($"Received blob copy retry event: {blobCopyRetryEventJson}");
 
-                    BlobCopyRetryEvent? blobCopyRetryEvent = JsonConvert.DeserializeObject<BlobCopyRetryEvent>(blobCopyRetryEventJson);
+                    BlobCopyRetryEvent? blobCopyRetryEvent = JsonSerializer.Deserialize<BlobCopyRetryEvent>(blobCopyRetryEventJson);
 
                     if (blobCopyRetryEvent != null) {
 
@@ -61,25 +54,21 @@ namespace BulkFileUploadFunctionApp
         {
             try
             {
-                if(blobCopyRetryEvent.copyRetryStage == null)
-                {
-                    _logger.LogError($"Failed to process retry event with no stage info: " + blobCopyRetryEvent);
-                    return;
-                }
-
-                if(blobCopyRetryEvent.retryAttempt <= _maxRetryAttempts) {
+                if(blobCopyRetryEvent.RetryAttempt <= _maxRetryAttempts) {
 
                     // exponential backoff
-                    await Task.Delay(1000 * blobCopyRetryEvent.retryAttempt);
+                    await Task.Delay(1000 * blobCopyRetryEvent.RetryAttempt);
 
-                    _logger.LogInformation($"Copy retry attempt: {blobCopyRetryEvent.retryAttempt} Stage: {blobCopyRetryEvent.copyRetryStage}");
+                    _logger.LogInformation($"Copy retry attempt: {blobCopyRetryEvent.RetryAttempt} Stage: {blobCopyRetryEvent.CopyRetryStage}");
 
-                    switch (blobCopyRetryEvent.copyRetryStage)
+                    switch (blobCopyRetryEvent.CopyRetryStage)
                     {
                         case BlobCopyStage.CopyToDex:
                             try
                             {
-                                await _uploadProcessingService.ProcessBlob(blobCopyRetryEvent.sourceBlobUri);
+                                CopyPrereqs copyPrereqs = await _uploadProcessingService.GetCopyPrereqs(blobCopyRetryEvent.CopyPrereqs.SourceBlobUrl);
+
+                                await _uploadProcessingService.CopyAll(copyPrereqs);
                             }
                             catch (Exception ex)
                             {
@@ -90,7 +79,7 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToEdav:
                             try
                             {
-                                await _uploadProcessingService.CopyBlobFromDexToEdavAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyFromDexToEdav(blobCopyRetryEvent.CopyPrereqs);
                             }
                             catch (Exception ex)
                             {
@@ -101,7 +90,7 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToRouting:
                             try
                             {
-                                await _uploadProcessingService.CopyBlobFromDexToRoutingAsync(blobCopyRetryEvent.dexContainerName, blobCopyRetryEvent.dexBlobFilename, blobCopyRetryEvent.fileMetadata);
+                                await _uploadProcessingService.CopyFromDexToRouting(blobCopyRetryEvent.CopyPrereqs);
                             }
                             catch (Exception ex)
                             {
@@ -121,21 +110,22 @@ namespace BulkFileUploadFunctionApp
             } catch(Exception ex) {
 
                 _logger.LogError($"Failed to process retry event: " + blobCopyRetryEvent);
-                ExceptionUtils.LogErrorDetails(ex, _logger);                
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
 
         private async Task RePublishEvent(BlobCopyRetryEvent blobCopyRetryEvent) {
 
-            if (blobCopyRetryEvent.retryAttempt == _maxRetryAttempts) {
+            if (blobCopyRetryEvent.RetryAttempt == _maxRetryAttempts) {
 
                 _logger.LogInformation("Reached max retry attempts - sending event to Replay queue");
 
-                blobCopyRetryEvent.retryAttempt = 1;
+                blobCopyRetryEvent.RetryAttempt = 1;
                 await _uploadEventHubService.PublishReplayEvent(blobCopyRetryEvent);
-            } else {               
+            } else {        
+
                 // Increment the retry attempt and put the event back on retry loop
-                blobCopyRetryEvent.retryAttempt += 1;
+                blobCopyRetryEvent.RetryAttempt += 1;
                 await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
             }
         }
