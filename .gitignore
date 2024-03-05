@@ -33,10 +33,11 @@ tus/file-hooks/post-create/post_create_bin.spec
 
 **/.env
 **/env.*
-
+**/.sqlite
 # Java
 **/.gradle
 **/local.properties
 tests/integration/java/build/
 tests/integration/java/bin
 tests/integration/kotlin/build/
+upload-processor/.vs/slnx.sqlite

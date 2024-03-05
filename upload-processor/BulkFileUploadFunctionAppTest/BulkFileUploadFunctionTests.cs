@@ -31,8 +31,6 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IConfiguration>? _mockConfiguration;
         private BulkFileUploadFunction _function;
         private StorageBlobCreatedEvent _storageBlobCreatedEvent;
-        private MockTusInfoFile? _mockTusInfoFile;
-        private MockTusStorage? _mockTusStorage;
         private Mock<IBlobServiceClientFactory>? _mockBlobServiceClientFactorySrc;
         private Mock<IBlobServiceClientFactory>? _mockBlobServiceClientFactoryDest;
         private UploadProcessingService _uploadProcessingService;
@@ -96,18 +94,6 @@ namespace BulkFileUploadFunctionAppTests
                 EventTime=System.DateTime.Now,
                 Data = new StorageBlobCreatedEventData{Url="https://example.com/blob/10MB-test-file"}
             };     
-
-            _mockTusInfoFile = new MockTusInfoFile
-            {
-                ID = "a0e127caec153d6047ee966bc2acd8cb",
-                Size = 7952,
-                SizeIsDeferred = false,
-                Offset = 0,
-                IsPartial = false,
-                IsFinal = false,
-                MetaData = new Dictionary<string, string> { { "filename", "flower.jpeg" }, { "meta_field", "meta_value" } },
-                Storage = new MockTusStorage { Container = "bulkuploads", Key = "tus-prefix/a0e127caec153d6047ee966bc2acd8cb", Type = "azurestore" }
-            };
 
 
 

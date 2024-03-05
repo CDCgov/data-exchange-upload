@@ -191,10 +191,7 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
-                var configFilename = $"{destinationId}-{eventType}.json";
-                //var blobReader = new BlobReader(_logger);
                 uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
-                _logger.LogInformation($"Upload config: FilenameMetadataField={uploadConfig.FilenameMetadataField}, FilenameSuffix={uploadConfig.FilenameSuffix}, FolderStructure={uploadConfig.FolderStructure}");
             }
             catch (Exception e)
             {

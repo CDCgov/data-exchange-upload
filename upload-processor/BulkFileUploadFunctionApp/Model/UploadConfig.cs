@@ -19,9 +19,8 @@ namespace BulkFileUploadFunctionApp.Model
         public UploadConfig() { }
 
         // If you want to initialize properties in the constructor, you can add parameters to the constructor
-        public UploadConfig(string filenameMetadataField, string filenameSuffix, string folderStructure, string fixedFolderPath)
+        public UploadConfig(string filenameSuffix, string folderStructure, string fixedFolderPath)
         {
-            FilenameMetadataField = filenameMetadataField;
             FilenameSuffix = filenameSuffix;
             FolderStructure = folderStructure;
             FixedFolderPath = fixedFolderPath;
