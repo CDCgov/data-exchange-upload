@@ -79,16 +79,16 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Get metadata
                 TusInfoFile tusInfoFile = await GetTusInfoFile(tusPayloadFilename);
+                uploadId = tusInfoFile.ID;
 
                 // Get trace
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    trace = await _procStatClient.GetTraceByUploadId(tusInfoFile.ID);
+                    trace = await _procStatClient.GetTraceByUploadId(uploadId);
                 });
 
-                uploadId = tusInfoFile.MetaData!.GetValueOrDefault("tus_tguid", null);
-
                 // Get Destination and Event type
+                // TODO: Refactor to something with more generic language, as destination and event are deprecated terms.
                 var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
                 if (metaDestinationId == null)
                     throw new TusInfoFileException("meta_destination_id is a required metadata field and is missing from the tus info file");
@@ -104,7 +104,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Hydrate metadata
                 HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);
-                string? filename = tusInfoFile.MetaData.GetValueOrDefault("received_filename", null);
+                string? filename = tusInfoFile.MetaData!.GetValueOrDefault("received_filename", null);
 
                 // Get dex folder and filename 
                 var dateTimeNow = DateTime.UtcNow;
