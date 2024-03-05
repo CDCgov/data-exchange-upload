@@ -23,7 +23,7 @@ class FileCopy {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
     private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
     private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
-    private val edavBlobClient = Azure.getBlobServiceClient("edavdevdatalakedex", DefaultAzureCredentialBuilder().build())
+    private val edavBlobClient = Azure.getBlobServiceClient(EnvConfig.EDAV_STORAGE_ACCOUNT_NAME, DefaultAzureCredentialBuilder().build())
     private val routingBlobClient = Azure.getBlobServiceClient(EnvConfig.ROUTING_STORAGE_CONNECTION_STRING)
     private lateinit var bulkUploadsContainerClient: BlobContainerClient
     private lateinit var edavContainerClient: BlobContainerClient
