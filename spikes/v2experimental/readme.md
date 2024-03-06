@@ -9,11 +9,19 @@
 # Why
 
 - native with TUSD official implementation
-- cross cloud using docker similar TUSD cli
+- native with TUSD Go ingestion server
+- cross cloud using docker similar TUSD cli official Go implementation
 - simpler implementation vs. current 
 - potentially cost saving for life cycle of product, including mininal dependecies
 - simpler error handling and reports
 - can be free of event queue limitations
+- performance, avoids calls to hooks
+- processing status integration accross the app e2e solution
+- can implement granular authorization if needed
+- ease native keep in sync with TUSD updates
+- no changes (forks) to TUSD official Go implementation
+- easier ability to add new feature and integrations for the DEX server
+- can expose other observability metrics e.g. prometheus 
 
 
 # Timeline
