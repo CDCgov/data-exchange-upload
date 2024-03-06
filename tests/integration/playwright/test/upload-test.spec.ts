@@ -35,6 +35,21 @@ test.describe('File Upload and Trace Response Flow', () => {
     };
   }
 
+  function assertErrorResponse(error, expectedStatusCode, expectedErrorMessageSubstring) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    // Attempt to extract the HTTP status code from the error message
+    const match = errorMessage.match(/response code: (\d+)/);
+    const statusCode = match ? parseInt(match[1], 10) : undefined;
+
+    // Assert that the extracted status code matches the expected status code
+    expect(statusCode).toBe(expectedStatusCode);
+
+    // Further, assert that the error message contains the specific error detail
+    expect(errorMessage).toContain(expectedErrorMessageSubstring);
+  }
+
+
   // Arrange
   // Correctly use test.beforeAll at the describe level to perform setup actions
   test.beforeAll(async ({ request }) => {
@@ -48,19 +63,9 @@ test.describe('File Upload and Trace Response Flow', () => {
 
     try {
       await client.uploadFileAndGetId(accessToken, fileName, metadata);
-      
+
     } catch (error) {
-      // Convert error to string to ensure matching works
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Attempt to extract the HTTP status code from the error message
-      const match = errorMessage.match(/response code: (\d+)/);
-      const statusCode = match ? parseInt(match[1], 10) : undefined;
-
-      // Assert that the extracted status code is 500
-      expect(statusCode).toBe(500);
-      // Further, assert that the error message contains the specific error detail
-      expect(errorMessage).toContain("Not a recognized combination of meta_destination_id (undefined) and meta_ext_event (testevent1)");
+      assertErrorResponse(error, 500, "Not a recognized combination of meta_destination_id (undefined) and meta_ext_event (testevent1)");
     }
   });
 
@@ -68,19 +73,10 @@ test.describe('File Upload and Trace Response Flow', () => {
   test('should return 500 when event type not provided', async ({ request }) => {
     const metadata = createMetadata({ destinationId: "dextesting", eventType: undefined });
     try {
-      const response = await client.uploadFileAndGetId(accessToken, fileName, metadata);
+      await client.uploadFileAndGetId(accessToken, fileName, metadata);
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Attempt to extract the HTTP status code from the error message
-      const match = errorMessage.match(/response code: (\d+)/);
-      const statusCode = match ? parseInt(match[1], 10) : undefined;
-
-      // Assert that the extracted status code is 500
-      expect(statusCode).toBe(500);
-      // Further, assert that the error message contains the specific error detail
-      expect(errorMessage).toContain("Not a recognized combination of meta_destination_id (dextesting) and meta_ext_event (undefined)");
+      assertErrorResponse(error, 500, "Not a recognized combination of meta_destination_id (dextesting) and meta_ext_event (undefined)");
     }
   });
 
@@ -88,19 +84,10 @@ test.describe('File Upload and Trace Response Flow', () => {
   test('should return 500 when destination ID and event type are mismatched', async ({ request }) => {
     const metadata = createMetadata({ destinationId: "invalidDestination", eventType: "invalidEvent" });
     try {
-      const response = await client.uploadFileAndGetId(accessToken, fileName, metadata);
+      await client.uploadFileAndGetId(accessToken, fileName, metadata);
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Attempt to extract the HTTP status code from the error message
-      const match = errorMessage.match(/response code: (\d+)/);
-      const statusCode = match ? parseInt(match[1], 10) : undefined;
-
-      // Assert that the extracted status code is 500
-      expect(statusCode).toBe(500);
-      // Further, assert that the error message contains the specific error detail
-      expect(errorMessage).toContain("Not a recognized combination of meta_destination_id (invalidDestination) and meta_ext_event (invalidEvent)");
+      assertErrorResponse(error, 500, "Not a recognized combination of meta_destination_id (invalidDestination) and meta_ext_event (invalidEvent)");
     }
   });
 
@@ -112,18 +99,10 @@ test.describe('File Upload and Trace Response Flow', () => {
       invalidField: "thisShouldNotBeHere", // Adding an unexpected field
     };
     try {
-      const response = await client.uploadFileAndGetId(accessToken, fileName, metadata);
+      await client.uploadFileAndGetId(accessToken, fileName, metadata);
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      // Attempt to extract the HTTP status code from the error message
-      const match = errorMessage.match(/response code: (\d+)/);
-      const statusCode = match ? parseInt(match[1], 10) : undefined;
-
-      // Assert that the extracted status code is 500
-      expect(statusCode).toBe(500);
-
+      assertErrorResponse(error, 500, "Missing required metadata 'filename', description = 'The name of the file submitted.");
     }
   });
 
