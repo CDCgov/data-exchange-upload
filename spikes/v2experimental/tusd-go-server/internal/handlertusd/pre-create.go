@@ -85,6 +85,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 			} // .httpResponse
 			return httpResponse, tusd.FileInfoChanges{}, nil
 		} // .if
+
 		eventSchemas, ok := configMetaV1.Definitions[eventDefFileName]
 		if !ok && len(eventSchemas) == 0 { // this should be also ok, because in v1 every destination-event has one schema file and for some reason the schemas are array of 1
 			httpResponse := tusd.HTTPResponse{
@@ -125,14 +126,21 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 
 		} // .for
 
-
 		// -----------------------------------------------------------------------------
-
-		// TODO: need to check filename per upload config is sent!
-		// TODO: need to check filename per upload config is sent!
-
+		// check filename per upload config is sent
 		// -----------------------------------------------------------------------------
-
+		
+		updConfigKey := metaDestinationId + "-" + metaExtEvent
+		filename := configMetaV1.UploadConfigs[updConfigKey].FileNameMetadataField
+		
+		_, ok = senderManifest[filename]
+		if !ok {
+			httpResponse := tusd.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       "not found the file name per config: " + filename,
+			} // .httpResponse
+			return httpResponse, tusd.FileInfoChanges{}, nil
+		}// .if 
 		
 		// -----------------------------------------------------------------------------
 		// all checks have passed
