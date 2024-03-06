@@ -29,23 +29,9 @@ PS_API_URL=""
 
 ## Usage
 
-To run the script, invoke NodeJS passing the script name as its first argument, as in `node index.js`. You should get console output similar to this:
+To run the script, use `npm run build` and `npm test` . You should get console output similar to this:
 
 ```
-npm run build
-npm test
-
-import { expect, test } from '@playwright/test';
-
-test.describe('DeX File Upload and Response Validation', () => {
- test.beforeAll(async ({ request }) => {
-     //setup actions
-    }
-  });
-  
-  test('successful file upload returns valid response', async ({ request }) => {
-    //response validation
-  });
-});
+5 passed
 
 ```
