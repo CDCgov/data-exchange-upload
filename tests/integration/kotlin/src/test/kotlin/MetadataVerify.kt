@@ -1,5 +1,4 @@
 import auth.AuthClient
-import io.restassured.RestAssured.given
 import io.restassured.http.ContentType
 import io.restassured.path.json.JsonPath
 import io.tus.java.client.ProtocolException
