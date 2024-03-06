@@ -17,5 +17,8 @@ class EnvConfig {
         val EDAV_STORAGE_ACCOUNT_NAME: String = properties?.getProperty("edav.storage.account.name") ?: System.getenv("EDAV_STORAGE_ACCOUNT_NAME")
         val ROUTING_STORAGE_CONNECTION_STRING: String = properties?.getProperty("routing.storage.connection.string") ?: System.getenv("ROUTING_STORAGE_CONNECTION_STRING")
         val AZURE_BLOB_SEARCH_DURATION_MILLIS: Long = properties?.getProperty("azure.blob.search.duration.millis")?.toLong() ?: System.getenv("AZURE_BLOB_SEARCH_DURATION_MILLIS")?.toLong() ?: 5_000
+        val AZURE_CLIENT_ID: String = properties?.getProperty("azure.client.id") ?: System.getenv("AZURE_CLIENT_ID")
+        val AZURE_CLIENT_SECRET: String = properties?.getProperty("azure.client.secret") ?: System.getenv("AZURE_CLIENT_SECRET")
+        val AZURE_TENANT_ID: String = properties?.getProperty("azure.tenant.id") ?: System.getenv("AZURE_TENANT_ID")
     }
 }

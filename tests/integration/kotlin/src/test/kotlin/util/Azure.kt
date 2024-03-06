@@ -1,6 +1,6 @@
 package util
 
-import com.azure.identity.DefaultAzureCredential
+import com.azure.identity.ClientSecretCredential
 import com.azure.storage.blob.*;
 
 class Azure {
@@ -11,7 +11,7 @@ class Azure {
                 .buildClient()
         }
 
-        fun getBlobServiceClient(storageAccountName: String, azureCredentials: DefaultAzureCredential): BlobServiceClient {
+        fun getBlobServiceClient(storageAccountName: String, azureCredentials: ClientSecretCredential): BlobServiceClient {
             return BlobServiceClientBuilder()
                 .endpoint("https://$storageAccountName.blob.core.windows.net")
                 .credential(azureCredentials)

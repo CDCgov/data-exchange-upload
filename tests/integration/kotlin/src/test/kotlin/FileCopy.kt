@@ -1,5 +1,5 @@
 import auth.AuthClient
-import com.azure.identity.DefaultAzureCredentialBuilder
+import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobContainerClient
 import com.azure.storage.blob.models.BlobListDetails
 import com.azure.storage.blob.models.ListBlobsOptions
@@ -16,14 +16,18 @@ import util.EnvConfig
 import util.Metadata
 import util.TestFile
 import java.time.Duration
-import java.util.*
 
 @Test()
 class FileCopy {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
     private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
     private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
-    private val edavBlobClient = Azure.getBlobServiceClient(EnvConfig.EDAV_STORAGE_ACCOUNT_NAME, DefaultAzureCredentialBuilder().build())
+    private val edavBlobClient = Azure.getBlobServiceClient(EnvConfig.EDAV_STORAGE_ACCOUNT_NAME,
+        ClientSecretCredentialBuilder()
+            .clientId(EnvConfig.AZURE_CLIENT_ID)
+            .clientSecret(EnvConfig.AZURE_CLIENT_SECRET)
+            .tenantId(EnvConfig.AZURE_TENANT_ID)
+            .build())
     private val routingBlobClient = Azure.getBlobServiceClient(EnvConfig.ROUTING_STORAGE_CONNECTION_STRING)
     private lateinit var bulkUploadsContainerClient: BlobContainerClient
     private lateinit var edavContainerClient: BlobContainerClient
