@@ -1,9 +1,4 @@
 import auth.AuthClient
-<<<<<<< HEAD
-=======
-import io.restassured.http.ContentType
-import io.restassured.path.json.JsonPath
->>>>>>> origin/dex-file-copy-1054
 import io.tus.java.client.ProtocolException
 import org.testng.Assert
 import org.testng.annotations.BeforeClass
