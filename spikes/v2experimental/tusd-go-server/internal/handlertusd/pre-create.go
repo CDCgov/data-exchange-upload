@@ -11,9 +11,8 @@ import (
 	slog "golang.org/x/exp/slog"
 )
 
-// currently in v1 the required fields are wired in the pre-create hook check: meta_destination_id and meta_ext_event
-
-// pre-create hook
+// checkManifestV1 is a TUSD pre-create hook, checks file manifest for fields and values per metadata v1 requirements
+// currently in v1 hooks the required fields are wired in the pre-create hook check: meta_destination_id and meta_ext_event
 func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 	return func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 

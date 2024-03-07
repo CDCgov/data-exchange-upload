@@ -11,6 +11,7 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
+// New returns a configured TUSD handler as-is with official implementation
 func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler, error) {
 
 	type Empty struct{}

@@ -1,7 +1,6 @@
 package metadatav1
 
-// struct definitions for metadata v1
-
+// MetadataV1 struct definitions for metadata v1
 type MetadataV1 struct {
 	AllowedDestAndEvents []AllowedDestAndEvents `json:"allowed_destination_and_events"`
 

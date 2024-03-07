@@ -16,6 +16,7 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 ) // .import
 
+// SeverDex, main Upload Api server, handles requests to both tusd handler and dex handler
 type ServerDex struct {
 	cliFlags    cliflags.Flags
 	appConfig   appconfig.AppConfig
@@ -24,6 +25,7 @@ type ServerDex struct {
 	logger      *slog.Logger
 } // .ServerDex
 
+// New returns an custom server for DEX Upload Api ready to serve
 func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, error) {
 
 	type Empty struct{}
@@ -49,6 +51,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, err
 
 } // New
 
+// HttpServer, adds the routes for the tusd and dex handlers and can customize the server with port address
 func (sd *ServerDex) HttpServer() http.Server {
 
 	// --------------------------------------------------------------

@@ -17,6 +17,7 @@ type HandlerDex struct {
 	logger    *slog.Logger
 }
 
+// New returns a DEX sever handler that can handle http requests
 func New(flags cliflags.Flags, appConfig appconfig.AppConfig) *HandlerDex {
 
 	type Empty struct{}
@@ -33,6 +34,8 @@ func New(flags cliflags.Flags, appConfig appconfig.AppConfig) *HandlerDex {
 	} // .&HandlerDex
 } // .New
 
+// ServeHTTP handler method for handling http requests
+// it routes request for response to different paths to respective functions
 func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.URL.Path {
@@ -50,7 +53,7 @@ func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hd.metadata(w, r)
 
 	case "/metadata/v1":
-		hd.metaV1(w, r)
+		hd.metadataV1(w, r)
 
 	// all other non-specified routes
 	default:

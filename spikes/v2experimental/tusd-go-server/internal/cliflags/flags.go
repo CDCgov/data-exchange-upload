@@ -4,7 +4,7 @@ import (
 	"errors"
 	"flag"
 	"slices"
-)
+) // .import
 
 type Flags struct {
 	Environment string // local, azure, aws

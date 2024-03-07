@@ -13,6 +13,7 @@ type RootResp struct {
 	ServerTime string `json:"server_time"`
 } // .rootResp
 
+// root (or index, greeting) handler, responds to requests to the root / path
 func (hd *HandlerDex) root(w http.ResponseWriter, r *http.Request) {
 
 	jsonResp, err := json.Marshal(RootResp{

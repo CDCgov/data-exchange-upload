@@ -13,6 +13,9 @@ type HealthResp struct { // TODO: line up with DEX other products and apps
 
 } // .Health
 
+// health responds to /health endpoint with the health of the app
+// TODO: line-up with DEX standards
+// TODO: check the dependencies such as storages
 func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 
 	jsonResp, err := json.Marshal(HealthResp{

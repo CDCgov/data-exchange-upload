@@ -7,7 +7,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 ) // .import
 
-func (hd *HandlerDex) metaV1(w http.ResponseWriter, r *http.Request) {
+// metadataV1 returns the full metadata v1 that is configured on the server for visibility
+func (hd *HandlerDex) metadataV1(w http.ResponseWriter, r *http.Request) {
 
 	metaV1, err := metadatav1.Get()
 	if err != nil {

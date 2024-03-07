@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/sethvargo/go-envconfig"
-)
+) // .import
 
 type AppConfig struct {
 
@@ -33,6 +33,7 @@ type AppConfig struct {
 	AzEndpoint            string `env:"AZ_ENDPOINT"`
 } // .AppConfig
 
+// ParseConfig loads app configuration based on environment variables and returns AppConfig struct
 func ParseConfig() (AppConfig, error) {
 
 	ctx := context.Background()

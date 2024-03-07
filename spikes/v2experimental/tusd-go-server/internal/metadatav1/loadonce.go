@@ -11,20 +11,22 @@ import (
 
 var metaV1Instance *MetadataV1
 
-// avoids racing for metadata loads if program changes
+// avoids racing for metadata loads if program changes and LoadOnce is called from other places
 var lock = &sync.Mutex{}
 
-// load metadata once from files, this should be called only once in main
+// LoadOnce metadata once from files, this should be called only once in main
+// however it is ok to call LoadOnce multiple time since it handles concurrency and only (re) loads once
 func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 
 	// only to be called once from main
-	// if metaV1Instance == nil checks would not be needed if is this is only called once but things can change
+	// the if metaV1Instance == nil checks would not be needed if is this is only called once
+	// but things can change and the method can handle multiple calls
 
-	if metaV1Instance == nil { // check cheap once outside lock, this should usually be false
+	if metaV1Instance == nil { // check cheap once outside lock, this should usually be false because the metadata should be loaded
 
 		lock.Lock()
 		defer lock.Unlock()
-		if metaV1Instance == nil { // check one more time inside lock because this can be accessed concurrent
+		if metaV1Instance == nil { // more expensive check one more time inside lock because access to this point was not blocked
 
 			logger := pkgLogger(appConfig)
 

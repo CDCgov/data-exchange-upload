@@ -10,7 +10,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 ) // .import
 
-// returns a custom package logger based on the app logger and added with package name
+// pkgLogger returns a custom package logger based on the app logger and added with this package name
 func pkgLogger(appConfig appconfig.AppConfig) *slog.Logger {
 
 	type Empty struct{}

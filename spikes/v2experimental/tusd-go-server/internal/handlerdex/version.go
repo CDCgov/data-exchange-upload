@@ -10,12 +10,14 @@ const GitRepo = "%%git remote get-url remote-name%%"
 const GitVersion = "%%GIT_VERSION%%"
 const GitShortVersion = "%%GIT_SHORT_VERSION%%"
 
+// VersionResp can be used if needed to populate file metadata
 type VersionResp struct {
 	GitRepo         string `json:"git_repo"`
 	GitVersion      string `json:"git_version"`
 	GitShortVersion string `json:"git_short_version"`
 } // .VersionResp
 
+// version provide git repo and version from where this app was built
 func (hd *HandlerDex) version(w http.ResponseWriter, r *http.Request) {
 
 	jsonResp, err := json.Marshal(VersionResp{
