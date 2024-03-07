@@ -36,9 +36,9 @@ func main() {
 	// ------------------------------------------------------------------
 	if cliFlags.Environment == "local" {
 		err1 := godotenv.Load(cliFlags.AppLocalConfigPath)
-		err2 := godotenv.Load(cliFlags.AzLocalConfigPath)
-		if err1 != nil || err2 != nil {
-			slog.Error("error loading local configuration", "err1", err1, "err2", err2)
+		_ = godotenv.Load(cliFlags.AzLocalConfigPath) // optional
+		if err1 != nil {
+			slog.Error("error loading local configuration", "err1", err1)
 			os.Exit(appMainExitCode)
 		} // .if
 	} // .if
