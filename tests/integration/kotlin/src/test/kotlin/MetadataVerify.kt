@@ -13,8 +13,6 @@ import util.EnvConfig
 import util.TestFile
 
 
-
-
 @Test()
 class MetadataVerify {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
