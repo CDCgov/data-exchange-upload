@@ -129,10 +129,10 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		// -----------------------------------------------------------------------------
 		// check filename per upload config is sent
 		// -----------------------------------------------------------------------------
-		
+
 		updConfigKey := metaDestinationId + "-" + metaExtEvent
 		filename := configMetaV1.UploadConfigs[updConfigKey].FileNameMetadataField
-		
+
 		_, ok = senderManifest[filename]
 		if !ok {
 			httpResponse := tusd.HTTPResponse{
@@ -140,8 +140,8 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 				Body:       "not found the file name per config: " + filename,
 			} // .httpResponse
 			return httpResponse, tusd.FileInfoChanges{}, nil
-		}// .if 
-		
+		} // .if
+
 		// -----------------------------------------------------------------------------
 		// all checks have passed
 		// -----------------------------------------------------------------------------
