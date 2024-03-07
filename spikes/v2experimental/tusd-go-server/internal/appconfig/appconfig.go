@@ -26,11 +26,10 @@ type AppConfig struct {
 	UploadConfigPath         string `env:"UPLOAD_CONFIG_PATH, required"`
 
 	// Azure
-	AzStorage             string `env:"AZ_STORAGE"`
-	AzContainerAccessType string `env:"AZ_CONTAINER_ACCESS_TYPE"`
-	AzBlobAccessTier      string `env:"AZ_BLOB_ACCESS_TIER"`
-	AzObjectPrefix        string `env:"AZ_OBJECT_PREFIX"`
-	AzEndpoint            string `env:"AZ_ENDPOINT"`
+	AzStorageName         string `env:"AZ_STORAGE_NAME"`
+	AzStorageKey		  string `env:"AZ_STORAGE_KEY"`
+	AzContainerName       string `env:"AZ_CONTAINER_NAME"`
+	AzContainerEndpoint   string `env:"AZ_CONTAINER_ENDPOINT"`
 } // .AppConfig
 
 // ParseConfig loads app configuration based on environment variables and returns AppConfig struct

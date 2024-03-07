@@ -35,9 +35,10 @@ func main() {
 	// used to run the app locally and load environment, based on cli flag
 	// ------------------------------------------------------------------
 	if cliFlags.Environment == "local" {
-		err := godotenv.Load(cliFlags.AppLocalConfigPath)
-		if err != nil {
-			slog.Error("error loading local configuration", "error", err)
+		err1 := godotenv.Load(cliFlags.AppLocalConfigPath)
+		err2 := godotenv.Load(cliFlags.AzLocalConfigPath)
+		if err1 != nil || err2 != nil {
+			slog.Error("error loading local configuration", "err1", err1, "err2", err2)
 			os.Exit(appMainExitCode)
 		} // .if
 	} // .if
@@ -58,7 +59,7 @@ func main() {
 
 	logger.Info("started app", "buildInfo.Main.Path", buildInfo.Main.Path)
 
-	logger.Debug("loaded app config", "appConfig", appConfig)
+	// logger.Debug("loaded app config", "appConfig", appConfig)
 
 	// ------------------------------------------------------------------
 	// load metadata v1 config into singleton to check and have available

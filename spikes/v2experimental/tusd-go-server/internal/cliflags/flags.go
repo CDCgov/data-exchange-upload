@@ -8,7 +8,8 @@ import (
 
 type Flags struct {
 	Environment        string // local, azure, aws
-	AppLocalConfigPath string // if wanting to override
+	AppLocalConfigPath string // if override
+	AzLocalConfigPath  string // if override
 
 } // .flags
 
@@ -18,7 +19,9 @@ var environments = []string{"local", "azure", "aws"}
 func ParseFlags() (Flags, error) {
 
 	env := flag.String("env", "local", "used to set app run environment: local, azure, or aws")
-	lcp := flag.String("conf", "../configs/local.env", "used to override the configuration file path")
+	appLcp := flag.String("appconf", "../configs/local/local.env", "used to override the app configuration file path")
+	azLcp := flag.String("azconf", "../configs/local/az.env", "used to override the azure configuration file path")
+
 
 	flag.Parse()
 
@@ -28,7 +31,8 @@ func ParseFlags() (Flags, error) {
 
 	flags := Flags{
 		Environment:        *env,
-		AppLocalConfigPath: *lcp,
+		AppLocalConfigPath: *appLcp,
+		AzLocalConfigPath:  *azLcp,
 	} // .flags
 
 	return flags, nil
