@@ -41,19 +41,23 @@ test.describe('File Upload and Trace Response Flow', () => {
   function assertErrorResponse(error, expectedStatusCode, expectedErrorMessageSubstring) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Attempt to extract the HTTP status code from the error message
-    const match = errorMessage.match(/response code: (\d+)/);
-    const statusCode = match ? parseInt(match[1], 10) : undefined;
+    // Define regex for extracting the HTTP status code and upload_id
+    const statusCodeRegex = /response code: (\d+)/;
+    const uploadIdRegex = /"upload_id": "([\w-]+)"/;
+   
+   // Use RegExp.exec() to extract the HTTP status code
+   const statusCodeMatch = statusCodeRegex.exec(errorMessage);
+   const statusCode = statusCodeMatch ? parseInt(statusCodeMatch[1], 10) : undefined;
 
     // Assert that the extracted status code matches the expected status code
     expect(statusCode).toBe(expectedStatusCode);
 
     // Further, assert that the error message contains the specific error detail
     expect(errorMessage).toContain(expectedErrorMessageSubstring);
-
-    // Attempt to extract the uploadId from the error message
-    const matchUploadId = errorMessage.match(/"upload_id": "([\w-]+)"/);
-    uploadId = matchUploadId ? matchUploadId[1] : null;
+    
+    // Use RegExp.exec() to extract the uploadId
+    const uploadIdMatch = uploadIdRegex.exec(errorMessage);
+    uploadId = uploadIdMatch ? uploadIdMatch[1] : null;
 
   }
 
@@ -96,7 +100,7 @@ test.describe('File Upload and Trace Response Flow', () => {
       expect(responseBody).toHaveProperty('data_stream_id');
       expect(responseBody.data_stream_id).toBe('NOT_PROVIDED');
     } catch (error) {
-      error.message;
+      console.log(error.message);
     }
   });
 
@@ -131,7 +135,7 @@ test.describe('File Upload and Trace Response Flow', () => {
       expect(responseBody).toHaveProperty('data_stream_route');
       expect(responseBody.data_stream_route).toBe('NOT_PROVIDED');
     } catch (error) {
-      error.message;
+      console.log(error.message);
     }
   });
 
@@ -167,7 +171,7 @@ test.describe('File Upload and Trace Response Flow', () => {
       expect(responseBody).toHaveProperty('data_stream_id');
       expect(responseBody.data_stream_id).toBe('invalidDestination');
     } catch (error) {
-      error.message;
+      console.log(error.message);
     }
   });
 
@@ -204,7 +208,7 @@ test.describe('File Upload and Trace Response Flow', () => {
       expect(responseBody).toHaveProperty('data_stream_id');
       expect(responseBody.data_stream_id).toBe('invalidDestination');
     } catch (error) {
-      error.message;
+      console.log(error.message);
     }
   });
 
