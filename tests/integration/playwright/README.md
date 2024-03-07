@@ -32,6 +32,6 @@ PS_API_URL=""
 To run the script, use `npm run build` and `npm test` . You should get console output similar to this:
 
 ```
-5 passed
+9 passed
 
 ```
