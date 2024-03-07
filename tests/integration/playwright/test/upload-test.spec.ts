@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { UploadClient } from '../upload-client';
 dotenv.config({ path: "../../.env" });
 
+
 // Use test.describe to group your tests and use hooks like beforeAll
 test.describe('File Upload and Trace Response Flow', () => {
   let uploadId;
@@ -19,7 +20,7 @@ test.describe('File Upload and Trace Response Flow', () => {
   const client = new UploadClient(url);
 
   // Helper function to create metadata with different scenarios
-  function createMetadata() {
+  function createMetadata(overrides = {}) {
     return {
       filename: "10KB-test-file",
       filetype: "text/plain",
@@ -30,6 +31,7 @@ test.describe('File Upload and Trace Response Flow', () => {
       meta_ext_objectkey: uuidv4(),
       meta_ext_filename: "10KB-test-file",
       meta_ext_submissionperiod: '1',
+      ...overrides,
     };
   }
 
@@ -44,17 +46,17 @@ test.describe('File Upload and Trace Response Flow', () => {
     // Define regex for extracting the HTTP status code and upload_id
     const statusCodeRegex = /response code: (\d+)/;
     const uploadIdRegex = /"upload_id": "([\w-]+)"/;
-   
-   // Use RegExp.exec() to extract the HTTP status code
-   const statusCodeMatch = statusCodeRegex.exec(errorMessage);
-   const statusCode = statusCodeMatch ? parseInt(statusCodeMatch[1], 10) : undefined;
+
+    // Use RegExp.exec() to extract the HTTP status code
+    const statusCodeMatch = statusCodeRegex.exec(errorMessage);
+    const statusCode = statusCodeMatch ? parseInt(statusCodeMatch[1], 10) : undefined;
 
     // Assert that the extracted status code matches the expected status code
     expect(statusCode).toBe(expectedStatusCode);
 
     // Further, assert that the error message contains the specific error detail
     expect(errorMessage).toContain(expectedErrorMessageSubstring);
-    
+
     // Use RegExp.exec() to extract the uploadId
     const uploadIdMatch = uploadIdRegex.exec(errorMessage);
     uploadId = uploadIdMatch ? uploadIdMatch[1] : null;
@@ -69,185 +71,98 @@ test.describe('File Upload and Trace Response Flow', () => {
     if (!accessToken) throw new Error("Login failed.");
   });
 
-  // Test case 1: Destination ID not provided
-  test('should return 500 when destination ID not provided', async ({ request }) => {
+  // Parameterize your tests for different metadata scenarios
+  const testCases = [
+    {
+      name: 'Destination ID not provided',
+      metadata: createMetadata({ meta_ext_event: 'testevent1' }),
+      expectedStatusCode: 500,
+      expectedErrorMessage: "Missing one or more required metadata fields: ['meta_destination_id']",
+      pstestProperty: 'data_stream_id',
+      psexpectedErrorMessage: 'NOT_PROVIDED',
+    },
+    {
+      name: 'Event type not provided',
+      metadata: createMetadata({ meta_destination_id: 'dextesting' }),
+      expectedStatusCode: 500,
+      expectedErrorMessage: "Missing one or more required metadata fields: ['meta_ext_event']",
+      pstestProperty: 'data_stream_route',
+      psexpectedErrorMessage: 'NOT_PROVIDED',
+    },
+    {
+      name: 'Destination ID and event type are mismatched',
+      metadata: createMetadata({ meta_destination_id: 'invalidDestination', meta_ext_event: 'invalidEvent' }),
+      expectedStatusCode: 500,
+      expectedErrorMessage: 'Not a recognized combination of meta_destination_id (invalidDestination) and meta_ext_event (invalidEvent)',
+      pstestProperty: 'data_stream_id',
+      psexpectedErrorMessage: 'invalidDestination',
+    },
+    {
+      name: 'Config schema definition invalid',
+      metadata: createMetadata({ meta_destination_id: 'dextesting', meta_ext_event: 'testevent1', invalidField: 'thisShouldNotBeHere' }),
+      expectedStatusCode: 500,
+      expectedErrorMessage: 'Config schema definition is invalid',
+      pstestProperty: 'data_stream_id',
+      psexpectedErrorMessage: 'invalidDestination',
+    },
+  ];
+
+
+  testCases.forEach(({ name, metadata, expectedStatusCode, expectedErrorMessage, pstestProperty, psexpectedErrorMessage }) => {
+    test(name, async ({ request }) => {
+
+      try {
+        await client.uploadFileAndGetId(accessToken, fileName, metadata);
+
+      } catch (error) {
+        assertErrorResponse(error, expectedStatusCode, expectedErrorMessage);
+
+        const psApiUrl = `${PS_API_URL}/api/report/uploadId/${uploadId}`;
+        const response = await request.get(psApiUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const responseBody = await response.json();        
+        expect(responseBody).toHaveProperty(pstestProperty);
+        expect(responseBody[pstestProperty]).toBe(psexpectedErrorMessage);
+
+      }
+
+    });
+  });
+
+  // Act & Assert 
+  test('upload and get report response', async ({ request }) => {
+
     const metadata = createMetadata();
+    metadata['meta_destination_id'] = 'dextesting';
     metadata['meta_ext_event'] = 'testevent1';
+    uploadId = await client.uploadFileAndGetId(accessToken, fileName, metadata);
+    psApiUrl = createPSEndPoint();
 
-    try {
-      await client.uploadFileAndGetId(accessToken, fileName, metadata);
+    // Act: Query the PS API with the obtained uploadId and accessToken
+    const response = await request.get(psApiUrl, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
 
-    } catch (error) {
-      assertErrorResponse(error, 500, "Missing one or more required metadata fields: ['meta_destination_id']");
-    }
+    // Parse the JSON response body
+    const responseBody = await response.json();
+
+    // Assert: Validate the data coming back from PS API
+    expect(responseBody).toHaveProperty('upload_id');
+    expect(responseBody.upload_id).toBe(uploadId); // assuming uploadId matches
+
+    // Validate reports array is present and has at least one report
+    expect(responseBody).toHaveProperty('reports');
+    expect(Array.isArray(responseBody.reports)).toBeTruthy();
+    expect(responseBody.reports.length).toBeGreaterThan(0);
+
+    // Validate the structure of the first report if specific validation is needed
+    // e.g., checking if the first report's stage_name is 'dex-metadata-verify'
+    expect(responseBody.reports[0]).toHaveProperty('stage_name', 'dex-metadata-verify');
+
+    // Additional assertions can be added based on the structure of your response
+    // For example, checking status code
+    expect(response.status()).toBe(200);
+
   });
-
-  test('Query the PS API should return 500 when destination ID not provided', async ({ request }) => {
-
-    try {
-      psApiUrl = createPSEndPoint();
-
-      // Act: Query the PS API 
-      const response = await request.get(psApiUrl, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      // Parse the JSON response body
-      const responseBody = await response.json();
-     
-      expect(responseBody).toHaveProperty('data_stream_id');
-      expect(responseBody.data_stream_id).toBe('NOT_PROVIDED');
-    } catch (error) {
-      console.log(error.message);
-    }
-  });
-
- 
-   // Test case 2: Event type not provided
-   test('should return 500 when event type not provided', async ({ request }) => {
-     const metadata = createMetadata();
-     metadata['meta_destination_id'] = 'dextesting';
-     try {
-       await client.uploadFileAndGetId(accessToken, fileName, metadata);
- 
-     } catch (error) {
-       assertErrorResponse(error, 500, "Missing one or more required metadata fields: ['meta_ext_event']");
-     }
-   });
-
-   test('Query the PS API should return 500 when event type not provided', async ({ request }) => {
-
-    try {
-      psApiUrl = createPSEndPoint();
-
-      // Act: Query the PS API 
-      const response = await request.get(psApiUrl, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      // Parse the JSON response body
-      const responseBody = await response.json();
-      
-      expect(responseBody).toHaveProperty('data_stream_route');
-      expect(responseBody.data_stream_route).toBe('NOT_PROVIDED');
-    } catch (error) {
-      console.log(error.message);
-    }
-  });
-
-  
-   // Test case 3: Destination ID and event type are mismatched
-   test('should return 500 when destination ID and event type are mismatched', async ({ request }) => {
-     const metadata = createMetadata();
-     metadata['meta_destination_id'] = 'invalidDestination';
-     metadata['meta_ext_event'] = 'invalidEvent';
-     try {
-       await client.uploadFileAndGetId(accessToken, fileName, metadata);
- 
-     } catch (error) {
-       assertErrorResponse(error, 500, "Not a recognized combination of meta_destination_id (invalidDestination) and meta_ext_event (invalidEvent)");
-     }
-   });
-
-   test('Query the PS API should return 500 when destination ID and event type are mismatched', async ({ request }) => {
-
-    try {
-      psApiUrl = createPSEndPoint();
-
-      // Act: Query the PS API 
-      const response = await request.get(psApiUrl, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      // Parse the JSON response body
-      const responseBody = await response.json();
-      
-      expect(responseBody).toHaveProperty('data_stream_id');
-      expect(responseBody.data_stream_id).toBe('invalidDestination');
-    } catch (error) {
-      console.log(error.message);
-    }
-  });
-
-   // Test case 4: Config schema definition invalid  
-   test('should return 500 when config schema definition invalid', async ({ request }) => {   
-     const metadata = createMetadata();
-     metadata['meta_destination_id'] = 'dextesting';
-     metadata['meta_ext_event'] = 'testevent1';
-     metadata['invalidField'] = 'thisShouldNotBeHere';
-
-     try {
-       await client.uploadFileAndGetId(accessToken, fileName, metadata);
- 
-     } catch (error) {
-       assertErrorResponse(error, 500, "Missing required metadata 'filename', description = 'The name of the file submitted.");
-     }
-   });
-
-   test('Query the PS API should return 500 when config schema definition invalid', async ({ request }) => {
-
-    try {
-      psApiUrl = createPSEndPoint();
-
-      // Act: Query the PS API 
-      const response = await request.get(psApiUrl, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-
-      // Parse the JSON response body
-      const responseBody = await response.json();
-      
-      expect(responseBody).toHaveProperty('data_stream_id');
-      expect(responseBody.data_stream_id).toBe('invalidDestination');
-    } catch (error) {
-      console.log(error.message);
-    }
-  });
-
- 
-   // Act & Assert 
-   test('upload and get report response', async ({ request }) => {
- 
-     const metadata = createMetadata();
-     metadata['meta_destination_id'] = 'dextesting';
-     metadata['meta_ext_event'] = 'testevent1';
-     uploadId = await client.uploadFileAndGetId(accessToken, fileName, metadata);
-     psApiUrl = createPSEndPoint();
- 
-     // Act: Query the PS API with the obtained uploadId and accessToken
-     const response = await request.get(psApiUrl, {
-       headers: {
-         Authorization: `Bearer ${accessToken}`,
-       },
-     });
- 
-     // Parse the JSON response body
-     const responseBody = await response.json();
- 
-     // Assert: Validate the data coming back from PS API
-     expect(responseBody).toHaveProperty('upload_id');
-     expect(responseBody.upload_id).toBe(uploadId); // assuming uploadId matches
- 
-     // Validate reports array is present and has at least one report
-     expect(responseBody).toHaveProperty('reports');
-     expect(Array.isArray(responseBody.reports)).toBeTruthy();
-     expect(responseBody.reports.length).toBeGreaterThan(0);
- 
-     // Validate the structure of the first report if specific validation is needed
-     // e.g., checking if the first report's stage_name is 'dex-metadata-verify'
-     expect(responseBody.reports[0]).toHaveProperty('stage_name', 'dex-metadata-verify');
- 
-     // Additional assertions can be added based on the structure of your response
-     // For example, checking status code
-     expect(response.status()).toBe(200);
- 
-   }); 
 });
