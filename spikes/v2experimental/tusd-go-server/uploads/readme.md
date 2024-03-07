@@ -1,1 +1,3 @@
-local folder for uploaded files, used mainly for local dev
+Local folder for uploaded files, used for local dev
+
+Folder content is excluded in main .gitignore
