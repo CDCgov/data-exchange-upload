@@ -7,7 +7,6 @@ import (
 )
 
 type Flags struct {
-
 	Environment string // local, azure, aws
 
 } // .flags
@@ -15,7 +14,7 @@ type Flags struct {
 var environments = []string{"local", "azure", "aws"}
 
 // ParseFlags read cli flags into an Flags struct which is returned
-func ParseFlags() (Flags, error) { 
+func ParseFlags() (Flags, error) {
 
 	env := flag.String("env", "local", "used to set app run environment local, azure, aws")
 
@@ -23,12 +22,11 @@ func ParseFlags() (Flags, error) {
 
 	if !slices.Contains(environments, *env) {
 		return Flags{}, errors.New("cli flag environment not recognized")
-	}// if
-
+	} // if
 
 	flags := Flags{
 		Environment: *env,
-	}// .flags
+	} // .flags
 
 	return flags, nil
 } // .ParseFlags

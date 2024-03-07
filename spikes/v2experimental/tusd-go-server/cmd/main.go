@@ -31,9 +31,8 @@ func main() {
 		os.Exit(appMainExitCode)
 	} // .if
 
-
 	// ------------------------------------------------------------------
-	// used to run the app locally and load environment, based on cli flag 
+	// used to run the app locally and load environment, based on cli flag
 	// ------------------------------------------------------------------
 	if cliFlags.Environment == "local" {
 		err := godotenv.Load("../configs/local.env")
@@ -42,7 +41,6 @@ func main() {
 			os.Exit(appMainExitCode)
 		} // .if
 	} // .if
-
 
 	// ------------------------------------------------------------------
 	// parse and load config
@@ -53,7 +51,6 @@ func main() {
 		os.Exit(appMainExitCode)
 	} // .if
 
-
 	// ------------------------------------------------------------------
 	// configure app custom logging
 	// ------------------------------------------------------------------
@@ -62,7 +59,6 @@ func main() {
 	logger.Info("started app", "buildInfo.Main.Path", buildInfo.Main.Path)
 
 	logger.Debug("loaded app config", "appConfig", appConfig)
-
 
 	// ------------------------------------------------------------------
 	// load metadata v1 config into singleton to check and have available
