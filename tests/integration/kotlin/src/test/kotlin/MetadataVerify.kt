@@ -1,9 +1,5 @@
 import auth.AuthClient
-import io.restassured.RestAssured.given
-import io.restassured.http.ContentType
-import io.restassured.path.json.JsonPath
 import io.tus.java.client.ProtocolException
-import org.hamcrest.CoreMatchers.equalTo
 import org.testng.Assert
 import org.testng.annotations.BeforeClass
 import org.testng.annotations.Test
@@ -12,8 +8,6 @@ import util.Constants.Companion.TEST_DESTINATION
 import util.Constants.Companion.TEST_EVENT
 import util.EnvConfig
 import util.TestFile
-
-
 
 
 @Test()
