@@ -7,8 +7,10 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/slogerxexp"
+	"github.com/tus/tusd/v2/pkg/azurestore"
 	"github.com/tus/tusd/v2/pkg/filestore"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
+	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
 // New returns a configured TUSD handler as-is with official implementation
@@ -19,15 +21,50 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 	// add package name to app logger
 	logger := slogerxexp.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
 
-	// Create a new FileStore instance which is responsible for
-	// storing the uploaded file on disk in the specified directory.
-	// This path _must_ exist before tusd will store uploads in it.
-	// If you want to save them on a different medium, for example
-	// a remote FTP server, you can implement your own storage backend
-	// by implementing the tusd.DataStore interface.
-	store := filestore.FileStore{
-		Path: "./uploads",
-	} // .store
+	var handler *tusd.Handler
+	var store filestore.FileStore
+
+	// ------------------------------------------------------------------
+	// running cloud Azure
+	// ------------------------------------------------------------------
+	if cliFlags.Environment == cliflags.ENV_AZURE {
+
+		azConfig := &azurestore.AzConfig{
+			AccountName:         appConfig.AzStorageName,
+			AccountKey:          appConfig.AzStorageKey,
+			ContainerName:       appConfig.AzContainerName,
+			ContainerAccessType: appConfig.AzContainerAccessType,
+			// BlobAccessTier:      Flags.AzBlobAccessTier,
+			Endpoint: appConfig.AzContainerEndpoint,
+		} // .azConfig
+
+		azService, err := azurestore.NewAzureService(azConfig)
+		if err != nil {
+			logger.Error("error create azure store service", "error", err)
+			return nil, err
+		} // azService
+
+		store := azurestore.New(azService)
+		// store.ObjectPrefix = Flags.AzObjectPrefix
+		store.Container = appConfig.AzContainerName
+
+	} // .if cliFlags.Environment == cliflags.ENV_AZURE
+
+	// ------------------------------------------------------------------
+	// Default to Local
+	// ------------------------------------------------------------------
+	if cliFlags.Environment == cliflags.ENV_LOCAL {
+
+		// Create a new FileStore instance which is responsible for
+		// storing the uploaded file on disk in the specified directory.
+		// This path _must_ exist before tusd will store uploads in it.
+		// If you want to save them on a different medium, for example
+		// a remote FTP server, you can implement your own storage backend
+		// by implementing the tusd.DataStore interface.
+		store = filestore.FileStore{
+			Path: "./uploads",
+		} // .store
+	} // .if cliFlags.Environment == cliflags.ENV_LOCAL
 
 	// A storage backend for tusd may consist of multiple different parts which
 	// handle upload creation, locking, termination and so on. The composer is a
@@ -36,19 +73,25 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 	composer := tusd.NewStoreComposer()
 	store.UseIn(composer)
 
+	locker := memorylocker.New()
+	locker.UseIn(composer)
+
 	// Create a new HTTP handler for the tusd server by providing a configuration.
 	// The StoreComposer property must be set to allow the handler to function.
 	handler, err := tusd.NewHandler(tusd.Config{
 		BasePath:              "/files/",
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
-
-		// added
+		// NotifyTerminatedUploads: true,
+		// NotifyUploadProgress:    true,
+		// NotifyCreatedUploads:    true,
+		// PreUploadCreateCallback:
 
 		// TODO: the tusd logger type is "golang.org/x/exp/slog" vs. app logger "log/slog"
 		// TODO: switch to the log/slog when tusd is on that
 		Logger: logger,
 
+		// pre-create, sender manifest checks
 		PreUploadCreateCallback: checkManifestV1(logger),
 	}) // .handler
 	if err != nil {

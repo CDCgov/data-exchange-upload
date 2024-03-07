@@ -34,7 +34,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// used to run the app locally and load environment, based on cli flag
 	// ------------------------------------------------------------------
-	if cliFlags.Environment == "local" {
+	if cliFlags.Environment == cliflags.ENV_LOCAL {
 		err1 := godotenv.Load(cliFlags.AppLocalConfigPath)
 		_ = godotenv.Load(cliFlags.AzLocalConfigPath) // optional
 		if err1 != nil {

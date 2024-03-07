@@ -27,9 +27,10 @@ type AppConfig struct {
 
 	// Azure
 	AzStorageName         string `env:"AZ_STORAGE_NAME"`
-	AzStorageKey		  string `env:"AZ_STORAGE_KEY"`
+	AzStorageKey          string `env:"AZ_STORAGE_KEY"`
 	AzContainerName       string `env:"AZ_CONTAINER_NAME"`
 	AzContainerEndpoint   string `env:"AZ_CONTAINER_ENDPOINT"`
+	AzContainerAccessType string `env:"AZ_CONTAINER_ACCESS_TYPE"`
 } // .AppConfig
 
 // ParseConfig loads app configuration based on environment variables and returns AppConfig struct
