@@ -77,9 +77,10 @@ export class UploadClient {
     private static extractUploadId(uploadUrl: string): string {
         const uploadIdPattern = /files\/([a-zA-Z0-9]+)/;
         const matches = uploadUrl.match(uploadIdPattern);
-        if (matches && matches[1]) {
-            console.log("Extracted uploadId:", matches[1]);
-            return matches[1];
+        const uploadId = matches?.[1] ?? null;
+        if (uploadId) {
+            console.log("Extracted uploadId:", uploadId);
+            return uploadId;
         } else {
             throw new Error("Could not extract uploadId from upload URL.");
         }
