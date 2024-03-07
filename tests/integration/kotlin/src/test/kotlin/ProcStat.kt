@@ -47,6 +47,15 @@ class ProcStat {
         traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId").then().statusCode(200)
 
         reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId").then().statusCode(200)
+
+        traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
+
+        reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
+
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
