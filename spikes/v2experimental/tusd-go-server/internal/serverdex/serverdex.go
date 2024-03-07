@@ -80,7 +80,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 	// --------------------------------------------------------------
 	return http.Server{
 
-		Addr: sd.appConfig.ServerPort,
+		Addr: ":" + sd.appConfig.ServerPort,
 		// etc...
 
 	} // .httpServer

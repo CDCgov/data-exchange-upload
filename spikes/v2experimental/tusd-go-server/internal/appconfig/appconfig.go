@@ -1,41 +1,47 @@
 package appconfig
 
+import (
+	"context"
+
+	"github.com/sethvargo/go-envconfig"
+)
+
 type AppConfig struct {
-	System     string
-	DexProduct string
-	DexApp     string
 
-	LoggerDebugOn bool
+	// App and for Logger
+	System     string `env:"SYSTEM, required"`
+	DexProduct string `env:"DEX_PRODUCT, required"`
+	DexApp     string `env:"DEX_APP, required"`
+	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
-	ServerPort string
+	// Server
+	ServerPort string `env:"SERVER_PORT, required"`
 
-	MetadataVersions string
+	// Metadata
+	MetadataVersions string `env:"METADATA_VERSIONS, required"`
 
-	AllowedDestAndEventsPath string
-	DefinitionsPath          string
-	UploadConfigPath         string
+	// Metadata v1
+	AllowedDestAndEventsPath string `env:"ALLOWED_DEST_AND_EVENTS_PATH, required"`
+	DefinitionsPath          string `env:"DEFINITIONS_PATH, required"`
+	UploadConfigPath         string `env:"UPLOAD_CONFIG_PATH, required"`
 
-	// TODO
-
-	// AzStorage                        string
-	// AzContainerAccessType            string
-	// AzBlobAccessTier                 string
-	// AzObjectPrefix                   string
-	// AzEndpoint                       string
+	// Azure
+	AzStorage                        string `env:"AZ_STORAGE"`
+	AzContainerAccessType            string `env:"AZ_CONTAINER_ACCESS_TYPE"`
+	AzBlobAccessTier                 string `env:"AZ_BLOB_ACCESS_TIER"`
+	AzObjectPrefix                   string `env:"AZ_OBJECT_PREFIX"`
+	AzEndpoint                       string `env:"AZ_ENDPOINT"`
 
 } // .AppConfig
 
-func ParseConfig() (AppConfig, error) { // TODO: does this need to return and error, if not refactor signature and call
+func ParseConfig() (AppConfig, error) { 
 
-	return AppConfig{
-		System:                   "DEX",            //TODO dynamic from config env/file
-		DexProduct:               "Upload API",     //TODO dynamic from config env/file
-		DexApp:                   "tusd-go-server", //TODO dynamic from config env/file
-		ServerPort:               ":8080",          //TODO dynamic from config env/file
-		MetadataVersions:         "[v1]",           //TODO dynamic from config env/file
-		AllowedDestAndEventsPath: "../../../../tus/file-hooks/metadata-verify/allowed_destination_and_events.json",
-		DefinitionsPath:          "../../../../tus/file-hooks/metadata-verify/",
-		UploadConfigPath:         "../../../../upload-configs/",
-	}, nil
+	ctx := context.Background()
 
+	var ac AppConfig
+	if err := envconfig.Process(ctx, &ac); err != nil {
+	  return AppConfig{}, err 
+	} // .if
+
+	return ac, nil 
 } // .ParseConfig

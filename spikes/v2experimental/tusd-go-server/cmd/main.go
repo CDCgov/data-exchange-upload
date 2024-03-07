@@ -12,6 +12,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
+
+	"github.com/joho/godotenv"
 ) // .import
 
 const appMainExitCode = 1
@@ -19,6 +21,27 @@ const appMainExitCode = 1
 func main() {
 
 	buildInfo, _ := debug.ReadBuildInfo()
+
+	// ------------------------------------------------------------------
+	// parse and load cli flags
+	// ------------------------------------------------------------------
+	cliFlags, err := cliflags.ParseFlags()
+	if err != nil {
+		slog.Error("error starting app, error parsing cli flags", "error", err, "buildInfo.Main.Path", buildInfo.Main.Path)
+		os.Exit(appMainExitCode)
+	} // .if
+
+	
+	// ------------------------------------------------------------------
+	// used to run the app locally
+	// ------------------------------------------------------------------
+	if cliFlags.Environment == "local" {
+		err := godotenv.Load("../configs/local.env")
+		if err != nil {
+			slog.Error("error loading local configuration", "error", err)
+		} // .if
+	} // .if
+
 
 	// ------------------------------------------------------------------
 	// parse and load config
@@ -29,6 +52,7 @@ func main() {
 		os.Exit(appMainExitCode)
 	} // .if
 
+
 	// ------------------------------------------------------------------
 	// configure app custom logging
 	// ------------------------------------------------------------------
@@ -36,14 +60,8 @@ func main() {
 
 	logger.Info("started app", "buildInfo.Main.Path", buildInfo.Main.Path)
 
-	// ------------------------------------------------------------------
-	// parse and load cli flags
-	// ------------------------------------------------------------------
-	cliFlags, err := cliflags.ParseFlags()
-	if err != nil {
-		logger.Error("error starting app, error parsing cli flags", "error", err)
-		os.Exit(appMainExitCode)
-	} // .if
+	logger.Debug("loaded app config", "appConfig", appConfig)
+
 
 	// ------------------------------------------------------------------
 	// load metadata v1 config into singleton to check and have available
