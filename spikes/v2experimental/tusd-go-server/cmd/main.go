@@ -35,7 +35,7 @@ func main() {
 	// used to run the app locally and load environment, based on cli flag
 	// ------------------------------------------------------------------
 	if cliFlags.Environment == "local" {
-		err := godotenv.Load("../configs/local.env")
+		err := godotenv.Load(cliFlags.AppLocalConfigPath)
 		if err != nil {
 			slog.Error("error loading local configuration", "error", err)
 			os.Exit(appMainExitCode)
