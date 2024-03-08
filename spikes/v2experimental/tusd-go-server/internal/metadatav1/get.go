@@ -1,6 +1,7 @@
 package metadatav1
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
@@ -15,7 +16,8 @@ func Get() (*MetadataV1, error) {
 		// this should not happen but just in case the call to LoadOnce in main got wiped
 		// emergency: metadata is missing, need to reload metadata here
 		// app config is needed to re-load metadata
-		appConfig, err := appconfig.ParseConfig()
+		ctx := context.TODO()
+		appConfig, err := appconfig.ParseConfig(ctx)
 		if err != nil {
 			slog.Error("error parsing app config", "error", err)
 			return nil, err

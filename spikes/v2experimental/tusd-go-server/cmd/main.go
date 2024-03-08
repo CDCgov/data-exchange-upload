@@ -20,6 +20,8 @@ const appMainExitCode = 1
 
 func main() {
 
+	ctx := context.Background()
+
 	buildInfo, _ := debug.ReadBuildInfo()
 
 	// ------------------------------------------------------------------
@@ -46,7 +48,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// parse and load config
 	// ------------------------------------------------------------------
-	appConfig, err := appconfig.ParseConfig()
+	appConfig, err := appconfig.ParseConfig(ctx)
 	if err != nil {
 		slog.Error("error starting app, error parsing app config", "error", err, "buildInfo.Main.Path", buildInfo.Main.Path)
 		os.Exit(appMainExitCode)
@@ -107,7 +109,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// close other connections, if needed
 	// ------------------------------------------------------------------
-	httpServer.Shutdown(context.Background())
+	httpServer.Shutdown(ctx)
 
 	logger.Info("closing server by os signal", "port", appConfig.ServerPort)
 } // .main

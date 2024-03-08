@@ -34,9 +34,7 @@ type AppConfig struct {
 } // .AppConfig
 
 // ParseConfig loads app configuration based on environment variables and returns AppConfig struct
-func ParseConfig() (AppConfig, error) {
-
-	ctx := context.Background()
+func ParseConfig(ctx context.Context) (AppConfig, error) {
 
 	var ac AppConfig
 	if err := envconfig.Process(ctx, &ac); err != nil {
