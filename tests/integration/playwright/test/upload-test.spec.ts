@@ -138,11 +138,7 @@ test.describe('File Upload and Trace Response Flow', () => {
     psApiUrl = createPSEndPoint();
 
     // Act: Query the PS API with the obtained uploadId and accessToken
-    const response = await request.get(psApiUrl, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    const response = await request.get(psApiUrl);
 
     // Parse the JSON response body
     const responseBody = await response.json();
