@@ -15,7 +15,7 @@
   const parallelInput   = document.querySelector('#paralleluploads')
   const endpointInput   = document.querySelector('#endpoint')
   const metadataInput   = document.querySelector('#metadata_json')
-  metadataInput.value =  '{"meta_destination_id":"dextesting", "destination":"dextesting-testevent1"}'
+  metadataInput.value =  '{"meta_destination_id":"dextesting", "meta_ext_event":"testevent1"}'
 
 
   function reset (startTimeUpload, fileListBytesUploaded, fileListBytesTotal) {

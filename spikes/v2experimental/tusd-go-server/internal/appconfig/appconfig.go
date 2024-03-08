@@ -25,6 +25,9 @@ type AppConfig struct {
 	DefinitionsPath          string `env:"DEFINITIONS_PATH, required"`
 	UploadConfigPath         string `env:"UPLOAD_CONFIG_PATH, required"`
 
+	// Local
+	LocalFolderUploads	string `env:"LOCAL_FOLDER_UPLOADS, required"`
+
 	// Azure
 	AzStorageName         string `env:"AZ_STORAGE_NAME"`
 	AzStorageKey          string `env:"AZ_STORAGE_KEY"`

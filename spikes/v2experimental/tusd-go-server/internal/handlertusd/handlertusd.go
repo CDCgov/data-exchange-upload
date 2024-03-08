@@ -62,7 +62,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 		// a remote FTP server, you can implement your own storage backend
 		// by implementing the tusd.DataStore interface.
 		store = filestore.FileStore{
-			Path: "./uploads",
+			Path: appConfig.LocalFolderUploads,
 		} // .store
 	} // .if cliFlags.Environment == cliflags.ENV_LOCAL
 
