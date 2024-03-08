@@ -40,13 +40,8 @@ class ProcStat {
     @BeforeGroups(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
     fun procStatMetadataVerifyHappyPathSetup() {
         val metadata = Metadata.generateRequiredMetadataForFile(testFile)
-        uploadId = uploadClient.uploadFile(testFile, metadata)
-                ?: throw TestNGException("Error uploading file ${testFile.name}")
+        uploadId = uploadClient.uploadFile(testFile, metadata)?: throw TestNGException("Error uploading file ${testFile.name}")
         Thread.sleep(5_000) // Hard delay to wait for PS API to settle.
-
-        traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId").then().statusCode(200)
-
-        reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId").then().statusCode(200)
 
         traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
             .then()
@@ -56,11 +51,19 @@ class ProcStat {
             .then()
             .statusCode(200)
 
+        traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
+
+        reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
     fun shouldCreateTraceWhenFileUploaded() {
-        traceResponse.body("upload_id", equalTo(uploadId))
+        traceResponse
+            .body("upload_id", equalTo(uploadId))
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
@@ -78,10 +81,12 @@ class ProcStat {
         val metadataVerifyStatus = jsonPath.getList<String>("spans.status").first()
         assertEquals("complete", metadataVerifyStatus)
     }
-
     @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
     fun shouldHaveMetadataVerifyReportWhenFileUploaded() {
-        reportResponse.body("upload_id", equalTo(uploadId)).body("reports.stage_name", hasItem("dex-metadata-verify")).body("reports.content.schema_name", hasItem("dex-metadata-verify"))
+        reportResponse
+            .body("upload_id", equalTo(uploadId))
+            .body("reports.stage_name", hasItem("dex-metadata-verify"))
+            .body("reports.content.schema_name", hasItem("dex-metadata-verify"))
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_METADATA_VERIFY_HAPPY_PATH])
@@ -96,12 +101,15 @@ class ProcStat {
     @BeforeGroups(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
     fun procStatUploadStatusHappyPathSetup() {
         val metadata = Metadata.generateRequiredMetadataForFile(testFile)
-        uploadId = uploadClient.uploadFile(testFile, metadata)
-                ?: throw TestNGException("Error uploading file ${testFile.name}")
+        uploadId = uploadClient.uploadFile(testFile, metadata)?: throw TestNGException("Error uploading file ${testFile.name}")
         Thread.sleep(12_000) // Hard delay to wait for PS API to settle.
 
-        traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId").then().statusCode(200)
-        reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId").then().statusCode(200)
+        traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
+        reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId")
+             .then()
+            .statusCode(200)
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
@@ -122,7 +130,10 @@ class ProcStat {
 
     @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
     fun shouldHaveUploadStatusReportWhenFileUploaded() {
-        reportResponse.body("upload_id", equalTo(uploadId)).body("reports.stage_name", hasItem("dex-upload")).body("reports.content.schema_name", hasItem("upload"))
+        reportResponse
+            .body("upload_id", equalTo(uploadId))
+            .body("reports.stage_name", hasItem("dex-upload"))
+            .body("reports.content.schema_name", hasItem("upload"))
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_HAPPY_PATH])
@@ -132,29 +143,31 @@ class ProcStat {
         val uploadReport = jsonPath.getList("reports", Report::class.java).find { it.stageName == "dex-upload" }
 
         assertNotNull(uploadReport)
-        // assertEquals(uploadReport.content.size, uploadReport.content.offset)
+        assertEquals(uploadReport.content.size, uploadReport.content.offset)
     }
 
     @BeforeGroups(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_DEX_FILE_COPY_HAPPY_PATH])
     fun procStatUploadStatusDexFileCopyHappyPath() {
         val metadata = Metadata.generateRequiredMetadataForFile(testFile)
-        uploadId = uploadClient.uploadFile(testFile, metadata)
-                ?: throw TestNGException("Error uploading file ${testFile.name}")
+        uploadId = uploadClient.uploadFile(testFile, metadata)?: throw TestNGException("Error uploading file ${testFile.name}")
         Thread.sleep(12_000) // Hard delay to wait for PS API to settle.
 
-        traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId").then().statusCode(200)
-        reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId").then().statusCode(200)
+        traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
+        reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId")
+            .then()
+            .statusCode(200)
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_DEX_FILE_COPY_HAPPY_PATH])
     fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded() {
         val jsonPath = reportResponse.extract().jsonPath()
-
         val reports = jsonPath.getList("reports", Report::class.java)
         val dexFileCopyReports = reports.filterNotNull().filter { it.stageName == "dex-file-copy" }
 
         assert(dexFileCopyReports.isNotEmpty()) { "No 'dex-file-copy' reports found" }
-
+        
         val sourceUrls = dexFileCopyReports.map { it.content.fileSourceBlobUrl }
         val destinationUrls = dexFileCopyReports.map { it.content.fileDestinationBlobUrl }
 
