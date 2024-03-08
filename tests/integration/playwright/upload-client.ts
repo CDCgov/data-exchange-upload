@@ -37,7 +37,7 @@ export class UploadClient {
 
             return data.access_token;
         } catch (error) {
-            console.error("An error occurred during login:", error);
+            console.error('An error occurred during login:', error);
             return null;
         }
     }
@@ -53,17 +53,17 @@ export class UploadClient {
                 },
                 metadata,
                 onError: (error: any) => {
-                    console.error("An error occurred:", error);
+                    console.error('An error occurred:', error);
                     reject(error);
                 },
                 onSuccess: function () {
-                    console.log("Upload finished:", upload.url);
+                    console.log('Upload finished:', upload.url);
 
                     try {
                         const uploadId = UploadClient.extractUploadId(upload.url);
                         resolve(uploadId);
                     } catch (error) {
-                        console.error("Failed to extract uploadId:", error);
+                        console.error('Failed to extract uploadId:', error);
                         reject(error);
                     }
                 },
@@ -79,10 +79,10 @@ export class UploadClient {
         const matches = uploadIdPattern.exec(uploadUrl);
         const uploadId = matches?.[1] ?? null;
         if (uploadId) {
-            console.log("Extracted uploadId:", uploadId);
+            console.log('Extracted uploadId:', uploadId);
             return uploadId;
         } else {
-            throw new Error("Could not extract uploadId from upload URL.");
+            throw new Error('Could not extract uploadId from upload URL.');
         }
     }
 }

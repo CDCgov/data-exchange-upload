@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { UploadClient } from '../upload-client';
-dotenv.config({ path: "../../.env" });
+dotenv.config({ path: '../../.env' });
 
 
 // Use test.describe to group your tests and use hooks like beforeAll
@@ -22,14 +22,14 @@ test.describe('File Upload and Trace Response Flow', () => {
   // Helper function to create metadata with different scenarios
   function createMetadata(overrides = {}) {
     return {
-      filename: "10KB-test-file",
-      filetype: "text/plain",
-      meta_ext_source: "IZGW",
-      meta_ext_sourceversion: "V2022-12-31",
-      meta_ext_entity: "DD2",
-      meta_username: "ygj6@cdc.gov",
+      filename: '10KB-test-file',
+      filetype: 'text/plain',
+      meta_ext_source: 'IZGW',
+      meta_ext_sourceversion: 'V2022-12-31',
+      meta_ext_entity: 'DD2',
+      meta_username: 'ygj6@cdc.gov',
       meta_ext_objectkey: uuidv4(),
-      meta_ext_filename: "10KB-test-file",
+      meta_ext_filename: '10KB-test-file',
       meta_ext_submissionperiod: '1',
       ...overrides,
     };
@@ -45,7 +45,7 @@ test.describe('File Upload and Trace Response Flow', () => {
 
     // Define regex for extracting the HTTP status code and upload_id
     const statusCodeRegex = /response code: (\d+)/;
-    const uploadIdRegex = /"upload_id": "([\w-]+)"/;
+   const uploadIdRegex = /"upload_id": "([\w-]+)"/;
 
     // Use RegExp.exec() to extract the HTTP status code
     const statusCodeMatch = statusCodeRegex.exec(errorMessage);
@@ -112,13 +112,13 @@ test.describe('File Upload and Trace Response Flow', () => {
     test(name, async ({ request }) => {
 
       try {
-        await client.uploadFileAndGetId(accessToken, fileName, metadata);
+        uploadId= await client.uploadFileAndGetId(accessToken, fileName, metadata);
 
       } catch (error) {
         assertErrorResponse(error, expectedStatusCode, expectedErrorMessage);
 
         const psApiUrl = `${PS_API_URL}/api/report/uploadId/${uploadId}`;
-        const response = await request.get(psApiUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const response = await request.get(psApiUrl);
         const responseBody = await response.json();        
         expect(responseBody).toHaveProperty(pstestProperty);
         expect(responseBody[pstestProperty]).toBe(psexpectedErrorMessage);
