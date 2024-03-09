@@ -25,8 +25,11 @@ type AppConfig struct {
 	DefinitionsPath          string `env:"DEFINITIONS_PATH, required"`
 	UploadConfigPath         string `env:"UPLOAD_CONFIG_PATH, required"`
 
-	// Local
+	// Local folder path e.g. ../uploads
 	LocalFolderUploads string `env:"LOCAL_FOLDER_UPLOADS, required"`
+
+	// TUSD
+	TusdConfigBasePath string `env:"TUSD_CONFIG_BASE_PATH, required"`
 
 	// Azure
 	AzStorageName         string `env:"AZ_STORAGE_NAME"`

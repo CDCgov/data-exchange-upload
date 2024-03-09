@@ -18,6 +18,8 @@ import (
 
 const appMainExitCode = 1
 
+// TODO OPS: metrics with prometheus!
+
 func main() {
 
 	ctx := context.Background()
