@@ -144,11 +144,8 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		// -----------------------------------------------------------------------------
 		// all checks have passed
 		// -----------------------------------------------------------------------------
-		httpResponse := tusd.HTTPResponse{
-			StatusCode: http.StatusOK,
-			Body:       "upload pre-create checks have passed ok",
-		} // .httpResponse
+		// tusd sends response and status code for ok
+		return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, nil
 
-		return httpResponse, tusd.FileInfoChanges{}, nil
 	} // .return
 } // .checkManifestV1
