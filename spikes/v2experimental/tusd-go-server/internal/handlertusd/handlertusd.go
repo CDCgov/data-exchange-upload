@@ -60,7 +60,8 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 		store.UseIn(composer)
 
 		// used to prevent concurrent access to an upload: https://tus.github.io/tusd/advanced-topics/locks/
-		// TODO: use cloud based
+		// TODO: use azure cloud based locker
+		// TODO: use azure cloud based locker
 		locker := memorylocker.New()
 		locker.UseIn(composer)
 
