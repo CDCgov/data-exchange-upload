@@ -11,6 +11,19 @@ import (
 	slog "golang.org/x/exp/slog"
 )
 
+var (
+	ErrMetaV1ConfigNA              = "error metadata v1 config not available"
+	ErrMetaDestIdNotFound          = "meta_destination_id not found in manifest"
+	ErrMetaDestIdNotValid          = "meta_destination_id value is not valid"
+	ErrMetaExtEventNotFound        = "meta_ext_event not found in manifest"
+	ErrMetaExtEventNotValid        = "meta_ext_event value is not valid"
+	ErrSchemaDefFileNameNA         = "schema definition file name not found for the meta_destination_id and meta_ext_event"
+	ErrSchemaDefNA                 = "schema definition not found for the meta_destination_id and meta_ext_event"
+	ErrSchemaDefFieldNA            = "schema definition required field not sent: "
+	ErrSchemaDefFieldValueNotValid = "schema definition required field value not valid for field name: "
+	ErrUpdConfFileNameNA           = "file name not found, required per config: "
+) // .var
+
 // checkManifestV1 is a TUSD pre-create hook, checks file manifest for fields and values per metadata v1 requirements
 // currently in v1 hooks the required fields are wired in the pre-create hook check: meta_destination_id and meta_ext_event
 func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
@@ -20,21 +33,20 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 
 		senderManifest := hook.Upload.MetaData
 
-		// TODO: all errors, change returns
-		// err = tusd.NewError(strconv.Itoa(http.StatusBadRequest), "no destination id", http.StatusBadRequest)
-		// return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, err
+		tusdErr := tusd.Error{}
 
 		// -----------------------------------------------------------------------------
 		// get the metadata v1 object needed for these checks
 		// -----------------------------------------------------------------------------
 		configMetaV1, err := metadatav1.Get()
 		if err != nil {
-			logger.Error("error metadata v1 config not available", "error", err)
-			httpResponse := tusd.HTTPResponse{
+			logger.Error(ErrMetaV1ConfigNA, "error", err)
+			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusInternalServerError,
-				Body:       "error metadata v1 config not available",
-			} // .httpResponse
-			return httpResponse, tusd.FileInfoChanges{}, nil
+				Body:       ErrMetaV1ConfigNA,
+			} // .httpRes
+			tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .if
 
 		// -----------------------------------------------------------------------------
@@ -42,19 +54,21 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		// -----------------------------------------------------------------------------
 		metaDestinationId, ok := senderManifest["meta_destination_id"]
 		if !ok {
-			httpResponse := tusd.HTTPResponse{
+			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "meta_destination_id not found in sent manifest",
-			} // .httpResponse
-			return httpResponse, tusd.FileInfoChanges{}, nil
+				Body:       ErrMetaDestIdNotFound,
+			} // .httpRes
+			tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .ok
 		events, ok := configMetaV1.DestIdsEventsNameMap[metaDestinationId]
 		if !ok {
-			httpResponse := tusd.HTTPResponse{
+			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "meta_destination_id value is not valid and ext_events are not available",
-			} // .httpResponse
-			return httpResponse, tusd.FileInfoChanges{}, nil
+				Body:       ErrMetaDestIdNotValid,
+			} // .httpRes
+			tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .ok
 
 		// -----------------------------------------------------------------------------
@@ -62,19 +76,21 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		// -----------------------------------------------------------------------------
 		metaExtEvent, ok := senderManifest["meta_ext_event"]
 		if !ok {
-			httpResponse := tusd.HTTPResponse{
+			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "meta_ext_event not found in sent manifest",
-			} // .httpResponse
-			return httpResponse, tusd.FileInfoChanges{}, nil
+				Body:       ErrMetaExtEventNotFound,
+			} // .httpRes
+			tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .ok
 
 		if !slices.Contains(events, metaExtEvent) {
-			httpResponse := tusd.HTTPResponse{
+			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "meta_ext_event value is not valid and not found in ext_events",
-			} // .httpResponse
-			return httpResponse, tusd.FileInfoChanges{}, nil
+				Body:       ErrMetaExtEventNotValid,
+			} // .httpRes
+			tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .if
 
 		// -----------------------------------------------------------------------------
@@ -82,20 +98,22 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		// -----------------------------------------------------------------------------
 		eventDefFileName, ok := configMetaV1.DestIdEventFileNameMap[metaDestinationId+metaExtEvent]
 		if !ok { // really this should not happen if every destination-event has a schema file
-			httpResponse := tusd.HTTPResponse{
+			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "schema definition file name not found for meta_destination_id and meta_ext_event combination",
-			} // .httpResponse
-			return httpResponse, tusd.FileInfoChanges{}, nil
+				Body:       ErrSchemaDefFileNameNA,
+			} // .httpRes
+			tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .if
 
 		eventSchemas, ok := configMetaV1.Definitions[eventDefFileName]
 		if !ok && len(eventSchemas) == 0 { // this should be also ok, because in v1 every destination-event has one schema file and for some reason the schemas are array of 1
-			httpResponse := tusd.HTTPResponse{
+			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "schema definition not found for meta_destination_id and meta_ext_event combination",
-			} // .httpResponse
-			return httpResponse, tusd.FileInfoChanges{}, nil
+				Body:       ErrSchemaDefNA,
+			} // .httpRes
+			tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .if
 		schema := eventSchemas[0] // this was checked above
 		schemaFields := schema.Fields
@@ -107,21 +125,25 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 
 				fieldValue, ok := senderManifest[field.FieldName]
 				if !ok {
-					httpResponse := tusd.HTTPResponse{
+					httpRes := tusd.HTTPResponse{
 						StatusCode: http.StatusBadRequest,
-						Body:       "schema definition required field not sent: " + field.FieldName,
-					} // .httpResponse
-					return httpResponse, tusd.FileInfoChanges{}, nil
+						Body:       ErrSchemaDefFieldNA + field.FieldName,
+					} // .httpRes
+
+					tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+					return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 				} // .if
 
 				if field.AllowedValues != nil && len(field.AllowedValues) != 0 {
 
 					if !slices.Contains(field.AllowedValues, fieldValue) {
-						httpResponse := tusd.HTTPResponse{
+						httpRes := tusd.HTTPResponse{
 							StatusCode: http.StatusBadRequest,
-							Body:       "schema definition required field value not valid for field name: " + field.FieldName,
-						} // .httpResponse
-						return httpResponse, tusd.FileInfoChanges{}, nil
+							Body:       ErrSchemaDefFieldValueNotValid + field.FieldName,
+						} // .httpRes
+
+						tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+						return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 					} // .if
 				} // .if
 
@@ -138,11 +160,12 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 
 		_, ok = senderManifest[filename]
 		if !ok {
-			httpResponse := tusd.HTTPResponse{
+			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       "not found the file name per config: " + filename,
-			} // .httpResponse
-			return httpResponse, tusd.FileInfoChanges{}, nil
+				Body:       ErrUpdConfFileNameNA + filename,
+			} // .httpRes
+			tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
+			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .if
 
 		// -----------------------------------------------------------------------------
