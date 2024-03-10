@@ -144,7 +144,8 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		// -----------------------------------------------------------------------------
 		// all checks have passed
 		// -----------------------------------------------------------------------------
-		// tusd sends response and status code for ok
+		// only to be used if sending additional data to the client
+		// tusd choses the appropriate status code
 		return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, nil
 
 	} // .return
