@@ -12,6 +12,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 ) // .import
@@ -55,13 +56,11 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, err
 func (sd *ServerDex) HttpServer() http.Server {
 
 	// --------------------------------------------------------------
-	// 		TUSD handler as-is
+	// 	TUSD handler
 	// --------------------------------------------------------------
 
-	// Right now, nothing has happened since we need to start the HTTP server on
-	// our own. In the end, tusd will start listening on and accept request at
-	// http://localhost:8080/files
-	http.Handle("/files/", http.StripPrefix("/files/", sd.handlerTusd))
+	// Route for TUSD to start listening on and accept http request
+	http.Handle(sd.appConfig.TusdHandlerBasePath, http.StripPrefix(sd.appConfig.TusdHandlerBasePath, sd.handlerTusd))
 
 	// Start another goroutine for receiving events from the handler whenever
 	// an upload is completed. The event will contains details about the upload
@@ -74,7 +73,12 @@ func (sd *ServerDex) HttpServer() http.Server {
 	}() // .go func
 
 	// --------------------------------------------------------------
-	// 		DEX handler, handles all other requests except TUSD path
+	// 	Prometheus metrics handler for /metrics
+	// --------------------------------------------------------------
+	http.Handle("/metrics", promhttp.Handler())
+
+	// --------------------------------------------------------------
+	// 	DEX handler for all other http requests except above
 	// --------------------------------------------------------------
 	http.Handle("/", sd.handlerDex)
 

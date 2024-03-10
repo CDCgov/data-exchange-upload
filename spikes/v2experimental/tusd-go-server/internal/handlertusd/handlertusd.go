@@ -103,7 +103,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 	// Create a new HTTP handler for the tusd server by providing a configuration.
 	// The StoreComposer property must be set to allow the handler to function.
 	handler, err := tusd.NewHandler(tusd.Config{
-		BasePath:              appConfig.TusdConfigBasePath,
+		BasePath:              appConfig.TusdHandlerBasePath,
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
 		// NotifyTerminatedUploads: true,

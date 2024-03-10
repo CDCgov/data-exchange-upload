@@ -29,7 +29,7 @@ type AppConfig struct {
 	LocalFolderUploads string `env:"LOCAL_FOLDER_UPLOADS, required"`
 
 	// TUSD
-	TusdConfigBasePath string `env:"TUSD_CONFIG_BASE_PATH, required"`
+	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, required"`
 
 	// Azure
 	AzStorageName         string `env:"AZ_STORAGE_NAME"`
