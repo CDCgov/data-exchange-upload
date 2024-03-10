@@ -2,23 +2,19 @@ package main
 
 import (
 	"context"
-	"log/slog"
-	"os"
-	"os/signal"
-	"runtime/debug"
-
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
-
 	"github.com/joho/godotenv"
+	"log/slog"
+	"os"
+	"os/signal"
+	"runtime/debug"
 ) // .import
 
 const appMainExitCode = 1
-
-// TODO OPS: metrics with prometheus!
 
 func main() {
 

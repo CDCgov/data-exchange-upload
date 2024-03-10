@@ -22,6 +22,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 	// add package name to app logger
 	logger := slogerxexp.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
 
+	// tusd.Handler exposes metrics by cli flag and defaults true
 	var handler *tusd.Handler
 	var composer *tusd.StoreComposer
 

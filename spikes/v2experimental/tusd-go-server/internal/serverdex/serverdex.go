@@ -15,6 +15,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	tusd "github.com/tus/tusd/v2/pkg/handler"
+	"github.com/tus/tusd/v2/pkg/hooks"
 ) // .import
 
 // SeverDex, main Upload Api server, handles requests to both tusd handler and dex handler
@@ -58,7 +59,6 @@ func (sd *ServerDex) HttpServer() http.Server {
 	// --------------------------------------------------------------
 	// 	TUSD handler
 	// --------------------------------------------------------------
-
 	// Route for TUSD to start listening on and accept http request
 	http.Handle(sd.appConfig.TusdHandlerBasePath, http.StripPrefix(sd.appConfig.TusdHandlerBasePath, sd.handlerTusd))
 
@@ -75,6 +75,8 @@ func (sd *ServerDex) HttpServer() http.Server {
 	// --------------------------------------------------------------
 	// 	Prometheus metrics handler for /metrics
 	// --------------------------------------------------------------
+	sd.setupMetrics(sd.handlerTusd)
+	hooks.SetupHookMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 
 	// --------------------------------------------------------------
