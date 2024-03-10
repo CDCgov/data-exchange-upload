@@ -21,7 +21,7 @@ var (
 	ErrSchemaDefNA                 = "schema definition not found for the meta_destination_id and meta_ext_event"
 	ErrSchemaDefFieldNA            = "schema definition required field not sent: "
 	ErrSchemaDefFieldValueNotValid = "schema definition required field value not valid for field name: "
-	ErrUpdConfFileNameNA           = "file name not found, required per config: "
+	ErrUpdConfFileNameNA           = "file name not found in manifest, required per config: "
 ) // .var
 
 // checkManifestV1 is a TUSD pre-create hook, checks file manifest for fields and values per metadata v1 requirements
@@ -38,7 +38,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		// -----------------------------------------------------------------------------
 		// get the metadata v1 object needed for these checks
 		// -----------------------------------------------------------------------------
-		configMetaV1, err := metadatav1.Get()
+		metaV1, err := metadatav1.Get()
 		if err != nil {
 			logger.Error(ErrMetaV1ConfigNA, "error", err)
 			httpRes := tusd.HTTPResponse{
@@ -61,7 +61,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 			tusdErr.HTTPResponse = tusdErr.HTTPResponse.MergeWith(httpRes)
 			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .ok
-		events, ok := configMetaV1.DestIdsEventsNameMap[metaDestinationId]
+		events, ok := metaV1.DestIdsEventsNameMap[metaDestinationId]
 		if !ok {
 			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
@@ -96,7 +96,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		// -----------------------------------------------------------------------------
 		// check schema for the meta_destination_id - meta_ext_event
 		// -----------------------------------------------------------------------------
-		eventDefFileName, ok := configMetaV1.DestIdEventFileNameMap[metaDestinationId+metaExtEvent]
+		eventDefFileName, ok := metaV1.DestIdEventFileNameMap[metaDestinationId+metaExtEvent]
 		if !ok { // really this should not happen if every destination-event has a schema file
 			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
@@ -106,7 +106,7 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .if
 
-		eventSchemas, ok := configMetaV1.Definitions[eventDefFileName]
+		eventSchemas, ok := metaV1.Definitions[eventDefFileName]
 		if !ok && len(eventSchemas) == 0 { // this should be also ok, because in v1 every destination-event has one schema file and for some reason the schemas are array of 1
 			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
@@ -154,9 +154,8 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 		// -----------------------------------------------------------------------------
 		// check filename per upload config is sent
 		// -----------------------------------------------------------------------------
-
 		updConfigKey := metaDestinationId + "-" + metaExtEvent
-		filename := configMetaV1.UploadConfigs[updConfigKey].FileNameMetadataField
+		filename := metaV1.UploadConfigs[updConfigKey].FileNameMetadataField
 
 		_, ok = senderManifest[filename]
 		if !ok {
