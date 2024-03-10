@@ -20,6 +20,10 @@ func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPRe
 
 		senderManifest := hook.Upload.MetaData
 
+		// TODO: all errors, change returns
+		// err = tusd.NewError(strconv.Itoa(http.StatusBadRequest), "no destination id", http.StatusBadRequest)
+		// return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, err
+
 		// -----------------------------------------------------------------------------
 		// get the metadata v1 object needed for these checks
 		// -----------------------------------------------------------------------------
