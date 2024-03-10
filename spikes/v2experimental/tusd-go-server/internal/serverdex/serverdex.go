@@ -11,6 +11,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storecopier"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -67,8 +68,38 @@ func (sd *ServerDex) HttpServer() http.Server {
 	// itself and the relevant HTTP request.
 	go func() {
 		for {
+
 			event := <-sd.handlerTusd.CompleteUploads
 			sd.logger.Info("upload finished", "event.Upload.ID", event.Upload.ID)
+
+			fileName := event.Upload.MetaData["filename"]
+			// copy A -> B
+			stA := storecopier.StoreLocal{
+				FileLocalFolder: sd.appConfig.LocalFolderUploads,
+				FileName:        event.Upload.ID,
+			} // .a
+			stB := storecopier.StoreLocal{
+				FileLocalFolder: sd.appConfig.LocalFolderUploadsB,
+				FileName:        fileName,
+			} // .b
+			err := storecopier.CopySrcToDst(stA, stB)
+			if err != nil {
+				sd.logger.Error("error copy A -> B", "error", err)
+			} else {
+				sd.logger.Info("copied file A -> B ok")
+			} // .else
+			// copy B -> BC
+			stC := storecopier.StoreLocal{
+				FileLocalFolder: sd.appConfig.LocalFolderUploadsC,
+				FileName:        fileName,
+			} // .a
+			err = storecopier.CopySrcToDst(stB, stC)
+			if err != nil {
+				sd.logger.Error("error copy B -> C", "error", err)
+			} else {
+				sd.logger.Info("copied file B -> C ok")
+			} // .else
+
 		} // .for
 	}() // .go func
 

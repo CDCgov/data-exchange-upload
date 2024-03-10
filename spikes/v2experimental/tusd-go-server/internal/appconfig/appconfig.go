@@ -26,7 +26,9 @@ type AppConfig struct {
 	UploadConfigPath         string `env:"UPLOAD_CONFIG_PATH, required"`
 
 	// Local folder path e.g. ../uploads
-	LocalFolderUploads string `env:"LOCAL_FOLDER_UPLOADS, required"`
+	LocalFolderUploads  string `env:"LOCAL_FOLDER_UPLOADS, required"`
+	LocalFolderUploadsB string `env:"LOCAL_FOLDER_UPLOADS_B, required"`
+	LocalFolderUploadsC string `env:"LOCAL_FOLDER_UPLOADS_C, required"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, required"`

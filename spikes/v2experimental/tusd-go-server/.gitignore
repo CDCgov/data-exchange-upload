@@ -1,8 +1,12 @@
 .vscode
 
-# local uploads folder
+# local uploads folders
 uploads/*
 !uploads/readme.md
+uploads_b/*
+!uploads_b/readme.md
+uploads_c/*
+!uploads_c/readme.md
 
 # ref: https://raw.githubusercontent.com/github/gitignore/main/Go.gitignore
 
