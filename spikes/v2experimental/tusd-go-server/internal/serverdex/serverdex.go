@@ -4,7 +4,9 @@ import (
 	"log/slog"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
+	"time"
 
 	//
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
@@ -74,7 +76,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 			event := <-sd.handlerTusd.CompleteUploads
 			sd.logger.Info("upload finished", "event.Upload.ID", event.Upload.ID)
 
-			fileName := event.Upload.MetaData["filename"]
+			fileName := event.Upload.MetaData["filename"] + "_" + strconv.FormatInt(time.Now().UnixNano(), 10)
 			// copy A -> B
 			stA := storecopier.StoreLocal{
 				FileLocalFolder: sd.appConfig.LocalFolderUploads,
