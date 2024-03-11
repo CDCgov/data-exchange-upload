@@ -21,6 +21,21 @@ namespace BulkFileUploadFunctionApp.Model
         [JsonPropertyName("copy_targets")]
         public List<CopyTarget>? copyTargets { get; init; }
     }
-    
+
+    // turn into Enum with key:value
+    // CopyTargets  
+        // edav
+        // routing
+    // map edav number to edav enum
     public record CopyTarget(string target);
+
+    public enum CopyTargetsEnum
+    {
+        [JsonPropertyName("dex-edav")]
+        edav,
+        [JsonPropertyName("dex-routing")]
+        routing 
+    }
+
+
 }

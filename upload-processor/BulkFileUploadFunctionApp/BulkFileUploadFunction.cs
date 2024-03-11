@@ -8,21 +8,17 @@ using Newtonsoft.Json;
 using BulkFileUploadFunctionApp.Utils;
 using System.Collections.Concurrent;
 using BulkFileUploadFunctionApp.Services;
-using System.Runtime.CompilerServices;
-
 
 namespace BulkFileUploadFunctionApp
 {
     public class BulkFileUploadFunction
     {
-        
         private readonly ILogger _logger;
 
         private readonly IUploadProcessingService _uploadProcessingService;
 
         public BulkFileUploadFunction(ILoggerFactory loggerFactory, IUploadProcessingService uploadProcessingService)
         {
-
             _logger = loggerFactory.CreateLogger<BulkFileUploadFunction>();
 
             _uploadProcessingService = uploadProcessingService;
@@ -41,7 +37,8 @@ namespace BulkFileUploadFunctionApp
 
             foreach (var blobCreatedEventJson in eventHubTriggerEvents)
             {
-                _logger.LogInformation($"Received event: {blobCreatedEventJson}");    
+                _logger.LogInformation($"Received event: {blobCreatedEventJson}");
+
 
                 StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 

@@ -33,7 +33,7 @@ tus/file-hooks/post-create/post_create_bin.spec
 
 **/.env
 **/env.*
-**/.sqlite
+
 # Java
 **/.gradle
 **/local.properties
@@ -301,4 +301,3 @@ WiX.Toolset.DummyFile.txt
 GitHubVS.sln.DotSettings
 
 
-upload-processor/.vs/slnx.sqlite

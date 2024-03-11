@@ -14,6 +14,7 @@ namespace BulkFileUploadFunctionApp.Services
     {
         private readonly ILogger _logger;
         private readonly BlobCopyHelper _blobCopyHelper;
+        private readonly IBlobReader _blobReader;
         private readonly string _tusAzureObjectPrefix;
         private readonly string _tusAzureStorageContainer;
         private readonly string _dexAzureStorageAccountName;
@@ -35,12 +36,13 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _dexStorageAccountConnectionString;
 
 
-        public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient, IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService
-            , BlobCopyHelperFactory blobCopyHelperFactory, BlobReaderFactory blobReaderFactory, IBlobServiceClientFactory blobServiceClientFactory )
+        public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient, IFeatureManagementExecutor featureManagementExecutor
+        , IUploadEventHubService uploadEventHubService, BlobReaderFactory blobReaderFactory)
         {
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobCopyHelper = new(_logger);
-
+            _blobReader = blobReaderFactory.CreateInstance(_logger);
+            
             _featureManagementExecutor = featureManagementExecutor;
             _procStatClient = procStatClient;
 
@@ -58,7 +60,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             _tusHooksFolder = Environment.GetEnvironmentVariable("TUSD_HOOKS_FOLDER", EnvironmentVariableTarget.Process) ?? "tusd-file-hooks";
 
-            _destinationAndEvents = GetAllDestinationAndEvents();
+            
 
             _uploadEventHubService = uploadEventHubService;
             _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
@@ -75,6 +77,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
+                var _destinationAndEvents = GetAllDestinationAndEvents();
                 var sourceBlobUri = new Uri(blobCreatedUrl);
                 string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Last()}";
 
@@ -183,7 +186,7 @@ namespace BulkFileUploadFunctionApp.Services
         /// </summary>
         /// <param name="copyPreqs">Copy preqs</param>
         /// <returns>dexBlobUrl</returns>
-        private async Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs)
+        public async Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs)
         {
             try
             {
@@ -287,7 +290,7 @@ namespace BulkFileUploadFunctionApp.Services
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(copyPrereqs.DexBlobFolderName);
                 BlobClient dexBlobClient = containerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
 
-                var edavBlobServiceClient = _blobServiceClientFactory.CreateBlobServiceClient(
+                var edavBlobServiceClient = new BlobServiceClient(
                     new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
                     new DefaultAzureCredential() // using Service Principal
                 );
@@ -353,19 +356,12 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_routingStorageAccountName};AccountKey={_routingStorageAccountKey};EndpointSuffix=core.windows.net";
-                //_blobServiceClientFactory = blobServiceClientFactory.CreateBlobServiceClient(connectionString);
 
                 BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
                 BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(copyPrereqs.DexBlobFolderName);
                 BlobClient dexBlobClient = containerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
 
-                var routingBlobServiceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
-
-                //BlobServiceClient blobServiceClient = new($"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net");
-                //BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(sourceContainerName);
-                //BlobClient dexBlobClient = containerClient.GetBlobClient(sourceBlobFilename);
-
-                //var routingBlobServiceClient = new BlobServiceClient(connectionString);
+                var routingBlobServiceClient = new BlobServiceClient(connectionString);
 
                 // _routingUploadRootContainerName could be set to empty, then no root container in routing
 
@@ -420,9 +416,9 @@ namespace BulkFileUploadFunctionApp.Services
             string tusInfoFilename = $"{tusPayloadFilename}.info";             
             _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
 
-            var blobReader = new BlobReader(_logger);
+            //var blobReader = new BlobReader(_logger);
 
-            TusInfoFile tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
+            TusInfoFile tusInfoFile = await _blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
 
             if (tusInfoFile.ID == null)
                 throw new Exception("Malformed tus info file. No ID provided.");
@@ -441,8 +437,8 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
-                var blobReader = new BlobReader(_logger);
-                uploadConfig = await blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
+                //var blobReader = new BlobReader(_logger);
+                uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
             } catch (Exception e)
             {
                 _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {eventType}.  Using default config. Exception = ${e.Message}");
@@ -518,12 +514,12 @@ namespace BulkFileUploadFunctionApp.Services
         {
             if (tusInfoFile.MetaData == null || tusInfoFile.ID == null)
             {
-                throw new ArgumentNullException("Metadata cannot be null.");
+                throw new ArgumentNullException("TusFileInfo Metadata cannot be null.");
             }
 
             if (uploadConfig.MetadataConfig == null || uploadConfig.MetadataConfig.Fields == null)
             {
-                throw new ArgumentNullException("Metadata fields cannot be null.");
+                throw new ArgumentNullException("UploadConfig Metadata fields cannot be null.");
             }
 
             // Add use-case specific fields and their values.
@@ -573,8 +569,8 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogInformation($"Fetching Destinations and Events from  {_tusHooksFolder}/{_destinationAndEventsFileName}");
 
-                var blobReader = new BlobReader(_logger);
-                var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
+                //var blobReader = new BlobReader(_logger);
+                var destinationAndEvents = await _blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
 
                 _logger.LogInformation($"Destinations And Events: {JsonSerializer.Serialize(destinationAndEvents)}");
 

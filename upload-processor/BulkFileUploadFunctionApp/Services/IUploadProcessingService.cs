@@ -14,5 +14,7 @@ namespace BulkFileUploadFunctionApp.Services
         public Task CopyFromDexToRouting(CopyPrereqs copyPrereqs);
 
         public Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs);
+
+        public Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs);
     }
 }

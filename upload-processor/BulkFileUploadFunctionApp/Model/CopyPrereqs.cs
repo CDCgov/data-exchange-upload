@@ -19,6 +19,8 @@ namespace BulkFileUploadFunctionApp.Model
         public Trace? Trace { get; set; }
 
         public CopyPrereqs() { }
+
+        // create a Default constructor
         public CopyPrereqs(string uploadId, string sourceBlobUrl, string tusPayloadFilename, string destinationId, string eventType, string dexBlobFolderName, string dexBlobFileName, Dictionary<string, string> metadata, CopyTarget[] targets, Trace trace)
         {
             UploadId = uploadId;
