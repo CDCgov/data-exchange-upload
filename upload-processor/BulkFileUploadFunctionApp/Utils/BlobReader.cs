@@ -1,6 +1,7 @@
 ﻿using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using BulkFileUploadFunctionApp.Services;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
