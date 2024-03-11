@@ -295,8 +295,8 @@ namespace BulkFileUploadFunctionAppTests
 
             // Assert
             //_mockUploadProcessingService.Verify(x => x.CopyAll(It.IsAny<CopyPrereqs>()), Times.Once);
-            _mockFeatureManagementExecutor.Verify(x => x.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, It.IsAny<Func<Task>>()), Times.Once);
-            _mockBlobReader.Verify(x=> x.GetObjectFromBlobJsonContent<TusInfoFile>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+            _mockFeatureManagementExecutor.Verify(x => x.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, It.IsAny<Func<Task>>()), Times.Never);
+            _mockBlobReader.Verify(x=> x.GetObjectFromBlobJsonContent<TusInfoFile>(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
         }
 
 
