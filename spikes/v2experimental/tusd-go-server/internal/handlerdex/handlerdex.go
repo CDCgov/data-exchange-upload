@@ -15,7 +15,7 @@ type HandlerDex struct {
 	cliFlags  cliflags.Flags
 	appConfig appconfig.AppConfig
 	logger    *slog.Logger
-}
+} // .HandlerDex
 
 // New returns a DEX sever handler that can handle http requests
 func New(flags cliflags.Flags, appConfig appconfig.AppConfig) *HandlerDex {

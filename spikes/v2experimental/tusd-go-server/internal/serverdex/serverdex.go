@@ -26,6 +26,7 @@ type ServerDex struct {
 	handlerTusd *tusd.Handler
 	handlerDex  *handlerdex.HandlerDex
 	logger      *slog.Logger
+	Metrics     Metrics
 } // .ServerDex
 
 // New returns an custom server for DEX Upload Api ready to serve
@@ -50,6 +51,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, err
 		handlerTusd: handlerTusd,
 		handlerDex:  handlerDex,
 		logger:      logger,
+		Metrics:     newMetricsDex(),
 	}, nil // .return
 
 } // New
@@ -86,6 +88,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 			if err != nil {
 				sd.logger.Error("error copy A -> B", "error", err)
 			} else {
+				sd.Metrics.incCopiedAToB()
 				sd.logger.Info("copied file A -> B ok")
 			} // .else
 			// copy B -> BC
@@ -97,6 +100,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 			if err != nil {
 				sd.logger.Error("error copy B -> C", "error", err)
 			} else {
+				sd.Metrics.incCopiedBToC()
 				sd.logger.Info("copied file B -> C ok")
 			} // .else
 

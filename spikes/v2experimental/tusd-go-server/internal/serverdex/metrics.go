@@ -1,33 +1,28 @@
 package serverdex
 
-// tusd metrics loading: https://github.com/tus/tusd/blob/main/cmd/tusd/cli/metrics.go
-// note: tusd.Handler exposes metrics by cli flag and defaults true
-
 import (
-	"github.com/prometheus/client_golang/prometheus"
-	tusd "github.com/tus/tusd/v2/pkg/handler"
-	"github.com/tus/tusd/v2/pkg/hooks"
-	"github.com/tus/tusd/v2/pkg/prometheuscollector"
-) // .import
+	// "sync"
+	"sync/atomic"
+)
 
-var metricsOpenConnections = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "tusd_connections_open",
-	Help: "Current number of open connections.",
-})
+type Metrics struct {
+	CopiedAToB *uint64
+	CopiedBToC *uint64
+} // Metrics
 
-func (sd ServerDex) setupMetrics(handlerTusd *tusd.Handler) {
+func newMetricsDex() Metrics {
+	return Metrics{
+		CopiedAToB: new(uint64),
+		CopiedBToC: new(uint64),
+	} // .return
+} // .NewMetricsDex
 
-	// ------------------------------------------------------------------
-	// metrics as exposed by TUSD, refs:
-	// https://github.com/tus/tusd/blob/main/cmd/tusd/cli/metrics.go
-	// ------------------------------------------------------------------
+// incCopiedAToB increases the counter for completed copies
+func (m Metrics) incCopiedAToB() {
+	atomic.AddUint64(m.CopiedAToB, 1)
+} // .incCopiedAToB
 
-	prometheus.MustRegister(metricsOpenConnections)
-	prometheus.MustRegister(hooks.MetricsHookErrorsTotal)
-	prometheus.MustRegister(hooks.MetricsHookInvocationsTotal)
-	prometheus.MustRegister(prometheuscollector.New(handlerTusd.Metrics))
-
-	// ------------------------------------------------------------------
-	// DEX server metrics
-	// ------------------------------------------------------------------
-} // setupMetrics
+// incCopiedBToC increases the counter for completed copies
+func (m Metrics) incCopiedBToC() {
+	atomic.AddUint64(m.CopiedBToC, 1)
+} // .incCopiedBToC
