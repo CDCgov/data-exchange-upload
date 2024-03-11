@@ -44,7 +44,7 @@ export class UploadClient {
 
     async uploadFileAndGetId(accessToken: string, fileName: string, metadata: Record<string, string>): Promise<string> {
         const file = fs.createReadStream(fileName);
-
+        
         return new Promise((resolve, reject) => {
             const options: tus.UploadOptions = {
                 endpoint: `${this.baseURL}/upload`,

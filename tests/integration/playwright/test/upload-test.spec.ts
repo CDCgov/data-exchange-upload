@@ -43,9 +43,8 @@ test.describe('File Upload and Trace Response Flow', () => {
   function assertErrorResponse(error, expectedStatusCode, expectedErrorMessageSubstring) {
     const errorMessage = error instanceof Error ? error.message : String(error);
 
-    // Define regex for extracting the HTTP status code and upload_id
+    // Define regex for extracting the HTTP status code 
     const statusCodeRegex = /response code: (\d+)/;
-   const uploadIdRegex = /"upload_id": "([\w-]+)"/;
 
     // Use RegExp.exec() to extract the HTTP status code
     const statusCodeMatch = statusCodeRegex.exec(errorMessage);
@@ -57,10 +56,14 @@ test.describe('File Upload and Trace Response Flow', () => {
     // Further, assert that the error message contains the specific error detail
     expect(errorMessage).toContain(expectedErrorMessageSubstring);
 
-    // Use RegExp.exec() to extract the uploadId
-    const uploadIdMatch = uploadIdRegex.exec(errorMessage);
-    uploadId = uploadIdMatch ? uploadIdMatch[1] : null;
+  }
 
+  // New function to extract upload ID from an error message
+  function extractUploadIdFromError(error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const uploadIdRegex = /"upload_id": "([\w-]+)"/;
+    const uploadIdMatch = uploadIdRegex.exec(errorMessage);
+    return uploadIdMatch ? uploadIdMatch[1] : null;
   }
 
 
@@ -112,14 +115,14 @@ test.describe('File Upload and Trace Response Flow', () => {
     test(name, async ({ request }) => {
 
       try {
-        uploadId= await client.uploadFileAndGetId(accessToken, fileName, metadata);
+        uploadId = await client.uploadFileAndGetId(accessToken, fileName, metadata);
 
       } catch (error) {
         assertErrorResponse(error, expectedStatusCode, expectedErrorMessage);
-
+        uploadId = extractUploadIdFromError(error);
         const psApiUrl = `${PS_API_URL}/api/report/uploadId/${uploadId}`;
         const response = await request.get(psApiUrl);
-        const responseBody = await response.json();        
+        const responseBody = await response.json();
         expect(responseBody).toHaveProperty(pstestProperty);
         expect(responseBody[pstestProperty]).toBe(psexpectedErrorMessage);
 
