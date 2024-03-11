@@ -1,8 +1,8 @@
 # V2 Experiment Go
 
 - Using TUSD official Go implementation as a library and building a custom Go server
-- Refactor current python hooks check in Go
-- Refactor current c# function into the Go custom server
+- Refactor current python hooks check in Go [phase 1]
+- Refactor current c# function into the Go custom server [phase 2 potentially a second Go service]
 
 
 
