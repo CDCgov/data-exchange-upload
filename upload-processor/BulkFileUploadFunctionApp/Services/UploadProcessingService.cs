@@ -557,7 +557,7 @@ namespace BulkFileUploadFunctionApp.Services
             tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
             tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
             tusInfoFile.MetaData["trace_id"] = traceId;
-            tusInfoFile.MetaData["span_id"] = spanId;
+            tusInfoFile.MetaData["parent_span_id"] = spanId;
             tusInfoFile.MetaData.Remove("filename"); // Remove filename field to use standard received_filename field.
         }
 

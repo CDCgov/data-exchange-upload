@@ -51,7 +51,7 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"/api/report/uploadId/{uploadId}?destinationId={destinationId}&eventType={eventType}&stageName={stageName}", content);
+                var response = await _httpClient.PostAsync($"/api/report/json/uploadId/{uploadId}?destinationId={destinationId}&eventType={eventType}&stageName={stageName}", content);
                 response.EnsureSuccessStatusCode();
             } catch (Exception ex)
             {
