@@ -23,8 +23,8 @@ const ENV_AWS = "aws"
 func ParseFlags() (Flags, error) {
 
 	env := flag.String("env", "local", "used to set app run environment: local, azure, or aws")
-	appLcp := flag.String("appconf", "../configs/local/local.env", "used to override the app configuration file path")
-	azLcp := flag.String("azconf", "../configs/local/az.env", "used to override the azure configuration file path")
+	appLcp := flag.String("appconf", "./configs/local/local.env", "used to override the app configuration file path")
+	azLcp := flag.String("azconf", "./configs/local/az.env", "used to override the azure configuration file path")
 
 	flag.Parse()
 

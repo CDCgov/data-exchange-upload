@@ -1,0 +1,117 @@
+[
+  {
+    "destination_id": "aims-celr",
+    "ext_events": [
+      {
+        "name": "csv",
+        "definition_filename": "definitions/aims_celr_meta_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_routing"}
+        ]
+      },
+      {
+        "name": "hl7",
+        "definition_filename": "definitions/aims_celr_meta_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_routing"}
+        ]
+      }
+    ]
+  },
+  {
+    "destination_id": "daart",
+    "ext_events": [
+      {
+        "name": "hl7",
+        "definition_filename": "definitions/daart_hl7_meta_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_routing"}
+        ]
+      }
+    ]
+  },
+  {
+    "destination_id": "dex-hl7",
+    "ext_events": [
+      {
+        "name": "hl7ingress",
+        "definition_filename": "definitions/dex_hl7_metadata_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_edav"}
+        ]
+      }
+    ]
+  },
+  {
+    "destination_id": "dextesting",
+    "ext_events": [
+      {
+        "name": "testevent1",
+        "definition_filename": "definitions/dextesting_te1_metadata_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_edav"},
+          { "target" : "dex_routing"}
+        ]
+      }
+    ]
+  },
+  {
+    "destination_id": "ndlp",
+    "ext_events": [
+      {
+        "name": "routineImmunization",
+        "definition_filename": "definitions/ndlp-ri-meta-definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_edav"}
+        ]
+      },
+      {
+        "name": "influenzaVaccination",
+        "definition_filename": "definitions/ndlp-iv-meta-definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_edav"}
+        ]
+      },
+      {
+        "name": "rsvPrevention",
+        "definition_filename": "definitions/ndlp_rsv_meta_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_edav"}
+        ]
+      },
+      {
+        "name": "covidallmonthlyVaccination",
+        "definition_filename": "definitions/ndlp_covid_all_meta_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_edav"}
+        ]
+      },
+      {
+        "name": "covidbridgeVaccination",
+        "definition_filename": "definitions/ndlp_covid_bridge_meta_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_edav"}
+        ]
+      },
+      {
+        "name": "aplHistoricalData",
+        "definition_filename": "definitions/ndlp_apl_historical_data_meta_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_edav"}
+        ]
+      }
+    ]
+  },
+  {
+    "destination_id": "pulsenet",
+    "ext_events": [
+      {
+        "name": "LocalSequenceFile",
+        "definition_filename": "definitions/pulsenet_metadata_definition.json",
+        "copy_targets": [ 
+          { "target" : "dex_edav"}
+        ]
+      }
+    ]
+  }
+]

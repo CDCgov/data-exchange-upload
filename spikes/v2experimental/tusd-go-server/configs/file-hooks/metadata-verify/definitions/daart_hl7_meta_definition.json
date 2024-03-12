@@ -1,0 +1,41 @@
+[
+    {
+      "schema_version": "1.0",
+      "fields": [
+        {
+          "fieldname": "original_filename",
+          "allowed_values": null,
+          "required": "true",
+          "description": "The name of the file submitted."
+        },
+        {
+          "fieldname": "original_file_timestamp",
+          "allowed_values": null,
+          "required": "false",
+          "description": "The timestamp of last modified for the file submitted."
+        },
+        {
+          "fieldname": "message_type",
+          "allowed_values": [
+            "ELR"
+          ],
+          "required": "true",
+          "description": "Identifies if the message is a CASE message or ELR"
+        },
+        {
+          "fieldname": "route",
+          "allowed_values": [
+            "DAART"
+          ],
+          "required": "true",
+          "description": "Informs the type of ELR messages when message_type = ELR"
+        },
+        {
+          "fieldname": "reporting_jurisdiction",
+          "allowed_values": null,
+          "required": "true",
+          "description": "Informs which jurisdiction is uploading the message"
+        }
+      ]
+    }
+  ]
