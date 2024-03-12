@@ -3,7 +3,7 @@ using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionAppTests
 {
@@ -52,7 +52,7 @@ namespace BulkFileUploadFunctionAppTests
             {
                 Data = new StorageBlobCreatedEventData { Url = testBlobUrl }
             };
-            string[] events = new string[] { JsonConvert.SerializeObject(new[]{blobEvent}) };
+            string[] events = new string[] { JsonSerializer.Serialize(new[]{blobEvent}) };
 
             string sourceContainerName = "bulkuploads";
 
@@ -135,7 +135,7 @@ namespace BulkFileUploadFunctionAppTests
             {
                 Data = new StorageBlobCreatedEventData { Url = testBlobUrl }
             };
-            string[] events = new string[] { JsonConvert.SerializeObject(new[] { blobEvent }) };
+            string[] events = new string[] { JsonSerializer.Serialize(new[] { blobEvent }) };
 
             string sourceContainerName = "bulkuploads";
 
