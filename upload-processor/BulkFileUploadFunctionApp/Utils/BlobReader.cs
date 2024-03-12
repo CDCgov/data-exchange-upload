@@ -14,20 +14,12 @@ namespace BulkFileUploadFunctionApp.Utils
         {
             _logger = logger;
         }
-        public BlobReader(ILogger logger, IBlobServiceClientFactory blobServiceClientFactory)
-        {
-            _logger = logger;
-            _blobServiceClientFactory = blobServiceClientFactory;
-        }
 
         public async Task<T?> GetObjectFromBlobJsonContent<T>(string connectionString, string sourceContainerName, string blobPathname)
         {
             T? result;
 
-            var sourceClient = _blobServiceClientFactory.CreateBlobServiceClient(connectionString);
-
-            var sourceContainerClient = sourceClient.GetBlobContainerClient(sourceContainerName);
-            
+            var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
             BlobClient sourceBlob = sourceContainerClient.GetBlobClient(blobPathname);
 
             _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
