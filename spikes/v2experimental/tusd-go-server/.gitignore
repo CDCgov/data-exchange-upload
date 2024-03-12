@@ -3,7 +3,13 @@
 # local uploads folders
 uploads/*
 !uploads/readme.md
+
+!uploads/uploads_b 
+uploads/uploads_b/*
 !uploads/uploads_b/readme.md
+
+!uploads/uploads_c
+uploads/uploads_c/*
 !uploads/uploads_c/readme.md
 
 # ref: https://raw.githubusercontent.com/github/gitignore/main/Go.gitignore
