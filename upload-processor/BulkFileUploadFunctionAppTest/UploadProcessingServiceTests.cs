@@ -1,23 +1,12 @@
-using Azure;
-using Azure.Identity;
 using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp;
 using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionAppTest.utils;
-using DurableTask.Core.History;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Concurrent;
-using System.Reflection.Metadata;
 
 namespace BulkFileUploadFunctionAppTests
 {
@@ -28,12 +17,9 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IProcStatClient>? _mockProcStatClient;
         private Mock<BlobCopyHelperFactory>? _mockBlobCopyHelperFactory;
         private Mock<IBlobServiceClientFactory>? _mockBlobServiceClientFactory;
-        private Mock<ILogger<BulkFileUploadFunction>>? _loggerMockBUF;
         private Mock<ILogger<UploadProcessingService>>? _loggerMock;
         private Mock<ILoggerFactory>? _loggerFactoryMock;
-        private Mock<ILoggerFactory>? _loggerFactoryBUFMock;
         private Mock<IConfiguration>? _mockConfiguration;
-        private BulkFileUploadFunction _function;
         private StorageBlobCreatedEvent _storageBlobCreatedEvent;
         private MockTusInfoFile? _mockTusInfoFile;
         private Mock<IUploadProcessingService>? _mockUploadProcessingService;

@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Azure.Identity;
 using System.Text.Json;
-
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
 

@@ -1,21 +1,11 @@
-using Azure;
-using Azure.Identity;
-using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp;
 using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionAppTest.utils;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Concurrent;
-using System.Diagnostics;
 
 namespace BulkFileUploadFunctionAppTests
 {

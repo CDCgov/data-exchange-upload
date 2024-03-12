@@ -8,7 +8,6 @@ namespace BulkFileUploadFunctionApp.Utils
     internal class BlobReader : IBlobReader
     {
         private readonly ILogger _logger;
-        private IBlobServiceClientFactory _blobServiceClientFactory;
 
         public BlobReader(ILogger logger)
         {
