@@ -1,20 +1,20 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
 using Azure;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
+using Azure.Identity;
 using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp;
 using BulkFileUploadFunctionApp.Model;
-using Azure.Identity;
-using Newtonsoft.Json;
-using BulkFileUploadFunctionApp.Utils;
-using System.Collections.Concurrent;
-using Microsoft.Extensions.Configuration;
 using BulkFileUploadFunctionApp.Services;
-using Microsoft.Extensions.Logging.Abstractions;
-using System;
+using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionAppTest.utils;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace BulkFileUploadFunctionAppTests
@@ -32,7 +32,6 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IConfiguration>? _mockConfiguration;
         private BulkFileUploadFunction? _function;
         private StorageBlobCreatedEvent? _storageBlobCreatedEvent;
-        //private UploadProcessingService _uploadProcessingService;
         private Mock<IUploadProcessingService>? _mockUploadProcessingService;
         private Mock<IFeatureManagementExecutor>? _mockFeatureManagementExecutor;
         private Mock<IUploadEventHubService>? _mockUploadEventHubService;
@@ -67,7 +66,6 @@ namespace BulkFileUploadFunctionAppTests
             _mockBlobCopyHelperFactory = new Mock<BlobCopyHelperFactory>();
             _mockBlobReaderFactory = new Mock<BlobReaderFactory>();
             _mockBulkFileUploadFunction = new Mock<BulkFileUploadFunction>();
-            //_loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             _mockUploadProcessingService = new Mock<IUploadProcessingService>();
             
 
@@ -117,7 +115,6 @@ namespace BulkFileUploadFunctionAppTests
         public void GivenValidUri_WhenRunIsCalled_ThenBlobIsValidated()
         {
             // Arrange
-            // Set up the BlobCopyHelper mock
            string[] expectedCopyResultJson = new string[] { JsonConvert.SerializeObject(new[]{_storageBlobCreatedEvent}) };
 
             // Assert
@@ -137,7 +134,7 @@ namespace BulkFileUploadFunctionAppTests
 
             var mockUriWrapper = new Mock<IUriWrapper>();
             mockUriWrapper.Setup(u => u.GetUri()).Returns(new Uri("https://example.com/blob/1MB-test-file.txt"));
-            System.Uri uri = mockUriWrapper.Object.GetUri(); //new System.Uri("https://example.com/blob/1MB-test-file");            
+            System.Uri uri = mockUriWrapper.Object.GetUri();       
             string testBlobUrl = uri.ToString();
 
             var blobReaderMock = new Mock<IBlobReader>();
@@ -186,7 +183,7 @@ namespace BulkFileUploadFunctionAppTests
             var metadataConfig = new MetadataConfig
             {
                 Version = "1.0",
-                Fields = new List<MetadataField> { metadataField } // Add more MetadataField objects to this list as needed
+                Fields = new List<MetadataField> { metadataField }
             };
 
             UploadConfig _uploadConfig = new UploadConfig
@@ -225,8 +222,6 @@ namespace BulkFileUploadFunctionAppTests
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
             }
-
-            // Assert mock uploadprocessingsvc copyall is verified
             _mockUploadProcessingService.Verify(x => x.CopyAll(copyPrereqs), Times.Once);
         }
 
@@ -235,8 +230,6 @@ namespace BulkFileUploadFunctionAppTests
         {
             // Arrange
             var storageBlobCreatedEvent = new StorageBlobCreatedEvent();
-
-            // Set up the BlobCopyHelper mock
             string[] expectedCopyResultJson = new string[] { JsonConvert.SerializeObject(new[] { String.Empty }) };
 
             // Assert
