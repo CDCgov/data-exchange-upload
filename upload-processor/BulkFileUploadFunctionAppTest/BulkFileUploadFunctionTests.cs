@@ -39,10 +39,6 @@ namespace BulkFileUploadFunctionAppTests
         private MockTusInfoFile? _mockTusInfoFile;
         private MockTusStorage? _mockTusInfoFileStorage;
         private MockUploadConfig? _mockUploadConfig;
-        private readonly string _targetEdav = "dex_edav";
-        private readonly string _targetRouting = "dex_routing";
-        private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
-        private readonly string _stageName = "dex-file-copy";
 
         [TestInitialize]
         public void Initialize()
