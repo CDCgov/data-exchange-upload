@@ -117,16 +117,12 @@ namespace BulkFileUploadFunctionAppTests
         [TestMethod]
         public async Task GivenValidUri_WhenRunIsCalled_ThenLogEventsCopyAllVerified()
         {
-
-            var mockUriWrapper = new Mock<IUriWrapper>();
-            mockUriWrapper.Setup(u => u.GetUri()).Returns(new Uri("https://example.com/blob/1MB-test-file.txt"));
-            System.Uri uri = mockUriWrapper.Object.GetUri();       
-            string testBlobUrl = uri.ToString();
+            string testBlobUrl = "https://example.com/blob/1MB-test-file.txt";
 
             var blobReaderMock = new Mock<IBlobReader>();
             var blobEvent = new StorageBlobCreatedEvent
             {
-                Data = new StorageBlobCreatedEventData { Url = "http://example.com/blob/10MB-test-file" }
+                Data = new StorageBlobCreatedEventData { Url = testBlobUrl }
             };
             string[] events = new string[] { JsonConvert.SerializeObject(new[]{blobEvent}) };
 
@@ -193,11 +189,14 @@ namespace BulkFileUploadFunctionAppTests
                 DexBlobFileName = tusInfoFile.MetaData["filename"].Replace("test", "dexTest")
             };
 
-            var _mockUploadProcessingService = new Mock<IUploadProcessingService>();
-            await _mockUploadProcessingService.Object.CopyAll(copyPrereqs);
+            _mockUploadProcessingService
+                .Setup(x => x.GetCopyPrereqs(testBlobUrl))
+                .Returns(Task.FromResult(copyPrereqs));
+
             if (_function is not null){
                 await _function.Run(events);
             }
+            
 
             if(_loggerMock is not null)
             {
