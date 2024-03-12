@@ -1,10 +1,9 @@
 // Default URL for triggering event grid function in the local environment.
 // http://localhost:7071/runtime/webhooks/EventGrid?functionName={functionname}
-using Azure;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using BulkFileUploadFunctionApp.Model;
-using Newtonsoft.Json;
+using System.Text.Json;
 using BulkFileUploadFunctionApp.Utils;
 using System.Collections.Concurrent;
 using BulkFileUploadFunctionApp.Services;
@@ -40,7 +39,7 @@ namespace BulkFileUploadFunctionApp
                 _logger.LogInformation($"Received event: {blobCreatedEventJson}");
 
 
-                StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
+                StorageBlobCreatedEvent[]? blobCreatedEvents = JsonSerializer.Deserialize<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
 
                 if (blobCreatedEvents == null)
                     throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
@@ -70,7 +69,7 @@ namespace BulkFileUploadFunctionApp
             try
             {
                 copyPrereqs = await _uploadProcessingService.GetCopyPrereqs(blobCreatedUrl);
-                _logger.LogInformation($"Copy preqs: {JsonConvert.SerializeObject(copyPrereqs)}");
+                _logger.LogInformation($"Copy preqs: {JsonSerializer.Serialize(copyPrereqs)}");
                 
                  await _uploadProcessingService.CopyAll(copyPrereqs);
             }

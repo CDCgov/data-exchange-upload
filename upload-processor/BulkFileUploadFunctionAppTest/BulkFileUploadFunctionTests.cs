@@ -2,8 +2,6 @@ using BulkFileUploadFunctionApp;
 using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
-using BulkFileUploadFunctionAppTest.utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -12,23 +10,11 @@ namespace BulkFileUploadFunctionAppTests
     [TestClass]
     public class BulkFileUploadFunctionTests
     {
-        private Mock<IProcStatClient>? _mockProcStatClient;
-        private Mock<BlobCopyHelperFactory>? _mockBlobCopyHelperFactory;
-        private Mock<BlobReaderFactory>? _mockBlobReaderFactory;
-        private Mock<ILogger<BulkFileUploadFunction>>? _loggerMockBUF;
         private Mock<ILogger<UploadProcessingService>>? _loggerMock;
         private Mock<ILoggerFactory>? _loggerFactoryMock;
         private Mock<ILoggerFactory>? _loggerFactoryBUFMock;
-        private Mock<IConfiguration>? _mockConfiguration;
         private BulkFileUploadFunction? _function;
-        private StorageBlobCreatedEvent? _storageBlobCreatedEvent;
         private Mock<IUploadProcessingService>? _mockUploadProcessingService;
-        private Mock<IFeatureManagementExecutor>? _mockFeatureManagementExecutor;
-        private Mock<IUploadEventHubService>? _mockUploadEventHubService;
-        private Mock<BulkFileUploadFunction>? _mockBulkFileUploadFunction;
-        private MockTusInfoFile? _mockTusInfoFile;
-        private MockTusStorage? _mockTusInfoFileStorage;
-        private MockUploadConfig? _mockUploadConfig;
 
         [TestInitialize]
         public void Initialize()
@@ -42,16 +28,8 @@ namespace BulkFileUploadFunctionAppTests
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
 
             _loggerFactoryBUFMock = new Mock<ILoggerFactory>();
-            _loggerMockBUF = new Mock<ILogger<BulkFileUploadFunction>>();
             _loggerFactoryBUFMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             
-            _mockConfiguration = new Mock<IConfiguration>();
-            _mockProcStatClient = new Mock<IProcStatClient>();
-            _mockFeatureManagementExecutor = new Mock<IFeatureManagementExecutor>();
-            _mockUploadEventHubService = new Mock<IUploadEventHubService>();
-            _mockBlobCopyHelperFactory = new Mock<BlobCopyHelperFactory>();
-            _mockBlobReaderFactory = new Mock<BlobReaderFactory>();
-            _mockBulkFileUploadFunction = new Mock<BulkFileUploadFunction>();
             _mockUploadProcessingService = new Mock<IUploadProcessingService>();
             
 
@@ -62,57 +40,7 @@ namespace BulkFileUploadFunctionAppTests
                 _mockUploadProcessingService.Object
                 );
 
-
-
-            _storageBlobCreatedEvent = new StorageBlobCreatedEvent
-            {
-                Id = "12323",
-                Topic="routineImmunization",
-                Subject="IZGW",
-                EventType="DD2",
-                EventTime=System.DateTime.Now,
-                Data = new StorageBlobCreatedEventData{Url="https://example.com/blob/10MB-test-file"}
-            };
-
-
-            _mockTusInfoFileStorage = new MockTusStorage { Container = "bulkuploads", Key = "tus-prefix/a0e127caec153d6047ee966bc2acd8cb", Type = "azurestore" };
-            _mockTusInfoFile = new MockTusInfoFile
-            {
-                ID = "a0e127caec153d6047ee966bc2acd8cb",
-                Size = 7952,
-                SizeIsDeferred = false,
-                Offset = 0,
-                IsPartial = false,
-                IsFinal = false,
-                MetaData = new Dictionary<string, string> { { "meta_destination_id", "dextesting" }, { "meta_ext_event", "testevent1" }, { "filename", "test.txt" } },
-                Storage = _mockTusInfoFileStorage
-            };
-
-            _mockUploadConfig = new MockUploadConfig
-            {
-                FilenameMetadataField = _mockTusInfoFile.MetaData is not null ? _mockTusInfoFile.MetaData["meta_destination_id"] : "meta_destination_id",
-                FilenameSuffix = ".txt",
-                FolderStructure = "/blob",
-                FixedFolderPath = "/blob"
-            };
-
-        }
-        [TestMethod]
-        public void GivenValidUri_WhenRunIsCalled_ThenBlobIsValidated()
-        {
-            // Arrange
-           string[] expectedCopyResultJson = new string[] { JsonConvert.SerializeObject(new[]{_storageBlobCreatedEvent}) };
-
-            // Assert
-            foreach (var blobCreatedEventJson in expectedCopyResultJson)
-            {
-                Console.WriteLine($"C# Event Hub trigger function processed a message: {blobCreatedEventJson}");
-                Assert.IsNotNull(blobCreatedEventJson);
-                StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
-                Assert.IsNotNull(blobCreatedEvents);
-                Assert.IsInstanceOfType(blobCreatedEvents, typeof(StorageBlobCreatedEvent[]));
-            }
-        }        
+        }    
 
         [TestMethod]
         public async Task GivenValidUri_WhenRunIsCalled_ThenLogEventsCopyAllVerified()
@@ -126,34 +54,20 @@ namespace BulkFileUploadFunctionAppTests
             };
             string[] events = new string[] { JsonConvert.SerializeObject(new[]{blobEvent}) };
 
-            string sourceContainerName = String.Empty; 
+            string sourceContainerName = "bulkuploads";
 
-            sourceContainerName = _mockTusInfoFile.Storage.Container is not null ? _mockTusInfoFile.Storage.Container.ToString() : "test-container";
+
             TusInfoFile tusInfoFile = new TusInfoFile
             {
-                ID = _mockTusInfoFile.ID,
-                Size = _mockTusInfoFile.Size,
-                SizeIsDeferred = _mockTusInfoFile.SizeIsDeferred,
-                Storage = new TusStorage { Container = _mockTusInfoFile.Storage.Container, Key = _mockTusInfoFile.Storage.Key, Type = _mockTusInfoFile.Storage.Type },
-                MetaData = _mockTusInfoFile.MetaData
+                ID = "a0e127caec153d6047ee966bc2acd8cb",
+                Size = 7952,
+                SizeIsDeferred = false,
+                Offset = 0,
+                IsPartial = false,
+                IsFinal = false,
+                MetaData = new Dictionary<string, string> { { "meta_destination_id", "dextesting" }, { "meta_ext_event", "testevent1" }, { "filename", "test.txt" } },
+                Storage = new TusStorage { Container = "bulkuploads", Key = "tus-prefix/a0e127caec153d6047ee966bc2acd8cb", Type = "azurestore" }
             };
-
-            MockUploadConfig _mockUploadConfig = new MockUploadConfig
-            {
-                FilenameMetadataField = _mockTusInfoFile.MetaData is not null ? _mockTusInfoFile.MetaData["meta_destination_id"] : "meta_destination_id",
-                FilenameSuffix = ".txt",
-                FolderStructure = "/blob",
-                FixedFolderPath = "/blob"
-
-            };
-
-            BulkFileUploadFunctionApp.Model.Trace? _trace = new BulkFileUploadFunctionApp.Model.Trace
-            {
-                DestinationId = "dextesting",
-                SpanId = "123234",
-                TraceId = "123345"
-            };
-
 
             var metadataField = new MetadataField
             {
@@ -168,12 +82,19 @@ namespace BulkFileUploadFunctionAppTests
                 Fields = new List<MetadataField> { metadataField }
             };
 
-            UploadConfig _uploadConfig = new UploadConfig
+            UploadConfig uploadConfig = new UploadConfig
             {
-                FilenameSuffix = _mockUploadConfig.FilenameSuffix,
-                FolderStructure = _mockUploadConfig.FolderStructure,
-                FixedFolderPath = _mockUploadConfig.FixedFolderPath,
+                FilenameSuffix = ".txt",
+                FolderStructure = "/blob",
+                FixedFolderPath = "/blob",
                 MetadataConfig = metadataConfig
+            };
+
+            Trace? _trace = new Trace
+            {
+                DestinationId = "dextesting",
+                SpanId = "123234",
+                TraceId = "123345"
             };
 
             var copyPrereqs = new CopyPrereqs()
@@ -185,7 +106,7 @@ namespace BulkFileUploadFunctionAppTests
                 TusPayloadFilename = tusInfoFile.MetaData["filename"],
                 DestinationId = tusInfoFile.MetaData["meta_destination_id"],
                 EventType = tusInfoFile.MetaData["meta_ext_event"],
-                DexBlobFolderName = _mockUploadConfig.FixedFolderPath,
+                DexBlobFolderName = uploadConfig.FixedFolderPath,
                 DexBlobFileName = tusInfoFile.MetaData["filename"].Replace("test", "dexTest")
             };
 
@@ -193,44 +114,87 @@ namespace BulkFileUploadFunctionAppTests
                 .Setup(x => x.GetCopyPrereqs(testBlobUrl))
                 .Returns(Task.FromResult(copyPrereqs));
 
-            if (_function is not null){
-                await _function.Run(events);
-            }
-            
-
-            if(_loggerMock is not null)
-            {
-                _loggerMock.Verify(x => x.Log(
+             await _function.Run(events);
+            _loggerMock.Verify(x => x.Log(
                 It.IsAny<LogLevel>(),
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Received events count:")),
                 It.IsAny<Exception>(),
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
-            }
+
             _mockUploadProcessingService.Verify(x => x.CopyAll(copyPrereqs), Times.Once);
         }
 
         [TestMethod]
-        public async Task GivenNullResponseContent_WhenRunIsCalled_ThenBlobIsNotValidated()
+        public async Task GivenFail_WhenRunIsCalledWithInvalidCopyPrereqs_ThenCopyAllIsNotCalled()
         {
-            // Arrange
-            var storageBlobCreatedEvent = new StorageBlobCreatedEvent();
-            string[] expectedCopyResultJson = new string[] { JsonConvert.SerializeObject(new[] { String.Empty }) };
+            string testBlobUrl = "https://example.com/blob/1MB-test-file.txt";
 
-            // Assert
-            foreach (var blobCreatedEventJson in expectedCopyResultJson)
+            var blobReaderMock = new Mock<IBlobReader>();
+            var blobEvent = new StorageBlobCreatedEvent
             {
-                Console.WriteLine($"C# Event Hub trigger function is attempting to process a message: {blobCreatedEventJson}");
-                Assert.IsNotNull(blobCreatedEventJson);
-                StorageBlobCreatedEvent[]? blobCreatedEvents = JsonConvert.DeserializeObject<StorageBlobCreatedEvent[]>(blobCreatedEventJson);
-                Assert.IsNotNull(blobCreatedEvents);
-                Assert.IsInstanceOfType(blobCreatedEvents, typeof(StorageBlobCreatedEvent[]));
-            }
+                Data = new StorageBlobCreatedEventData { Url = testBlobUrl }
+            };
+            string[] events = new string[] { JsonConvert.SerializeObject(new[] { blobEvent }) };
 
+            string sourceContainerName = "bulkuploads";
+
+
+            TusInfoFile tusInfoFile = new TusInfoFile
+            {
+                ID = "a0e127caec153d6047ee966bc2acd8cb",
+                Size = 7952,
+                SizeIsDeferred = false,
+                Offset = 0,
+                IsPartial = false,
+                IsFinal = false,
+                MetaData = new Dictionary<string, string> { { "meta_destination_id", "dextesting" }, { "meta_ext_event", "testevent1" }, { "filename", "test.txt" } },
+                Storage = new TusStorage { Container = "bulkuploads", Key = "tus-prefix/a0e127caec153d6047ee966bc2acd8cb", Type = "azurestore" }
+            };
+
+            var metadataField = new MetadataField
+            {
+                FieldName = "testFieldName",
+                CompatFieldName = "testCompatFieldName",
+                DefaultValue = "testDefaultValue"
+            };
+
+            var metadataConfig = new MetadataConfig
+            {
+                Version = "1.0",
+                Fields = new List<MetadataField> { metadataField }
+            };
+
+            UploadConfig uploadConfig = new UploadConfig
+            {
+                FilenameSuffix = ".txt",
+                FolderStructure = "/blob",
+                FixedFolderPath = "/blob",
+                MetadataConfig = metadataConfig
+            };
+
+            Trace? _trace = new Trace
+            {
+                DestinationId = "dextesting",
+                SpanId = "123234",
+                TraceId = "123345"
+            };
+
+            var copyPrereqs = new CopyPrereqs();
+
+            _mockUploadProcessingService
+                .Setup(x => x.GetCopyPrereqs(""))
+                .Returns(Task.FromResult(copyPrereqs));
+
+            await _function.Run(events);
+            _loggerMock.Verify(x => x.Log(
+                It.IsAny<LogLevel>(),
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Received events count:")),
+                It.IsAny<Exception>(),
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+
+            _mockUploadProcessingService.Verify(x => x.CopyAll(copyPrereqs), Times.Never);
         }
-
-
-
-
-        }
+    }
 }
