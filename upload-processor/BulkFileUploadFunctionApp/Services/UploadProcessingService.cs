@@ -416,8 +416,6 @@ namespace BulkFileUploadFunctionApp.Services
             string tusInfoFilename = $"{tusPayloadFilename}.info";             
             _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
 
-            //var blobReader = new BlobReader(_logger);
-
             TusInfoFile tusInfoFile = await _blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
 
             if (tusInfoFile.ID == null)
@@ -437,7 +435,6 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
-                //var blobReader = new BlobReader(_logger);
                 uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
             } catch (Exception e)
             {
@@ -568,8 +565,6 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 _logger.LogInformation($"Fetching Destinations and Events from  {_tusHooksFolder}/{_destinationAndEventsFileName}");
-
-                //var blobReader = new BlobReader(_logger);
                 var destinationAndEvents = await _blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
 
                 _logger.LogInformation($"Destinations And Events: {JsonSerializer.Serialize(destinationAndEvents)}");
