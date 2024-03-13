@@ -28,6 +28,7 @@ tus/file-hooks/post-create/post-create-bin
 tus/file-hooks/post-create/post_create_bin.spec
 
 **/node_modules
+**/dist
 
 **/.DS_Store
 
