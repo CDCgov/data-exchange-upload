@@ -20,11 +20,12 @@ namespace BulkFileUploadFunctionApp.Utils
             // Lease the source blob for the copy operation 
             // to prevent another client from modifying it.
             BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
-            // Get the source blob's properties and display the lease state.
-            BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
-
+            
             try
             {
+                // Get the source blob's properties and display the lease state.
+                BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
+
                 _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
 
                 // Ensure that the source blob exists.
@@ -61,7 +62,7 @@ namespace BulkFileUploadFunctionApp.Utils
             }
             finally
             {
-                sourceProperties = await sourceBlob.GetPropertiesAsync();
+                BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
                 _logger.LogInformation($"Post-copy Lease state: {sourceProperties.LeaseState}");
 
                 if (sourceProperties.LeaseState == LeaseState.Leased)
