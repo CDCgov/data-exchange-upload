@@ -30,10 +30,6 @@ namespace BulkFileUploadFunctionAppTests
         [TestInitialize]
         public void Initialize()
         {
-            Environment.SetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", "YourStorageAccountName", EnvironmentVariableTarget.Process);
-            Environment.SetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", "YourStorageAccountKey", EnvironmentVariableTarget.Process);
-            Environment.SetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME", "YourStorageAccountName", EnvironmentVariableTarget.Process);
-
             _loggerFactoryMock = new Mock<ILoggerFactory>();
             _loggerMock = new Mock<ILogger<UploadProcessingService>>();
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
@@ -68,9 +64,6 @@ namespace BulkFileUploadFunctionAppTests
         [TestMethod]
         public async Task GivenValidURI_WheGetCopyPrereqs_ThenBlobIsCopiedFromTusToDex()
         {
-            _dexAzureStorageAccountName = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
-            _dexAzureStorageAccountKey = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", EnvironmentVariableTarget.Process) ?? "";
-
             var mockUriWrapper = new Mock<IUriWrapper>();
             mockUriWrapper.Setup(u => u.GetUri()).Returns(new Uri("https://example.com/blob/1MB-test-file.txt"));
             System.Uri uri = mockUriWrapper.Object.GetUri();
@@ -214,9 +207,6 @@ namespace BulkFileUploadFunctionAppTests
         public async Task GivenBlobJsonContent_WhenBlobReader_ThenGetTusInfoFile()
         {
             // Arrange
-            _dexAzureStorageAccountName = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
-            _dexAzureStorageAccountKey = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", EnvironmentVariableTarget.Process) ?? "";
-
             var mockUriWrapper = new Mock<IUriWrapper>();
             mockUriWrapper.Setup(u => u.GetUri()).Returns(new Uri("https://example.com/blob/1MB-test-file.txt"));
             System.Uri uri = mockUriWrapper.Object.GetUri();     

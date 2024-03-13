@@ -19,9 +19,6 @@ namespace BulkFileUploadFunctionAppTests
         [TestInitialize]
         public void Initialize()
         {
-            Environment.SetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", "_dexAzureStorageAccountName", EnvironmentVariableTarget.Process);
-            Environment.SetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", "_dexAzureStorageAccountKey", EnvironmentVariableTarget.Process);
-            Environment.SetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME", "_edavAzureStorageAccountName", EnvironmentVariableTarget.Process);
 
             _loggerFactoryMock = new Mock<ILoggerFactory>();
             _loggerMock = new Mock<ILogger<UploadProcessingService>>();
