@@ -28,7 +28,6 @@ namespace BulkFileUploadFunctionAppTests
             _loggerFactoryBUFMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             
             _mockUploadProcessingService = new Mock<IUploadProcessingService>();
-            
 
 
             // Initialize your function with mocked dependencies
@@ -50,9 +49,6 @@ namespace BulkFileUploadFunctionAppTests
                 Data = new StorageBlobCreatedEventData { Url = testBlobUrl }
             };
             string[] events = new string[] { JsonSerializer.Serialize(new[]{blobEvent}) };
-
-            string sourceContainerName = "bulkuploads";
-
 
             TusInfoFile tusInfoFile = new TusInfoFile
             {
@@ -120,6 +116,7 @@ namespace BulkFileUploadFunctionAppTests
                 It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
 
             _mockUploadProcessingService.Verify(x => x.CopyAll(copyPrereqs), Times.Once);
+
         }
 
         [TestMethod]
@@ -133,9 +130,6 @@ namespace BulkFileUploadFunctionAppTests
                 Data = new StorageBlobCreatedEventData { Url = testBlobUrl }
             };
             string[] events = new string[] { JsonSerializer.Serialize(new[] { blobEvent }) };
-
-            string sourceContainerName = "bulkuploads";
-
 
             TusInfoFile tusInfoFile = new TusInfoFile
             {

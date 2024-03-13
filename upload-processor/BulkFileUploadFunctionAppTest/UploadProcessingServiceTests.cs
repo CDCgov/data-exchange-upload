@@ -26,10 +26,12 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<BlobReaderFactory>? _mockBlobReaderFactory;
         private UploadConfig _uploadConfig;
         private TusInfoFile tusInfoFile;
+        private string sourceContainerName;
 
         [TestInitialize]
         public void Initialize()
         {
+            sourceContainerName = "bulkuploads";
             _loggerFactoryMock = new Mock<ILoggerFactory>();
             _loggerMock = new Mock<ILogger<UploadProcessingService>>();
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
@@ -69,9 +71,8 @@ namespace BulkFileUploadFunctionAppTests
             System.Uri uri = mockUriWrapper.Object.GetUri();
             string testBlobUrl = uri.ToString();
             string[] expectedCopyResultJson = new string[] { JsonConvert.SerializeObject(new[] { _storageBlobCreatedEvent }) };
-            string _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net"; ;
 
-            string sourceContainerName = "bulkuploads";
+           
             TusInfoFile tusInfoFile = new TusInfoFile
             {
                 ID = "a0e127caec153d6047ee966bc2acd8cb",
@@ -212,8 +213,6 @@ namespace BulkFileUploadFunctionAppTests
             System.Uri uri = mockUriWrapper.Object.GetUri();     
             string testBlobUrl = uri.ToString();
 
-            string _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net"; ;
-            string sourceContainerName = "bulkuploads";
             TusInfoFile tusInfoFile = new TusInfoFile
             {
                 ID = "a0e127caec153d6047ee966bc2acd8cb",
