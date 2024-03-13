@@ -1,11 +1,18 @@
+using BulkFileUploadFunctionApp.Model;
+using BulkFileUploadFunctionApp.Utils;
+
 namespace BulkFileUploadFunctionApp.Services
 {
     public interface IUploadProcessingService
     {
-        public Task ProcessBlob(string? blobCreatedUrl);
+        public Task<CopyPrereqs> GetCopyPrereqs(string blobCreatedUrl);
 
-        public Task<string> CopyBlobFromDexToEdavAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata);
+        public Task CopyAll(CopyPrereqs copyPrereqs);
+
+        public Task CopyFromDexToEdav(CopyPrereqs copyPrereqs);
     
-        public Task<string> CopyBlobFromDexToRoutingAsync(string sourceContainerName, string sourceBlobFilename, IDictionary<string, string> destinationMetadata);
+        public Task CopyFromDexToRouting(CopyPrereqs copyPrereqs);
+
+        public Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs);
     }
 }

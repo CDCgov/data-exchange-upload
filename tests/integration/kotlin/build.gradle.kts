@@ -18,6 +18,9 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+    testImplementation(platform("com.azure:azure-sdk-bom:1.2.10"))
+    testImplementation("com.azure:azure-identity")
+    testImplementation("com.azure:azure-storage-blob")
     testImplementation("org.testng:testng:7.7.0")
     testImplementation("io.tus.java.client:tus-java-client:0.5.0")
     testImplementation("com.squareup.okhttp3:okhttp:4.12.0")
@@ -26,6 +29,7 @@ dependencies {
     testImplementation("com.fasterxml.jackson.core:jackson-databind:2.14.0-rc1")
     testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9")
     testImplementation("io.rest-assured:rest-assured:5.4.0")
+    testImplementation("joda-time:joda-time:2.12.7")
 }
 
 tasks.test {
