@@ -213,7 +213,7 @@ namespace BulkFileUploadFunctionApp.Services
                 // Get a BlobClient representing the destination blob with a unique name.
                 BlobClient destBlob = destinationContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
 
-                await _blobCopyHelper.CopyBlobAsync(sourceBlob, destBlob, copyPrereqs.Metadata);
+                await _blobCopyHelper.CopyBlobLeaseAsync(sourceBlob, destBlob, copyPrereqs.Metadata);
 
                 return destBlob.Uri.ToString();
             }
@@ -302,7 +302,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 BlobClient destBlobClient = destContainerClient.GetBlobClient(destinationFilename);
 
-                await _blobCopyHelper.CopyBlobAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
+                await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
 
                 // Send copy success report
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
@@ -356,7 +356,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 BlobClient destBlobClient = destContainerClient.GetBlobClient(destinationFilename);
 
-                await _blobCopyHelper.CopyBlobAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
+                await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
 
                 // Send copy success report
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>

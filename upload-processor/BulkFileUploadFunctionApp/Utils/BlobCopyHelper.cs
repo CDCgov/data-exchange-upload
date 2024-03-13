@@ -15,8 +15,14 @@ namespace BulkFileUploadFunctionApp.Utils
             _logger = logger;
         }
 
-        public async Task CopyBlobAsync(BlobClient sourceBlob, BlobClient destinationBlob, IDictionary<string, string> destinationMetadata, Uri? sourceSasBlobUri = null)
+        public async Task CopyBlobLeaseAsync(BlobClient sourceBlob, BlobClient destinationBlob, IDictionary<string, string> destinationMetadata, Uri? sourceSasBlobUri = null)
         {
+            // Lease the source blob for the copy operation 
+            // to prevent another client from modifying it.
+            BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
+            // Get the source blob's properties and display the lease state.
+            BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
+
             try
             {
                 _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
@@ -25,18 +31,10 @@ namespace BulkFileUploadFunctionApp.Utils
                 if (await sourceBlob.ExistsAsync())
                 {
                     _logger.LogInformation("File exists, getting lease on file");
-
-                    // Lease the source blob for the copy operation 
-                    // to prevent another client from modifying it.
-                    BlobLeaseClient lease = sourceBlob.GetBlobLeaseClient();
-
                     // Specifying -1 for the lease interval creates an infinite lease.
                     await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
-
-                    // Get the source blob's properties and display the lease state.
-                    BlobProperties sourceProperties = await sourceBlob.GetPropertiesAsync();
+                    
                     _logger.LogInformation($"Lease state: {sourceProperties.LeaseState}");
-
                     _logger.LogInformation("Starting blob copy");
 
                     // Start the copy operation.
@@ -55,21 +53,30 @@ namespace BulkFileUploadFunctionApp.Utils
 
                     // Update the source blob's properties.
                     sourceProperties = await sourceBlob.GetPropertiesAsync();
-
-                    if (sourceProperties.LeaseState == LeaseState.Leased)
-                    {
-                        // Release the lease on the source blob
-                        await lease.ReleaseAsync();
-
-                        // Update the source blob's properties to check the lease state.
-                        sourceProperties = await sourceBlob.GetPropertiesAsync();
-                        _logger.LogInformation($"Lease state: {sourceProperties.LeaseState}");
-                    }
                 }
             }
             catch (RequestFailedException ex)
             {
                 _logger.LogError(ex.Message);
+            }
+            finally
+            {
+                sourceProperties = await sourceBlob.GetPropertiesAsync();
+                _logger.LogInformation($"Post-copy Lease state: {sourceProperties.LeaseState}");
+
+                if (sourceProperties.LeaseState == LeaseState.Leased)
+                {
+                    // Release the lease on the source blob
+                    await lease.ReleaseAsync();
+                }
+            }
+        }
+        
+        public async Task CopyBlobStreamAsync(BlobClient sourceBlob, BlobClient destinationBlob, IDictionary<string, string> destinationMetadata, Uri? sourceSasBlobUri = null)
+        {
+            using var sourceBlobStream = await sourceBlob.OpenReadAsync();
+            {
+                await destinationBlob.UploadAsync(sourceBlobStream, null, destinationMetadata);
             }
         }
     }
