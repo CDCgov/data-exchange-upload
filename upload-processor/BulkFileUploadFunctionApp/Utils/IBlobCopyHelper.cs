@@ -8,7 +8,9 @@ namespace BulkFileUploadFunctionApp.Utils
 {
     public interface IBlobCopyHelper
     {
-        Task CopyBlobAsync(BlobClient sourceBlob, BlobClient destinationBlob, IDictionary<string, string> destinationMetadata, Uri? sourceSasBlobUri = null);
+        public Task CopyBlobLeaseAsync(BlobClient sourceBlob, BlobClient destinationBlob, IDictionary<string, string> destinationMetadata, Uri? sourceSasBlobUri = null);
+
+        public Task CopyBlobStreamAsync(BlobClient sourceBlob, BlobClient destinationBlob, IDictionary<string, string> destinationMetadata, Uri? sourceSasBlobUri = null);
     }
 
 }
