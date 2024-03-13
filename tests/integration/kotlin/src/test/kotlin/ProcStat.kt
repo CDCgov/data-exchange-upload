@@ -143,7 +143,7 @@ class ProcStat {
         val uploadReport = jsonPath.getList("reports", Report::class.java).find { it.stageName == "dex-upload" }
 
         assertNotNull(uploadReport)
-        assertEquals(uploadReport.content.size, uploadReport.content.offset)
+        assertEquals(uploadReport!!.content.size, uploadReport.content.offset)
     }
 
     @BeforeGroups(groups = [Constants.Groups.PROC_STAT_UPLOAD_STATUS_DEX_FILE_COPY_HAPPY_PATH])
