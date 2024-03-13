@@ -6,6 +6,7 @@ import (
 	"slices"
 	"testing"
 	// "time"
+	// "math/rand"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
@@ -15,142 +16,146 @@ import (
 ) // .import
 
 // BenchmarkCheckManifestV1 benchmark for checking sender manifest
-func BenchmarkCheckManifestV1(t *testing.B) {
+func BenchmarkCheckManifestV1(b *testing.B) {
 
-	// time.Sleep(time.Duration(time.Duration.Seconds(1)))
+	for i := 0; i < b.N; i++ {
 
-	localEnvPath, err := filepath.Abs("../../configs/local/local.env")
-	if err != nil {
-		t.Errorf("got %q, wanted %q", err, "local env path no error")
-	} // .err
+		// time.Sleep(time.Duration(time.Duration.Seconds(1)))
 
-	err = godotenv.Load(localEnvPath)
-	if err != nil {
-		t.Errorf("got %q, wanted %q", err, "config no error")
-	} // .err
+		// rand.Int()
 
-	appConfig := appconfig.AppConfig{
+		localEnvPath, err := filepath.Abs("../../configs/local/local.env")
+		if err != nil {
+			b.Errorf("got %q, wanted %q", err, "local env path no error")
+		} // .err
 
-		System:        "DEX",
-		DexProduct:    "Upload API",
-		DexApp:        "tusd-go-server",
-		LoggerDebugOn: false,
+		err = godotenv.Load(localEnvPath)
+		if err != nil {
+			b.Errorf("got %q, wanted %q", err, "config no error")
+		} // .err
 
-		AllowedDestAndEventsPath: "../../configs/allowed_destination_and_events.json",
-		DefinitionsPath:          "../../configs/file-hooks/metadata-verify/",
-		UploadConfigPath:         "../../configs/upload-configs/",
-	} // .appConfig
+		appConfig := appconfig.AppConfig{
 
-	metaV1, err := metadatav1.LoadOnce(appConfig)
-	if err != nil {
-		t.Errorf("got %q, wanted %q", err, "metadata load no error")
-	} // .err
+			System:        "DEX",
+			DexProduct:    "Upload API",
+			DexApp:        "tusd-go-server",
+			LoggerDebugOn: false,
 
-	senderManifest := map[string]string{
-		"meta_destination_id": "dextesting",
-		"meta_ext_event":      "testevent1",
+			AllowedDestAndEventsPath: "../../configs/allowed_destination_and_events.json",
+			DefinitionsPath:          "../../configs/file-hooks/metadata-verify/",
+			UploadConfigPath:         "../../configs/upload-configs/",
+		} // .appConfig
 
-		"filename": "file.name",
-	} // .senderManifest
+		metaV1, err := metadatav1.LoadOnce(appConfig)
+		if err != nil {
+			b.Errorf("got %q, wanted %q", err, "metadata load no error")
+		} // .err
 
-	metaDestinationId, ok := senderManifest["meta_destination_id"]
-	if !ok {
-		_ = tusd.HTTPResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       ErrMetaDestIdNotFound,
-		} // .httpRes
+		senderManifest := map[string]string{
+			"meta_destination_id": "dextesting",
+			"meta_ext_event":      "testevent1",
 
-	} // .ok
-	events, ok := metaV1.DestIdsEventsNameMap[metaDestinationId]
-	if !ok {
-		_ = tusd.HTTPResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       ErrMetaDestIdNotValid,
-		} // .httpRes
+			"filename": "file.name",
+		} // .senderManifest
 
-	} // .ok
+		metaDestinationId, ok := senderManifest["meta_destination_id"]
+		if !ok {
+			_ = tusd.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       ErrMetaDestIdNotFound,
+			} // .httpRes
 
-	// -----------------------------------------------------------------------------
-	// check meta_ext_event
-	// -----------------------------------------------------------------------------
-	metaExtEvent, ok := senderManifest["meta_ext_event"]
-	if !ok {
-		_ = tusd.HTTPResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       ErrMetaExtEventNotFound,
-		} // .httpRes
-	} // .ok
+		} // .ok
+		events, ok := metaV1.DestIdsEventsNameMap[metaDestinationId]
+		if !ok {
+			_ = tusd.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       ErrMetaDestIdNotValid,
+			} // .httpRes
 
-	if !slices.Contains(events, metaExtEvent) {
-		_ = tusd.HTTPResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       ErrMetaExtEventNotValid,
-		} // .httpRes
+		} // .ok
 
-	} // .if
+		// -----------------------------------------------------------------------------
+		// check meta_ext_event
+		// -----------------------------------------------------------------------------
+		metaExtEvent, ok := senderManifest["meta_ext_event"]
+		if !ok {
+			_ = tusd.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       ErrMetaExtEventNotFound,
+			} // .httpRes
+		} // .ok
 
-	// -----------------------------------------------------------------------------
-	// check schema for the meta_destination_id - meta_ext_event
-	// -----------------------------------------------------------------------------
-	eventDefFileName, ok := metaV1.DestIdEventFileNameMap[metaDestinationId+metaExtEvent]
-	if !ok { // really this should not happen if every destination-event has a schema file
-		_ = tusd.HTTPResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       ErrSchemaDefFileNameNA,
-		} // .httpRes
-
-	} // .if
-
-	eventSchemas, ok := metaV1.Definitions[eventDefFileName]
-	if !ok && len(eventSchemas) == 0 { // this should be also ok, because in v1 every destination-event has one schema file and for some reason the schemas are array of 1
-		_ = tusd.HTTPResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       ErrSchemaDefNA,
-		} // .httpRes
-	} // .if
-	schema := eventSchemas[0] // this was checked above
-	schemaFields := schema.Fields
-
-	for _, field := range schemaFields {
-
-		// check if required.
-		if field.Required == "true" {
-
-			fieldValue, ok := senderManifest[field.FieldName]
-			if !ok {
-				_ = tusd.HTTPResponse{
-					StatusCode: http.StatusBadRequest,
-					Body:       ErrSchemaDefFieldNA + field.FieldName,
-				} // .httpRes
-			} // .if
-
-			if field.AllowedValues != nil && len(field.AllowedValues) != 0 {
-
-				if !slices.Contains(field.AllowedValues, fieldValue) {
-					_ = tusd.HTTPResponse{
-						StatusCode: http.StatusBadRequest,
-						Body:       ErrSchemaDefFieldValueNotValid + field.FieldName,
-					} // .httpRes
-
-				} // .if
-			} // .if
+		if !slices.Contains(events, metaExtEvent) {
+			_ = tusd.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       ErrMetaExtEventNotValid,
+			} // .httpRes
 
 		} // .if
 
-	} // .for
+		// -----------------------------------------------------------------------------
+		// check schema for the meta_destination_id - meta_ext_event
+		// -----------------------------------------------------------------------------
+		eventDefFileName, ok := metaV1.DestIdEventFileNameMap[metaDestinationId+metaExtEvent]
+		if !ok { // really this should not happen if every destination-event has a schema file
+			_ = tusd.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       ErrSchemaDefFileNameNA,
+			} // .httpRes
 
-	// -----------------------------------------------------------------------------
-	// check filename per upload config is sent
-	// -----------------------------------------------------------------------------
-	updConfigKey := metaDestinationId + "-" + metaExtEvent
-	filename := metaV1.UploadConfigs[updConfigKey].FileNameMetadataField
+		} // .if
 
-	_, ok = senderManifest[filename]
-	if !ok {
-		_ = tusd.HTTPResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       ErrUpdConfFileNameNA + filename,
-		} // .httpRes
-	} // .if
+		eventSchemas, ok := metaV1.Definitions[eventDefFileName]
+		if !ok && len(eventSchemas) == 0 { // this should be also ok, because in v1 every destination-event has one schema file and for some reason the schemas are array of 1
+			_ = tusd.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       ErrSchemaDefNA,
+			} // .httpRes
+		} // .if
+		schema := eventSchemas[0] // this was checked above
+		schemaFields := schema.Fields
 
+		for _, field := range schemaFields {
+
+			// check if required.
+			if field.Required == "true" {
+
+				fieldValue, ok := senderManifest[field.FieldName]
+				if !ok {
+					_ = tusd.HTTPResponse{
+						StatusCode: http.StatusBadRequest,
+						Body:       ErrSchemaDefFieldNA + field.FieldName,
+					} // .httpRes
+				} // .if
+
+				if field.AllowedValues != nil && len(field.AllowedValues) != 0 {
+
+					if !slices.Contains(field.AllowedValues, fieldValue) {
+						_ = tusd.HTTPResponse{
+							StatusCode: http.StatusBadRequest,
+							Body:       ErrSchemaDefFieldValueNotValid + field.FieldName,
+						} // .httpRes
+
+					} // .if
+				} // .if
+
+			} // .if
+
+		} // .for
+
+		// -----------------------------------------------------------------------------
+		// check filename per upload config is sent
+		// -----------------------------------------------------------------------------
+		updConfigKey := metaDestinationId + "-" + metaExtEvent
+		filename := metaV1.UploadConfigs[updConfigKey].FileNameMetadataField
+
+		_, ok = senderManifest[filename]
+		if !ok {
+			_ = tusd.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       ErrUpdConfFileNameNA + filename,
+			} // .httpRes
+		} // .if
+	}
 } // .BenchmarkCheckManifestV1
