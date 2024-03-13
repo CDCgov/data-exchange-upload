@@ -55,8 +55,8 @@ var host = new HostBuilder()
         // Registers an implementation for the IBlobCopyHelper interface to be resolved as a singleton.
         services.AddSingleton<IBlobCopyHelper, BlobCopyHelper>();
 
-        // Registers an implementation for the IBlobReader interface to be resolved as a singleton.
-        services.AddSingleton<IBlobReader, BlobReader>();
+        // Registers an implementation for the BlobReaderFactory's IBlobReader interface to be resolved as a singleton.
+        services.AddSingleton<IBlobReaderFactory, BlobReaderFactory>();
         
         services.AddSingleton<IFeatureManagementExecutor, FeatureManagementExecutor>();
     })

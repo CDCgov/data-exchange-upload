@@ -3,7 +3,12 @@ using Microsoft.Extensions.Logging;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
-    public class BlobReaderFactory
+    public interface IBlobReaderFactory
+    {
+        IBlobReader CreateInstance(ILogger logger);
+    }
+
+    public class BlobReaderFactory : IBlobReaderFactory
     {
         public virtual IBlobReader CreateInstance(ILogger logger)
         {

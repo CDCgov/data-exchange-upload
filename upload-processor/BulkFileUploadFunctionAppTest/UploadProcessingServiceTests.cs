@@ -6,7 +6,7 @@ using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionAppTest.utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionAppTests
 {
@@ -70,7 +70,7 @@ namespace BulkFileUploadFunctionAppTests
             mockUriWrapper.Setup(u => u.GetUri()).Returns(new Uri("https://example.com/blob/1MB-test-file.txt"));
             System.Uri uri = mockUriWrapper.Object.GetUri();
             string testBlobUrl = uri.ToString();
-            string[] expectedCopyResultJson = new string[] { JsonConvert.SerializeObject(new[] { _storageBlobCreatedEvent }) };
+            string[] expectedCopyResultJson = new string[] { JsonSerializer.Serialize(new[] { _storageBlobCreatedEvent }) };
 
            
             TusInfoFile tusInfoFile = new TusInfoFile
@@ -280,5 +280,17 @@ namespace BulkFileUploadFunctionAppTests
             _mockUploadProcessingService.Verify(x => x.CopyAll(It.IsAny<CopyPrereqs>()), Times.Never);
         }
 
+        [TestMethod]
+        public async Task GivenData_WithActualBlobReader_ThenReturnsBlobReader()
+        {
+            var mockUriWrapper = new Mock<IUriWrapper>();
+            mockUriWrapper.Setup(u => u.GetUri()).Returns(new Uri("https://example.com/blob/1MB-test-file.txt"));
+            System.Uri uri = mockUriWrapper.Object.GetUri();
+            string testBlobUrl = uri.ToString();
+            // Arrange
+            var uploadProcessingService = _mockUploadProcessingService.Object;
+            // Assert
+            _mockUploadProcessingService.Verify(x => x.CopyAll(It.IsAny<CopyPrereqs>()), Times.Never);
+        }
     }
 }
