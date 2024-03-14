@@ -24,7 +24,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _edavUploadRootContainerName;
         private readonly string _routingUploadRootContainerName;
         private readonly string _tusHooksFolder;
-        private readonly Task<List<DestinationAndEvents>?> _destinationAndEvents;
         private readonly string _targetEdav = "dex_edav";
         private readonly string _targetRouting = "dex_routing";
         private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
@@ -39,7 +38,7 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
         private readonly IBlobReaderFactory _blobReaderFactory;
-
+        private Task<List<DestinationAndEvents>?> _destinationAndEvents;
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
@@ -96,7 +95,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
-                var _destinationAndEvents = GetAllDestinationAndEvents();
+                _destinationAndEvents = GetAllDestinationAndEvents();
                 var sourceBlobUri = new Uri(blobCreatedUrl);
                 string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Last()}";
 
