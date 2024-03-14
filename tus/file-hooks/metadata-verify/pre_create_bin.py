@@ -4,9 +4,10 @@ import os
 import sys
 import uuid
 import logging
-import math
 from argparse import Namespace
 from dotenv import load_dotenv
+
+from azure.storage.blob import BlobServiceClient
 
 from proc_stat_controller import ProcStatController
 
@@ -17,25 +18,12 @@ logger = logging.getLogger(__name__)
 REQUIRED_METADATA_FIELDS = ['meta_destination_id', 'meta_ext_event']
 STAGE_NAME = 'dex-metadata-verify'
 
+AZURE_STORAGE_ACCOUNT = os.getenv('AZURE_STORAGE_ACCOUNT')
+AZURE_STORAGE_KEY = os.getenv('AZURE_STORAGE_KEY')
+UPLOAD_CONFIG_CONTAINER = os.getenv('UPLOAD_CONFIG_CONTAINER')
 
-class AllowedDestinationEvents:
-    def __init__(self, destination_id, ext_events):
-        self.destination_id, self.ext_events = destination_id, ext_events
-
-
-class EventDefinition:
-    def __init__(self, name, definition_filename):
-        self.name, self.definition_filename = name, definition_filename
-
-
-class MetaDefinition:
-    def __init__(self, schema_version, fields):
-        self.schema_version, self.fields = schema_version, fields
-
-
-class Field:
-    def __init__(self, fieldname, allowed_values, required, description):
-        self.fieldname, self.allowed_values, self.required, self.description = fieldname, allowed_values, required, description
+CONNECTION_STRING = f"DefaultEndpointsProtocol=https;AccountName={AZURE_STORAGE_ACCOUNT};AccountKey={AZURE_STORAGE_KEY};EndpointSuffix=core.windows.net"
+DEX_STORAGE_ACCOUNT_SERVICE = BlobServiceClient.from_connection_string(conn_str=CONNECTION_STRING)
 
 
 def get_version_int_from_str(version):
@@ -45,100 +33,56 @@ def get_version_int_from_str(version):
     return version
 
 
-def verify_destination_and_event_allowed(dest_id, event_type):
-    config_file = os.path.join(os.path.dirname(__file__), 'allowed_destination_and_events.json')
+def get_upload_config(dest_id, event_type):
+    if dest_id is None or event_type is None:
+        raise Exception("dest_id and event_type are required in metadata")
 
-    with open(config_file, 'r') as file:
-        definitions = file.read()
-        definitions_dict = json.loads(definitions, object_hook=lambda d: Namespace(**d))
+    try:
+        upload_config_file = f"v1/{dest_id}-{event_type}.json"
+        blob_client = DEX_STORAGE_ACCOUNT_SERVICE.get_blob_client(container=UPLOAD_CONFIG_CONTAINER, blob=upload_config_file)
 
-        for definition in definitions_dict:
-            if definition.destination_id == dest_id:
-                # found the destination_id, checking for the ext_event
-                for ext_event in definition.ext_events:
-                    if ext_event.name == event_type:
-                        return ext_event.definition_filename
-
-        # If we got here, we couldn't find a valid combo of dest_id and event_type.
-        failure_message = "Not a recognized combination of meta_destination_id (" + dest_id + ") and meta_ext_event (" + event_type + ")"
-        raise Exception(failure_message)
-
-
-def get_schema_def_by_version(available_schema_defs, requested_schema_version, meta_json):
-    selected_schema = None
-
-    if requested_schema_version is not None:
-        selected_schema = next(
-            (schema_def for schema_def in available_schema_defs if
-             schema_def.schema_version == requested_schema_version),
-            None)
-
-        if selected_schema is None:
-            available_schemas = map(lambda schema_def: schema_def.schema_version, available_schema_defs)
-            failure_message = 'Requested schema version ' + requested_schema_version + 'not available.  Available ' \
-                                                                                       'schema versions: ' + str(
-                available_schemas)
+        if not blob_client.exists():
+            failure_message = "Not a recognized combination of meta_destination_id (" + dest_id + ") and meta_ext_event (" + event_type + ")"
             raise Exception(failure_message)
-        else:
-            return selected_schema
+        
+        downloader = blob_client.download_blob(max_concurrency=1, encoding='UTF-8')
+        blob_text = downloader.readall()
+        upload_config_data = json.loads(blob_text) 
 
-    # Get the oldest schema
-    oldest_available_schema_version_int = math.inf
+        return upload_config_data
+    
+    except Exception as e:
+        failure_message = "Failed to read upload config file provided"
+        raise Exception(failure_message) from e
+    
 
-    for schema_def in available_schema_defs:
-        schema_version_int = get_version_int_from_str(schema_def.schema_version)
-
-        if schema_version_int < oldest_available_schema_version_int:
-            oldest_available_schema_version_int = schema_version_int
-            selected_schema = schema_def
-
-    return selected_schema
-
-
-def check_program_event_metadata(program_event_meta_filename, metadata):
-    # lookup remaining metadata fields specific to this meta_destination_id and meta_ext_event
-    with open(program_event_meta_filename, 'r') as file:
-        metadata_definition = file.read()
-        definition_obj = json.loads(metadata_definition, object_hook=lambda d: Namespace(**d))
-        check_metadata_against_definition(definition_obj, metadata)
-
-
-def check_metadata_against_definition(definition_obj, meta_json):
-    # check if the schema was provided and if not, default to the oldest schema
-    requested_schema_version = None
-
-    if "schema_version" in meta_json:
-        requested_schema_version = str(meta_json["schema_version"])
-
-    schema_to_use = get_schema_def_by_version(definition_obj, requested_schema_version, meta_json)
-
-    print("Using schema_version = " + schema_to_use.schema_version)
+def check_metadata_against_config(meta_json, meta_config):
     missing_metadata_fields = []
     found_validation_error = False
     validation_error_messages = []
 
-    for field_def in schema_to_use.fields:
-        if field_def.required != "false" and field_def.fieldname not in meta_json:
-            missing_metadata_fields.append(field_def)
+    for field in meta_config['fields']:
+        if field['required'] == True and field['field_name'] not in meta_json:
+            missing_metadata_fields.append(field)
+        
+        if field['field_name'] in meta_json:
+            field_value = meta_json[field['field_name']]
 
-        if field_def.fieldname in meta_json:
-            field_value = meta_json[field_def.fieldname]
-
-            if field_def.allowed_values is not None and len(
-                    field_def.allowed_values) > 0 and field_value not in field_def.allowed_values:
-                validation_error_messages.append(field_def.fieldname + ' = ' + field_value + 'is not one of the allowed '
+            if field['allowed_values'] is not None and len(
+                    field['allowed_values']) > 0 and field_value not in field['allowed_values']:
+                validation_error_messages.append(field['field_name'] + ' = ' + field_value + 'is not one of the allowed '
                                                                                            'values: ' + json.dumps(
-                    field_def.allowed_values))
-                print(field_def.fieldname + " = " + field_value + " is not one of the allowed values: " + json.dumps(
-                    field_def.allowed_values))
+                    field['allowed_values']))
+                print(field['field_name'] + " = " + field_value + " is not one of the allowed values: " + json.dumps(
+                    field['allowed_values']))
                 found_validation_error = True
 
     if len(missing_metadata_fields) > 0:
         for field_def in missing_metadata_fields:
             validation_error_messages.append(
-                "Missing required metadata '" + field_def.fieldname + "', description = '" + field_def.description + "'")
+                "Missing required metadata '" + field_def['field_name'] + "', description = '" + field_def['description'] + "'")
             print(
-                "Missing required metadata '" + field_def.fieldname + "', description = '" + field_def.description + "'")
+                "Missing required metadata '" + field_def['field_name'] + "', description = '" + field_def['description'] + "'")
             found_validation_error = True
 
     if found_validation_error:
@@ -221,9 +165,10 @@ def get_filename_from_metadata(meta_json):
 
 def verify_metadata(dest_id, event_type, meta_json):
     # check if the program/event type is on the list of allowed
-    filename = verify_destination_and_event_allowed(dest_id, event_type)
-    if filename is not None:
-        check_program_event_metadata(filename, meta_json)
+    upload_config = get_upload_config(dest_id, event_type)
+
+    if upload_config is not None:
+        check_metadata_against_config(meta_json, upload_config['metadata_config'])
 
 
 def main(argv):
@@ -259,3 +204,4 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
+

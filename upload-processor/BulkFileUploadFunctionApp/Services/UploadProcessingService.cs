@@ -23,10 +23,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _routingStorageAccountKey;
         private readonly string _edavUploadRootContainerName;
         private readonly string _routingUploadRootContainerName;
-        private readonly string _tusHooksFolder;
-        private readonly string _targetEdav = "dex_edav";
-        private readonly string _targetRouting = "dex_routing";
-        private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
         private readonly IUploadEventHubService _uploadEventHubService;
         private readonly IFeatureManagementExecutor _featureManagementExecutor;
         private readonly IProcStatClient _procStatClient;
@@ -38,7 +34,7 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
         private readonly IBlobReaderFactory _blobReaderFactory;
-        private Task<List<DestinationAndEvents>?> _destinationAndEvents;
+        private readonly string _uploadConfigContainer; 
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
@@ -60,15 +56,13 @@ namespace BulkFileUploadFunctionApp.Services
             _routingStorageAccountKey = Environment.GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_KEY", EnvironmentVariableTarget.Process) ?? "";
             _edavUploadRootContainerName = Environment.GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME", EnvironmentVariableTarget.Process) ?? "upload";
             _routingUploadRootContainerName = Environment.GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME", EnvironmentVariableTarget.Process) ?? "routeingress";
-            _tusHooksFolder = Environment.GetEnvironmentVariable("TUSD_HOOKS_FOLDER", EnvironmentVariableTarget.Process) ?? "tusd-file-hooks";
-
+            _uploadConfigContainer =  Environment.GetEnvironmentVariable("UPLOAD_CONFIGS", EnvironmentVariableTarget.Process) ?? "upload-configs";
+            
             // Instantiate helper services.
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobCopyHelper = new(_logger);
             _featureManagementExecutor = featureManagementExecutor;
             _procStatClient = procStatClient;
-
-            
 
             _uploadEventHubService = uploadEventHubService;
             _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
@@ -95,7 +89,6 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
-                _destinationAndEvents = GetAllDestinationAndEvents();
                 var sourceBlobUri = new Uri(blobCreatedUrl);
                 string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Last()}";
 
@@ -145,7 +138,7 @@ namespace BulkFileUploadFunctionApp.Services
                 destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
 
                 // Get copy targets
-                CopyTarget[] targets = GetCopyTargets(destinationId, eventType);
+                List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
                 
                 return new CopyPrereqs(uploadId,
                                        blobCreatedUrl,
@@ -248,11 +241,11 @@ namespace BulkFileUploadFunctionApp.Services
 
         private async Task CopyFromDexToTarget(CopyPrereqs copyPrereqs)
         {
-            foreach (CopyTarget copyTarget in copyPrereqs.Targets)
+            foreach (CopyTargetsEnum copyTarget in copyPrereqs.Targets)
             {
-                _logger.LogInformation("Copy Target: " + copyTarget.target);
+                _logger.LogInformation("Copy Target: " + copyTarget);
 
-                if (copyTarget.target == _targetEdav)
+                if (copyTarget == CopyTargetsEnum.edav)
                 {
                     try
                     {
@@ -265,7 +258,7 @@ namespace BulkFileUploadFunctionApp.Services
                                                 copyPrereqs);
                     }
                 }
-                else if (copyTarget.target == _targetRouting)
+                else if (copyTarget == CopyTargetsEnum.routing)
                 {
                     try
                     {
@@ -423,7 +416,7 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
-                uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
+                uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, _uploadConfigContainer, configFilename);
             } catch (Exception e)
             {
                 _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {eventType}.  Using default config. Exception = ${e.Message}");
@@ -433,6 +426,14 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 throw new UploadConfigException($"Unable to parse JSON for upload config {configFilename}");
             }
+
+            // Convert copy target strings to enums.
+            List<CopyTargetsEnum> targetEnums = uploadConfig.CopyConfig.Targets.ConvertAll(targetStr =>
+            {
+                Enum.TryParse(targetStr, out CopyTargetsEnum targetEnum);
+                return targetEnum;
+            }).ToList();
+            uploadConfig.CopyConfig.TargetEnums = targetEnums;
 
             return uploadConfig;
         }           
@@ -446,14 +447,14 @@ namespace BulkFileUploadFunctionApp.Services
         private string GetFolderPath(UploadConfig uploadConfig, DateTime dateTimeNow)
         {
             string folderPath;
-            switch (uploadConfig.FolderStructure)
+            switch (uploadConfig.CopyConfig.FolderStructure)
             {
                 case "root":
                     // Don't partition uploads into any subfolders - all uploads will reside in the root folder
                     folderPath = "";
                     break;
                 case "path":
-                    folderPath = uploadConfig.FixedFolderPath ?? "";
+                    folderPath = uploadConfig.CopyConfig.FolderStructure ?? "";
                     break;
                 case "date_YYYY_MM_DD":
                     // Partitioning is part of the filename where slashes will create subfolders.
@@ -478,7 +479,7 @@ namespace BulkFileUploadFunctionApp.Services
         private string GetFilenameSuffix(UploadConfig uploadConfig, DateTime dateTimeNow)
         {
             string filenameSuffix;
-            switch (uploadConfig.FilenameSuffix)
+            switch (uploadConfig.CopyConfig.FilenameSuffix)
             {
                 case "none":
                     filenameSuffix = ""; // no suffix
@@ -546,28 +547,6 @@ namespace BulkFileUploadFunctionApp.Services
             tusInfoFile.MetaData.Remove("filename"); // Remove filename field to use standard received_filename field.
         }
 
-        private async Task<List<DestinationAndEvents>?>  GetAllDestinationAndEvents()
-        {
-            var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
-
-            try
-            {
-                _logger.LogInformation($"Fetching Destinations and Events from  {_tusHooksFolder}/{_destinationAndEventsFileName}");
-                var destinationAndEvents = await _blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
-
-                _logger.LogInformation($"Destinations And Events: {JsonSerializer.Serialize(destinationAndEvents)}");
-
-                return destinationAndEvents;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError("Failed to fetch Destinations and Events");
-                ExceptionUtils.LogErrorDetails(e, _logger);
-
-                return new List<DestinationAndEvents>();
-            }
-        }
-
         public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs)
         {            
             try 
@@ -584,36 +563,6 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
-
-        private CopyTarget[] GetCopyTargets(string destinationId, string eventType)
-        {
-            // Default to copy to edav.
-            CopyTarget[] defaultTargets = { new(_targetEdav) };
-
-            if (_destinationAndEvents.Result == null) {
-                _logger.LogError($"Empty Destinations and Events: {_destinationAndEvents.Result}");
-                throw new Exception("Empty Destinations and Events");
-            }
-
-            var currentDestination = _destinationAndEvents.Result?.Find(d => d.destinationId == destinationId);
-            var currentEvent = currentDestination?.extEvents?.Find(e => e.name == eventType);
-
-            if (currentEvent == null) {
-                _logger.LogError($"No copy targets configured for {destinationId} and {eventType} - defaulting to EDAV");
-                _logger.LogError($"Destinations And Events: {JsonSerializer.Serialize(_destinationAndEvents)}");
-                return defaultTargets;
-            }
-
-            if (currentEvent.copyTargets == null || currentEvent.copyTargets.Count == 0)
-            {
-                _logger.LogError($"No copy targets configured for {destinationId} and {eventType} - defaulting to EDAV");
-                _logger.LogError($"Destinations And Events: {JsonSerializer.Serialize(_destinationAndEvents)}");
-                return defaultTargets;
-            }
-
-            return currentEvent.copyTargets.ToArray();
-        }
-
         private void SendSuccessReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destPath)
         {
             _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
