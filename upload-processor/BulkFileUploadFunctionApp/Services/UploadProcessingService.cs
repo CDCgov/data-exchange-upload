@@ -42,7 +42,7 @@ namespace BulkFileUploadFunctionApp.Services
 
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
-        IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, BlobReaderFactory blobReaderFactory)
+        IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
         {
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobCopyHelper = new(_logger);
