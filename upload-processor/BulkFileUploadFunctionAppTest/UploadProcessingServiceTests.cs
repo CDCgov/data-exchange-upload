@@ -281,12 +281,19 @@ namespace BulkFileUploadFunctionAppTests
         }
 
         [TestMethod]
-        public async Task GivenData_WithActualBlobReader_ThenReturnsBlobReader()
+        public async Task GivenValidUri_WithInValidCopyPrereqs_ThenReturnsFalse()
         {
             var mockUriWrapper = new Mock<IUriWrapper>();
             mockUriWrapper.Setup(u => u.GetUri()).Returns(new Uri("https://example.com/blob/1MB-test-file.txt"));
             System.Uri uri = mockUriWrapper.Object.GetUri();
             string testBlobUrl = uri.ToString();
+
+            var copyPrereqs = new CopyPrereqs();
+
+            _mockUploadProcessingService
+                .Setup(x => x.GetCopyPrereqs(""))
+                .Returns(Task.FromResult(copyPrereqs));
+            
             // Arrange
             var uploadProcessingService = _mockUploadProcessingService.Object;
             // Assert
