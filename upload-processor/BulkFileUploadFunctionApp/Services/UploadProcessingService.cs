@@ -13,6 +13,7 @@ namespace BulkFileUploadFunctionApp.Services
     {
         private readonly ILogger _logger;
         private readonly BlobCopyHelper _blobCopyHelper;
+        private readonly IBlobReader _blobReader;
         private readonly string _tusAzureObjectPrefix;
         private readonly string _tusAzureStorageContainer;
         private readonly string _dexAzureStorageAccountName;
@@ -23,7 +24,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _edavUploadRootContainerName;
         private readonly string _routingUploadRootContainerName;
         private readonly string _tusHooksFolder;
-        private readonly Task<List<DestinationAndEvents>?> _destinationAndEvents;
         private readonly string _targetEdav = "dex_edav";
         private readonly string _targetRouting = "dex_routing";
         private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
@@ -37,11 +37,20 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobServiceClient _routingBlobServiceClient;
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
+        private readonly IBlobReaderFactory _blobReaderFactory;
+        private Task<List<DestinationAndEvents>?> _destinationAndEvents;
 
-
-        public UploadProcessingService(ILoggerFactory loggerFactory, IProcStatClient procStatClient, IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService)
+        public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
+        IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
         {
-            // Initialize private fields from environment variables.
+            _logger = loggerFactory.CreateLogger<UploadProcessingService>();
+            _blobCopyHelper = new(_logger);
+            _blobReaderFactory = blobReaderFactory;
+            _blobReader = _blobReaderFactory.CreateInstance(_logger);
+            
+            _featureManagementExecutor = featureManagementExecutor;
+            _procStatClient = procStatClient;
+
             _tusAzureObjectPrefix = Environment.GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX", EnvironmentVariableTarget.Process) ?? "tus-prefix";
             _tusAzureStorageContainer = Environment.GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER", EnvironmentVariableTarget.Process) ?? "bulkuploads";
             _dexAzureStorageAccountName = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
@@ -59,7 +68,7 @@ namespace BulkFileUploadFunctionApp.Services
             _featureManagementExecutor = featureManagementExecutor;
             _procStatClient = procStatClient;
 
-            _destinationAndEvents = GetAllDestinationAndEvents();
+            
 
             _uploadEventHubService = uploadEventHubService;
             _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
@@ -86,6 +95,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
+                _destinationAndEvents = GetAllDestinationAndEvents();
                 var sourceBlobUri = new Uri(blobCreatedUrl);
                 string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Last()}";
 
@@ -194,7 +204,7 @@ namespace BulkFileUploadFunctionApp.Services
         /// </summary>
         /// <param name="copyPreqs">Copy preqs</param>
         /// <returns>dexBlobUrl</returns>
-        private async Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs)
+        public async Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs)
         {
             try
             {
@@ -394,9 +404,7 @@ namespace BulkFileUploadFunctionApp.Services
             string tusInfoFilename = $"{tusPayloadFilename}.info";             
             _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
 
-            var blobReader = new BlobReader(_logger);
-
-            TusInfoFile tusInfoFile = await blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
+            TusInfoFile tusInfoFile = await _blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
 
             if (tusInfoFile.ID == null)
                 throw new Exception("Malformed tus info file. No ID provided.");
@@ -415,8 +423,7 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
-                var blobReader = new BlobReader(_logger);
-                uploadConfig = await blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
+                uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
             } catch (Exception e)
             {
                 _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {eventType}.  Using default config. Exception = ${e.Message}");
@@ -492,12 +499,12 @@ namespace BulkFileUploadFunctionApp.Services
         {
             if (tusInfoFile.MetaData == null || tusInfoFile.ID == null)
             {
-                throw new ArgumentNullException("Metadata cannot be null.");
+                throw new ArgumentNullException("TusFileInfo Metadata cannot be null.");
             }
 
             if (uploadConfig.MetadataConfig == null || uploadConfig.MetadataConfig.Fields == null)
             {
-                throw new ArgumentNullException("Metadata fields cannot be null.");
+                throw new ArgumentNullException("UploadConfig Metadata fields cannot be null.");
             }
 
             // Add use-case specific fields and their values.
@@ -546,9 +553,7 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 _logger.LogInformation($"Fetching Destinations and Events from  {_tusHooksFolder}/{_destinationAndEventsFileName}");
-
-                var blobReader = new BlobReader(_logger);
-                var destinationAndEvents = await blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
+                var destinationAndEvents = await _blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
 
                 _logger.LogInformation($"Destinations And Events: {JsonSerializer.Serialize(destinationAndEvents)}");
 

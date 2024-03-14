@@ -14,9 +14,20 @@ namespace BulkFileUploadFunctionApp.Model
         {
             FilenameSuffix = "clock_ticks",
             FolderStructure = "date_YYYY_MM_DD",
-            FixedFolderPath = null
+            FixedFolderPath = null,
+            MetadataConfig = null,
         };
 
+        public UploadConfig() { }
+
+        // If you want to initialize properties in the constructor, you can add parameters to the constructor
+        public UploadConfig(string filenameSuffix, string folderStructure, string fixedFolderPath, MetadataConfig metadataConfig)
+        {
+            FilenameSuffix = filenameSuffix;
+            FolderStructure = folderStructure;
+            FixedFolderPath = fixedFolderPath;
+            MetadataConfig = metadataConfig;
+        }
     }
     
 }

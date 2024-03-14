@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
-    internal class BlobCopyHelper
+    internal class BlobCopyHelper : IBlobCopyHelper
     {
         private readonly ILogger _logger;
 
