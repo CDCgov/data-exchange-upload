@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
-    internal class BlobReader : IBlobReader
+    public class BlobReader : IBlobReader
     {
         private readonly ILogger _logger;
 

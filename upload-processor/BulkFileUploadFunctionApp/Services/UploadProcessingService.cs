@@ -38,7 +38,7 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobServiceClient _routingBlobServiceClient;
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
-
+        private readonly IBlobReaderFactory _blobReaderFactory;
 
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
@@ -46,7 +46,8 @@ namespace BulkFileUploadFunctionApp.Services
         {
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobCopyHelper = new(_logger);
-            _blobReader = blobReaderFactory.CreateInstance(_logger);
+            _blobReaderFactory = blobReaderFactory;
+            _blobReader = _blobReaderFactory.CreateInstance(_logger);
             
             _featureManagementExecutor = featureManagementExecutor;
             _procStatClient = procStatClient;
