@@ -6,6 +6,7 @@ const path = require("path")
 async function sendFilesToAPI() {
   const folderPath = `./test-files.1`
   const apiUrl = `http://localhost:8080`
+
   try {
     // Get list of files in the folder
     const files = fs.readdirSync(folderPath)
@@ -16,11 +17,15 @@ async function sendFilesToAPI() {
       // Create a readable stream for the file
       const fileStream = fs.createReadStream(filePath)
 
+      const endpoint = `${apiUrl}/files/`
+      console.log('endpoint', endpoint)
+
       const options = {
-        endpoint: `${apiUrl}/files/`,
+        endpoint,
         headers: {},
         chunkSize: 40000000,
         parallelUploads: 1,
+        retryDelays: [0, 1000, 3000, 5000],
         metadata: {
           filename: file,
           meta_destination_id: "dextesting",
