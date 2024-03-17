@@ -25,7 +25,7 @@ var (
 		"dex_uploads_copied_b_to_c",
 		"Number of copied uploads A to B.",
 		nil, nil)
-)// .var
+) // .var
 
 type Collector struct {
 	metrics Metrics

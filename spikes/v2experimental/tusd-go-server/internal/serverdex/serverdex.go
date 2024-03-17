@@ -2,12 +2,12 @@ package serverdex
 
 import (
 	"log/slog"
+	"net"
 	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
-	"net"
 
 	//
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
