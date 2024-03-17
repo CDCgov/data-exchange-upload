@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 ) // .import
@@ -18,8 +16,8 @@ type HealthResp struct { // TODO: line up with DEX other products and apps
 	Status   string `json:"status"`
 
 	// TODO: temp for dev
-	ErrAzIdentity string `json:"err_az_identity"`
-	ErrAzBlob     string `json:"err_az_blob"`
+	ErrAzCred string `json:"err_az_credential"`
+	ErrAzBlob string `json:"err_az_blob"`
 } // .Health
 
 // health responds to /health endpoint with the health of the app
@@ -28,23 +26,26 @@ type HealthResp struct { // TODO: line up with DEX other products and apps
 func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 
 	status := "ok"
+	errAzCredStr := "nil"
+	errAzBlobStr := "nil"
 
 	// check storage dependency:
-	var errAzIdentity, errAzBlob error
-	var credential azcore.TokenCredential
+	var errAzCred, errAzBlob error
 
 	if hd.cliFlags.Environment == cliflags.ENV_AZURE || hd.cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
 
-		// TODO: replace <storage-account-name> with your actual storage account name
-		url := hd.appConfig.AzContainerEndpoint
+		credential, err := azblob.NewSharedKeyCredential(hd.appConfig.AzStorageName, hd.appConfig.AzStorageKey)
+		errAzCred = err
 
-		credential, errAzIdentity = azidentity.NewDefaultAzureCredential(nil)
-
-		_, errAzBlob = azblob.NewClient(url, credential, nil)
-
+		_, errAzBlob = azblob.NewClientWithSharedKeyCredential(hd.appConfig.AzContainerEndpoint, credential, nil)
 	} // .if
 
-	if errAzIdentity != nil || errAzBlob != nil {
+	if errAzCred != nil {
+		errAzCredStr = errAzCred.Error()
+		status = "bad"
+	} // .if
+	if errAzBlob != nil {
+		errAzBlobStr = errAzBlob.Error()
 		status = "bad"
 	} // .if
 
@@ -59,8 +60,8 @@ func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 		Health: "All Good",
 		Status: status,
 
-		ErrAzIdentity: errAzIdentity.Error(),
-		ErrAzBlob:     errAzBlob.Error(),
+		ErrAzCred: errAzCredStr,
+		ErrAzBlob: errAzBlobStr,
 	}) // .jsonResp
 	if err != nil {
 		errMsg := "error marshal json for health response"
