@@ -33,7 +33,7 @@ func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 	var errAzIdentity, errAzBlob error
 	var credential azcore.TokenCredential
 
-	if hd.cliFlags.Environment == cliflags.ENV_AZURE {
+	if hd.cliFlags.Environment == cliflags.ENV_AZURE || hd.cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
 
 		// TODO: replace <storage-account-name> with your actual storage account name
 		url := hd.appConfig.AzContainerEndpoint
