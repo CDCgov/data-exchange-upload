@@ -34,11 +34,20 @@ func main() {
 	// ------------------------------------------------------------------
 	// used to run the app locally and load environment, based on cli flag
 	// ------------------------------------------------------------------
-	if cliFlags.Environment == cliflags.ENV_LOCAL || cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
+	if cliFlags.Environment == cliflags.ENV_LOCAL {
 		err1 := godotenv.Load(cliFlags.AppLocalConfigPath)
 		_ = godotenv.Load(cliFlags.AzLocalConfigPath) // optional
 		if err1 != nil {
-			slog.Error("error loading local configuration", "err1", err1)
+			slog.Error("error loading local configuration", "environment", cliFlags.Environment, "err1", err1)
+			os.Exit(appMainExitCode)
+		} // .if
+	} // .if
+
+	if  cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
+		err1 := godotenv.Load(cliFlags.AppLocalConfigPath)
+		err2 := godotenv.Load(cliFlags.AzLocalConfigPath) // optional
+		if err1 != nil || err2 != nil {
+			slog.Error("error loading local configuration", "environment", cliFlags.Environment, "err1", err1, "err2", err2)
 			os.Exit(appMainExitCode)
 		} // .if
 	} // .if
