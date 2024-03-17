@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"net"
 
 	//
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
@@ -127,6 +128,14 @@ func (sd *ServerDex) HttpServer() http.Server {
 	return http.Server{
 
 		Addr: ":" + sd.appConfig.ServerPort,
+		ConnState: func(_ net.Conn, cs http.ConnState) {
+			switch cs {
+			case http.StateNew:
+				metricsOpenConnections.Inc()
+			case http.StateClosed, http.StateHijacked:
+				metricsOpenConnections.Dec()
+			}
+		},
 		// etc...
 
 	} // .httpServer

@@ -18,14 +18,14 @@ import (
 
 var (
 	uploadsCopiedAToB = prometheus.NewDesc(
-		"tusd_uploads_copied_a_to_b",
+		"dex_uploads_copied_a_to_b",
 		"Number of copied uploads A to B.",
 		nil, nil)
 	uploadsCopiedBToC = prometheus.NewDesc(
-		"tusd_uploads_copied_b_to_c",
+		"dex_uploads_copied_b_to_c",
 		"Number of copied uploads A to B.",
 		nil, nil)
-)
+)// .var
 
 type Collector struct {
 	metrics Metrics

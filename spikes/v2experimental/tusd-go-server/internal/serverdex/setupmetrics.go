@@ -11,9 +11,9 @@ import (
 ) // .import
 
 var metricsOpenConnections = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "tusd_connections_open",
-	Help: "Current number of open connections.",
-})
+	Name: "dex_server_connections_open",
+	Help: "Current number of server open connections.",
+}) // .metricsOpenConnections
 
 func (sd ServerDex) setupMetrics(handlerTusd *tusd.Handler) {
 
