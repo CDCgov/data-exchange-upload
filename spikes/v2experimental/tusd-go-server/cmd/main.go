@@ -46,7 +46,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// used to run the app locally, it uploads files from local to azure
 	// ------------------------------------------------------------------
-	if  cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
+	if cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
 		err1 := godotenv.Load(cliFlags.AppLocalConfigPath)
 		err2 := godotenv.Load(cliFlags.AzLocalConfigPath) // optional
 		if err1 != nil || err2 != nil {

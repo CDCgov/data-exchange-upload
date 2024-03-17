@@ -8,7 +8,6 @@ type StoreTusCopier interface {
 	CopyTusSrcToDst() error
 } // .StoreCopier
 
-
 // TODO:, this will be the router also
 
 // StoreCopier interface across stores: local, azure, and aws.
@@ -18,4 +17,3 @@ type StoreCopier interface {
 	// CopySrcToDst copies a file from Src location to Dst location
 	CopySrcToDst() error
 } // .StoreCopier
-

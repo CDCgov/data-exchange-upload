@@ -4,15 +4,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	
 ) // .import
 
 type CopierLocal struct {
 	SrcFileName string
-	SrcFolder string
+	SrcFolder   string
 	DstFileName string
-	DstFolder string 
-}// .CopierLocal
+	DstFolder   string
+} // .CopierLocal
 
 // CopyTusSrcToDst copies a file locally from tus upload folder to another folder
 func (cl CopierLocal) CopyTusSrcToDst() error {

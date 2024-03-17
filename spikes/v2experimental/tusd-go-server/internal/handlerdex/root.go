@@ -7,20 +7,22 @@ import (
 ) // .import
 
 type RootResp struct {
-	System     string `json:"system"`
-	DexProduct string `json:"dex_product"`
-	DexApp     string `json:"dex_app"`
-	ServerTime string `json:"server_time"`
+	System      string `json:"system"`
+	DexProduct  string `json:"dex_product"`
+	DexApp      string `json:"dex_app"`
+	ServerTime  string `json:"server_time"`
+	Environment string `json:"environment"`
 } // .rootResp
 
 // root (or index, greeting) handler, responds to requests to the root / path
 func (hd *HandlerDex) root(w http.ResponseWriter, r *http.Request) {
 
 	jsonResp, err := json.Marshal(RootResp{
-		System:     hd.appConfig.System,
-		DexProduct: hd.appConfig.DexProduct,
-		DexApp:     hd.appConfig.DexApp,
-		ServerTime: time.Now().Format(time.RFC3339),
+		System:      hd.appConfig.System,
+		DexProduct:  hd.appConfig.DexProduct,
+		DexApp:      hd.appConfig.DexApp,
+		ServerTime:  time.Now().Format(time.RFC3339),
+		Environment: hd.cliFlags.Environment,
 	}) // .jsonResp
 	if err != nil {
 		errMsg := "error marshal json for root response"

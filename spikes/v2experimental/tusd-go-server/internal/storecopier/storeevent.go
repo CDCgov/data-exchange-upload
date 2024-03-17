@@ -6,7 +6,6 @@ import (
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 )
 
-
 // FromTusToDstEvent has configuration and event info needed to copy files from tusd to next folder
 type FromTusToDstEvent struct {
 	AppConfig       appconfig.AppConfig

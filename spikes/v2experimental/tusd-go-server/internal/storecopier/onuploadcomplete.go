@@ -20,7 +20,6 @@ func OnUploadComplete(flags cliflags.Flags, appConfig appconfig.AppConfig, allUp
 		EventUploadComplete: eventUploadComplete,
 	} // .eventInfo
 
-	
 	// ------------------------------------------------------------------
 	// ENV_LOCAL
 	// ------------------------------------------------------------------
@@ -29,16 +28,15 @@ func OnUploadComplete(flags cliflags.Flags, appConfig appconfig.AppConfig, allUp
 		sl := storelocal.CopierLocal{
 
 			SrcFileName: evInfo.EventUploadComplete.Upload.ID,
-			SrcFolder : evInfo.AppConfig.LocalFolderUploadsTus,
-		
+			SrcFolder:   evInfo.AppConfig.LocalFolderUploadsTus,
+
 			// TODO config destination per respective upload config
 			// TODO: adding file ticks, change per config
 			// _ = cl.AllUploadConfig // TODO
-		
-			DstFolder: evInfo.AppConfig.LocalFolderUploadsA,
-			DstFileName: evInfo.EventUploadComplete.Upload.MetaData["filename"] + "_" + strconv.FormatInt(time.Now().UnixNano(), 10),
 
-		}// .cl
+			DstFolder:   evInfo.AppConfig.LocalFolderUploadsA,
+			DstFileName: evInfo.EventUploadComplete.Upload.MetaData["filename"] + "_" + strconv.FormatInt(time.Now().UnixNano(), 10),
+		} // .cl
 
 		err := sl.CopyTusSrcToDst()
 		if err != nil {
@@ -47,14 +45,12 @@ func OnUploadComplete(flags cliflags.Flags, appConfig appconfig.AppConfig, allUp
 
 	} // .ENV_LOCAL
 
-		
 	// ------------------------------------------------------------------
 	// ENV_AZURE
 	// ------------------------------------------------------------------
 	if flags.Environment == cliflags.ENV_AZURE {
 
-
-	}// .ENV_AZURE
+	} // .ENV_AZURE
 
 	return nil
 } // .OnUploadComplete

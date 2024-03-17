@@ -84,7 +84,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 				sd.logger.Error("error copy upload", "error", err)
 			} else {
 				sd.logger.Info("upload copied", "event.Upload.ID", event.Upload.ID)
-			}// .else
+			} // .else
 
 		} // .for
 	}() // .go func
