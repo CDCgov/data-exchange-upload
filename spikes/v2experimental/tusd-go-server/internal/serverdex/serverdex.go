@@ -5,15 +5,14 @@ import (
 	"net"
 	"net/http"
 	"reflect"
-	"strconv"
 	"strings"
-	"time"
 
 	//
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storecopier"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -24,8 +23,10 @@ import (
 
 // SeverDex, main Upload Api server, handles requests to both tusd handler and dex handler
 type ServerDex struct {
-	cliFlags    cliflags.Flags
-	appConfig   appconfig.AppConfig
+	CliFlags  cliflags.Flags
+	AppConfig appconfig.AppConfig
+	MetaV1    *metadatav1.MetadataV1
+
 	handlerTusd *tusd.Handler
 	handlerDex  *handlerdex.HandlerDex
 	logger      *slog.Logger
@@ -33,7 +34,7 @@ type ServerDex struct {
 } // .ServerDex
 
 // New returns an custom server for DEX Upload Api ready to serve
-func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, error) {
+func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, metaV1 *metadatav1.MetadataV1) (ServerDex, error) {
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
@@ -49,8 +50,9 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (ServerDex, err
 	handlerDex := handlerdex.New(cliFlags, appConfig)
 
 	return ServerDex{
-		cliFlags:    cliFlags,
-		appConfig:   appConfig,
+		CliFlags:    cliFlags,
+		AppConfig:   appConfig,
+		MetaV1:      metaV1,
 		handlerTusd: handlerTusd,
 		handlerDex:  handlerDex,
 		logger:      logger,
@@ -66,7 +68,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 	// 	TUSD handler
 	// --------------------------------------------------------------
 	// Route for TUSD to start listening on and accept http request
-	http.Handle(sd.appConfig.TusdHandlerBasePath, http.StripPrefix(sd.appConfig.TusdHandlerBasePath, sd.handlerTusd))
+	http.Handle(sd.AppConfig.TusdHandlerBasePath, http.StripPrefix(sd.AppConfig.TusdHandlerBasePath, sd.handlerTusd))
 
 	// Start another goroutine for receiving events from the handler whenever
 	// an upload is completed. The event will contains details about the upload
@@ -77,35 +79,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 			event := <-sd.handlerTusd.CompleteUploads
 			sd.logger.Info("upload finished", "event.Upload.ID", event.Upload.ID)
 
-			fileName := event.Upload.MetaData["filename"] + "_" + strconv.FormatInt(time.Now().UnixNano(), 10)
-			// copy A -> B
-			stA := storecopier.StoreLocal{
-				FileLocalFolder: sd.appConfig.LocalFolderUploads,
-				FileName:        event.Upload.ID,
-			} // .a
-			stB := storecopier.StoreLocal{
-				FileLocalFolder: sd.appConfig.LocalFolderUploadsB,
-				FileName:        fileName,
-			} // .b
-			err := storecopier.CopySrcToDst(stA, stB)
-			if err != nil {
-				sd.logger.Error("error copy A -> B", "error", err)
-			} else {
-				sd.Metrics.incCopiedAToB()
-				sd.logger.Info("copied file A -> B ok")
-			} // .else
-			// copy B -> BC
-			stC := storecopier.StoreLocal{
-				FileLocalFolder: sd.appConfig.LocalFolderUploadsC,
-				FileName:        fileName,
-			} // .a
-			err = storecopier.CopySrcToDst(stB, stC)
-			if err != nil {
-				sd.logger.Error("error copy B -> C", "error", err)
-			} else {
-				sd.Metrics.incCopiedBToC()
-				sd.logger.Info("copied file B -> C ok")
-			} // .else
+			storecopier.OnUploadComplete(sd.CliFlags, sd.AppConfig, sd.MetaV1.UploadConfigs, event)
 
 		} // .for
 	}() // .go func
@@ -127,7 +101,8 @@ func (sd *ServerDex) HttpServer() http.Server {
 	// --------------------------------------------------------------
 	return http.Server{
 
-		Addr: ":" + sd.appConfig.ServerPort,
+		Addr: ":" + sd.AppConfig.ServerPort,
+
 		ConnState: func(_ net.Conn, cs http.ConnState) {
 			switch cs {
 			case http.StateNew:

@@ -80,7 +80,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 		// a remote FTP server, you can implement your own storage backend
 		// by implementing the tusd.DataStore interface.
 		store := filestore.FileStore{
-			Path: appConfig.LocalFolderUploads,
+			Path: appConfig.LocalFolderUploadsTus,
 		} // .store
 
 		// A storage backend for tusd may consist of multiple different parts which
@@ -92,7 +92,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 
 		// used to prevent concurrent access to an upload: https://tus.github.io/tusd/advanced-topics/locks/
 		// ok for local dev to use disk based storage
-		locker := filelocker.New(appConfig.LocalFolderUploads)
+		locker := filelocker.New(appConfig.LocalFolderUploadsTus)
 		locker.UseIn(composer)
 
 	} // .if cliFlags.Environment == cliflags.ENV_LOCAL

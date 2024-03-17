@@ -64,8 +64,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// load metadata v1 config into singleton to check and have available
 	// ------------------------------------------------------------------
-	// discard as not needed now only to be loaded
-	_, err = metadatav1.LoadOnce(appConfig)
+	metaV1, err := metadatav1.LoadOnce(appConfig)
 	if err != nil {
 		logger.Error("error starting app, metadata v1 config not available", "error", err)
 		os.Exit(appMainExitCode)
@@ -74,7 +73,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// create dex server, includes tusd as-is handler + dex handler
 	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(cliFlags, appConfig)
+	serverDex, err := serverdex.New(cliFlags, appConfig, metaV1)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex server", "error", err)
 		os.Exit(appMainExitCode)
