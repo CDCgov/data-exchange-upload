@@ -26,10 +26,12 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 	var handler *tusd.Handler
 	var composer *tusd.StoreComposer
 
+	logger.Info("loading environment for tusdhandler", "cliFlags.Environment", cliFlags.Environment)
+
 	// ------------------------------------------------------------------
 	// AZURE cloud
 	// ------------------------------------------------------------------
-	if cliFlags.Environment == cliflags.ENV_AZURE {
+	if cliFlags.Environment == cliflags.ENV_AZURE || cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
 
 		azConfig := &azurestore.AzConfig{
 			AccountName:         appConfig.AzStorageName,
@@ -48,7 +50,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 
 		store := azurestore.New(azService)
 		// store.ObjectPrefix = Flags.AzObjectPrefix
-		store.Container = appConfig.AzContainerName
+		// store.Container = appConfig.AzContainerName
 
 		// TODO: set for azure
 		// TODO: set for azure, Upload Locks: https://tus.github.io/tusd/advanced-topics/locks/
