@@ -4,7 +4,7 @@ const path = require("path")
 
 // sendFilesToAPI, Function to read files from a folder and send them to an tusd resumable API
 async function sendFilesToAPI() {
-  const folderPath = `./test-files`
+  const folderPath = `./test-files.1`
   const apiUrl = `http://localhost:8080`
   try {
     // Get list of files in the folder

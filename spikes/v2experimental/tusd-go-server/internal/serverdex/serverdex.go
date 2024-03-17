@@ -79,7 +79,12 @@ func (sd *ServerDex) HttpServer() http.Server {
 			event := <-sd.handlerTusd.CompleteUploads
 			sd.logger.Info("upload finished", "event.Upload.ID", event.Upload.ID)
 
-			storecopier.OnUploadComplete(sd.CliFlags, sd.AppConfig, sd.MetaV1.UploadConfigs, event)
+			err := storecopier.OnUploadComplete(sd.CliFlags, sd.AppConfig, sd.MetaV1.UploadConfigs, event)
+			if err != nil {
+				sd.logger.Error("error copy upload", "error", err)
+			} else {
+				sd.logger.Info("upload copied", "event.Upload.ID", event.Upload.ID)
+			}// .else
 
 		} // .for
 	}() // .go func

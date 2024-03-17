@@ -24,7 +24,7 @@ type FromTusToDstCopier struct {
 // CopyTusSrcToDst copies a file locally from tus upload folder to another folder
 func (lc FromTusToDstCopier) CopyTusSrcToDst() error {
 
-	srcFileName := lc.EventUploadComplete.Upload.MetaData["filename"]
+	srcFileName := lc.EventUploadComplete.Upload.ID
 	srcFolder := lc.AppConfig.LocalFolderUploadsTus
 
 	// TODO config destination per respective upload config
