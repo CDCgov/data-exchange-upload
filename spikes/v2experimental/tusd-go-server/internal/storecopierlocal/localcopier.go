@@ -1,4 +1,4 @@
-package storecopier
+package storecopierlocal
 
 import (
 	"io"
@@ -14,23 +14,25 @@ import (
 
 // localFromTusCopier based on configuration, it is used for moving files locally
 // localFromTusCopier implements CopyTusSrcToDst
-type localFromTusCopier struct {
-	appConfig    appconfig.AppConfig
-	uploadConfig metadatav1.AllUploadConfigs
+type FromTusToDstCopier struct {
+	AppConfig       appconfig.AppConfig
+	AllUploadConfig metadatav1.AllUploadConfigs
 
-	tusdEvent tusd.HookEvent
+	EventUploadComplete tusd.HookEvent
 } // .StoreLocal
 
 // CopyTusSrcToDst copies a file locally from tus upload folder to another folder
-func (lc localFromTusCopier) CopyTusSrcToDst() error {
+func (lc FromTusToDstCopier) CopyTusSrcToDst() error {
 
-	srcFileName := lc.tusdEvent.Upload.MetaData["filename"]
-	srcFolder := lc.appConfig.LocalFolderUploadsTus
+	srcFileName := lc.EventUploadComplete.Upload.MetaData["filename"]
+	srcFolder := lc.AppConfig.LocalFolderUploadsTus
 
 	// TODO config destination per respective upload config
 	// TODO: adding file ticks, change per config
-	dstFolder := lc.appConfig.LocalFolderUploadsA
-	dstFileName := lc.tusdEvent.Upload.MetaData["filename"] + "_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	_ = lc.AllUploadConfig // TODO
+
+	dstFolder := lc.AppConfig.LocalFolderUploadsA
+	dstFileName := lc.EventUploadComplete.Upload.MetaData["filename"] + "_" + strconv.FormatInt(time.Now().UnixNano(), 10)
 
 	// Src
 	srcPath, err := filepath.Abs(srcFolder + "/" + srcFileName)
