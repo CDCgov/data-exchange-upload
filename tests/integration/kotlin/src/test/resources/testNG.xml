@@ -1,0 +1,27 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Parameterized Suite" parallel="methods" thread-count="1">
+    <test name="Generic Test Cases">
+        <parameter name="CONFIG_FILE" value="ndlp-rsvprevention.properties
+"/>
+        <classes>
+<!--            <class name="ProcStat">-->
+<!--                <methods>-->
+<!--                    <include name="shouldHaveMetadataVerifyReportWhenFileUploaded"/>-->
+<!--                    <include name="shouldHaveNullIssuesArrayWhenFileUploaded"/>-->
+<!--                    <include name="shouldHaveUploadStatusReportWhenFileUploaded"/>-->
+<!--                    <include name="shouldHaveEqualOffsetAndSizeWhenFileUploaded"/>-->
+<!--                    <include name="shouldHaveValidDestinationAndSourceURLWhenFileUploaded"/>-->
+<!--                </methods>-->
+<!--            </class>-->
+
+
+
+
+            <class name="MetadataVerify">
+                <methods>
+                    <include name="shouldUploadWithValidInputMetadata"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+</suite>
