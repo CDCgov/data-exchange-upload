@@ -69,16 +69,24 @@ class ProcStatController:
         while self.retry_count < MAX_RETRIES:
             try:
                 resp = self.session.send(req)
-                resp.raise_for_status()
-
                 if resp.ok:
                     # Request was handled successfully, return and don't send any more requests.
                     return resp
-            except requests.exceptions.RequestException as e:
+
                 self.logger.warning(f"Error sending request to PS API after attempt {self.retry_count}.  Reason: {e}")
                 self.retry_count = self.retry_count + 1
-
+                resp.raise_for_status()
+            except requests.exceptions.ConnectTimeout as e:
                 # Waiting 2 second before trying again.
                 time.sleep(self.delay_s)
+
+            except requests.exceptions.RequestException as e:
+                status_code = e.response.status_code
+                if status_code != 429 and status_code != 503:
+                    raise e
+                delay = self.delay_s
+                if e.response.headers["Retry-After"] is int and e.response.headers["Retry-After"] < delay:
+                    delay = e.response.headers["Retry-After"] 
+                time.sleep(delay)
 
         raise Exception(f"Unable to send successful request to PS API after {MAX_RETRIES} attempts.")
