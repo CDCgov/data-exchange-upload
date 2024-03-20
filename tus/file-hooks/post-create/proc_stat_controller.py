@@ -15,7 +15,6 @@ class ProcStatController:
         self.url = url
         self.delay_s = delay_s
         self.session = Session()
-        self.retry_count = 0
         self.logger = logging.getLogger(__name__)
 
     def create_upload_trace(self, upload_id, destination_id, event_type):
@@ -64,17 +63,17 @@ class ProcStatController:
 
     def _send_request_with_retry(self, req):
         # Resetting the retry count.
-        self.retry_count = 0
+        retry_count = 0
 
-        while self.retry_count < MAX_RETRIES:
+        while retry_count < MAX_RETRIES:
+            retry_count = retry_count + 1
             try:
                 resp = self.session.send(req)
                 if resp.ok:
                     # Request was handled successfully, return and don't send any more requests.
                     return resp
 
-                self.logger.warning(f"Error sending request to PS API after attempt {self.retry_count}.  Reason: {e}")
-                self.retry_count = self.retry_count + 1
+                self.logger.warning(f"Error sending request to PS API after attempt {retry_count}.  Reason: {e}")
                 resp.raise_for_status()
             except requests.exceptions.ConnectTimeout as e:
                 # Waiting 2 second before trying again.
@@ -85,6 +84,7 @@ class ProcStatController:
                 if status_code != 429 and status_code != 503:
                     raise e
                 delay = self.delay_s
+                # if the Retry-After is an int rather than a date, and it's faster than the default
                 if e.response.headers["Retry-After"] is int and e.response.headers["Retry-After"] < delay:
                     delay = e.response.headers["Retry-After"] 
                 time.sleep(delay)
