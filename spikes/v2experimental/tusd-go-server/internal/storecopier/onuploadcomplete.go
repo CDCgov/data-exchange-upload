@@ -23,7 +23,7 @@ func OnUploadComplete(flags cliflags.Flags, appConfig appconfig.AppConfig, allUp
 	// ------------------------------------------------------------------
 	// ENV_LOCAL
 	// ------------------------------------------------------------------
-	if flags.Environment == cliflags.ENV_LOCAL {
+	if flags.RunMode == cliflags.ENV_LOCAL {
 
 		sl := storelocal.CopierLocal{
 
@@ -48,7 +48,7 @@ func OnUploadComplete(flags cliflags.Flags, appConfig appconfig.AppConfig, allUp
 	// ------------------------------------------------------------------
 	// ENV_AZURE
 	// ------------------------------------------------------------------
-	if flags.Environment == cliflags.ENV_AZURE {
+	if flags.RunMode == cliflags.ENV_AZURE {
 
 	} // .ENV_AZURE
 

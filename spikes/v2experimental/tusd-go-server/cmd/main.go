@@ -34,10 +34,10 @@ func main() {
 	// ------------------------------------------------------------------
 	// used to run the app locally, it uploads files locally
 	// ------------------------------------------------------------------
-	if cliFlags.Environment == cliflags.ENV_LOCAL || cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
+	if cliFlags.RunMode == cliflags.ENV_LOCAL || cliFlags.RunMode == cliflags.ENV_LOCAL_TO_AZURE {
 		err = godotenv.Load(cliFlags.AppLocalConfigPath)
 		if err != nil {
-			slog.Error("error loading local configuration", "environment", cliFlags.Environment, "error", err)
+			slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
 			os.Exit(appMainExitCode)
 		} // .if
 	} // .if
@@ -45,16 +45,17 @@ func main() {
 	// ------------------------------------------------------------------
 	// used to run the app locally, it uploads files from local to azure
 	// ------------------------------------------------------------------
-	if cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
+	// load the additional azure configuration from local config yaml
+	if cliFlags.RunMode == cliflags.ENV_LOCAL_TO_AZURE {
 		err := godotenv.Load(cliFlags.AzLocalConfigPath)
 		if err != nil {
-			slog.Error("error loading local configuration", "environment", cliFlags.Environment, "error", err)
+			slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
 			os.Exit(appMainExitCode)
 		} // .if
 	} // .if
 
 	// ------------------------------------------------------------------
-	// parse and load config
+	// parse and load config from os exported
 	// ------------------------------------------------------------------
 	appConfig, err := appconfig.ParseConfig(ctx)
 	if err != nil {

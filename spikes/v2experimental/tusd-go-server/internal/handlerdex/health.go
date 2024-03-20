@@ -36,11 +36,11 @@ func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 
 	jsonResp, err := json.Marshal(HealthResp{
 		RootResp: RootResp{
-			System:      hd.appConfig.System,
-			DexProduct:  hd.appConfig.DexProduct,
-			DexApp:      hd.appConfig.DexApp,
-			ServerTime:  time.Now().Format(time.RFC3339),
-			Environment: hd.cliFlags.Environment,
+			System:     hd.appConfig.System,
+			DexProduct: hd.appConfig.DexProduct,
+			DexApp:     hd.appConfig.DexApp,
+			ServerTime: time.Now().Format(time.RFC3339),
+			RunMode:    hd.cliFlags.RunMode,
 		},
 		Status:  status,
 		ErrInfo: errInfo,

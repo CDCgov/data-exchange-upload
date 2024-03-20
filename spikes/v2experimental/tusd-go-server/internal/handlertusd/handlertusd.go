@@ -26,12 +26,12 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 	var handler *tusd.Handler
 	var composer *tusd.StoreComposer
 
-	logger.Info("loading environment for tusdhandler", "cliFlags.Environment", cliFlags.Environment)
+	logger.Info("loading environment for tusdhandler", "cliFlags.RunMode", cliFlags.RunMode)
 
 	// ------------------------------------------------------------------
 	// AZURE cloud
 	// ------------------------------------------------------------------
-	if cliFlags.Environment == cliflags.ENV_AZURE || cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
+	if cliFlags.RunMode == cliflags.ENV_AZURE || cliFlags.RunMode == cliflags.ENV_LOCAL_TO_AZURE {
 
 		azConfig := &azurestore.AzConfig{
 			AccountName:         appConfig.TusAzStorageConfig.AzStorageName,
@@ -68,12 +68,12 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 		locker := memorylocker.New()
 		locker.UseIn(composer)
 
-	} // .if cliFlags.Environment == cliflags.ENV_AZURE
+	} // .if cliFlags.RunMode == cliflags.ENV_AZURE
 
 	// ------------------------------------------------------------------
 	//  LOCAL is default if no flag is passed at cli
 	// ------------------------------------------------------------------
-	if cliFlags.Environment == cliflags.ENV_LOCAL {
+	if cliFlags.RunMode == cliflags.ENV_LOCAL {
 
 		// Create a new FileStore instance which is responsible for
 		// storing the uploaded file on disk in the specified directory.
@@ -97,7 +97,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 		locker := filelocker.New(appConfig.LocalFolderUploadsTus)
 		locker.UseIn(composer)
 
-	} // .if cliFlags.Environment == cliflags.ENV_LOCAL
+	} // .if cliFlags.RunMode == cliflags.ENV_LOCAL
 
 	// ------------------------------------------------------------------
 	//  handler, set with respective local or cloud values
