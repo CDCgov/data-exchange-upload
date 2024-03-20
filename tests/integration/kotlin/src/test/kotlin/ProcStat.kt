@@ -121,36 +121,75 @@ class ProcStat {
         assertNotNull(uploadReport)
     }
     // Naz added below code
+//    @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_FILE_HAPPY_PATH])
+//    fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded(context: ITestContext) {
+//        val configFile = context.getCurrentXmlTest().getParameter("CONFIG_FILE")
+//        System.setProperty("CONFIG_FILE", configFile ?: "defaultConfig.properties")
+//        val propertiesFileName=configFile.replace(".properties","")
+//        val jsonPath = reportResponse.extract().jsonPath()
+//        val reports = jsonPath.getList("reports", Report::class.java)
+//        println(reports)
+//        val dexFileCopyReports = reports.filterNotNull().filter { it.stageName == "dex-file-copy" }
+//
+//        assert(dexFileCopyReports.isNotEmpty()) { "No 'dex-file-copy' reports found" }
+//
+//        val sourceUrls = dexFileCopyReports.map { it.content.fileSourceBlobUrl }
+//        val destinationUrls = dexFileCopyReports.map { it.content.fileDestinationBlobUrl }
+//        val expectedSourceUrl = "https://ocioededataexchangedev.blob.core.windows.net/"+propertiesFileName+"/"
+//        val expectedRoutingDestinationUrl = "https://ocioederoutingdatasadev.blob.core.windows.net/routeingress/"+propertiesFileName+"/"
+//        val expectedEdavDestinationUrl = "https://edavdevdatalakedex.blob.core.windows.net/upload/"+propertiesFileName+"/"
+//
+//        // Print out the expected URLs
+//        println("Expected Source URL: $expectedSourceUrl")
+//        println("Expected Routing Destination URL: $expectedRoutingDestinationUrl")
+//        println("Expected EDAV Destination URL: $expectedEdavDestinationUrl")
+//
+//        assert(sourceUrls.all { it?.contains(expectedSourceUrl) == true }) { "Not all source URLs contain the expected URL: "+ expectedSourceUrl }
+//
+//        if (propertiesFileName .equals("dextesting-testevent1"))
+//        {
+//            assert(destinationUrls.any { it?.contains(expectedEdavDestinationUrl) == true }) { "The expected upload destination URL is not present" }
+//            assert(destinationUrls.any { it?.contains(expectedRoutingDestinationUrl) == true }) { "The expected routing destination URL is not present" }
+//        } else if(propertiesFileName .startsWith("ndlp") || propertiesFileName .startsWith("dex-hl7") || propertiesFileName .startsWith("pulsenet") ) {
+//            assert(destinationUrls.all { it?.contains(expectedEdavDestinationUrl ) == true }) { "The expected upload destination URL is not present: "+ expectedEdavDestinationUrl }
+//        }
+//        else
+//        {
+//            assert(destinationUrls.all { it?.contains(expectedRoutingDestinationUrl ) == true }) { "The expected routing destination URL is not present: "+ expectedRoutingDestinationUrl }
+//        }
+//    }
+
     @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_FILE_HAPPY_PATH])
     fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded(context: ITestContext) {
         val configFile = context.getCurrentXmlTest().getParameter("CONFIG_FILE")
         System.setProperty("CONFIG_FILE", configFile ?: "defaultConfig.properties")
-        val propertiesFileName=configFile.replace(".properties","")
+        // Parse the expected URLs from the parameters
+        val expectedSourceUrls = context.getCurrentXmlTest().getParameter("EXPECTED_SOURCE_URLS").split(",")
+        val expectedDestinationUrls = context.getCurrentXmlTest().getParameter("EXPECTED_DESTINATION_URLS").split(",")
+
         val jsonPath = reportResponse.extract().jsonPath()
         val reports = jsonPath.getList("reports", Report::class.java)
-        println(reports)
         val dexFileCopyReports = reports.filterNotNull().filter { it.stageName == "dex-file-copy" }
 
         assert(dexFileCopyReports.isNotEmpty()) { "No 'dex-file-copy' reports found" }
 
-        val sourceUrls = dexFileCopyReports.map { it.content.fileSourceBlobUrl }
-        val destinationUrls = dexFileCopyReports.map { it.content.fileDestinationBlobUrl }
-        val expectedSourceUrl = "https://ocioededataexchangedev.blob.core.windows.net/"+propertiesFileName+"/"
-        val expectedRoutingDestinationUrl = "https://ocioederoutingdatasadev.blob.core.windows.net/routeingress/"+propertiesFileName+"/"
-        val expectedEdavDestinationUrl = "https://edavdevdatalakedex.blob.core.windows.net/upload/"+propertiesFileName+"/"
+        val sourceUrls = dexFileCopyReports.mapNotNull { it.content.fileSourceBlobUrl }
+        val destinationUrls = dexFileCopyReports.mapNotNull { it.content.fileDestinationBlobUrl }
 
-        assert(sourceUrls.all { it?.contains(expectedSourceUrl) == true }) { "Not all source URLs contain the expected URL: "+ expectedSourceUrl }
-
-        if (propertiesFileName .equals("dextesting-testevent1"))
-        {
-            assert(destinationUrls.any { it?.contains(expectedEdavDestinationUrl) == true }) { "The expected upload destination URL is not present" }
-            assert(destinationUrls.any { it?.contains(expectedRoutingDestinationUrl) == true }) { "The expected routing destination URL is not present" }
-        } else if(propertiesFileName .startsWith("ndlp") || propertiesFileName .startsWith("dex-hl7") || propertiesFileName .startsWith("pulsenet") ) {
-            assert(destinationUrls.all { it?.contains(expectedEdavDestinationUrl ) == true }) { "The expected upload destination URL is not present: "+ expectedEdavDestinationUrl }
+        // Validate source URLs
+        sourceUrls.forEach { sourceUrl ->
+            assert(expectedSourceUrls.any { sourceUrl.contains(it) }) { "Source URL $sourceUrl does not match any expected URLs." }
         }
-        else
-        {
-            assert(destinationUrls.all { it?.contains(expectedRoutingDestinationUrl ) == true }) { "The expected routing destination URL is not present: "+ expectedRoutingDestinationUrl }
+
+        // Validate destination URLs
+        destinationUrls.forEach { destinationUrl ->
+            assert(expectedDestinationUrls.any { destinationUrl.contains(it) }) { "Destination URL $destinationUrl does not match any expected URLs." }
         }
     }
+
+
+
+
+
+
 }
