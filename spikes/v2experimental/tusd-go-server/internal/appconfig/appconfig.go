@@ -15,7 +15,7 @@ type AppConfig struct {
 	LoggerDebugOn bool   `env:"LOGGER_DEBUG_ON"`
 
 	// Server
-	ServerPort string `env:"SERVER_PORT, required"`
+	ServerPort  string `env:"SERVER_PORT, required"`
 	Environment string `env:"ENVIRONMENT, required"`
 
 	// Metadata
