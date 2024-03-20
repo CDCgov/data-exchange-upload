@@ -29,6 +29,7 @@ func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 			slog.String("System", appConfig.System),
 			slog.String("Product", appConfig.DexProduct),
 			slog.String("App", appConfig.DexApp),
+			slog.String("Env", appConfig.Environment),
 		)) // .appLogger
 
 	return appLogger

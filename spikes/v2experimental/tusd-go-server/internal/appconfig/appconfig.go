@@ -16,6 +16,7 @@ type AppConfig struct {
 
 	// Server
 	ServerPort string `env:"SERVER_PORT, required"`
+	Environment string `env:"ENVIRONMENT, required"`
 
 	// Metadata
 	MetadataVersions string `env:"METADATA_VERSIONS, required"`
