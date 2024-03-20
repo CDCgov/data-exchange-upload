@@ -28,7 +28,7 @@ func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 	status := STATUS_UP
 	errInfo := "nil"
 
-	_, err := storeaz.NewAzBlobClient(hd.appConfig)
+	_, err := storeaz.NewTusAzBlobClient(hd.appConfig)
 	if err != nil {
 		status = STATUS_DOWN
 		errInfo = err.Error()

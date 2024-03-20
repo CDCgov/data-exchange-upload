@@ -5,8 +5,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 ) // .import
 
-// NewAzBlobClient returns a azure blob client
-func NewAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
+// NewTusAzBlobClient returns a azure blob client
+func NewTusAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
 
 	credential, err := azblob.NewSharedKeyCredential(appConfig.TusAzStorageConfig.AzStorageName, appConfig.TusAzStorageConfig.AzStorageKey)
 	if err != nil {
@@ -19,4 +19,4 @@ func NewAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
 	} // .if
 
 	return client, nil
-} // .NewAzBlobClient
+} // .NewTusAzBlobClient
