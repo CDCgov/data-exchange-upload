@@ -34,12 +34,12 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 	if cliFlags.Environment == cliflags.ENV_AZURE || cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
 
 		azConfig := &azurestore.AzConfig{
-			AccountName:         appConfig.AzStorageName,
-			AccountKey:          appConfig.AzStorageKey,
-			ContainerName:       appConfig.AzContainerName,
-			ContainerAccessType: appConfig.AzContainerAccessType,
+			AccountName:         appConfig.TusAzStorageConfig.AzStorageName,
+			AccountKey:          appConfig.TusAzStorageConfig.AzStorageKey,
+			ContainerName:       appConfig.TusAzStorageConfig.AzContainerName,
+			ContainerAccessType: appConfig.TusAzStorageConfig.AzContainerAccessType,
 			// BlobAccessTier:      Flags.AzBlobAccessTier,
-			Endpoint: appConfig.AzContainerEndpoint,
+			Endpoint: appConfig.TusAzStorageConfig.AzContainerEndpoint,
 		} // .azConfig
 
 		azService, err := azurestore.NewAzureService(azConfig)

@@ -8,12 +8,12 @@ import (
 // NewAzBlobClient returns a azure blob client
 func NewAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
 
-	credential, err := azblob.NewSharedKeyCredential(appConfig.AzStorageName, appConfig.AzStorageKey)
+	credential, err := azblob.NewSharedKeyCredential(appConfig.TusAzStorageConfig.AzStorageName, appConfig.TusAzStorageConfig.AzStorageKey)
 	if err != nil {
 		return nil, err
 	} // .if
 
-	client, err := azblob.NewClientWithSharedKeyCredential(appConfig.AzContainerEndpoint, credential, nil)
+	client, err := azblob.NewClientWithSharedKeyCredential(appConfig.TusAzStorageConfig.AzContainerEndpoint, credential, nil)
 	if err != nil {
 		return nil, err
 	} // .if

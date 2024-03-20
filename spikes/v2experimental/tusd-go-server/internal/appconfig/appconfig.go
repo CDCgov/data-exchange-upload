@@ -32,13 +32,20 @@ type AppConfig struct {
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, required"`
 
-	// Azure
+	// Azure TUS Upload storage
+	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_"`
+	// DexAzStorageConfig *AzureStorageConfig `env:", prefix="DEX_"` this is currently same as TUS above
+	RouterAzStorageConfig *AzureStorageConfig `env:", prefix=ROUTER_"`
+	EdavAzStorageConfig   *AzureStorageConfig `env:", prefix=EDAV_"`
+} // .AppConfig
+
+type AzureStorageConfig struct {
 	AzStorageName         string `env:"AZ_STORAGE_NAME"`
 	AzStorageKey          string `env:"AZ_STORAGE_KEY"`
 	AzContainerName       string `env:"AZ_CONTAINER_NAME"`
 	AzContainerEndpoint   string `env:"AZ_CONTAINER_ENDPOINT"`
 	AzContainerAccessType string `env:"AZ_CONTAINER_ACCESS_TYPE"`
-} // .AppConfig
+} // .AzureStorageConfig
 
 // ParseConfig loads app configuration based on environment variables and returns AppConfig struct
 func ParseConfig(ctx context.Context) (AppConfig, error) {
