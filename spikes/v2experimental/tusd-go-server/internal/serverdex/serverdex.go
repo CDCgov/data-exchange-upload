@@ -114,7 +114,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 				metricsOpenConnections.Inc()
 			case http.StateClosed, http.StateHijacked:
 				metricsOpenConnections.Dec()
-			}
+			}// .switch
 		},
 		// etc...
 

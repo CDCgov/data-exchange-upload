@@ -34,11 +34,10 @@ func main() {
 	// ------------------------------------------------------------------
 	// used to run the app locally, it uploads files locally
 	// ------------------------------------------------------------------
-	if cliFlags.Environment == cliflags.ENV_LOCAL {
-		err1 := godotenv.Load(cliFlags.AppLocalConfigPath)
-		_ = godotenv.Load(cliFlags.AzLocalConfigPath) // optional
-		if err1 != nil {
-			slog.Error("error loading local configuration", "environment", cliFlags.Environment, "err1", err1)
+	if cliFlags.Environment == cliflags.ENV_LOCAL || cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
+		err = godotenv.Load(cliFlags.AppLocalConfigPath)
+		if err != nil {
+			slog.Error("error loading local configuration", "environment", cliFlags.Environment, "error", err)
 			os.Exit(appMainExitCode)
 		} // .if
 	} // .if
@@ -47,10 +46,9 @@ func main() {
 	// used to run the app locally, it uploads files from local to azure
 	// ------------------------------------------------------------------
 	if cliFlags.Environment == cliflags.ENV_LOCAL_TO_AZURE {
-		err1 := godotenv.Load(cliFlags.AppLocalConfigPath)
-		err2 := godotenv.Load(cliFlags.AzLocalConfigPath) // optional
-		if err1 != nil || err2 != nil {
-			slog.Error("error loading local configuration", "environment", cliFlags.Environment, "err1", err1, "err2", err2)
+		err := godotenv.Load(cliFlags.AzLocalConfigPath) 
+		if err != nil {
+			slog.Error("error loading local configuration", "environment", cliFlags.Environment, "error", err)
 			os.Exit(appMainExitCode)
 		} // .if
 	} // .if
