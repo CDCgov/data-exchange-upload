@@ -2,16 +2,18 @@ package main
 
 import (
 	"context"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
-	"github.com/joho/godotenv"
 	"log/slog"
 	"os"
 	"os/signal"
 	"runtime/debug"
+
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
+	"github.com/joho/godotenv"
 ) // .import
 
 const appMainExitCode = 1
@@ -69,6 +71,15 @@ func main() {
 	logger := sloger.AppLogger(appConfig).With("pkg", "main")
 
 	logger.Info("started app", "buildInfo.Main.Path", buildInfo.Main.Path)
+
+	// ------------------------------------------------------------------
+	// check if the azure blob for uploads is available
+	// ------------------------------------------------------------------
+	azBlobClient, err := storeaz.NewTusAzBlobClient(appConfig)
+	if azBlobClient == nil || err != nil {
+		logger.Error("error starting app, az blob store not available for uploads", "azBlobClient", azBlobClient, "error", err)
+		os.Exit(appMainExitCode)
+	} // .if
 
 	// logger.Debug("loaded app config", "appConfig", appConfig)
 

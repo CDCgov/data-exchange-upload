@@ -1,16 +1,20 @@
 package storeaz
 
 import (
+	"context"
+	"errors"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 ) // .import
 
 var (
-	tusPrefix                        = "Tus"
-	routerPrefix                     = "Router"
-	edavPrefix                       = "Edav"
+	tusPrefix                        = "Tus storage"
+	routerPrefix                     = "Router storage"
+	edavPrefix                       = "Edav storage"
 	errStorageNameEmpty              = "error storage name from app config is empty"
 	errStorageKeyEmpty               = "error storage key from app config is empty"
 	errStorageContainerEndpointEmpty = "error storage container endpoint from app config is empty"
@@ -19,23 +23,38 @@ var (
 // NewTusAzBlobClient returns a azure blob client
 func NewTusAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
 
-	return newAzBlobClient(tusPrefix, appConfig.TusAzStorageConfig.AzContainerName, appConfig.TusAzStorageConfig.AzStorageKey, appConfig.TusAzStorageConfig.AzContainerEndpoint)
+	return newAzBlobClient(
+		tusPrefix,
+		appConfig.TusAzStorageConfig.AzStorageName,
+		appConfig.TusAzStorageConfig.AzStorageKey,
+		appConfig.TusAzStorageConfig.AzContainerEndpoint,
+		appConfig.TusAzStorageConfig.AzContainerName)
 } // .NewTusAzBlobClient
 
 // NewRouterAzBlobClient returns a azure blob client
 func NewRouterAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
 
-	return newAzBlobClient(routerPrefix, appConfig.RouterAzStorageConfig.AzContainerName, appConfig.RouterAzStorageConfig.AzStorageKey, appConfig.RouterAzStorageConfig.AzContainerEndpoint)
+	return newAzBlobClient(
+		routerPrefix,
+		appConfig.RouterAzStorageConfig.AzStorageName,
+		appConfig.RouterAzStorageConfig.AzStorageKey,
+		appConfig.RouterAzStorageConfig.AzContainerEndpoint,
+		appConfig.RouterAzStorageConfig.AzContainerName)
 } // .NewRouterAzBlobClient
 
 // NewEdavAzBlobClient returns a azure blob client
 func NewEdavAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
 
-	return newAzBlobClient(edavPrefix, appConfig.EdavAzStorageConfig.AzContainerName, appConfig.EdavAzStorageConfig.AzStorageKey, appConfig.EdavAzStorageConfig.AzContainerEndpoint)
+	return newAzBlobClient(
+		edavPrefix,
+		appConfig.EdavAzStorageConfig.AzStorageName,
+		appConfig.EdavAzStorageConfig.AzStorageKey,
+		appConfig.EdavAzStorageConfig.AzContainerEndpoint,
+		appConfig.EdavAzStorageConfig.AzContainerName)
 } // .NewEdavAzBlobClient
 
 // newAzBlobClient, method for returning azure blob client for a storage needed
-func newAzBlobClient(prefix, azStorageName, azStorageKey, azContainerEndpoint string) (*azblob.Client, error) {
+func newAzBlobClient(prefix, azStorageName, azStorageKey, azContainerEndpoint, azContainerName string) (*azblob.Client, error) {
 
 	// check guard if names are not empty
 	if len(strings.TrimSpace(azStorageName)) == 0 {
@@ -60,6 +79,25 @@ func newAzBlobClient(prefix, azStorageName, azStorageKey, azContainerEndpoint st
 	} // .if
 
 	client, err := azblob.NewClientWithSharedKeyCredential(azContainerEndpoint, credential, nil)
+	if err != nil {
+		return nil, err
+	} // .if
+
+	// test if the client is
+	_, err = client.CreateContainer(context.TODO(), azContainerName, nil)
+
+	// TODO: maybe the check should be in it's own method to keep new client
+	// depending on how many times newAzBlobClient gets called
+
+	// check to see if error is blob does exists which means client is ok
+	var responseErr *azcore.ResponseError
+	if errors.As(err, &responseErr) {
+		if responseErr.ErrorCode == string(bloberror.ContainerAlreadyExists) {
+			// connection ok
+			return client, nil
+		} // .if
+	} // .if
+
 	if err != nil {
 		return nil, err
 	} // .if
