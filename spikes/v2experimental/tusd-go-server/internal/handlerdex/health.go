@@ -8,31 +8,48 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
 ) // .import
 
+// HealthResp, app health response
 type HealthResp struct { // TODO: line up with DEX other products and apps
 
 	RootResp // Embedding rootResp, TODO: maybe this is not needed
 
-	Status string `json:"status"`
+	Status string `json:"status"` // general app health
 
-	ErrInfo string `json:"error_info"`
-} // .Health
+	Services []ServiceHealthResp `json:"services"`
+} // .HealthResp
 
+// ServiceHealthResp, health response from an app service dependency
+type ServiceHealthResp struct {
+	Service     string `json:"service"`
+	Status      string `json:"status"`
+	HealthIssue string `json:"health_issue"`
+} // .ServiceHealthResp
+
+// general app health statuses
 const STATUS_UP = "UP"
+const STATUS_DEGRADED = "DEGRADED"
 const STATUS_DOWN = "DOWN"
+const HEALTH_ISSUE_NONE = "None reported"
 
-// health responds to /health endpoint with the health of the app
-// TODO: line-up with DEX standards
-// TODO: check the dependencies such as storages
+// health responds to /health endpoint with the health of the app including dependency services
 func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 
 	status := STATUS_UP
-	errInfo := "nil"
+
+	var servicesResponses []ServiceHealthResp
 
 	_, err := storeaz.NewTusAzBlobClient(hd.appConfig)
 	if err != nil {
-		status = STATUS_DOWN
-		errInfo = err.Error()
-	} // .if
+		servicesResponses = append(servicesResponses, ServiceHealthResp{
+			Service:     "AzBlobTusUpload",
+			Status:      STATUS_DOWN,
+			HealthIssue: err.Error()})
+	} else {
+		servicesResponses = append(servicesResponses, ServiceHealthResp{
+			Service:     "AzBlobTusUpload",
+			Status:      STATUS_UP,
+			HealthIssue: HEALTH_ISSUE_NONE})
+	} // .else
 
 	jsonResp, err := json.Marshal(HealthResp{
 		RootResp: RootResp{
@@ -42,8 +59,8 @@ func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 			ServerTime: time.Now().Format(time.RFC3339),
 			RunMode:    hd.cliFlags.RunMode,
 		},
-		Status:  status,
-		ErrInfo: errInfo,
+		Status:   status,
+		Services: servicesResponses,
 	}) // .jsonResp
 	if err != nil {
 		errMsg := "error marshal json for health response"
