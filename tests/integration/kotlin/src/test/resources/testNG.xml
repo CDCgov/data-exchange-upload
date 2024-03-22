@@ -3,8 +3,8 @@
     <test name="Generic Test Cases">
         <parameter name="SENDER_MANIFEST" value="ndlp-rsvprevention.properties"/>
         <!-- Define parameters for expected URLs as comma-separated lists -->
-        <parameter name="EXPECTED_SOURCE_URLS" value="https://ocioededataexchangedev.blob.core.windows.net/ndlp-rsvprevention"/>
-        <parameter name="EXPECTED_DESTINATION_URLS" value="https://edavdevdatalakedex.blob.core.windows.net/upload/pulsenet-localsequencefile//10KB-test-file,destinationURL2,"/>
+        <parameter name="EXPECTED_SOURCE_URL_PREFIXES" value="https://ocioededataexchangedev.blob.core.windows.net/ndlp-rsvprevention"/>
+        <parameter name="EXPECTED_DESTINATION_URL_PREFIXES" value="https://ocioederoutingdatasadev.blob.core.windows.net/routeingress/ndlp-rsvprevention"/>
         <classes>
             <class name="ProcStat">
                 <methods>

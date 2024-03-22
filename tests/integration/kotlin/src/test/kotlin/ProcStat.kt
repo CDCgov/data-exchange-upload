@@ -122,8 +122,8 @@ class ProcStat {
     @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_FILE_HAPPY_PATH])
     fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded(context: ITestContext) {
         // Parse the expected URLs from the parameters
-        val expectedSourceUrls = context.currentXmlTest.getParameter("EXPECTED_SOURCE_URLS").split(",")
-        val expectedDestinationUrls = context.currentXmlTest.getParameter("EXPECTED_DESTINATION_URLS").split(",")
+        val expectedSourceUrls = context.currentXmlTest.getParameter("EXPECTED_SOURCE_URL_PREFIXES").split(",")
+        val expectedDestinationUrls = context.currentXmlTest.getParameter("EXPECTED_DESTINATION_URL_PREFIXES").split(",")
 
         val jsonPath = reportResponse.extract().jsonPath()
         val reports = jsonPath.getList("reports", Report::class.java)
