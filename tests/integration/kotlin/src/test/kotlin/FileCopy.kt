@@ -41,7 +41,8 @@ class FileCopy {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
         val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
-        val propertiesFilePath= "properties/$senderManifestPropertiesFilename"
+        val useCase = context.currentXmlTest.getParameter("USE_CASE")
+        val propertiesFilePath= "properties/$useCase/$senderManifestPropertiesFilename"
         val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)

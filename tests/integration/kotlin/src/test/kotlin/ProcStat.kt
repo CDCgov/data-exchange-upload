@@ -34,7 +34,8 @@ class ProcStat {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
         val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
-        val propertiesFilePath= "properties/$senderManifestPropertiesFilename"
+        val useCase = context.currentXmlTest.getParameter("USE_CASE")
+        val propertiesFilePath= "properties/$useCase/$senderManifestPropertiesFilename"
         val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         uploadId = uploadClient.uploadFile(testFile, metadata)

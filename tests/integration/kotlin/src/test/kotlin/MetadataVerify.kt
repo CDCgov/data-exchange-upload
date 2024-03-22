@@ -26,7 +26,8 @@ class MetadataVerify {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
         val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
-        val propertiesFilePath= "properties/$senderManifestPropertiesFilename"
+        val useCase = context.currentXmlTest.getParameter("USE_CASE")
+        val propertiesFilePath= "properties/$useCase/$senderManifestPropertiesFilename"
         matadataHappyPath = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
     }
 

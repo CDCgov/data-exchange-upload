@@ -34,15 +34,17 @@ dependencies {
 
 tasks.test {
     // Detect if suite param was passed in
-    val runSuite = project.hasProperty("suite")
+    val hasEnv = project.hasProperty("env")
+    val hasSuites = project.hasProperty("suites")
 
     useTestNG {
-        if (runSuite) {
-            // If parameter was passed in, use it in the 'suites' command
-            val suiteToRun = project.properties["suite"]
-            val suite = "src/test/resources/$suiteToRun"
-            val useCase = project.properties["useCase"].toString()
-            suiteXmlFiles = listOf(file(suite))
+        if (hasEnv or hasSuites) {
+            val env = project.properties["env"] ?: "dev"
+            val allSuites = listOf("aims-celr-csv-$env.xml", "aims-celr-hl7-$env.xml")
+            val suitesToRun: List<String> = project.properties["suites"]?.toString()?.split(',') ?: allSuites
+            val fullyQualifiedSuites = suitesToRun.map { file("src/test/resources/$it") }
+            println(suitesToRun)
+            suiteXmlFiles = fullyQualifiedSuites
         }
     }
 }
