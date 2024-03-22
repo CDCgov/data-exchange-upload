@@ -116,10 +116,10 @@
         </classes>
     </test>
     <test name="NDLP-COVIDALLMONTHLYVACCINATION">
-        <parameter name="SENDER_MANIFEST" value="ndlp-covidallmonthlycavvination.properties"/>
+        <parameter name="SENDER_MANIFEST" value="ndlp-covidallmonthlyvaccination.properties"/>
         <!-- Define parameters for expected URLs as comma-separated lists -->
-        <parameter name="EXPECTED_SOURCE_URL_PREFIXES" value="https://ocioededataexchangedev.blob.core.windows.net/ndlp-covidallmonthlycavvination"/>
-        <parameter name="EXPECTED_DESTINATION_URL_PREFIXES" value="https://edavdevdatalakedex.blob.core.windows.net/upload/ndlp-covidallmonthlycavvination"/>
+        <parameter name="EXPECTED_SOURCE_URL_PREFIXES" value="https://ocioededataexchangedev.blob.core.windows.net/ndlp-covidallmonthlyvaccination"/>
+        <parameter name="EXPECTED_DESTINATION_URL_PREFIXES" value="https://edavdevdatalakedex.blob.core.windows.net/upload/ndlp-covidallmonthlyvaccination"/>
         <groups>
             <run>
                 <include name="file-copy" />
