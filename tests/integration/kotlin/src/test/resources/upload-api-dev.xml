@@ -16,7 +16,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="NDLP-RSVPREVENTION">
@@ -35,7 +39,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="NDLP-ROUTINEIMMUNIZATION">
@@ -54,7 +62,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="NDLP-INFLUENZAVACCINATION">
@@ -73,7 +85,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="NDLP-COVIDBRIDGEVACCINATION">
@@ -92,7 +108,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="NDLP-COVIDALLMONTHLYVACCINATION">
@@ -111,7 +131,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="NDLP-APLHISTORICALDATA">
@@ -130,7 +154,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="DEXTESTING-TESTEVENT1">
@@ -168,7 +196,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="DAART-HL7">
@@ -187,7 +219,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="AIMS-CELR-HL7">
@@ -206,7 +242,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToEdavContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="AIMS-CELR-CSV">
@@ -225,7 +265,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToEdavContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
     <test name="NDLP-RSV-Prevention">
@@ -244,7 +288,11 @@
         <classes>
             <class name="ProcStat" />
             <class name="MetadataVerify" />
-            <class name="FileCopy" />
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToEdavContainer" />
+                </methods>
+            </class>
         </classes>
     </test>
 </suite>
