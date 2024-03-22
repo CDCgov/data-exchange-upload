@@ -41,8 +41,7 @@ class ProcStat {
     // Naz updated below code
     @BeforeGroups(groups = [Constants.Groups.PROC_STAT_UPLOAD_FILE_HAPPY_PATH])
     fun procStatUploadFileHappyPath(context: ITestContext) {
-        val configFile = context.currentXmlTest.getParameter("CONFIG_FILE")
-        System.setProperty("CONFIG_FILE", configFile ?: "defaultConfig.properties")
+        val configFile = context.currentXmlTest.getParameter("SENDER_MANIFEST")
         val propertiesFilePath= "properties/$configFile"
         val metadata = Metadata.generateRequiredMetadataForFile(testFile,propertiesFilePath)
 
