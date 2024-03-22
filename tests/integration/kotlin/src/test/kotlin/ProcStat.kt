@@ -121,8 +121,6 @@ class ProcStat {
 
     @Test(groups = [Constants.Groups.PROC_STAT_UPLOAD_FILE_HAPPY_PATH])
     fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded(context: ITestContext) {
-        val configFile = context.currentXmlTest.getParameter("CONFIG_FILE")
-        System.setProperty("CONFIG_FILE", configFile ?: "defaultConfig.properties")
         // Parse the expected URLs from the parameters
         val expectedSourceUrls = context.currentXmlTest.getParameter("EXPECTED_SOURCE_URLS").split(",")
         val expectedDestinationUrls = context.currentXmlTest.getParameter("EXPECTED_DESTINATION_URLS").split(",")
