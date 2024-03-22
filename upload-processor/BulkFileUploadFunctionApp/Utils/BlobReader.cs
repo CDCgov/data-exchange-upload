@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
-    internal class BlobReader
+    public class BlobReader : IBlobReader
     {
         private readonly ILogger _logger;
 
@@ -16,8 +16,8 @@ namespace BulkFileUploadFunctionApp.Utils
         public async Task<T?> GetObjectFromBlobJsonContent<T>(string connectionString, string sourceContainerName, string blobPathname)
         {
             T? result;
-            var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
 
+            var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
             BlobClient sourceBlob = sourceContainerClient.GetBlobClient(blobPathname);
 
             _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");

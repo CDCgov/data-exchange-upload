@@ -13,6 +13,5 @@ class Constants {
             const val PROC_STAT_TRACE = "proc-stat-trace"
             const val PROC_STAT_REPORT = "proc-stat-report"
         }
-
     }
 }

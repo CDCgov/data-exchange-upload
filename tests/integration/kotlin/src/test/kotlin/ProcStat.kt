@@ -10,6 +10,7 @@ import model.Report
 import org.hamcrest.Matchers.*
 import org.testng.Assert.assertNotNull
 import org.testng.ITestContext
+import org.testng.Assert.assertTrue
 import org.testng.TestNGException
 import org.testng.annotations.BeforeGroups
 import org.testng.annotations.BeforeSuite

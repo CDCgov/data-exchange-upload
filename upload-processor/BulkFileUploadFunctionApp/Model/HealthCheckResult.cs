@@ -1,10 +1,15 @@
 
+using System.Text.Json.Serialization;
+
 namespace BulkFileUploadFunctionApp.Model
 {
-    public class HealthCheckResult
+    public record HealthCheckResult
     {
+        [JsonPropertyName("service")]
         public string Service { get; set; }
+        [JsonPropertyName("status")]
         public string Status { get; set; }
+        [JsonPropertyName("health_issues")]
         public string HealthIssues { get; set; }
 
         // Constructor for easily setting properties upon creation

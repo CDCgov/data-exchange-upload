@@ -4,8 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-
 using BulkFileUploadFunctionApp.Services;
+using BulkFileUploadFunctionApp.Utils;
 using Microsoft.FeatureManagement;
 
 var host = new HostBuilder()
@@ -50,7 +50,13 @@ var host = new HostBuilder()
         services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactoryImpl>();
 
         // Registers an implementation for the IEnvironmentVariableProvider interface to be resolved as a singleton.
-        services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();  
+        services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();       
+
+        // Registers an implementation for the IBlobCopyHelper interface to be resolved as a singleton.
+        services.AddSingleton<IBlobCopyHelper, BlobCopyHelper>();
+
+        // Registers an implementation for the BlobReaderFactory's IBlobReader interface to be resolved as a singleton.
+        services.AddSingleton<IBlobReaderFactory, BlobReaderFactory>();
         
         services.AddSingleton<IFeatureManagementExecutor, FeatureManagementExecutor>();
     })
