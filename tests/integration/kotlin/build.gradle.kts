@@ -26,17 +26,11 @@ dependencies {
     testImplementation("com.fasterxml.jackson.core:jackson-databind:2.14.0-rc1")
     testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9")
     testImplementation("io.rest-assured:rest-assured:5.4.0")
-    testImplementation("commons-codec:commons-codec:1.15")
-    testImplementation("org.json:json:20240303")
-
 }
 
-//tasks.test {
-//    useTestNG()
-//}
 tasks.test {
     useTestNG() {
-        setSuiteXmlFiles(listOf(file("resources/testNG.xml")))
+        suiteXmlFiles = listOf(file("resources/testNG.xml"))
     }
 }
 
