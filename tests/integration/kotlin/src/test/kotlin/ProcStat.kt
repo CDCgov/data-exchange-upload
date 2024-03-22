@@ -128,12 +128,12 @@ class ProcStat {
 
         // Validate source URLs
         sourceUrls.forEach { sourceUrl ->
-            assert(expectedSourceUrls.any { sourceUrl.contains(it) }) { "Source URL $sourceUrl does not match any expected URLs." }
+            assert(expectedSourceUrls.any { sourceUrl.trim().contains(it.trim()) }) { "Source URL $sourceUrl does not match any expected URLs." }
         }
 
         // Validate destination URLs
         destinationUrls.forEach { destinationUrl ->
-            assert(expectedDestinationUrls.any { destinationUrl.contains(it) }) { "Destination URL $destinationUrl does not match any expected URLs." }
+            assert(expectedDestinationUrls.any { destinationUrl.trim().contains(it.trim()) }) { "Destination URL $destinationUrl does not match any expected URLs." }
         }
     }
 
