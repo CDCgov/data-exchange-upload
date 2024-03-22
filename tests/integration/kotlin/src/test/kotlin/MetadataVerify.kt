@@ -1,6 +1,7 @@
 import auth.AuthClient
 import io.tus.java.client.ProtocolException
 import org.testng.Assert
+import org.testng.ITestContext
 import org.testng.annotations.BeforeGroups
 import org.testng.annotations.Test
 import tus.UploadClient
@@ -8,6 +9,7 @@ import util.Constants
 import util.Constants.Companion.TEST_DESTINATION
 import util.Constants.Companion.TEST_EVENT
 import util.EnvConfig
+import util.Metadata
 import util.TestFile
 
 
@@ -16,23 +18,21 @@ class MetadataVerify {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
     private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
     private lateinit var uploadClient: UploadClient
+    private lateinit var matadataHappyPath: HashMap<String, String>
 
     @BeforeGroups(groups = [Constants.Groups.METADATA_VERIFY])
-    fun beforeClass() {
+    fun beforeClass(context: ITestContext) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
+
+        val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
+        val propertiesFilePath= "properties/$senderManifestPropertiesFilename"
+        matadataHappyPath = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
     }
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY])
     fun shouldUploadFileGivenRequiredMetadata() {
-        val metadata = hashMapOf(
-            "filename" to testFile.name,
-            "meta_destination_id" to TEST_DESTINATION,
-            "meta_ext_event" to TEST_EVENT,
-            "meta_ext_source" to "INTEGRATION-TEST"
-        ) as HashMap<String, String>
-
-        val uploadId = uploadClient.uploadFile(testFile, metadata)
+        val uploadId = uploadClient.uploadFile(testFile, matadataHappyPath)
         Assert.assertNotNull(uploadId)
     }
 
