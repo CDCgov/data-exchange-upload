@@ -4,7 +4,6 @@ import io.restassured.response.ValidatableResponse
 import io.tus.java.client.ProtocolException
 import org.testng.Assert
 import org.testng.ITestContext
-import org.testng.TestNGException
 import org.testng.annotations.BeforeClass
 import org.testng.annotations.BeforeGroups
 import org.testng.annotations.Test

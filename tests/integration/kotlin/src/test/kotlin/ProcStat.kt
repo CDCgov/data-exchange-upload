@@ -9,7 +9,6 @@ import io.restassured.response.ValidatableResponse
 import model.Report
 import org.hamcrest.Matchers.*
 import org.testng.Assert.assertNotNull
-import org.testng.Assert.assertTrue
 import org.testng.ITestContext
 import org.testng.TestNGException
 import org.testng.annotations.BeforeGroups
@@ -17,7 +16,6 @@ import util.Constants
 import util.TestFile
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 @Test()
