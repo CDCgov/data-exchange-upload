@@ -5,6 +5,7 @@ import com.azure.storage.blob.models.BlobListDetails
 import com.azure.storage.blob.models.ListBlobsOptions
 import org.joda.time.DateTime
 import org.testng.Assert
+import org.testng.ITestContext
 import org.testng.TestNGException
 import org.testng.annotations.BeforeGroups
 import org.testng.annotations.Test
@@ -35,10 +36,14 @@ class FileCopy {
     private lateinit var uploadId: String
 
     @BeforeGroups(groups = [Constants.Groups.FILE_COPY])
-    fun dexTestingFileCopySetup() {
+    fun fileCopySetup(context: ITestContext) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
-        val metadata = Metadata.generateRequiredMetadataForFile(testFile)
+
+        val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
+        val propertiesFilePath= "properties/$senderManifestPropertiesFilename"
+        val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
+
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
         routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)

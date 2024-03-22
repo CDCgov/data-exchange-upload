@@ -41,6 +41,7 @@ tasks.test {
             // If parameter was passed in, use it in the 'suites' command
             val suiteToRun = project.properties["suite"]
             val suite = "src/test/resources/$suiteToRun"
+            val useCase = project.properties["useCase"].toString()
             suiteXmlFiles = listOf(file(suite))
         }
     }
