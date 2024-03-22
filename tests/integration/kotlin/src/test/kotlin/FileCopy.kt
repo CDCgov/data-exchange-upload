@@ -6,7 +6,6 @@ import com.azure.storage.blob.models.ListBlobsOptions
 import org.joda.time.DateTime
 import org.testng.Assert
 import org.testng.TestNGException
-import org.testng.annotations.BeforeClass
 import org.testng.annotations.BeforeGroups
 import org.testng.annotations.Test
 import tus.UploadClient
