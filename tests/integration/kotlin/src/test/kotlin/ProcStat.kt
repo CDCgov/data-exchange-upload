@@ -1,5 +1,4 @@
 import auth.AuthClient
-import org.testng.annotations.BeforeClass
 import org.testng.annotations.Test
 import tus.UploadClient
 import util.EnvConfig
@@ -10,10 +9,8 @@ import model.Report
 import org.hamcrest.Matchers.*
 import org.testng.Assert.assertNotNull
 import org.testng.ITestContext
-import org.testng.Assert.assertTrue
 import org.testng.TestNGException
 import org.testng.annotations.BeforeGroups
-import org.testng.annotations.BeforeSuite
 import util.Constants
 import util.TestFile
 import kotlin.test.assertContains
