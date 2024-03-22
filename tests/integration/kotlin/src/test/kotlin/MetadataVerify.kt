@@ -1,9 +1,10 @@
 import auth.AuthClient
 import io.tus.java.client.ProtocolException
 import org.testng.Assert
-import org.testng.annotations.BeforeClass
+import org.testng.annotations.BeforeGroups
 import org.testng.annotations.Test
 import tus.UploadClient
+import util.Constants
 import util.Constants.Companion.TEST_DESTINATION
 import util.Constants.Companion.TEST_EVENT
 import util.EnvConfig
@@ -16,13 +17,13 @@ class MetadataVerify {
     private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
     private lateinit var uploadClient: UploadClient
 
-    @BeforeClass()
+    @BeforeGroups(groups = [Constants.Groups.METADATA_VERIFY])
     fun beforeClass() {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
-    @Test()
+    @Test(groups = [Constants.Groups.METADATA_VERIFY])
     fun shouldUploadFileGivenRequiredMetadata() {
         val metadata = hashMapOf(
             "filename" to testFile.name,
@@ -35,7 +36,7 @@ class MetadataVerify {
         Assert.assertNotNull(uploadId)
     }
 
-    @Test(expectedExceptions = [ProtocolException::class])
+    @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
     fun shouldReturnErrorWhenDestinationIDNotProvided() {
         val metadata = hashMapOf(
             "filename" to testFile.name,
@@ -46,7 +47,7 @@ class MetadataVerify {
         uploadClient.uploadFile(testFile, metadata)
     }
 
-    @Test(expectedExceptions = [ProtocolException::class])
+    @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
     fun shouldReturnErrorWhenEventNotProvided() {
         val metadata = hashMapOf(
             "filename" to testFile.name,
@@ -57,7 +58,7 @@ class MetadataVerify {
         uploadClient.uploadFile(testFile, metadata)
     }
 
-    @Test(expectedExceptions = [ProtocolException::class])
+    @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
     fun shouldReturnErrorWhenFilenameNotProvided() {
         val metadata = hashMapOf(
             "meta_destination_id" to TEST_DESTINATION,
@@ -68,5 +69,3 @@ class MetadataVerify {
         uploadClient.uploadFile(testFile, metadata)
     }
 }
-
-

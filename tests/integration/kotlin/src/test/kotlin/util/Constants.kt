@@ -12,10 +12,11 @@ class Constants {
 
     class Groups {
         companion object {
-            const val PROC_STAT_METADATA_VERIFY_HAPPY_PATH = "proc-stat-metadata-verify-happy-path"
-            const val PROC_STAT_UPLOAD_STATUS_HAPPY_PATH = "proc-stat-upload-status-happy-path"
-            const val PROC_STAT_UPLOAD_STATUS_DEX_FILE_COPY_HAPPY_PATH="proc-stat-upload-status-dex-file-copy-happy-path"
-            const val DEX_USE_CASE_DEX_TESTING = "dextesting-testevent1"
+            const val METADATA_VERIFY = "metadata-verify"
+            const val PROC_STAT = "proc-stat"
+            const val PROC_STAT_TRACE = "proc-stat-trace"
+            const val PROC_STAT_REPORT = "proc-stat-report"
+            const val FILE_COPY = "file-copy"
         }
     }
 }
