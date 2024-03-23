@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -33,6 +34,8 @@ dependencies {
 }
 
 tasks.test {
+    testLogging.showStandardStreams = true
+    testLogging.exceptionFormat = TestExceptionFormat.FULL
     // Detect if suite param was passed in
     val hasEnv = project.hasProperty("env")
     val hasSuites = project.hasProperty("useCases")
