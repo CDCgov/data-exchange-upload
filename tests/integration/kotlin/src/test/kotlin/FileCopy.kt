@@ -8,15 +8,13 @@ import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.TestNGException
 import org.testng.annotations.BeforeTest
+import org.testng.annotations.Listeners
 import org.testng.annotations.Test
 import tus.UploadClient
-import util.Azure
-import util.Constants
-import util.EnvConfig
-import util.Metadata
-import util.TestFile
+import util.*
 import java.time.Duration
 
+@Listeners(UploadIdTestListener::class)
 @Test()
 class FileCopy {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
@@ -50,6 +48,7 @@ class FileCopy {
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
         routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
         uploadId = uploadClient.uploadFile(testFile, metadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
+        context.setAttribute("uploadId", uploadId)
         Thread.sleep(500) // Hard delay to wait for file to copy.
 
         Assert.assertTrue(bulkUploadsContainerClient.exists())

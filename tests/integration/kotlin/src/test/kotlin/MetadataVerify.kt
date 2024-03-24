@@ -3,16 +3,14 @@ import io.tus.java.client.ProtocolException
 import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.annotations.BeforeTest
+import org.testng.annotations.Listeners
 import org.testng.annotations.Test
 import tus.UploadClient
-import util.Constants
+import util.*
 import util.Constants.Companion.TEST_DESTINATION
 import util.Constants.Companion.TEST_EVENT
-import util.EnvConfig
-import util.Metadata
-import util.TestFile
 
-
+@Listeners(UploadIdTestListener::class)
 @Test()
 class MetadataVerify {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
@@ -32,8 +30,10 @@ class MetadataVerify {
     }
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY])
-    fun shouldUploadFileGivenRequiredMetadata() {
+    fun shouldUploadFileGivenRequiredMetadata(context: ITestContext) {
         val uploadId = uploadClient.uploadFile(testFile, matadataHappyPath)
+        context.setAttribute("uploadId", uploadId)
+
         Assert.assertNotNull(uploadId)
     }
 

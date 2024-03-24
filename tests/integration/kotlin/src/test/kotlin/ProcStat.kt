@@ -1,8 +1,6 @@
 import auth.AuthClient
 import org.testng.annotations.Test
 import tus.UploadClient
-import util.EnvConfig
-import util.Metadata
 import io.restassured.RestAssured.*
 import io.restassured.response.ValidatableResponse
 import model.Report
@@ -11,12 +9,13 @@ import org.testng.Assert.assertNotNull
 import org.testng.ITestContext
 import org.testng.TestNGException
 import org.testng.annotations.BeforeTest
-import util.Constants
-import util.TestFile
+import org.testng.annotations.Listeners
+import util.*
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
+@Listeners(UploadIdTestListener::class)
 @Test()
 class ProcStat {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
@@ -40,6 +39,8 @@ class ProcStat {
 
         uploadId = uploadClient.uploadFile(testFile, metadata)
                 ?: throw TestNGException("Error uploading file ${testFile.name}")
+        context.setAttribute("uploadId", uploadId)
+
         Thread.sleep(12_000) // Hard delay to wait for PS API to settle.
 
         traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
