@@ -1,5 +1,6 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.nio.file.Path
 
 plugins {
     kotlin("jvm") version "1.8.10"
@@ -43,7 +44,7 @@ tasks.test {
     useTestNG {
         if (hasEnv or hasSuites) {
             val env = project.properties["env"] ?: "dev"
-            val allUseCases = listOf("aims-celr-csv", "aims-celr-hl7")
+            val allUseCases = File("src/test/resources/$env").listFiles().map { it.nameWithoutExtension }
             val useCasesToRun: List<String> = project.properties["useCases"]?.toString()?.split(',') ?: allUseCases
             val fullyQualifiedSuites = useCasesToRun.map { file("src/test/resources/$env/$it.xml") }
             println("Running tests for use cases: $useCasesToRun")

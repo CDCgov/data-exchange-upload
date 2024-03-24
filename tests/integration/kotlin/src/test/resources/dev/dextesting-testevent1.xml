@@ -1,5 +1,5 @@
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
-<suite name="AIMS CELR HL7 DEV" parallel="tests" thread-count="3">
+<suite name="DEXTESTING TESTEVENT1 DEV" parallel="tests" thread-count="3">
     <parameter name="USE_CASE" value="dextesting-testevent1" />
     <test name="Metadata Verify">
         <parameter name="SENDER_MANIFEST" value="dextesting-testevent1.properties"/>

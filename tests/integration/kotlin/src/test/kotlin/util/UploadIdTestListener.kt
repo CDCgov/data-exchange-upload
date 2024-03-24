@@ -8,7 +8,7 @@ class UploadIdTestListener: TestListenerAdapter() {
         super.onTestFailure(tr)
 
         tr?.testContext?.getAttribute("uploadId")?.toString()?.let {
-            println("Test ${tr.testClass}/${tr.testName} failed for Upload ID: $it")
+            println("Test ${tr.testClass}/${tr.method.methodName} failed for Upload ID: $it")
         }
     }
 }
