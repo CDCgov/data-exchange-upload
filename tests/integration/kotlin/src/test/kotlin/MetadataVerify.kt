@@ -2,7 +2,7 @@ import auth.AuthClient
 import io.tus.java.client.ProtocolException
 import org.testng.Assert
 import org.testng.ITestContext
-import org.testng.annotations.BeforeGroups
+import org.testng.annotations.BeforeTest
 import org.testng.annotations.Test
 import tus.UploadClient
 import util.Constants
@@ -20,7 +20,7 @@ class MetadataVerify {
     private lateinit var uploadClient: UploadClient
     private lateinit var matadataHappyPath: HashMap<String, String>
 
-    @BeforeGroups(groups = [Constants.Groups.METADATA_VERIFY])
+    @BeforeTest(groups = [Constants.Groups.METADATA_VERIFY])
     fun beforeClass(context: ITestContext) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)

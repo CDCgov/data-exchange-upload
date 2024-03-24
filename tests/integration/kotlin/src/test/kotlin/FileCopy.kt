@@ -7,7 +7,7 @@ import org.joda.time.DateTime
 import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.TestNGException
-import org.testng.annotations.BeforeGroups
+import org.testng.annotations.BeforeTest
 import org.testng.annotations.Test
 import tus.UploadClient
 import util.Azure
@@ -34,14 +34,15 @@ class FileCopy {
     private lateinit var routingContainerClient: BlobContainerClient
     private lateinit var uploadClient: UploadClient
     private lateinit var uploadId: String
+    private lateinit var useCase: String
 
-    @BeforeGroups(groups = [Constants.Groups.FILE_COPY])
+    @BeforeTest(groups = [Constants.Groups.FILE_COPY])
     fun fileCopySetup(context: ITestContext) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
+        useCase = context.currentXmlTest.getParameter("USE_CASE")
 
         val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
-        val useCase = context.currentXmlTest.getParameter("USE_CASE")
         val propertiesFilePath= "properties/$useCase/$senderManifestPropertiesFilename"
         val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
@@ -73,7 +74,7 @@ class FileCopy {
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToEdavContainer() {
         val options = ListBlobsOptions()
-            .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(), "dextesting-testevent1"))
+            .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(), useCase))
             .setDetails(BlobListDetails().setRetrieveMetadata(true))
         val edavUploadBlob = edavContainerClient.listBlobs(options, Duration.ofMillis(EnvConfig.AZURE_BLOB_SEARCH_DURATION_MILLIS))
             .first { blob -> blob.metadata?.containsValue(uploadId) == true }
@@ -85,7 +86,7 @@ class FileCopy {
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToRoutingContainer() {
         val options = ListBlobsOptions()
-            .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(), "dextesting-testevent1"))
+            .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(), useCase))
             .setDetails(BlobListDetails().setRetrieveMetadata(true))
         val routingUploadBlob = routingContainerClient.listBlobs(options, Duration.ofMillis(EnvConfig.AZURE_BLOB_SEARCH_DURATION_MILLIS))
             .first { blob -> blob.metadata?.containsValue(uploadId) == true }

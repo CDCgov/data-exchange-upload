@@ -10,7 +10,7 @@ import org.hamcrest.Matchers.*
 import org.testng.Assert.assertNotNull
 import org.testng.ITestContext
 import org.testng.TestNGException
-import org.testng.annotations.BeforeGroups
+import org.testng.annotations.BeforeTest
 import util.Constants
 import util.TestFile
 import kotlin.test.assertContains
@@ -29,7 +29,7 @@ class ProcStat {
     private lateinit var traceResponse: ValidatableResponse
     private lateinit var reportResponse: ValidatableResponse
 
-    @BeforeGroups(groups = [Constants.Groups.PROC_STAT])
+    @BeforeTest(groups = [Constants.Groups.PROC_STAT])
     fun procStatHappyPath(context: ITestContext) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
