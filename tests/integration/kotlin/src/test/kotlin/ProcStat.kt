@@ -30,7 +30,7 @@ class ProcStat {
     private lateinit var reportResponse: ValidatableResponse
 
     @BeforeTest(groups = [Constants.Groups.PROC_STAT])
-    fun procStatHappyPath(context: ITestContext) {
+    fun beforeTest(context: ITestContext) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
         val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")

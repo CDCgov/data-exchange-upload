@@ -37,7 +37,7 @@ class FileCopy {
     private lateinit var useCase: String
 
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
-    fun fileCopySetup(context: ITestContext) {
+    fun beforeTest(context: ITestContext) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
         useCase = context.currentXmlTest.getParameter("USE_CASE")

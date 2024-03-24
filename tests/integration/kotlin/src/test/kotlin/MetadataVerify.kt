@@ -21,7 +21,7 @@ class MetadataVerify {
     private lateinit var matadataHappyPath: HashMap<String, String>
 
     @BeforeTest(groups = [Constants.Groups.METADATA_VERIFY])
-    fun beforeClass(context: ITestContext) {
+    fun beforeTest(context: ITestContext) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
