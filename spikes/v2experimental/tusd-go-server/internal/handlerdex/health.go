@@ -12,11 +12,8 @@ import (
 
 // HealthResp, app health response
 type HealthResp struct { // TODO: line up with DEX other products and apps
-
-	RootResp // Embedding rootResp, TODO: maybe this is not needed
-
-	Status string `json:"status"` // general app health
-
+	RootResp                            // Embedding rootResp, TODO: maybe this is not needed
+	Status   string                     `json:"status"` // general app health
 	Services []models.ServiceHealthResp `json:"services"`
 } // .HealthResp
 
