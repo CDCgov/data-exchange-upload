@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
@@ -15,6 +16,11 @@ type HandlerDex struct {
 	cliFlags  cliflags.Flags
 	appConfig appconfig.AppConfig
 	logger    *slog.Logger
+
+	// azure service dependencies
+	TusAzBlobClient    *azblob.Client
+	RouterAzBlobClient *azblob.Client
+	EdavAzBlobClient   *azblob.Client
 } // .HandlerDex
 
 // New returns a DEX sever handler that can handle http requests

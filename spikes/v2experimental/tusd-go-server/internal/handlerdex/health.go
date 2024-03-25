@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
 ) // .import
 
@@ -15,41 +17,32 @@ type HealthResp struct { // TODO: line up with DEX other products and apps
 
 	Status string `json:"status"` // general app health
 
-	Services []ServiceHealthResp `json:"services"`
+	Services []models.HealthServiceResp `json:"services"`
 } // .HealthResp
-
-// ServiceHealthResp, health response from an app service dependency
-type ServiceHealthResp struct {
-	Service     string `json:"service"`
-	Status      string `json:"status"`
-	HealthIssue string `json:"health_issue"`
-} // .ServiceHealthResp
-
-// general app health statuses
-const STATUS_UP = "UP"
-const STATUS_DEGRADED = "DEGRADED"
-const STATUS_DOWN = "DOWN"
-const HEALTH_ISSUE_NONE = "None reported"
 
 // health responds to /health endpoint with the health of the app including dependency services
 func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 
-	status := STATUS_UP
+	status := models.STATUS_UP
 
-	var servicesResponses []ServiceHealthResp
+	var servicesResponses []models.HealthServiceResp
 
-	_, err := storeaz.NewTusAzBlobClient(hd.appConfig)
-	if err != nil {
-		servicesResponses = append(servicesResponses, ServiceHealthResp{
-			Service:     "AzBlobTusUpload",
-			Status:      STATUS_DOWN,
-			HealthIssue: err.Error()})
-	} else {
-		servicesResponses = append(servicesResponses, ServiceHealthResp{
-			Service:     "AzBlobTusUpload",
-			Status:      STATUS_UP,
-			HealthIssue: HEALTH_ISSUE_NONE})
-	} // .else
+	if hd.cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE || hd.cliFlags.RunMode == cliflags.RUN_MODE_AZURE {
+
+		ch := make(chan models.HealthServiceResp, 3)
+
+		go func() { ch <- storeaz.CheckTusAzBlobClient(hd.TusAzBlobClient) }()
+		go func() { ch <- storeaz.CheckRouterAzBlobClient(hd.RouterAzBlobClient) }()
+		go func() { ch <- storeaz.CheckEdavAzBlobClient(hd.EdavAzBlobClient) }()
+
+		servicesResponses = append(servicesResponses, <-ch, <-ch, <-ch)
+
+		for _, sr := range servicesResponses {
+			if sr.Status == models.STATUS_DOWN {
+				status = models.STATUS_DEGRADED
+			} // .if
+		} // .if
+	} // .if
 
 	jsonResp, err := json.Marshal(HealthResp{
 		RootResp: RootResp{

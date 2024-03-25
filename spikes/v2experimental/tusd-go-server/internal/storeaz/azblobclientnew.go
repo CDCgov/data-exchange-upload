@@ -86,9 +86,6 @@ func newAzBlobClient(prefix, azStorageName, azStorageKey, azContainerEndpoint, a
 	// test if the client is
 	_, err = client.CreateContainer(context.TODO(), azContainerName, nil)
 
-	// TODO: maybe the check should be in it's own method to keep new client
-	// depending on how many times newAzBlobClient gets called
-
 	// check to see if error is blob does exists which means client is ok
 	var responseErr *azcore.ResponseError
 	if errors.As(err, &responseErr) {

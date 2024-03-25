@@ -15,10 +15,10 @@ type Flags struct {
 
 var runModes = []string{"local", "azure", "aws", "local_to_azure"}
 
-const ENV_LOCAL = "local"
-const ENV_LOCAL_TO_AZURE = "local_to_azure"
-const ENV_AZURE = "azure"
-const ENV_AWS = "aws"
+const RUN_MODE_LOCAL = "local"
+const RUN_MODE_LOCAL_TO_AZURE = "local_to_azure"
+const RUN_MODE_AZURE = "azure"
+const RUN_MODE_AWS = "aws"
 
 // ParseFlags read cli flags into an Flags struct which is returned
 func ParseFlags() (Flags, error) {

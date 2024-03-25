@@ -14,6 +14,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/joho/godotenv"
+	// "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 ) // .import
 
 const appMainExitCode = 1
@@ -36,7 +37,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// used to run the app locally, it uploads files locally
 	// ------------------------------------------------------------------
-	if cliFlags.RunMode == cliflags.ENV_LOCAL || cliFlags.RunMode == cliflags.ENV_LOCAL_TO_AZURE {
+	if cliFlags.RunMode == cliflags.RUN_MODE_LOCAL || cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE {
 		err = godotenv.Load(cliFlags.AppLocalConfigPath)
 		if err != nil {
 			slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
@@ -48,7 +49,7 @@ func main() {
 	// used to run the app locally, it uploads files from local to azure
 	// ------------------------------------------------------------------
 	// load the additional azure configuration from local config yaml
-	if cliFlags.RunMode == cliflags.ENV_LOCAL_TO_AZURE {
+	if cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE {
 		err := godotenv.Load(cliFlags.AzLocalConfigPath)
 		if err != nil {
 			slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
@@ -102,6 +103,28 @@ func main() {
 	} // .if
 
 	// ------------------------------------------------------------------
+	// Load Az dependencies, needed for the DEX handler paths
+	// ------------------------------------------------------------------
+	if cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE || cliFlags.RunMode == cliflags.RUN_MODE_AZURE {
+		// load on server azure service dependencies
+
+		serverDex.HandlerDex.TusAzBlobClient, err = storeaz.NewTusAzBlobClient(appConfig)
+		if err != nil {
+			logger.Error("error receive az tus blob client", "error", err)
+		} // .if
+
+		serverDex.HandlerDex.RouterAzBlobClient, err = storeaz.NewRouterAzBlobClient(appConfig)
+		if err != nil {
+			logger.Error("error receive az router blob client", "error", err)
+		} // .if
+
+		serverDex.HandlerDex.EdavAzBlobClient, err = storeaz.NewEdavAzBlobClient(appConfig)
+		if err != nil {
+			logger.Error("error receive az edav blob client", "error", err)
+		} // .if
+	} // .if
+
+	// ------------------------------------------------------------------
 	// Start http custom server
 	// ------------------------------------------------------------------
 	httpServer := serverDex.HttpServer()
@@ -113,7 +136,6 @@ func main() {
 			logger.Error("error starting app, error starting http server", "error", err, "port", appConfig.ServerPort)
 			os.Exit(appMainExitCode)
 		} // .if
-
 	}() // .go
 	logger.Info("started http server with tusd and dex handlers", "port", appConfig.ServerPort)
 

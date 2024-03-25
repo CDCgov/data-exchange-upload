@@ -28,7 +28,7 @@ type ServerDex struct {
 	MetaV1    *metadatav1.MetadataV1
 
 	handlerTusd *tusd.Handler
-	handlerDex  *handlerdex.HandlerDex
+	HandlerDex  *handlerdex.HandlerDex
 	logger      *slog.Logger
 	Metrics     Metrics
 } // .ServerDex
@@ -54,7 +54,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, metaV1 *metadat
 		AppConfig:   appConfig,
 		MetaV1:      metaV1,
 		handlerTusd: handlerTusd,
-		handlerDex:  handlerDex,
+		HandlerDex:  handlerDex,
 		logger:      logger,
 		Metrics:     newMetricsDex(),
 	}, nil // .return
@@ -99,7 +99,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 	// --------------------------------------------------------------
 	// 	DEX handler for all other http requests except above
 	// --------------------------------------------------------------
-	http.Handle("/", sd.handlerDex)
+	http.Handle("/", sd.HandlerDex)
 
 	// --------------------------------------------------------------
 	// 		Custom Server, if needed to customize

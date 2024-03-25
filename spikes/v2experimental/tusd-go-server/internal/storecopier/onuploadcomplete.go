@@ -21,9 +21,9 @@ func OnUploadComplete(flags cliflags.Flags, appConfig appconfig.AppConfig, allUp
 	} // .eventInfo
 
 	// ------------------------------------------------------------------
-	// ENV_LOCAL
+	// RUN_MODE_LOCAL
 	// ------------------------------------------------------------------
-	if flags.RunMode == cliflags.ENV_LOCAL {
+	if flags.RunMode == cliflags.RUN_MODE_LOCAL {
 
 		sl := storelocal.CopierLocal{
 
@@ -43,14 +43,14 @@ func OnUploadComplete(flags cliflags.Flags, appConfig appconfig.AppConfig, allUp
 			return err
 		} // .err
 
-	} // .ENV_LOCAL
+	} // .RUN_MODE_LOCAL
 
 	// ------------------------------------------------------------------
-	// ENV_AZURE
+	// RUN_MODE_AZURE
 	// ------------------------------------------------------------------
-	if flags.RunMode == cliflags.ENV_AZURE {
+	if flags.RunMode == cliflags.RUN_MODE_AZURE {
 
-	} // .ENV_AZURE
+	} // .RUN_MODE_AZURE
 
 	return nil
 } // .OnUploadComplete
