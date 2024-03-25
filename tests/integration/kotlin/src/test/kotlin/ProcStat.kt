@@ -1,5 +1,4 @@
 import auth.AuthClient
-import com.beust.jcommander.Parameter
 import org.testng.annotations.Test
 import tus.UploadClient
 import io.restassured.RestAssured.*
