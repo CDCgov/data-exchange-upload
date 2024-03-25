@@ -1,3 +1,4 @@
 python_dotenv
 requests
 chardet
+httmock
