@@ -48,7 +48,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, metaV1 *metadat
 		return ServerDex{}, err
 	} // .handlerTusd
 
-	handlerDex := handlerdex.New(cliFlags, appConfig)
+	handlerDex := handlerdex.New(cliFlags, appConfig, psSender)
 
 	return ServerDex{
 		CliFlags:    cliFlags,

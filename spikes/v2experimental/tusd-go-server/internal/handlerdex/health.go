@@ -17,7 +17,7 @@ type HealthResp struct { // TODO: line up with DEX other products and apps
 
 	Status string `json:"status"` // general app health
 
-	Services []models.HealthServiceResp `json:"services"`
+	Services []models.ServiceHealthResp `json:"services"`
 } // .HealthResp
 
 // health responds to /health endpoint with the health of the app including dependency services
@@ -25,17 +25,18 @@ func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 
 	status := models.STATUS_UP
 
-	var servicesResponses []models.HealthServiceResp
+	var servicesResponses []models.ServiceHealthResp
 
 	if hd.cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE || hd.cliFlags.RunMode == cliflags.RUN_MODE_AZURE {
 
-		ch := make(chan models.HealthServiceResp, 3)
+		ch := make(chan models.ServiceHealthResp, 4) // 4 services to check
 
 		go func() { ch <- storeaz.CheckTusAzBlobClient(hd.TusAzBlobClient) }()
 		go func() { ch <- storeaz.CheckRouterAzBlobClient(hd.RouterAzBlobClient) }()
 		go func() { ch <- storeaz.CheckEdavAzBlobClient(hd.EdavAzBlobClient) }()
+		go func() { ch <- hd.PsSender.CheckHealth() }()
 
-		servicesResponses = append(servicesResponses, <-ch, <-ch, <-ch)
+		servicesResponses = append(servicesResponses, <-ch, <-ch, <-ch, <-ch)
 
 		for _, sr := range servicesResponses {
 			if sr.Status == models.STATUS_DOWN {

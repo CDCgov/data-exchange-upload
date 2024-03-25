@@ -1,7 +1,7 @@
 package models
 
-type HealthServiceResp struct {
+type ServiceHealthResp struct {
 	Service     string `json:"service"`
 	Status      string `json:"status"`
 	HealthIssue string `json:"health_issue"`
-} // .HealthServiceResp
+} // .ServiceHealthResp

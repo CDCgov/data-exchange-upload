@@ -11,34 +11,34 @@ import (
 ) // .import
 
 // CheckTusAzBlobClient returns a check on the azure blob client
-func CheckTusAzBlobClient(client *azblob.Client) models.HealthServiceResp {
+func CheckTusAzBlobClient(client *azblob.Client) models.ServiceHealthResp {
 
 	return checkAzBlobClient(tusPrefix, client)
 } // .CheckTusAzBlobClient
 
 // CheckRouterAzBlobClient returns a check on the azure blob client
-func CheckRouterAzBlobClient(client *azblob.Client) models.HealthServiceResp {
+func CheckRouterAzBlobClient(client *azblob.Client) models.ServiceHealthResp {
 
 	return checkAzBlobClient(routerPrefix, client)
 } // .CheckRouterAzBlobClient
 
 // CheckEdavAzBlobClient returns a check on the azure blob client
-func CheckEdavAzBlobClient(client *azblob.Client) models.HealthServiceResp {
+func CheckEdavAzBlobClient(client *azblob.Client) models.ServiceHealthResp {
 
 	return checkAzBlobClient(edavPrefix, client)
 } // .CheckEdavAzBlobClient
 
 // checkAzBlobClient, method for checking still valid and working the azure blob client for a storage
-func checkAzBlobClient(prefix string, client *azblob.Client) models.HealthServiceResp {
+func checkAzBlobClient(prefix string, client *azblob.Client) models.ServiceHealthResp {
 
-	var hsr models.HealthServiceResp
-	hsr.Service = prefix
+	var shr models.ServiceHealthResp
+	shr.Service = prefix
 
 	// guard client is null
 	if client == nil {
-		hsr.Service = models.STATUS_DOWN
-		hsr.HealthIssue = models.AZ_BLOB_CLIENT_NA
-		return hsr
+		shr.Service = models.STATUS_DOWN
+		shr.HealthIssue = models.AZ_BLOB_CLIENT_NA
+		return shr
 	} // .if
 
 	// test if the client is good
@@ -49,19 +49,19 @@ func checkAzBlobClient(prefix string, client *azblob.Client) models.HealthServic
 	if errors.As(err, &responseErr) {
 		if responseErr.ErrorCode == string(bloberror.ContainerAlreadyExists) {
 			// connection ok
-			hsr.Status = models.STATUS_UP
-			hsr.HealthIssue = models.HEALTH_ISSUE_NONE
-			return hsr
+			shr.Status = models.STATUS_UP
+			shr.HealthIssue = models.HEALTH_ISSUE_NONE
+			return shr
 		} // .if
 	} // .if
 
 	if err != nil {
-		hsr.Status = models.STATUS_DOWN
-		hsr.HealthIssue = err.Error()
-		return hsr
+		shr.Status = models.STATUS_DOWN
+		shr.HealthIssue = err.Error()
+		return shr
 	} // .if
 
-	hsr.Status = models.STATUS_UP
-	hsr.HealthIssue = models.HEALTH_ISSUE_NONE
-	return hsr
+	shr.Status = models.STATUS_UP
+	shr.HealthIssue = models.HEALTH_ISSUE_NONE
+	return shr
 } // .checkAzBlobClient

@@ -9,6 +9,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 ) // .import
 
@@ -21,10 +22,13 @@ type HandlerDex struct {
 	TusAzBlobClient    *azblob.Client
 	RouterAzBlobClient *azblob.Client
 	EdavAzBlobClient   *azblob.Client
+
+	// processing status
+	PsSender *processingstatus.PsSender
 } // .HandlerDex
 
 // New returns a DEX sever handler that can handle http requests
-func New(flags cliflags.Flags, appConfig appconfig.AppConfig) *HandlerDex {
+func New(flags cliflags.Flags, appConfig appconfig.AppConfig, psSender *processingstatus.PsSender) *HandlerDex {
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
@@ -37,6 +41,7 @@ func New(flags cliflags.Flags, appConfig appconfig.AppConfig) *HandlerDex {
 		cliFlags:  flags,
 		appConfig: appConfig,
 		logger:    logger,
+		PsSender:  psSender,
 	} // .&HandlerDex
 } // .New
 
