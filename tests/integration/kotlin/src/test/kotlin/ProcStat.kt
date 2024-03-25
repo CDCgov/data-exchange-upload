@@ -101,10 +101,10 @@ class ProcStat {
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
     fun shouldHaveNullIssuesArrayWhenFileUploaded() {
         val jsonPath = reportResponse.extract().jsonPath()
-        val metadataVerifyReport = jsonPath.getList("reports", Report::class.java).first()
+        val metadataVerifyReport = jsonPath.getList("reports", Report::class.java).find { it.stageName == "dex-metadata-verify" }
 
-        assertEquals("dex-metadata-verify", metadataVerifyReport.stageName)
-        assertNull(metadataVerifyReport.issues)
+        assertNotNull(metadataVerifyReport)
+        assertNull(metadataVerifyReport?.issues)
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
