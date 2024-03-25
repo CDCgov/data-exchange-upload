@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	slog "golang.org/x/exp/slog"
 )
@@ -26,10 +27,11 @@ var (
 
 // checkManifestV1 is a TUSD pre-create hook, checks file manifest for fields and values per metadata v1 requirements
 // currently in v1 hooks the required fields are wired in the pre-create hook check: meta_destination_id and meta_ext_event
-func checkManifestV1(logger *slog.Logger) func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
+func checkManifestV1(logger *slog.Logger, psSender *processingstatus.PsSender) func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 	return func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 
 		// TODO: add ps integration to send report on failure
+		_ = psSender.Endpoint // TODO: add ps integration as required.
 
 		senderManifest := hook.Upload.MetaData
 

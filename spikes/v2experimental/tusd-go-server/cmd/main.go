@@ -10,11 +10,11 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/joho/godotenv"
-	// "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 ) // .import
 
 const appMainExitCode = 1
@@ -93,10 +93,15 @@ func main() {
 		os.Exit(appMainExitCode)
 	} // .err
 
+	psSender, err := processingstatus.New(appConfig)
+	if err != nil {
+		logger.Error("error processing status not available", "error", err)
+	} // .err
+
 	// ------------------------------------------------------------------
 	// create dex server, includes tusd as-is handler + dex handler
 	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(cliFlags, appConfig, metaV1)
+	serverDex, err := serverdex.New(cliFlags, appConfig, metaV1, psSender)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex server", "error", err)
 		os.Exit(appMainExitCode)

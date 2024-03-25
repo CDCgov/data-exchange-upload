@@ -6,6 +6,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/slogerxexp"
 	"github.com/tus/tusd/v2/pkg/azurestore"
 	"github.com/tus/tusd/v2/pkg/filelocker"
@@ -15,7 +16,7 @@ import (
 ) // .import
 
 // New returns a configured TUSD handler as-is with official implementation
-func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler, error) {
+func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, psSender *processingstatus.PsSender) (*tusd.Handler, error) {
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
@@ -119,7 +120,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig) (*tusd.Handler,
 		Logger: logger,
 
 		// pre-create, sender manifest checks
-		PreUploadCreateCallback: checkManifestV1(logger),
+		PreUploadCreateCallback: checkManifestV1(logger, psSender),
 	}) // .handler
 	if err != nil {
 		logger.Error("error start tusd handler", "error", err)

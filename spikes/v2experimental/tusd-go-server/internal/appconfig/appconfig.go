@@ -33,6 +33,9 @@ type AppConfig struct {
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, required"`
 
+	// Processing Status
+	ProcessingStatusURI string `env:"PROCESSING_STATUS_URI, required`
+
 	// Azure TUS Upload storage
 	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_"`
 	// DexAzStorageConfig *AzureStorageConfig `env:", prefix="DEX_"` this is currently same as TUS above

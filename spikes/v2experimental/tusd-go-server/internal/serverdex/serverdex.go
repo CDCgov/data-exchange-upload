@@ -13,6 +13,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storecopier"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -34,14 +35,14 @@ type ServerDex struct {
 } // .ServerDex
 
 // New returns an custom server for DEX Upload Api ready to serve
-func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, metaV1 *metadatav1.MetadataV1) (ServerDex, error) {
+func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, metaV1 *metadatav1.MetadataV1, psSender *processingstatus.PsSender) (ServerDex, error) {
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
 	// add package name to app logger
 	logger := sloger.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
 
-	handlerTusd, err := handlertusd.New(cliFlags, appConfig)
+	handlerTusd, err := handlertusd.New(cliFlags, appConfig, psSender)
 	if err != nil {
 		logger.Error("error starting tusd handler")
 		return ServerDex{}, err
