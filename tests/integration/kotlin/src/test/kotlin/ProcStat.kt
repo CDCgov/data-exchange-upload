@@ -1,4 +1,5 @@
 import auth.AuthClient
+import com.beust.jcommander.Parameter
 import org.testng.annotations.Test
 import tus.UploadClient
 import io.restassured.RestAssured.*
@@ -10,6 +11,8 @@ import org.testng.ITestContext
 import org.testng.TestNGException
 import org.testng.annotations.BeforeTest
 import org.testng.annotations.Listeners
+import org.testng.annotations.Optional
+import org.testng.annotations.Parameters
 import util.*
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -28,13 +31,17 @@ class ProcStat {
     private lateinit var traceResponse: ValidatableResponse
     private lateinit var reportResponse: ValidatableResponse
 
+    @Parameters("SENDER_MANIFEST", "USE_CASE")
     @BeforeTest(groups = [Constants.Groups.PROC_STAT])
-    fun beforeTest(context: ITestContext) {
+    fun beforeTest(
+        context: ITestContext,
+        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
+        @Optional("dextesting-testevent1") USE_CASE: String
+    ) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
-        val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
-        val useCase = context.currentXmlTest.getParameter("USE_CASE")
-        val propertiesFilePath= "properties/$useCase/$senderManifestPropertiesFilename"
+
+        val propertiesFilePath= "properties/$USE_CASE/$SENDER_MANIFEST"
         val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         uploadId = uploadClient.uploadFile(testFile, metadata)
@@ -113,11 +120,15 @@ class ProcStat {
         assertNotNull(uploadReport)
     }
 
+    @Parameters("EXPECTED_SOURCE_URL_PREFIXES", "EXPECTED_DESTINATION_URL_PREFIXES")
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
-    fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded(context: ITestContext) {
+    fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded(
+        @Optional("https://ocioededataexchangedev.blob.core.windows.net/dextesting-testevent1") EXPECTED_SOURCE_URL_PREFIXES: String,
+        @Optional("https://ocioederoutingdatasadev.blob.core.windows.net/routeingress/dextesting-testevent1,https://edavdevdatalakedex.blob.core.windows.net/upload/dextesting-testevent1") EXPECTED_DESTINATION_URL_PREFIXES: String
+    ) {
         // Parse the expected URLs from the parameters
-        val expectedSourceUrls = context.currentXmlTest.getParameter("EXPECTED_SOURCE_URL_PREFIXES").split(",")
-        val expectedDestinationUrls = context.currentXmlTest.getParameter("EXPECTED_DESTINATION_URL_PREFIXES").split(",")
+        val expectedSourceUrls = EXPECTED_SOURCE_URL_PREFIXES.split(",")
+        val expectedDestinationUrls = EXPECTED_DESTINATION_URL_PREFIXES.split(",")
 
         val jsonPath = reportResponse.extract().jsonPath()
         val reports = jsonPath.getList("reports", Report::class.java)

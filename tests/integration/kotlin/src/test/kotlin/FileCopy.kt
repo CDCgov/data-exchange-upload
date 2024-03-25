@@ -7,9 +7,7 @@ import org.joda.time.DateTime
 import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.TestNGException
-import org.testng.annotations.BeforeTest
-import org.testng.annotations.Listeners
-import org.testng.annotations.Test
+import org.testng.annotations.*
 import tus.UploadClient
 import util.*
 import java.time.Duration
@@ -34,14 +32,19 @@ class FileCopy {
     private lateinit var uploadId: String
     private lateinit var useCase: String
 
+    @Parameters("SENDER_MANIFEST", "USE_CASE")
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
-    fun beforeTest(context: ITestContext) {
+    fun beforeTest(
+        context: ITestContext,
+        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
+        @Optional("dextesting-testevent1") USE_CASE: String
+    ) {
+        useCase = USE_CASE
+
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
-        useCase = context.currentXmlTest.getParameter("USE_CASE")
 
-        val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
-        val propertiesFilePath= "properties/$useCase/$senderManifestPropertiesFilename"
+        val propertiesFilePath= "properties/$USE_CASE/$SENDER_MANIFEST"
         val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)

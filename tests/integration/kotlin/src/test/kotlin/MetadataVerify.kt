@@ -2,9 +2,7 @@ import auth.AuthClient
 import io.tus.java.client.ProtocolException
 import org.testng.Assert
 import org.testng.ITestContext
-import org.testng.annotations.BeforeTest
-import org.testng.annotations.Listeners
-import org.testng.annotations.Test
+import org.testng.annotations.*
 import tus.UploadClient
 import util.*
 import util.Constants.Companion.TEST_DESTINATION
@@ -16,22 +14,25 @@ class MetadataVerify {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
     private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
     private lateinit var uploadClient: UploadClient
-    private lateinit var matadataHappyPath: HashMap<String, String>
+    private lateinit var metadataHappyPath: HashMap<String, String>
 
+    @Parameters("SENDER_MANIFEST", "USE_CASE")
     @BeforeTest(groups = [Constants.Groups.METADATA_VERIFY])
-    fun beforeTest(context: ITestContext) {
+    fun beforeTest(
+        context: ITestContext,
+        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
+        @Optional("dextesting-testevent1") USE_CASE: String
+    ) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
-        val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
-        val useCase = context.currentXmlTest.getParameter("USE_CASE")
-        val propertiesFilePath= "properties/$useCase/$senderManifestPropertiesFilename"
-        matadataHappyPath = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
+        val propertiesFilePath= "properties/$USE_CASE/$SENDER_MANIFEST"
+        metadataHappyPath = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
     }
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY])
     fun shouldUploadFileGivenRequiredMetadata(context: ITestContext) {
-        val uploadId = uploadClient.uploadFile(testFile, matadataHappyPath)
+        val uploadId = uploadClient.uploadFile(testFile, metadataHappyPath)
         context.setAttribute("uploadId", uploadId)
 
         Assert.assertNotNull(uploadId)
