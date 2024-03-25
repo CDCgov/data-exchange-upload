@@ -116,8 +116,9 @@ class ProcStatController:
                 delay = self.delay_s
                 try:
                     # if the Retry-After is an int rather than a date, and it's faster than the default
-                    if e.response.headers["Retry-After"] is int and e.response.headers["Retry-After"] < delay:
-                        delay = e.response.headers["Retry-After"] 
+                    retry_delay = float(e.response.headers["Retry-After"])
+                    if retry_delay < delay:
+                        delay = retry_delay
                 except Exception as e:
                     self.logger.warning("No Retry-After header set in response")
 
