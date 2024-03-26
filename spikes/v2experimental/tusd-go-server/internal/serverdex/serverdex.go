@@ -80,7 +80,36 @@ func (sd *ServerDex) HttpServer() http.Server {
 			event := <-sd.handlerTusd.CompleteUploads
 			sd.logger.Info("upload finished", "event.Upload.ID", event.Upload.ID)
 
-			err := storecopier.OnUploadComplete(sd.CliFlags, sd.AppConfig, sd.MetaV1.UploadConfigs, event)
+			// --------------------------------------------------------------
+			// 	pulling from metadata v1 the upload config and copy targets for this event
+			// --------------------------------------------------------------
+
+			// TODO: move to model/ constants meta_destination_id, and meta_ext_event
+			// TODO: move to model/ contants, also see handlertusd/pre-create to change to constants
+			// TODO: meta_destination_id and meta_ext_event were checked in pre-check so they should be in metadata
+			// TODO: an ok check could be added just in case
+			uploadConfigKey := event.Upload.MetaData["meta_destination_id"]
+			uploadConfigKey += "-"
+			uploadConfigKey += event.Upload.MetaData["meta_ext_event"]
+			uploadConfigKey += ".json"
+			uploadConfig := sd.MetaV1.UploadConfigs[uploadConfigKey]
+
+			var copyTargets []metadatav1.CopyTarget
+
+		copyTargetFound:
+			for _, v := range sd.MetaV1.AllowedDestAndEvents {
+				if v.DestinationId == event.Upload.MetaData["meta_destination_id"] {
+
+					for _, ev := range v.ExtEvents {
+						if ev.Name == event.Upload.MetaData["meta_ext_event"] {
+							copyTargets = ev.CopyTargets
+						}
+						break copyTargetFound
+					} // .for
+				} // .if
+			} // .for
+
+			err := storecopier.OnUploadComplete(sd.CliFlags, sd.AppConfig, uploadConfig, copyTargets, event)
 			if err != nil {
 				sd.logger.Error("error copy upload", "error", err)
 			} else {

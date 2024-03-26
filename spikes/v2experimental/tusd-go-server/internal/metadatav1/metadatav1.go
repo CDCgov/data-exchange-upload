@@ -52,7 +52,7 @@ type Field struct {
 } // .Field
 
 // -----------------------------------------------------
-// TUpload config
+// Upload config
 // -----------------------------------------------------
 type AllUploadConfigs map[string]UploadConfig
 
