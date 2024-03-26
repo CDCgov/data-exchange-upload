@@ -99,10 +99,18 @@ def get_required_metadata(meta_json):
     if len(missing_metadata_fields) > 0:
         raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
 
-    return [
-        meta_json['meta_destination_id'],
-        meta_json['meta_ext_event'],
-    ]
+    metadata_version = meta_json['metadata_config']['version']
+
+    if metadata_version == "2.0":
+        return [
+            meta_json['data_stream_id'],
+            meta_json['data_stream_route']
+        ]
+    else:
+        return [
+            meta_json['meta_destination_id'],
+            meta_json['meta_ext_event'],
+        ]
 
 
 def report_verification_failure(messages, destination_id, event_type, meta_json):
