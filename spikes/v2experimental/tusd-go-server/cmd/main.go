@@ -73,15 +73,6 @@ func main() {
 
 	logger.Info("started app", "buildInfo.Main.Path", buildInfo.Main.Path)
 
-	// ------------------------------------------------------------------
-	// check if the azure blob for uploads is available
-	// ------------------------------------------------------------------
-	azBlobClient, err := storeaz.NewTusAzBlobClient(appConfig)
-	if azBlobClient == nil || err != nil {
-		logger.Error("error starting app, az blob store not available for uploads", "azBlobClient", azBlobClient, "error", err)
-		os.Exit(appMainExitCode)
-	} // .if
-
 	// logger.Debug("loaded app config", "appConfig", appConfig)
 
 	// ------------------------------------------------------------------

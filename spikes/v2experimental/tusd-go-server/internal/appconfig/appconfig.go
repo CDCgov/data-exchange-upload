@@ -38,7 +38,9 @@ type AppConfig struct {
 
 	// Azure TUS Upload storage
 	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_"`
-	// DexAzStorageConfig *AzureStorageConfig `env:", prefix="DEX_"` this is currently same as TUS above
+	// DexAzStorageConfig *AzureStorageConfig `env:", prefix="DEX_"` this is currently same as TUS above only different container name
+	DexAzStorageContainerName string `env:"DEX_AZ_STORAGE_CONTAINER_NAME"`
+	//
 	RouterAzStorageConfig *AzureStorageConfig `env:", prefix=ROUTER_"`
 	EdavAzStorageConfig   *AzureStorageConfig `env:", prefix=EDAV_"`
 } // .AppConfig

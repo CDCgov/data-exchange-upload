@@ -7,14 +7,12 @@ import (
 	"reflect"
 	"strings"
 
-	//
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storecopier"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -22,7 +20,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 ) // .import
 
-// SeverDex, main Upload Api server, handles requests to both tusd handler and dex handler
+// ServerDex, main Upload Api server, handles requests to both tusd handler and dex handler
 type ServerDex struct {
 	CliFlags  cliflags.Flags
 	AppConfig appconfig.AppConfig
@@ -109,7 +107,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 				} // .if
 			} // .for
 
-			err := storecopier.OnUploadComplete(sd.CliFlags, sd.AppConfig, uploadConfig, copyTargets, event)
+			err := sd.onUploadComplete(uploadConfig, copyTargets, event)
 			if err != nil {
 				sd.logger.Error("error copy upload", "error", err)
 			} else {

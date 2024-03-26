@@ -1,10 +1,9 @@
-package storecopier
+package serverdex
 
 import (
 	"strconv"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
@@ -13,20 +12,20 @@ import (
 ) // .import
 
 // OnUploadComplete gets notification on a tusd upload complete and makes the store copies necessary per config
-func OnUploadComplete(flags cliflags.Flags, appConfig appconfig.AppConfig, uploadConfig metadatav1.UploadConfig, copyTargets []metadatav1.CopyTarget, eventUploadComplete tusd.HookEvent) error {
+func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyTargets []metadatav1.CopyTarget, eventUploadComplete tusd.HookEvent) error {
 
 	// ------------------------------------------------------------------
 	// RUN_MODE_LOCAL
 	// ------------------------------------------------------------------
-	if flags.RunMode == cliflags.RUN_MODE_LOCAL {
+	if sd.CliFlags.RunMode == cliflags.RUN_MODE_LOCAL {
 
 		sl := storelocal.CopierLocal{
 
 			SrcFileName: eventUploadComplete.Upload.ID,
-			SrcFolder:   appConfig.LocalFolderUploadsTus,
+			SrcFolder:   sd.AppConfig.LocalFolderUploadsTus,
 			// not using upload config or copy targets for local dev,
 			// just copy file to another local folder uploadsA and add time ticks
-			DstFolder:   appConfig.LocalFolderUploadsA,
+			DstFolder:   sd.AppConfig.LocalFolderUploadsA,
 			DstFileName: eventUploadComplete.Upload.MetaData["filename"] + "_" + strconv.FormatInt(time.Now().UnixNano(), 10),
 		} // .cl
 
@@ -39,18 +38,29 @@ func OnUploadComplete(flags cliflags.Flags, appConfig appconfig.AppConfig, uploa
 	// ------------------------------------------------------------------
 	// RUN_MODE_AZURE, RUN_MODE_LOCAL_TO_AZURE
 	// ------------------------------------------------------------------
-	if flags.RunMode == cliflags.RUN_MODE_AZURE || flags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE {
+	if sd.CliFlags.RunMode == cliflags.RUN_MODE_AZURE || sd.CliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE {
 
-		saz := storeaz.CopierAz{
+		saz := storeaz.CopierAzTusToDex{
 			EventUploadComplete: eventUploadComplete,
 			UploadConfig:        uploadConfig,
 			CopyTargets:         copyTargets,
+			//
+			SrcTusAzBlobClient:    sd.HandlerDex.TusAzBlobClient,
+			SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
+			SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
+			//
+
+			DstAzContainerName: sd.AppConfig.DexAzStorageContainerName,
+			DstAzBlobName:      eventUploadComplete.Upload.ID + "_copied", // TODO based on config
 		} // .saz
 
 		err := saz.CopyTusSrcToDst()
 		if err != nil {
 			return err
 		} // .err
+
+		// TODO: more copies as routing files, based on copy targets copyTargets
+
 	} // .RUN_MODE_AZURE
 
 	// all good
