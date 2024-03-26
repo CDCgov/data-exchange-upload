@@ -1,6 +1,6 @@
 import unittest
 
-from pre_create_bin import get_filename_from_metadata
+from pre_create_bin import get_filename_from_metadata, verify_filename
 
 
 class TestGetFilenameFromMetadata(unittest.TestCase):
