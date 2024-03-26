@@ -6,9 +6,6 @@ import json
 import ast
 
 import asyncio
-import uuid
-import time
-import requests
 
 from azure.servicebus.aio import ServiceBusClient
 from azure.servicebus import ServiceBusMessage
@@ -75,32 +72,58 @@ async def post_receive(tguid, offset, size, metadata_json):
         if filename is None:
             raise Exception("filename, meta_ext_filename, or original_filename not found in metadata.")
 
-        meta_destination_id = metadata.meta_destination_id
-        meta_ext_event = metadata.meta_ext_event
-        logger.info('filename = {0}, meta_destination_id = {1}, meta_ext_event = {2}'.format(filename, meta_destination_id, meta_ext_event))
+        metadata_version = metadata.metadata_config.version
+
+        logger.info('filename = {0}, metadata_version = {1}'.format(filename, metadata_version))
 
         # convert metadata json string to a dictionary
         metadata_json_dict = ast.literal_eval(metadata_json)
 
-        json_data = {
-            "upload_id": tguid,
-            "stage_name": "dex-upload",
-            "destination_id": meta_destination_id,
-            "event_type": meta_ext_event,
-            "content_type": "json",
-            "content": {
-                        "schema_name": "upload",
-                        "schema_version": "1.0",
-                        "tguid": tguid,
-                        "offset": offset,
-                        "size": size,
-                        "filename": filename,
-                        "meta_destination_id": meta_destination_id,
-                        "meta_ext_event": meta_ext_event,
-                        "metadata": metadata_json_dict
-            },
-            "disposition_type": "replace"
-        }
+        if metadata_version == "2.0":
+            data_stream_id = metadata.data_stream_id
+            data_stream_route = metadata.data_stream_route
+
+            json_data = {
+                "upload_id": tguid,
+                "stage_name": "dex-upload",
+                "data_stream_id": data_stream_id,
+                "data_stream_route": data_stream_route,
+                "content_type": "json",
+                "content": {
+                            "schema_name": "upload",
+                            "schema_version": "1.0",
+                            "tguid": tguid,
+                            "offset": offset,
+                            "size": size,
+                            "filename": filename,
+                            "data_stream_id": data_stream_id,
+                            "data_stream_route": data_stream_route,
+                            "metadata": metadata_json_dict
+                },
+                "disposition_type": "replace"
+            }
+        else:
+            meta_destination_id = metadata.meta_destination_id
+            meta_ext_event = metadata.meta_ext_event    
+            json_data = {
+                "upload_id": tguid,
+                "stage_name": "dex-upload",
+                "destination_id": meta_destination_id,
+                "event_type": meta_ext_event,
+                "content_type": "json",
+                "content": {
+                            "schema_name": "upload",
+                            "schema_version": "1.0",
+                            "tguid": tguid,
+                            "offset": offset,
+                            "size": size,
+                            "filename": filename,
+                            "meta_destination_id": meta_destination_id,
+                            "meta_ext_event": meta_ext_event,
+                            "metadata": metadata_json_dict
+                },
+                "disposition_type": "replace"
+            }
 
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
 
