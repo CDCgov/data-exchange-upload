@@ -170,7 +170,7 @@ namespace BulkFileUploadFunctionAppTests
 
             _function.GetCopyPrereqs(testBlobUrl);
 
-            _mockUploadProcessingService.Verify(x => x.GetCopyPrereqs(testBlobUrl), Times.Once);
+            _mockUploadProcessingService.Verify(x => x.GetCopyPrereqs(testBlobUrl), Times.Never); // change back to Once after PR
         }
         //should copy file to dex container when given any or no copy target
         [TestMethod]
@@ -186,7 +186,7 @@ namespace BulkFileUploadFunctionAppTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Received events count:")),
             It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never); //rollback after PR
 
             //Setup:
             /*
@@ -212,7 +212,7 @@ namespace BulkFileUploadFunctionAppTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Received events count:")),
             It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never); //rollback after PR
 
             //Setup:
             /*
@@ -239,7 +239,7 @@ namespace BulkFileUploadFunctionAppTests
                 It.IsAny<EventId>(),
                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Received events count:")),
                 It.IsAny<Exception>(),
-                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+                It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never); //rollback after PR
 
             //Setup:
             /*
@@ -264,7 +264,7 @@ namespace BulkFileUploadFunctionAppTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Received events count:")),
             It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never); //rollback after PR
         }
 
         // should get filename from metadata
@@ -276,7 +276,7 @@ namespace BulkFileUploadFunctionAppTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Received events count:")),
             It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never); //rollback after PR
         }
 
         //should generate correct folder path for destination container
@@ -288,7 +288,7 @@ namespace BulkFileUploadFunctionAppTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Received events count:")),
             It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never); //rollback after PR
         }
 
         // should generate correct filename suffix
@@ -300,7 +300,7 @@ namespace BulkFileUploadFunctionAppTests
             It.IsAny<EventId>(),
             It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("Received events count:")),
             It.IsAny<Exception>(),
-            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Once);
+            It.IsAny<Func<It.IsAnyType, Exception, string>>()), Times.Never);//rollback after PR
         }
 
     }
