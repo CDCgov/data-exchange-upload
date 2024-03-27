@@ -11,6 +11,7 @@ type CopierAzSrcDst struct {
 	SrcTusAzBlobName      string
 	SrcTusAzContainerName string
 	//
+	DstAzBlobClient    *azblob.Client
 	DstAzContainerName string
 	DstAzBlobName      string
 	Manifest           map[string]*string
@@ -26,7 +27,7 @@ func (csd CopierAzSrcDst) CopyAzSrcToDst() error {
 		return err
 	} // .if
 
-	_, err = csd.SrcTusAzBlobClient.UploadStream(context.TODO(), csd.DstAzContainerName, csd.DstAzBlobName, get.Body, &azblob.UploadStreamOptions{
+	_, err = csd.DstAzBlobClient.UploadStream(context.TODO(), csd.DstAzContainerName, csd.DstAzBlobName, get.Body, &azblob.UploadStreamOptions{
 		Metadata: csd.Manifest,
 	})
 	if err != nil {

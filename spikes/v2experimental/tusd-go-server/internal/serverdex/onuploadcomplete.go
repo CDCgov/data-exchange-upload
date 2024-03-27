@@ -96,6 +96,7 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 					SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
 					SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
 					//
+					DstAzBlobClient:    sd.HandlerDex.RouterAzBlobClient,
 					DstAzContainerName: sd.AppConfig.RouterAzStorageConfig.AzContainerName,
 					DstAzBlobName:      dstBlobName,
 					Manifest:           manifest,
