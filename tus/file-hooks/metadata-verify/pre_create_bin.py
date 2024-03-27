@@ -147,6 +147,10 @@ def report_verification_failure(messages, destination_id, event_type, meta_json)
 def stringify_error_messages(messages):
     return 'Found the following metadata validation errors: ' + ','.join(messages)
 
+def verify_filename(filename):
+    invalid_chars = set('<>:"/\\|?*')
+    if any((c in invalid_chars) for c in filename):
+        raise ValueError(f"Filename contains invalid characters: {filename}")
 
 def get_filename_from_metadata(meta_json):
     filename_metadata_fields = ['filename', 'original_filename', 'meta_ext_filename']
@@ -159,6 +163,9 @@ def get_filename_from_metadata(meta_json):
 
     if filename is None:
         raise Exception('No filename provided.')
+
+    # After obtaining the filename, verify it for invalid characters
+    verify_filename(filename)
 
     return filename
 
@@ -191,6 +198,9 @@ def main(argv):
     try:
         meta_json = json.loads(metadata)
         dest_id, event_type = get_required_metadata(meta_json)
+
+        # Verify the filename for invalid characters as an early step
+        filename = get_filename_from_metadata(meta_json)
         verify_metadata(dest_id, event_type, meta_json)
     except Exception as e:
         error_msg = str(e)
