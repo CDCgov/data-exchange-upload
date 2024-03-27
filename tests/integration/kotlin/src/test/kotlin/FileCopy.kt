@@ -6,7 +6,6 @@ import com.azure.storage.blob.models.ListBlobsOptions
 import org.joda.time.DateTime
 import org.testng.Assert
 import org.testng.TestNGException
-import org.testng.annotations.BeforeClass
 import org.testng.annotations.BeforeGroups
 import org.testng.annotations.Test
 import tus.UploadClient
@@ -35,14 +34,10 @@ class FileCopy {
     private lateinit var uploadClient: UploadClient
     private lateinit var uploadId: String
 
-    @BeforeClass()
-    fun beforeClass() {
+    @BeforeGroups(groups = [Constants.Groups.FILE_COPY])
+    fun dexTestingFileCopySetup() {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
-    }
-
-    @BeforeGroups(groups = [Constants.Groups.DEX_USE_CASE_DEX_TESTING])
-    fun dexTestingFileCopySetup() {
         val metadata = Metadata.generateRequiredMetadataForFile(testFile)
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
@@ -53,7 +48,7 @@ class FileCopy {
         Assert.assertTrue(bulkUploadsContainerClient.exists())
     }
 
-    @Test(groups = [Constants.Groups.DEX_USE_CASE_DEX_TESTING])
+    @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldUploadFileToTusContainer() {
         val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uploadId")
         val uploadInfoBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uploadId.info")
@@ -62,14 +57,14 @@ class FileCopy {
         Assert.assertTrue(uploadInfoBlob.exists())
     }
 
-    @Test(groups = [Constants.Groups.DEX_USE_CASE_DEX_TESTING])
+    @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldHaveSameSizeFileInTusContainer() {
         val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uploadId")
 
         Assert.assertEquals(uploadBlob.properties.blobSize, testFile.length())
     }
 
-    @Test(groups = [Constants.Groups.DEX_USE_CASE_DEX_TESTING])
+    @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToEdavContainer() {
         val options = ListBlobsOptions()
             .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(), "dextesting-testevent1"))
@@ -81,7 +76,7 @@ class FileCopy {
         Assert.assertEquals(edavUploadBlob.properties.contentLength, testFile.length())
     }
 
-    @Test(groups = [Constants.Groups.DEX_USE_CASE_DEX_TESTING])
+    @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToRoutingContainer() {
         val options = ListBlobsOptions()
             .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(), "dextesting-testevent1"))

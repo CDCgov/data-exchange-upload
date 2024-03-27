@@ -1,0 +1,56 @@
+{
+	"metadata_config": {
+			"schema_version": "1.0",
+			"fields": [
+				{
+						"field_name": "meta_ext_source",
+						"allowed_values": ["IZGW"],
+						"required": true,
+						"description": "Establishes where the data came from."
+				},
+				{
+						"field_name": "meta_ext_sourceversion",
+						"allowed_values": ["V2023-09-01"],
+						"required": true,
+						"description": "Aligns with version of the specification."
+				},
+				{
+						"field_name": "meta_ext_entity",
+						"allowed_values": ["AKA","ALA","ASA","AZA","ARA","CAA","CHA","COA","CTA","DEA","DCA","FMA","FLA","GAA","GUA","HIA","IDA","ILA","IAA","INA","KSA","KYA","LAA","MEA","MHA","MDA","MAA","MIA","MNA","MSA","MOA","MTA","NEA","NHA","NJA","NMA","BAA","NYA","NCA","NDA","NVA","MPA","OHA","OKA","ORA","PAA","PHA","PRA","RPA","RIA","SCA","SDA","TNA","TXA","UTA","VTA","VIA","VAA","WAA","WVA","WIA","WYA","DD2","HS2","DS2","BP2","IH2","VA2","CV1","WG1","WM1","RA1","KG1","AB1","PX1","AD1","CW1","HE1","HV1","MG1","SE1","MS1","HM1","GN1","TP1","CP1","MH1","GM1","PI1","TBA","THA","HH2","HR2","DV3","FD3"],
+						"required": true,
+						"description": "Drives metrics for vaccine admin progress at entity grouping level."
+				},
+				{
+						"field_name": "meta_username",
+						"allowed_values": null,
+						"required": true,
+						"description": "Username of user who submitted the file to the IZGW.  If this is a system to system submission then this should be the service account."
+				},
+				{
+						"field_name": "meta_ext_objectkey",
+						"allowed_values": null,
+						"required": true,
+						"description": "This field is used to track back to the source filename/objectid."
+				},
+				{
+						"field_name": "meta_ext_filename",
+						"allowed_values": null,
+						"required": true,
+						"description": "The name of the file submitted to the IZGW.  File and extension should be named in accordance with guidelines outlined in the DUA."
+				},
+				{
+						"field_name": "meta_ext_submissionperiod",
+						"allowed_values": null,
+						"required": true,
+						"description": "Submission period for the file submitted."
+				}
+			]
+	},
+	"copy_config": {
+		"filename_suffix": "clock_ticks",
+		"folder_structure": "date_YYYY_MM_DD",
+		"targets": [
+			"edav"
+		]
+	}
+}
