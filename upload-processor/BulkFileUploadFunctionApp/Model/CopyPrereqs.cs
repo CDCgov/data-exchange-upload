@@ -15,13 +15,13 @@ namespace BulkFileUploadFunctionApp.Model
         public string? DexBlobFolderName { get; set; }
         public string? DexBlobFileName { get; set; }
         public Dictionary<string, string>? Metadata { get; set; }
-        public CopyTarget[]? Targets { get; set; }
+        public List<CopyTargetsEnum>? Targets { get; set; }
         public Trace? Trace { get; set; }
 
         public CopyPrereqs() { }
 
         // create a Default constructor
-        public CopyPrereqs(string uploadId, string sourceBlobUrl, string tusPayloadFilename, string destinationId, string eventType, string dexBlobFolderName, string dexBlobFileName, Dictionary<string, string> metadata, CopyTarget[] targets, Trace trace)
+        public CopyPrereqs(string uploadId, string sourceBlobUrl, string tusPayloadFilename, string destinationId, string eventType, string dexBlobFolderName, string dexBlobFileName, Dictionary<string, string> metadata, List<CopyTargetsEnum> targets, Trace trace)
         {
             UploadId = uploadId;
             SourceBlobUrl = sourceBlobUrl;

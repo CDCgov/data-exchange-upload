@@ -33,8 +33,19 @@ dependencies {
 }
 
 tasks.test {
-    useTestNG()
+    // Detect if suite param was passed in
+    val runSuite = project.hasProperty("suite")
+
+    useTestNG {
+        if (runSuite) {
+            // If parameter was passed in, use it in the 'suites' command
+            val suiteToRun = project.properties["suite"]
+            val suite = "src/test/resources/$suiteToRun"
+            suiteXmlFiles = listOf(file(suite))
+        }
+    }
 }
+
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "11"

@@ -75,11 +75,16 @@ namespace BulkFileUploadFunctionAppTests
                 Fields = new List<MetadataField> { metadataField }
             };
 
-            UploadConfig uploadConfig = new UploadConfig
+            CopyConfig copyConfig = new CopyConfig
             {
                 FilenameSuffix = ".txt",
                 FolderStructure = "/blob",
-                FixedFolderPath = "/blob",
+                TargetEnums = new List<CopyTargetsEnum>()
+            };
+
+            UploadConfig uploadConfig = new UploadConfig
+            {
+                CopyConfig = copyConfig,
                 MetadataConfig = metadataConfig
             };
 
@@ -99,7 +104,7 @@ namespace BulkFileUploadFunctionAppTests
                 TusPayloadFilename = tusInfoFile.MetaData["filename"],
                 DestinationId = tusInfoFile.MetaData["meta_destination_id"],
                 EventType = tusInfoFile.MetaData["meta_ext_event"],
-                DexBlobFolderName = uploadConfig.FixedFolderPath,
+                DexBlobFolderName = uploadConfig.CopyConfig.FolderStructure,
                 DexBlobFileName = tusInfoFile.MetaData["filename"].Replace("test", "dexTest")
             };
 
@@ -156,11 +161,16 @@ namespace BulkFileUploadFunctionAppTests
                 Fields = new List<MetadataField> { metadataField }
             };
 
-            UploadConfig uploadConfig = new UploadConfig
+            CopyConfig copyConfig = new CopyConfig
             {
                 FilenameSuffix = ".txt",
                 FolderStructure = "/blob",
-                FixedFolderPath = "/blob",
+                TargetEnums = new List<CopyTargetsEnum>()
+            };
+
+            UploadConfig uploadConfig = new UploadConfig
+            {
+                CopyConfig = copyConfig,
                 MetadataConfig = metadataConfig
             };
 
