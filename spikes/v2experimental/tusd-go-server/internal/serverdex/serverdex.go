@@ -77,16 +77,13 @@ func (sd *ServerDex) HttpServer() http.Server {
 		for {
 
 			event := <-sd.handlerTusd.CompleteUploads
-			sd.logger.Info("upload finished", "event.Upload.ID", event.Upload.ID)
+			sd.logger.Info("upload finished", models.EVENT_UPLOAD_ID, event.Upload.ID)
 
 			// --------------------------------------------------------------
 			// 	pulling from metadata v1 the upload config and copy targets for this event
 			// --------------------------------------------------------------
-
-			// TODO: move to model/ constants meta_destination_id, and meta_ext_event
-			// TODO: move to model/ contants, also see handlertusd/pre-create to change to constants
-			// TODO: meta_destination_id and meta_ext_event were checked in pre-check so they should be in metadata
-			// TODO: an ok check could be added just in case
+			// TODO: meta_destination_id and meta_ext_event were checked in pre-check so they would be in metadata
+			// TODO: could add ok check just in case ^
 			uploadConfigKey := event.Upload.MetaData[models.META_DESTINATION_ID]
 			uploadConfigKey += "-"
 			uploadConfigKey += event.Upload.MetaData[models.META_EXT_EVENT]
@@ -116,7 +113,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 				// TODO: DLQ
 
 			} else {
-				sd.logger.Info("upload copied", "event.Upload.ID", event.Upload.ID)
+				sd.logger.Info("upload copied", models.EVENT_UPLOAD_ID, event.Upload.ID)
 			} // .else
 
 		} // .for

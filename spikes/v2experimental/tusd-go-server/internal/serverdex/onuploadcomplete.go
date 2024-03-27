@@ -18,6 +18,8 @@ import (
 // OnUploadComplete gets notification on a tusd upload complete and makes the store copies necessary per config
 func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyTargets []metadatav1.CopyTarget, eventUploadComplete tusd.HookEvent) error {
 
+	logger := sd.logger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
+
 	// ------------------------------------------------------------------
 	// RUN_MODE_LOCAL
 	// ------------------------------------------------------------------
@@ -70,20 +72,24 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 		for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
 
 			err := copierDex.CopyTusSrcToDst()
-			if err != nil {
-				sd.logger.Error("error copy file tus to dex, should retry times", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
-			} // .if
-
 			if i == sd.AppConfig.CopyRetryTimes && err != nil {
-				sd.logger.Error("error copy file tus to dex, retry times out", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+				logger.Error("error copy file tus to dex, retry times out", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
 				return err
 			} // .if
 
-			time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
+			if err != nil {
+				logger.Error("error copy file tus to dex, should retry times", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+				time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
+			} else {
+				logger.Info("file copied tus to dex with manifest", "retryLoopNum", i)
+				break
+			} // .else
 		} // .for
 
 		// other copies (files to router and/or edav), based on copy targets metadata config copyTargets
-		for _, ct := range copyTargets {
+		for index, ct := range copyTargets {
+
+			logger.Debug("copy target", "index", index, "ct", ct)
 
 			// ------------------------------------------------------------------
 			// ct.Target == models.TARGET_DEX_ROUTER
@@ -105,16 +111,18 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 				for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
 
 					err := copierSrcToDst.CopyAzSrcToDst()
-					if err != nil {
-						sd.logger.Error("error copy file dex to router, should retry times", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
-					} // .if
-
 					if i == sd.AppConfig.CopyRetryTimes && err != nil {
-						sd.logger.Error("error copy file dex to router, retry times out", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+						logger.Error("error copy file dex to router, retry times out", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
 						return err
 					} // .if
 
-					time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
+					if err != nil {
+						logger.Error("error copy file dex to router, should retry times", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+						time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
+					} else {
+						sd.logger.Info("file copied dex to router", "retryLoopNum", i)
+						break
+					} // .else
 				} // .for
 
 			} // .if
