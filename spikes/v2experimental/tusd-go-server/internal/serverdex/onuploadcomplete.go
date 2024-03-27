@@ -18,8 +18,6 @@ import (
 // OnUploadComplete gets notification on a tusd upload complete and makes the store copies necessary per config
 func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyTargets []metadatav1.CopyTarget, eventUploadComplete tusd.HookEvent) error {
 
-	logger := sd.logger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
-
 	// ------------------------------------------------------------------
 	// RUN_MODE_LOCAL
 	// ------------------------------------------------------------------
@@ -58,72 +56,26 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 		// add ingest datetime to file blob metadata for other services to use same folders YYYY/MM/DD
 		manifest[models.DEX_INGEST_DATE_TIME_KEY_NAME] = to.Ptr(ingestDt.Format(time.RFC3339))
 
-		copierDex := storeaz.CopierAzTusToDex{
-
-			SrcTusAzBlobClient:    sd.HandlerDex.TusAzBlobClient,
-			SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
-			SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
-			//
-			DstAzContainerName: sd.AppConfig.DexAzStorageContainerName,
-			DstAzBlobName:      dstBlobName,
-			Manifest:           manifest,
-		} // .copierDex
-
-		for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
-
-			err := copierDex.CopyTusSrcToDst()
-			if i == sd.AppConfig.CopyRetryTimes && err != nil {
-				logger.Error("error copy file tus to dex, retry times out", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
-				return err
-			} // .if
-
-			if err != nil {
-				logger.Error("error copy file tus to dex, should retry times", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
-				time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
-			} else {
-				logger.Info("file copied tus to dex with manifest", "retryLoopNum", i)
-				break
-			} // .else
-		} // .for
+		// ------------------------------------------------------------------
+		// copy from tus raw file + manifest(.info) into dex container as one
+		// ------------------------------------------------------------------
+		err := sd.copyTusDexWRetry(eventUploadComplete, dstBlobName, manifest)
+		if err != nil {
+			return err
+		} // .if
 
 		// other copies (files to router and/or edav), based on copy targets metadata config copyTargets
-		for index, ct := range copyTargets {
-
-			logger.Debug("copy target", "index", index, "ct", ct)
+		for _, ct := range copyTargets {
 
 			// ------------------------------------------------------------------
 			// ct.Target == models.TARGET_DEX_ROUTER
 			// ------------------------------------------------------------------
 			if ct.Target == models.TARGET_DEX_ROUTER {
 
-				copierSrcToDst := storeaz.CopierAzSrcDst{
-
-					SrcTusAzBlobClient:    sd.HandlerDex.TusAzBlobClient,
-					SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
-					SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
-					//
-					DstAzBlobClient:    sd.HandlerDex.RouterAzBlobClient,
-					DstAzContainerName: sd.AppConfig.RouterAzStorageConfig.AzContainerName,
-					DstAzBlobName:      dstBlobName,
-					Manifest:           manifest,
-				} // .copierDex
-
-				for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
-
-					err := copierSrcToDst.CopyAzSrcToDst()
-					if i == sd.AppConfig.CopyRetryTimes && err != nil {
-						logger.Error("error copy file dex to router, retry times out", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
-						return err
-					} // .if
-
-					if err != nil {
-						logger.Error("error copy file dex to router, should retry times", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
-						time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
-					} else {
-						sd.logger.Info("file copied dex to router", "retryLoopNum", i)
-						break
-					} // .else
-				} // .for
+				err = sd.copyTusRouterWRetry(eventUploadComplete, dstBlobName, manifest)
+				if err != nil {
+					return err
+				} // .if
 
 			} // .if
 
@@ -141,6 +93,102 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 	// all good
 	return nil
 } // .OnUploadComplete
+
+// copyTusRouterWRetry copy file and metadata from tus to router
+func (sd ServerDex) copyTusRouterWRetry(eventUploadComplete tusd.HookEvent, dstBlobName string, manifest map[string]*string) error {
+
+	logger := sd.logger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
+
+	copierSrcToDst := storeaz.CopierAzSrcDst{
+
+		SrcTusAzBlobClient:    sd.HandlerDex.TusAzBlobClient,
+		SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
+		SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
+		//
+		DstAzBlobClient:    sd.HandlerDex.RouterAzBlobClient,
+		DstAzContainerName: sd.AppConfig.RouterAzStorageConfig.AzContainerName,
+		DstAzBlobName:      dstBlobName,
+		Manifest:           manifest,
+	} // .copierDex
+
+	for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
+
+		err := copierSrcToDst.CopyAzSrcToDst()
+		if i == sd.AppConfig.CopyRetryTimes && err != nil {
+			logger.Error("error copy file dex to router, retry times out", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+			return err
+		} // .if
+
+		if err != nil {
+			logger.Error("error copy file dex to router, should retry times", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+
+			// try refresh the router client, the tus should be good from above copy
+			if i == 1 {
+				sd.HandlerDex.RouterAzBlobClient, err = storeaz.NewRouterAzBlobClient(sd.AppConfig)
+				if err != nil {
+					logger.Error("error copy file dex to router, error refresh router blob client", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+					// quit
+					return err
+				} // .if
+			} // .if
+
+			time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
+		} else {
+			sd.logger.Info("file copied dex to router", "retryLoopNum", i)
+			break
+		} // .else
+	} // .for
+	// all good
+	return nil
+} // .copyTusRouterWRetry
+
+// copyTusDexWRetry copy file and metadata from tus to dex container
+func (sd ServerDex) copyTusDexWRetry(eventUploadComplete tusd.HookEvent, dstBlobName string, manifest map[string]*string) error {
+
+	logger := sd.logger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
+
+	copierDex := storeaz.CopierAzTusToDex{
+
+		SrcTusAzBlobClient:    sd.HandlerDex.TusAzBlobClient,
+		SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
+		SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
+		//
+		DstAzContainerName: sd.AppConfig.DexAzStorageContainerName,
+		DstAzBlobName:      dstBlobName,
+		Manifest:           manifest,
+	} // .copierDex
+
+	for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
+
+		err := copierDex.CopyTusSrcToDst()
+		if i == sd.AppConfig.CopyRetryTimes && err != nil {
+			logger.Error("error copy file tus to dex, retry times out", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+			return err
+		} // .if
+
+		if err != nil {
+			logger.Error("error copy file tus to dex, should retry times", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+
+			// try refresh the client on first retry
+			if i == 1 {
+				sd.HandlerDex.TusAzBlobClient, err = storeaz.NewTusAzBlobClient(sd.AppConfig)
+				if err != nil {
+					logger.Error("error copy file tus to dex, error refresh tus blob client", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+					// quit
+					return err
+				} // .if
+			} // .if
+
+			time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
+		} else {
+			logger.Info("file copied tus to dex with manifest", "retryLoopNum", i)
+			break
+		} // .else
+	} // .for
+
+	// all good
+	return nil
+} // .copyWRetry
 
 // getDstBlobName makes blob name from upload config including folder structure and adding time ticks
 func getDstBlobName(eventUploadComplete tusd.HookEvent, uploadConfig metadatav1.UploadConfig, ingestDt time.Time) string {

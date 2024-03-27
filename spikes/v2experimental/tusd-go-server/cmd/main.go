@@ -104,6 +104,7 @@ func main() {
 	if cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE || cliFlags.RunMode == cliflags.RUN_MODE_AZURE {
 		// load on server azure service dependencies
 
+		// TODO: create the extra container that tus blob client needs it: one for raw uploads + one for dex uploads (files + manifest)
 		serverDex.HandlerDex.TusAzBlobClient, err = storeaz.NewTusAzBlobClient(appConfig)
 		if err != nil {
 			logger.Error("error receive az tus blob client", "error", err)
