@@ -16,7 +16,7 @@ func (pss PsSender) CheckHealth() models.ServiceHealthResp {
 	shr.Service = models.PROCESSING_STATUS_APP
 
 	// call processing status health endpoint
-	res, err := http.Get(pss.Endpoint)
+	res, err := http.Get(pss.EndpointHealth)
 	if err != nil || res.StatusCode != http.StatusOK {
 		return processingStatusDown(err)
 	} // .if

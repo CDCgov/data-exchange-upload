@@ -31,7 +31,7 @@ func checkManifestV1(logger *slog.Logger, psSender *processingstatus.PsSender) f
 	return func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 
 		// TODO: add ps integration to send report on failure
-		_ = psSender.Endpoint // TODO: add ps integration as required.
+		_ = psSender.EndpointHealth // TODO: add ps integration as required.
 
 		senderManifest := hook.Upload.MetaData
 
