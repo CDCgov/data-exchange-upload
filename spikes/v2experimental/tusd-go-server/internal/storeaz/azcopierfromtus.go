@@ -26,7 +26,7 @@ func (cd CopierAzTusToDex) CopyTusSrcToDst() error {
 		return err
 	} // .if
 
-	_, err = cd.SrcTusAzBlobClient.UploadStream(context.TODO(), cd.DstAzContainerName, cd.DstAzBlobName, get.Body, &azblob.UploadStreamOptions{
+	_, err = cd.SrcTusAzBlobClient.UploadStream(ctx, cd.DstAzContainerName, cd.DstAzBlobName, get.Body, &azblob.UploadStreamOptions{
 		Metadata: cd.Manifest,
 	})
 	if err != nil {

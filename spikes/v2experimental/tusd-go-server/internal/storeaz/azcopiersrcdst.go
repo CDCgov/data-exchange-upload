@@ -27,7 +27,7 @@ func (csd CopierAzSrcDst) CopyAzSrcToDst() error {
 		return err
 	} // .if
 
-	_, err = csd.DstAzBlobClient.UploadStream(context.TODO(), csd.DstAzContainerName, csd.DstAzBlobName, get.Body, &azblob.UploadStreamOptions{
+	_, err = csd.DstAzBlobClient.UploadStream(ctx, csd.DstAzContainerName, csd.DstAzBlobName, get.Body, &azblob.UploadStreamOptions{
 		Metadata: csd.Manifest,
 	})
 	if err != nil {
