@@ -67,10 +67,20 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 			Manifest:           manifest,
 		} // .copierDex
 
-		err := copierDex.CopyTusSrcToDst()
-		if err != nil {
-			return err
-		} // .err
+		for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
+
+			err := copierDex.CopyTusSrcToDst()
+			if err != nil {
+				sd.logger.Error("error copy file tus to dex, should retry times", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+			} // .if
+
+			if i == sd.AppConfig.CopyRetryTimes && err != nil {
+				sd.logger.Error("error copy file tus to dex, retry times out", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+				return err
+			} // .if
+
+			time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
+		} // .for
 
 		// TODO: more copies as routing files, based on copy targets copyTargets
 
@@ -80,6 +90,7 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 	return nil
 } // .OnUploadComplete
 
+// getDstBlobName makes blob name from upload config including folder structure and adding time ticks
 func getDstBlobName(eventUploadComplete tusd.HookEvent, uploadConfig metadatav1.UploadConfig, ingestDt time.Time) string {
 
 	dstBlobName := eventUploadComplete.Upload.MetaData[models.META_DESTINATION_ID]

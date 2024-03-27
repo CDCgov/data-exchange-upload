@@ -170,6 +170,8 @@ func checkManifestV1(logger *slog.Logger, psSender *processingstatus.PsSender) f
 			return tusd.HTTPResponse{}, tusd.FileInfoChanges{}, tusdErr
 		} // .if
 
+		// TODO: check filename for weird chars
+
 		// -----------------------------------------------------------------------------
 		// all checks have passed
 		// -----------------------------------------------------------------------------

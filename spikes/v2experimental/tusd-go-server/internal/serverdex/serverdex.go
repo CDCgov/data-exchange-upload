@@ -109,7 +109,12 @@ func (sd *ServerDex) HttpServer() http.Server {
 
 			err := sd.onUploadComplete(uploadConfig, copyTargets, event)
 			if err != nil {
+
 				sd.logger.Error("error copy upload", "error", err)
+				// TODO: DLQ
+				// TODO: DLQ
+				// TODO: DLQ
+
 			} else {
 				sd.logger.Info("upload copied", "event.Upload.ID", event.Upload.ID)
 			} // .else
