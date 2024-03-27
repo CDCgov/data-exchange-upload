@@ -12,6 +12,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -86,19 +87,19 @@ func (sd *ServerDex) HttpServer() http.Server {
 			// TODO: move to model/ contants, also see handlertusd/pre-create to change to constants
 			// TODO: meta_destination_id and meta_ext_event were checked in pre-check so they should be in metadata
 			// TODO: an ok check could be added just in case
-			uploadConfigKey := event.Upload.MetaData["meta_destination_id"]
+			uploadConfigKey := event.Upload.MetaData[models.META_DESTINATION_ID]
 			uploadConfigKey += "-"
-			uploadConfigKey += event.Upload.MetaData["meta_ext_event"]
+			uploadConfigKey += event.Upload.MetaData[models.META_EXT_EVENT]
 			uploadConfig := sd.MetaV1.UploadConfigs[uploadConfigKey]
 
 			var copyTargets []metadatav1.CopyTarget
 
 		copyTargetFound:
 			for _, v := range sd.MetaV1.AllowedDestAndEvents {
-				if v.DestinationId == event.Upload.MetaData["meta_destination_id"] {
+				if v.DestinationId == event.Upload.MetaData[models.META_DESTINATION_ID] {
 
 					for _, ev := range v.ExtEvents {
-						if ev.Name == event.Upload.MetaData["meta_ext_event"] {
+						if ev.Name == event.Upload.MetaData[models.META_EXT_EVENT] {
 							copyTargets = ev.CopyTargets
 						}
 						break copyTargetFound

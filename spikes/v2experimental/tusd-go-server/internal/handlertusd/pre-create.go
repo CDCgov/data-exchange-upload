@@ -7,6 +7,7 @@ import (
 	"slices"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	slog "golang.org/x/exp/slog"
@@ -14,12 +15,12 @@ import (
 
 var (
 	ErrMetaV1ConfigNA              = "error metadata v1 config not available"
-	ErrMetaDestIdNotFound          = "meta_destination_id not found in manifest"
-	ErrMetaDestIdNotValid          = "meta_destination_id value is not valid"
-	ErrMetaExtEventNotFound        = "meta_ext_event not found in manifest"
-	ErrMetaExtEventNotValid        = "meta_ext_event value is not valid"
-	ErrSchemaDefFileNameNA         = "schema definition file name not found for the meta_destination_id and meta_ext_event"
-	ErrSchemaDefNA                 = "schema definition not found for the meta_destination_id and meta_ext_event"
+	ErrMetaDestIdNotFound          = models.META_DESTINATION_ID + " not found in manifest"
+	ErrMetaDestIdNotValid          = models.META_DESTINATION_ID + " value is not valid"
+	ErrMetaExtEventNotFound        = models.META_EXT_EVENT + " not found in manifest"
+	ErrMetaExtEventNotValid        = models.META_EXT_EVENT + "meta_ext_event value is not valid"
+	ErrSchemaDefFileNameNA         = "schema definition file name not found for " + models.META_DESTINATION_ID + " and " + models.META_EXT_EVENT // the meta_destination_id and meta_ext_event"
+	ErrSchemaDefNA                 = "schema definition not found for the " + models.META_DESTINATION_ID + " and " + models.META_EXT_EVENT       //meta_destination_id and meta_ext_event"
 	ErrSchemaDefFieldNA            = "schema definition required field not sent: "
 	ErrSchemaDefFieldValueNotValid = "schema definition required field value not valid for field name: "
 	ErrUpdConfFileNameNA           = "file name not found in manifest, required per config: "
@@ -54,7 +55,7 @@ func checkManifestV1(logger *slog.Logger, psSender *processingstatus.PsSender) f
 		// -----------------------------------------------------------------------------
 		// check meta_destination_id
 		// -----------------------------------------------------------------------------
-		metaDestinationId, ok := senderManifest["meta_destination_id"]
+		metaDestinationId, ok := senderManifest[models.META_DESTINATION_ID]
 		if !ok {
 			httpRes := tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,

@@ -5,11 +5,13 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+
 	// "time"
 	// "math/rand"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
 
 	"github.com/joho/godotenv"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
@@ -52,13 +54,13 @@ func BenchmarkCheckManifestV1(b *testing.B) {
 		} // .err
 
 		senderManifest := map[string]string{
-			"meta_destination_id": "dextesting",
-			"meta_ext_event":      "testevent1",
+			models.META_DESTINATION_ID: "dextesting",
+			models.META_EXT_EVENT:      "testevent1",
 
 			"filename": "file.name",
 		} // .senderManifest
 
-		metaDestinationId, ok := senderManifest["meta_destination_id"]
+		metaDestinationId, ok := senderManifest[models.META_DESTINATION_ID]
 		if !ok {
 			_ = tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
@@ -78,7 +80,7 @@ func BenchmarkCheckManifestV1(b *testing.B) {
 		// -----------------------------------------------------------------------------
 		// check meta_ext_event
 		// -----------------------------------------------------------------------------
-		metaExtEvent, ok := senderManifest["meta_ext_event"]
+		metaExtEvent, ok := senderManifest[models.META_EXT_EVENT]
 		if !ok {
 			_ = tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
