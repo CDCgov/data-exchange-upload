@@ -34,7 +34,8 @@ type AppConfig struct {
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, required"`
 
 	// Processing Status
-	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI, required"`
+	ProcessingStatusHealthURI     string `env:"PROCESSING_STATUS_HEALTH_URI, required"`
+	ProcessingStatusServiceBusURI string `env:"PROCESSING_STATUS_SERVICE_BUS_URI, required"`
 
 	// Azure TUS Upload storage
 	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_"`
@@ -43,6 +44,9 @@ type AppConfig struct {
 	//
 	RouterAzStorageConfig *AzureStorageConfig `env:", prefix=ROUTER_"`
 	EdavAzStorageConfig   *AzureStorageConfig `env:", prefix=EDAV_"`
+
+	CopyRetryTimes int `env:"COPY_RETRY_TIMES, required"`
+	CopyRetryDelay int `env:"COPY_RETRY_DELAY, required"`
 } // .AppConfig
 
 type AzureStorageConfig struct {

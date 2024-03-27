@@ -16,4 +16,6 @@ const (
 	FILENAME            = "filename"
 	DATE_YYYY_MM_DD     = "date_YYYY_MM_DD"
 	CLOCK_TICKS         = "clock_ticks"
+
+	DEX_INGEST_DATE_TIME_KEY_NAME = "dex_ingest_datetime"
 ) // .const

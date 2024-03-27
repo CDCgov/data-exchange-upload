@@ -11,6 +11,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storelocal"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 ) // .import
 
 // OnUploadComplete gets notification on a tusd upload complete and makes the store copies necessary per config
@@ -45,41 +47,27 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 		// time of ingest
 		ingestDt := time.Now().UTC()
 
-		dstBlobName := eventUploadComplete.Upload.MetaData[models.META_DESTINATION_ID]
-		dstBlobName += "-"
-		dstBlobName += eventUploadComplete.Upload.MetaData[models.META_EXT_EVENT]
-		dstBlobName += "/"
+		dstBlobName := getDstBlobName(eventUploadComplete, uploadConfig, ingestDt)
 
-		if uploadConfig.FolderStructure == models.DATE_YYYY_MM_DD {
-			// Format MM-DD-YYYY
-			ingestDtParts := strings.Split(ingestDt.Format("01-02-2006"), "-")
-			mm := ingestDtParts[0]
-			dd := ingestDtParts[1]
-			yyyy := ingestDtParts[2]
-			dstBlobName += yyyy + "/" + mm + "/" + dd + "/"
-		} // .if
+		manifest := make(map[string]*string)
+		for mdk, mdv := range eventUploadComplete.Upload.MetaData {
+			manifest[mdk] = to.Ptr(mdv)
+		} // .for
+		// add ingest datetime to file blob metadata for other services to use same folders YYYY/MM/DD
+		manifest[models.DEX_INGEST_DATE_TIME_KEY_NAME] = to.Ptr(ingestDt.Format(time.RFC3339))
 
-		dstBlobName += eventUploadComplete.Upload.MetaData[models.FILENAME]
+		copierDex := storeaz.CopierAzTusToDex{
 
-		if uploadConfig.FileNameSuffix == models.CLOCK_TICKS {
-			dstBlobName += "_" + strconv.FormatInt(time.Now().UnixNano(), 10)
-		} // .if
-
-		saz := storeaz.CopierAzTusToDex{
-			EventUploadComplete: eventUploadComplete,
-			UploadConfig:        uploadConfig,
-			CopyTargets:         copyTargets,
-			//
 			SrcTusAzBlobClient:    sd.HandlerDex.TusAzBlobClient,
 			SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
 			SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
 			//
 			DstAzContainerName: sd.AppConfig.DexAzStorageContainerName,
 			DstAzBlobName:      dstBlobName,
-			IngestDt:           ingestDt,
-		} // .saz
+			Manifest:           manifest,
+		} // .copierDex
 
-		err := saz.CopyTusSrcToDst()
+		err := copierDex.CopyTusSrcToDst()
 		if err != nil {
 			return err
 		} // .err
@@ -91,3 +79,28 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 	// all good
 	return nil
 } // .OnUploadComplete
+
+func getDstBlobName(eventUploadComplete tusd.HookEvent, uploadConfig metadatav1.UploadConfig, ingestDt time.Time) string {
+
+	dstBlobName := eventUploadComplete.Upload.MetaData[models.META_DESTINATION_ID]
+	dstBlobName += "-"
+	dstBlobName += eventUploadComplete.Upload.MetaData[models.META_EXT_EVENT]
+	dstBlobName += "/"
+
+	if uploadConfig.FolderStructure == models.DATE_YYYY_MM_DD {
+		// Format MM-DD-YYYY
+		ingestDtParts := strings.Split(ingestDt.Format("01-02-2006"), "-")
+		mm := ingestDtParts[0]
+		dd := ingestDtParts[1]
+		yyyy := ingestDtParts[2]
+		dstBlobName += yyyy + "/" + mm + "/" + dd + "/"
+	} // .if
+
+	dstBlobName += eventUploadComplete.Upload.MetaData[models.FILENAME]
+
+	if uploadConfig.FileNameSuffix == models.CLOCK_TICKS {
+		dstBlobName += "_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	} // .if
+
+	return dstBlobName
+} // .getDstBlobName
