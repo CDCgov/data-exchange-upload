@@ -24,6 +24,7 @@ UPLOAD_CONFIG_CONTAINER = os.getenv('UPLOAD_CONFIG_CONTAINER')
 
 CONNECTION_STRING = f"DefaultEndpointsProtocol=https;AccountName={AZURE_STORAGE_ACCOUNT};AccountKey={AZURE_STORAGE_KEY};EndpointSuffix=core.windows.net"
 DEX_STORAGE_ACCOUNT_SERVICE = BlobServiceClient.from_connection_string(conn_str=CONNECTION_STRING)
+INVALID_CHARS = set('<>:"/\\|?*')
 
 
 def get_version_int_from_str(version):
@@ -148,9 +149,11 @@ def stringify_error_messages(messages):
     return 'Found the following metadata validation errors: ' + ','.join(messages)
 
 def verify_filename(filename):
-    invalid_chars = set('<>:"/\\|?*')
-    if any((c in invalid_chars) for c in filename):
-        raise ValueError(f"Filename contains invalid characters: {filename}")
+    # Find all invalid characters in the filename
+    found_invalid_chars = {c for c in filename if c in INVALID_CHARS}
+    if found_invalid_chars:
+        invalid_chars_str = ", ".join(sorted(found_invalid_chars))
+        raise ValueError(f"Filename '{filename}' contains invalid characters: {invalid_chars_str}")
 
 def get_filename_from_metadata(meta_json):
     filename_metadata_fields = ['filename', 'original_filename', 'meta_ext_filename']
