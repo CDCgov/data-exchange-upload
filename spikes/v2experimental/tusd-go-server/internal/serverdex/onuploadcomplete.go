@@ -2,6 +2,7 @@ package serverdex
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
@@ -40,6 +41,30 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 	// ------------------------------------------------------------------
 	if sd.CliFlags.RunMode == cliflags.RUN_MODE_AZURE || sd.CliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE {
 
+		// time of ingest
+		ingestDt := time.Now().UTC()
+
+		dstBlobName := eventUploadComplete.Upload.MetaData["meta_destination_id"] // TODO: from model const
+		dstBlobName += "-"
+		dstBlobName += eventUploadComplete.Upload.MetaData["meta_ext_event"] // TODO: from model const
+		dstBlobName += "/"
+
+		if uploadConfig.FolderStructure == "date_YYYY_MM_DD" { // TODO: from model const
+			// Format MM-DD-YYYY
+			ingestDtParts := strings.Split(ingestDt.Format("01-02-2006"), "-")
+			mm := ingestDtParts[0]
+			dd := ingestDtParts[1]
+			yyyy := ingestDtParts[2]
+
+			dstBlobName += yyyy + "/" + mm + "/" + dd + "/"
+		} // .if
+
+		dstBlobName += eventUploadComplete.Upload.MetaData["filename"]
+
+		if uploadConfig.FileNameSuffix == "clock_ticks" {
+			dstBlobName += "_" + strconv.FormatInt(time.Now().UnixNano(), 10)
+		} // .if
+
 		saz := storeaz.CopierAzTusToDex{
 			EventUploadComplete: eventUploadComplete,
 			UploadConfig:        uploadConfig,
@@ -51,7 +76,8 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 			//
 
 			DstAzContainerName: sd.AppConfig.DexAzStorageContainerName,
-			DstAzBlobName:      eventUploadComplete.Upload.ID + "_copied", // TODO based on config
+			DstAzBlobName:      dstBlobName,
+			IngestDt:           ingestDt,
 		} // .saz
 
 		err := saz.CopyTusSrcToDst()

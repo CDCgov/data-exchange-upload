@@ -89,7 +89,6 @@ func (sd *ServerDex) HttpServer() http.Server {
 			uploadConfigKey := event.Upload.MetaData["meta_destination_id"]
 			uploadConfigKey += "-"
 			uploadConfigKey += event.Upload.MetaData["meta_ext_event"]
-			uploadConfigKey += ".json"
 			uploadConfig := sd.MetaV1.UploadConfigs[uploadConfigKey]
 
 			var copyTargets []metadatav1.CopyTarget
