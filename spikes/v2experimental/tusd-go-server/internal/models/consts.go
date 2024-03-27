@@ -18,4 +18,7 @@ const (
 	CLOCK_TICKS         = "clock_ticks"
 
 	DEX_INGEST_DATE_TIME_KEY_NAME = "dex_ingest_datetime"
+
+	TARGET_DEX_ROUTER = "dex_router"
+	TARGET_DEX_EDAV   = "dex_edav"
 ) // .const

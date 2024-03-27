@@ -82,7 +82,50 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 			time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
 		} // .for
 
-		// TODO: more copies as routing files, based on copy targets copyTargets
+		// other copies (files to router and/or edav), based on copy targets metadata config copyTargets
+		for _, ct := range copyTargets {
+
+			// ------------------------------------------------------------------
+			// ct.Target == models.TARGET_DEX_ROUTER
+			// ------------------------------------------------------------------
+			if ct.Target == models.TARGET_DEX_ROUTER {
+
+				copierSrcToDst := storeaz.CopierAzSrcDst{
+
+					SrcTusAzBlobClient:    sd.HandlerDex.TusAzBlobClient,
+					SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
+					SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
+					//
+					DstAzContainerName: sd.AppConfig.RouterAzStorageConfig.AzContainerName,
+					DstAzBlobName:      dstBlobName,
+					Manifest:           manifest,
+				} // .copierDex
+
+				for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
+
+					err := copierSrcToDst.CopyAzSrcToDst()
+					if err != nil {
+						sd.logger.Error("error copy file dex to router, should retry times", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+					} // .if
+
+					if i == sd.AppConfig.CopyRetryTimes && err != nil {
+						sd.logger.Error("error copy file dex to router, retry times out", "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+						return err
+					} // .if
+
+					time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
+				} // .for
+
+			} // .if
+
+			// ------------------------------------------------------------------
+			// ct.Target == models.TARGET_DEX_EDAV
+			// ------------------------------------------------------------------
+			// if ct.Target == models.TARGET_DEX_EDAV {
+
+			// }// .if
+
+		} // .for
 
 	} // .RUN_MODE_AZURE
 
