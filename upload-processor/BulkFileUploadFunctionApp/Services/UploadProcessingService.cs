@@ -29,6 +29,8 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _stageName = "dex-file-copy";
         private readonly string _dexStorageAccountConnectionString;
         private readonly string _routingStorageAccountConnectionString;
+        private readonly string _destinationAndEventsFileName = "allowed_destination_and_events.json";
+
         #region SET for removal
         private readonly BlobServiceClient _dexBlobServiceClient;
         private readonly BlobServiceClient _routingBlobServiceClient;
@@ -36,8 +38,9 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobServiceClient _edavBlobServiceClient;
         private readonly IBlobReaderFactory _blobReaderFactory;
         #endregion
+        private readonly string _tusHooksFolder;
 
-        private Task<List<DestinationAndEvents>?> _destinationAndEvents;
+
         private readonly string _uploadConfigContainer; 
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
