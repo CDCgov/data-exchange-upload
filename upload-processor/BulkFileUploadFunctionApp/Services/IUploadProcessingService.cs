@@ -5,16 +5,16 @@ namespace BulkFileUploadFunctionApp.Services
 {
     public interface IUploadProcessingService
     {
-        public Task<CopyPrereqs> GetCopyPrereqs(string blobCreatedUrl);
+        Task<CopyPrereqs> GetCopyPrereqs(string blobCreatedUrl);
 
-        public Task CopyAll(CopyPrereqs copyPrereqs);
+        Task CopyAll(CopyPrereqs copyPrereqs);
 
-        public Task CopyFromDexToEdav(CopyPrereqs copyPrereqs);
+        Task CopyFromDexToEdav(CopyPrereqs copyPrereqs);
     
-        public Task CopyFromDexToRouting(CopyPrereqs copyPrereqs);
+        Task CopyFromDexToRouting(CopyPrereqs copyPrereqs);
 
-        public Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs);
+        Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs);
 
-        public Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs);
+        Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs);
     }
 }
