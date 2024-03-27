@@ -34,8 +34,9 @@ type AppConfig struct {
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, required"`
 
 	// Processing Status
-	ProcessingStatusHealthURI     string `env:"PROCESSING_STATUS_HEALTH_URI, required"`
-	ProcessingStatusServiceBusURI string `env:"PROCESSING_STATUS_SERVICE_BUS_URI, required"`
+	ProcessingStatusHealthURI           string `env:"PROCESSING_STATUS_HEALTH_URI, required"`
+	ProcessingStatusServiceBusNamespace string `env:"PROCESSING_STATUS_SERVICE_BUS_NAMESPACE, required"`
+	ProcessingStatusServiceBusQueue     string `env:"PROCESSING_STATUS_SERVICE_BUS_QUEUE"`
 
 	// Azure TUS Upload storage
 	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_"`

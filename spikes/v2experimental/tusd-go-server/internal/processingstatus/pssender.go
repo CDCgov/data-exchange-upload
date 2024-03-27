@@ -1,14 +1,17 @@
 package processingstatus
 
 import (
-	"net/url"
-
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
+	"net/url"
 )
 
 type PsSender struct {
 	EndpointHealth    string
 	EndpointHealthURI *url.URL
+	ServiceBusClient  *azservicebus.Client
+	ServiceBusQueue   string
 } // .PsSender
 
 func New(appConfig appconfig.AppConfig) (*PsSender, error) {
@@ -18,19 +21,34 @@ func New(appConfig appconfig.AppConfig) (*PsSender, error) {
 		return nil, err
 	} // .if
 
+	sbClient, err := GetServiceBusClient(appConfig)
+	if err != nil {
+		return nil, err
+	} // .if
+
 	return &PsSender{
 		EndpointHealth:    appConfig.ProcessingStatusHealthURI,
 		EndpointHealthURI: endpointURI,
+		ServiceBusClient:  sbClient,
+		ServiceBusQueue:   appConfig.ProcessingStatusServiceBusQueue,
 	}, nil // .return
 
 } // .New
 
-func SendReport(pss PsSender) error { // TODO: probably not return if an error
+func GetServiceBusClient(appConfig appconfig.AppConfig) (*azservicebus.Client, error) {
 
-	// TODO: what happens when we can't send to processing status and error?
-	// should it even be returned? probably not so this can be called on a goroutine
+	namespace := appConfig.ProcessingStatusServiceBusNamespace
 
-	// TODO send to processing status API
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, err
+	} // .if
 
-	return nil // all good no errors
-} // .Send
+	client, err := azservicebus.NewClient(namespace, cred, nil)
+	if err != nil {
+		return nil, err
+	} // .if
+
+	//all good
+	return client, nil
+} // .GetServiceBusClient
