@@ -18,14 +18,14 @@ namespace BulkFileUploadFunctionApp
     public class HealthCheckFunction
     {
         private readonly string[] StorageNames = { "DEX Blob Container", "EDAV Blob Container", "Routing Blob Container" };
-        private readonly IBlobServiceClientFactory _blobServiceClientFactory;
+        private readonly IBlobClientFactory _blobServiceClientFactory;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
         private readonly ILogger _logger;
         private readonly IFeatureManagementExecutor _featureManagementExecutor;
         private readonly IProcStatClient _procStatClient;
 
         // Constructor
-        public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory,
+        public HealthCheckFunction(IBlobClientFactory blobServiceClientFactory,
                                     IEnvironmentVariableProvider environmentVariableProvider,
                                     ILoggerFactory loggerFactory,
                                     IFeatureManagementExecutor featureManagementExecutor,

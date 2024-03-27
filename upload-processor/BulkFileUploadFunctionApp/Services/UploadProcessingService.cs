@@ -12,8 +12,8 @@ namespace BulkFileUploadFunctionApp.Services
     public class UploadProcessingService : IUploadProcessingService
     {
         private readonly ILogger _logger;
+        private readonly IBlobManagementService _blobManagementService;
         private readonly BlobCopyHelper _blobCopyHelper;
-        private readonly IBlobReader _blobReader;
         private readonly string _tusAzureObjectPrefix;
         private readonly string _tusAzureStorageContainer;
         private readonly string _dexAzureStorageAccountName;
@@ -33,20 +33,23 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _stageName = "dex-file-copy";
         private readonly string _dexStorageAccountConnectionString;
         private readonly string _routingStorageAccountConnectionString;
+        #region SET for removal
         private readonly BlobServiceClient _dexBlobServiceClient;
         private readonly BlobServiceClient _routingBlobServiceClient;
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
         private readonly IBlobReaderFactory _blobReaderFactory;
+        #endregion
+
         private Task<List<DestinationAndEvents>?> _destinationAndEvents;
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
-        IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
+        IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobManagementService blobManagementService)
         {
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobCopyHelper = new(_logger);
-            _blobReaderFactory = blobReaderFactory;
-            _blobReader = _blobReaderFactory.CreateInstance(_logger);
+            _blobManagementService = blobManagementService;
+            //_blobReader = _blobReaderFactory.CreateInstance(_logger);
             
             _featureManagementExecutor = featureManagementExecutor;
             _procStatClient = procStatClient;
@@ -74,15 +77,8 @@ namespace BulkFileUploadFunctionApp.Services
             _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
             _routingStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_routingStorageAccountName};AccountKey={_routingStorageAccountKey};EndpointSuffix=core.windows.net";
 
-            // Instatiate container client connections.
-            _dexBlobServiceClient = new BlobServiceClient(_dexStorageAccountConnectionString);
-            _routingBlobServiceClient = new BlobServiceClient(_routingStorageAccountConnectionString);
-            _tusContainerClient = _dexBlobServiceClient.GetBlobContainerClient(_tusAzureStorageContainer);
-            _edavBlobServiceClient = new BlobServiceClient(
-                new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
-                new DefaultAzureCredential() // using Service Principal
-            );
         }
+        
         public async Task<CopyPrereqs> GetCopyPrereqs(string blobCreatedUrl)
         {
             string? uploadId = null;
@@ -100,6 +96,7 @@ namespace BulkFileUploadFunctionApp.Services
                 string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Last()}";
 
                 // Get metadata
+                // needs blobclient
                 TusInfoFile tusInfoFile = await GetTusInfoFile(tusPayloadFilename);
                 uploadId = tusInfoFile.ID;
 
@@ -169,6 +166,7 @@ namespace BulkFileUploadFunctionApp.Services
                 throw ex;
             }
         }
+        
         public async Task CopyAll(CopyPrereqs copyPrereqs)
         {
             Span? copySpan = null;
@@ -197,8 +195,8 @@ namespace BulkFileUploadFunctionApp.Services
                     await _procStatClient.StopSpanForTrace(copyPrereqs.Trace.TraceId, copySpan.SpanId);
                 }
             }
-        }
-               
+        }               
+        
         /// <summary>
         /// Copies a blob from the tus upload folder to the DEX storage account
         /// </summary>
@@ -218,13 +216,20 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogInformation("Creating source blob client");
 
                 // Create a BlobClient representing the source blob to copy.
-                BlobClient sourceBlob = _tusContainerClient.GetBlobClient(copyPrereqs.TusPayloadFilename);
+                Dictionary<string, string> blobInfo = new Dictionary<string, string>
+                {
+                    {"connectionstring", _dexStorageAccountConnectionString},
+                    {"containername", _tusAzureStorageContainer},
+                    {"filename", copyPrereqs.TusPayloadFilename}
+                };
+                BlobClient sourceBlob = _blobManagementService.GetBlobClientAsync(blobInfo).Result;
 
                 // Get a BlobClient representing the destination blob with a unique name.
-                BlobClient destBlob = destinationContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
-
-                await _blobCopyHelper.CopyBlobLeaseAsync(sourceBlob, destBlob, copyPrereqs.Metadata);
-
+                blobInfo.Remove("filename");
+                blobInfo.Add("filename", copyPrereqs.DexBlobFileName);
+                BlobClient destBlob = _blobManagementService.GetBlobClientAsync(blobInfo).Result;
+                await _blobManagementService.CopyBlobLeaseAsync(sourceBlob, destBlob, copyPrereqs.Metadata);
+                
                 return destBlob.Uri.ToString();
             }
             catch (RequestFailedException ex)
@@ -245,7 +250,7 @@ namespace BulkFileUploadFunctionApp.Services
                 throw ex;
             }
         }
-
+        
         private async Task CopyFromDexToTarget(CopyPrereqs copyPrereqs)
         {
             foreach (CopyTarget copyTarget in copyPrereqs.Targets)
@@ -289,6 +294,11 @@ namespace BulkFileUploadFunctionApp.Services
             }        
         }
 
+        private async Task checkContainerExistence(BlobServiceClient svc, string containerName)
+        {
+            await _blobManagementService.GetBlobContainerClientAsync(svc, containerName);
+        }
+
         /// <summary>
         /// Copies a blob file from DEX to EDAV asynchronously.
         /// </summary>
@@ -304,15 +314,27 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
-                BlobContainerClient sourceContainerClient = _dexBlobServiceClient.GetBlobContainerClient(copyPrereqs.DexBlobFolderName);
-                BlobClient sourceBlobClient = sourceContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
+                Dictionary<string, string> blobInfo = new Dictionary<string, string>
+                {
+                    {"connectionstring", _dexStorageAccountConnectionString},
+                    {"containername", copyPrereqs.DexBlobFolderName},
+                    {"filename", copyPrereqs.DexBlobFileName}
+                };
+                BlobClient sourceBlobClient = _blobManagementService.GetBlobClientAsync(blobInfo).Result;
 
-                BlobContainerClient destContainerClient = _edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
-                await destContainerClient.CreateIfNotExistsAsync();
+                var edavBlobServiceClient = _blobManagementService.GetBlobServiceClientAsync(new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
+                    new DefaultAzureCredential()).Result;
+                Dictionary<string, string> destBlobInfo = new Dictionary<string, string>
+                {
+                    {"connectionstring", _dexStorageAccountConnectionString},
+                    {"containername", destinationContainerName},
+                    {"filename", destinationFilename}
+                };
 
-                BlobClient destBlobClient = destContainerClient.GetBlobClient(destinationFilename);
 
-                await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
+                await checkContainerExistence(edavBlobServiceClient, destBlobInfo["containername"].ToString());
+                BlobClient destBlobClient = await _blobManagementService.GetBlobClientAsync(destBlobInfo);
+                await _blobManagementService.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
 
                 // Send copy success report
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
@@ -353,6 +375,9 @@ namespace BulkFileUploadFunctionApp.Services
         /// <returns></returns>
         public async Task CopyFromDexToRouting(CopyPrereqs copyPrereqs)
         {
+
+            //TODO: apply _blobMgmt changes
+
             string destinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
             string destinationFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
 
@@ -403,8 +428,14 @@ namespace BulkFileUploadFunctionApp.Services
             // GET FILE METADATA
             string tusInfoFilename = $"{tusPayloadFilename}.info";             
             _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
-
-            TusInfoFile tusInfoFile = await _blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
+            Dictionary<string, string> blobInfo = new Dictionary<string, string>
+            {
+                { "connectionstring", _dexStorageAccountConnectionString },
+                { "containername", _tusAzureStorageContainer },
+                { "filename", tusInfoFilename }
+            };
+            
+            TusInfoFile tusInfoFile = await _blobManagementService.GetObjectFromBlobJsonContent<TusInfoFile>(blobInfo);
 
             if (tusInfoFile.ID == null)
                 throw new Exception("Malformed tus info file. No ID provided.");
@@ -419,11 +450,16 @@ namespace BulkFileUploadFunctionApp.Services
         {
             var uploadConfig = UploadConfig.Default;
             var configFilename = $"{version.ToString().ToLower()}/{destinationId}-{eventType}.json";
-
+            Dictionary<string, string> blobInfo = new Dictionary<string, string>
+            {
+                {"connectionstring", _dexStorageAccountConnectionString},
+                {"containername", "upload-configs"},
+                {"filename", configFilename}
+            };
             try
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
-                uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, "upload-configs", configFilename);
+                uploadConfig = await _blobManagementService.GetObjectFromBlobJsonContent<UploadConfig>(blobInfo);
             } catch (Exception e)
             {
                 _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {eventType}.  Using default config. Exception = ${e.Message}");
@@ -549,11 +585,17 @@ namespace BulkFileUploadFunctionApp.Services
         private async Task<List<DestinationAndEvents>?>  GetAllDestinationAndEvents()
         {
             var connectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
+            Dictionary<string, string> blobInfo = new Dictionary<string, string>
+            {
+                { "connectionstring", connectionString },
+                { "containername", _tusHooksFolder },
+                { "filename", _destinationAndEventsFileName }
+            };
 
             try
             {
                 _logger.LogInformation($"Fetching Destinations and Events from  {_tusHooksFolder}/{_destinationAndEventsFileName}");
-                var destinationAndEvents = await _blobReader.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(connectionString, _tusHooksFolder, _destinationAndEventsFileName);
+                var destinationAndEvents = await _blobManagementService.GetObjectFromBlobJsonContent<List<DestinationAndEvents>>(blobInfo);
 
                 _logger.LogInformation($"Destinations And Events: {JsonSerializer.Serialize(destinationAndEvents)}");
 
