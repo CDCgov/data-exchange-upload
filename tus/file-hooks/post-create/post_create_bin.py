@@ -13,23 +13,34 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-required_metadata_fields = ['meta_destination_id', 'meta_ext_event']
 STAGE_NAME = 'dex-metadata-verify'
 
 def get_required_metadata(metadata_json_dict):
+    metadata_version = metadata_json_dict['metadata_config']['version']
     missing_metadata_fields = []
-
-    for field in required_metadata_fields:
+    
+    if metadata_version == "2.0":
+        required_fields = ['data_stream_id', 'data_stream_route']
+    else:
+        required_fields = ['meta_destination_id', 'meta_ext_event']
+        
+    for field in required_fields:
         if field not in metadata_json_dict:
             missing_metadata_fields.append(field)
 
     if len(missing_metadata_fields) > 0:
         raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
-
-    return [
-        metadata_json_dict['meta_destination_id'],
-        metadata_json_dict['meta_ext_event']
-    ]
+    
+    if metadata_version == "2.0":
+        return [
+            metadata_json_dict['data_stream_id'],
+            metadata_json_dict['data_stream_route']
+        ]
+    else:
+        return [
+            metadata_json_dict['meta_destination_id'],
+            metadata_json_dict['meta_ext_event']
+        ]
 
 def get_filename_from_metadata(metadata_json_dict):
     filename_metadata_fields = ['filename', 'original_filename', 'meta_ext_filename']
