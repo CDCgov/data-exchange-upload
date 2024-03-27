@@ -42,6 +42,7 @@ namespace BulkFileUploadFunctionApp.Services
         #endregion
 
         private Task<List<DestinationAndEvents>?> _destinationAndEvents;
+        private readonly string _uploadConfigContainer;
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobManagementService blobManagementService)
