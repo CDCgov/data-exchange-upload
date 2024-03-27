@@ -2,58 +2,35 @@ import unittest
 
 from pre_create_bin import get_required_metadata
 
-class TestRequiredMetadata(unittest.TestCase):
-    def test_missing_metadata_destination_id_version_1(self):
-        metadata = {
-            'metadata_config': {
-                'version': '1.0'
-            },
-            'meta_ext_event': '456'
+class TestGetRequiredMetadata(unittest.TestCase):
+
+    def test_valid_metadata_version_one(self):
+        meta_json = {
+            'version': "1.0",
+            'data_stream_id': '123',
+            'data_stream_route': 'route1'
         }
+        result = get_required_metadata(meta_json)
+        self.assertEqual(result, ['123', 'route1'])
 
-        with self.assertRaises(Exception) as context:
-            get_required_metadata(metadata)
-
-        self.assertIn('Missing one or more required metadata fields', str(context.exception))
-
-    def test_missing_metadata_ext_event_version_1(self):
-        metadata = {
-            'metadata_config': {
-                'version': '1.0'
-            },
-            'meta_destination_id': '1234'
+    def test_valid_metadata_version_two(self):
+        meta_json = {
+            'version': "2.0",
+            'meta_destination_id': '456',
+            'meta_ext_event': 'event1'
         }
+        result = get_required_metadata(meta_json)
+        self.assertEqual(result, ['456', 'event1'])
 
-        with self.assertRaises(Exception) as context:
-            get_required_metadata(metadata)
-
-        self.assertIn('Missing one or more required metadata fields', str(context.exception))
-
-    def test_missing_metadata_data_stream_id_version_2(self):
-        metadata = {
-            'metadata_config': {
-                'version': '2.0'
-            },
-            'data_stream_route': 'ndlp'
+    def test_unsupported_metadata_version(self):
+        meta_json = {
+            'version': "3.0",
+            'data_stream_id': '123',
+            'data_stream_route': 'route1'
         }
-
         with self.assertRaises(Exception) as context:
-            get_required_metadata(metadata)
-
-        self.assertIn('Missing one or more required metadata fields', str(context.exception))
-
-    def test_missing_metadata_data_stream_route_version_2(self):
-        metadata = {
-            'metadata_config': {
-                'version': '2.0'
-            },
-            'data_stream_id': 'routineImmunization'
-        }
-
-        with self.assertRaises(Exception) as context:
-            get_required_metadata(metadata)
-
-        self.assertIn('Missing one or more required metadata fields', str(context.exception))
+            get_required_metadata(meta_json)
+        self.assertEqual(str(context.exception), "Unsupported metadata version: 3.0")
 
 if __name__ == '__main__':
     unittest.main()

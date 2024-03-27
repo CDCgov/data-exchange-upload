@@ -15,7 +15,8 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_METADATA_FIELDS = ['meta_destination_id', 'meta_ext_event']
+METADATA_VERSION_ONE = "1.0"
+METADATA_VERSION_TWO = "2.0"
 STAGE_NAME = 'dex-metadata-verify'
 
 AZURE_STORAGE_ACCOUNT = os.getenv('AZURE_STORAGE_ACCOUNT')
@@ -38,7 +39,7 @@ def get_upload_config(dest_id, event_type):
         raise Exception("dest_id and event_type are required in metadata")
 
     try:
-        upload_config_file = f"v1/{dest_id}-{event_type}.json"
+        upload_config_file = f"{dest_id}-{event_type}.json"
         blob_client = DEX_STORAGE_ACCOUNT_SERVICE.get_blob_client(container=UPLOAD_CONFIG_CONTAINER, blob=upload_config_file)
 
         if not blob_client.exists():
@@ -90,18 +91,21 @@ def check_metadata_against_config(meta_json, meta_config):
 
 
 def get_required_metadata(meta_json):
-    missing_metadata_fields = []
+    metadata_version = meta_json.get('version')
 
-    for field in REQUIRED_METADATA_FIELDS:
-        if field not in meta_json:
-            missing_metadata_fields.append(field)
+    if metadata_version == METADATA_VERSION_ONE:
+        required_fields = ['data_stream_id', 'data_stream_route']
+    elif metadata_version == METADATA_VERSION_TWO:
+        required_fields = ['meta_destination_id', 'meta_ext_event']
+    else:
+        raise Exception(f"Unsupported metadata version: {metadata_version}")
+
+    missing_metadata_fields = [field for field in required_fields if field not in meta_json]
 
     if len(missing_metadata_fields) > 0:
         raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
 
-    metadata_version = meta_json['metadata_config']['version']
-
-    if metadata_version == "2.0":
+    if metadata_version == METADATA_VERSION_ONE:
         return [
             meta_json['data_stream_id'],
             meta_json['data_stream_route']
@@ -109,7 +113,7 @@ def get_required_metadata(meta_json):
     else:
         return [
             meta_json['meta_destination_id'],
-            meta_json['meta_ext_event'],
+            meta_json['meta_ext_event']
         ]
 
 
