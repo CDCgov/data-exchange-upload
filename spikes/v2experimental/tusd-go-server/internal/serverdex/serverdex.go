@@ -91,7 +91,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 
 			var copyTargets []metadatav1.CopyTarget
 
-		copyTargetFound:
+		copyTargetsFound:
 			for _, v := range sd.MetaV1.AllowedDestAndEvents {
 				if v.DestinationId == event.Upload.MetaData[models.META_DESTINATION_ID] {
 
@@ -99,7 +99,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 						if ev.Name == event.Upload.MetaData[models.META_EXT_EVENT] {
 							copyTargets = ev.CopyTargets
 						}
-						break copyTargetFound
+						break copyTargetsFound
 					} // .for
 				} // .if
 			} // .for

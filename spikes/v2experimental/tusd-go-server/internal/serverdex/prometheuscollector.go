@@ -17,13 +17,17 @@ import (
 ) // .import
 
 var (
-	uploadsCopiedAToB = prometheus.NewDesc(
-		"dex_uploads_copied_a_to_b",
-		"Number of copied uploads A to B.",
+	uploadsCopiedTusToDex = prometheus.NewDesc(
+		"dex_uploads_copied_tus_to_dex",
+		"Number of copied uploads to DEX.",
 		nil, nil)
-	uploadsCopiedBToC = prometheus.NewDesc(
-		"dex_uploads_copied_b_to_c",
-		"Number of copied uploads A to B.",
+	uploadsCopiedTusToRouter = prometheus.NewDesc(
+		"dex_uploads_copied_tus_to_router",
+		"Number of copied uploads to Router.",
+		nil, nil)
+	uploadsCopiedTusToEdav = prometheus.NewDesc(
+		"dex_uploads_copied_tus_to_edav",
+		"Number of copied uploads to Edav.",
 		nil, nil)
 ) // .var
 
@@ -40,23 +44,30 @@ func NewCollector(metrics Metrics) Collector {
 
 func (Collector) Describe(descs chan<- *prometheus.Desc) {
 
-	descs <- uploadsCopiedAToB
-	descs <- uploadsCopiedBToC
+	descs <- uploadsCopiedTusToDex
+	descs <- uploadsCopiedTusToRouter
+	descs <- uploadsCopiedTusToEdav
 
 } // .Describe
 
 func (c Collector) Collect(metrics chan<- prometheus.Metric) {
 
 	metrics <- prometheus.MustNewConstMetric(
-		uploadsCopiedAToB,
+		uploadsCopiedTusToDex,
 		prometheus.CounterValue,
-		float64(atomic.LoadUint64(c.metrics.CopiedAToB)),
+		float64(atomic.LoadUint64(c.metrics.CopiedUploadToDex)),
 	) // .metrics
 
 	metrics <- prometheus.MustNewConstMetric(
-		uploadsCopiedBToC,
+		uploadsCopiedTusToRouter,
 		prometheus.CounterValue,
-		float64(atomic.LoadUint64(c.metrics.CopiedBToC)),
+		float64(atomic.LoadUint64(c.metrics.CopiedUploadToRouter)),
+	) // .metrics
+
+	metrics <- prometheus.MustNewConstMetric(
+		uploadsCopiedTusToEdav,
+		prometheus.CounterValue,
+		float64(atomic.LoadUint64(c.metrics.CopiedUploadToEdav)),
 	) // .metrics
 
 } // .Collect

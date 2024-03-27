@@ -63,6 +63,7 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 		if err != nil {
 			return err
 		} // .if
+		sd.Metrics.IncUploadToDex()
 
 		// other copies (files to router and/or edav), based on copy targets metadata config copyTargets
 		for _, ct := range copyTargets {
@@ -76,6 +77,7 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 				if err != nil {
 					return err
 				} // .if
+				sd.Metrics.IncUploadToRouter()
 
 			} // .if
 

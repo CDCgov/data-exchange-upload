@@ -6,23 +6,30 @@ import (
 )
 
 type Metrics struct {
-	CopiedAToB *uint64
-	CopiedBToC *uint64
+	CopiedUploadToDex    *uint64
+	CopiedUploadToRouter *uint64
+	CopiedUploadToEdav   *uint64
 } // Metrics
 
 func newMetricsDex() Metrics {
 	return Metrics{
-		CopiedAToB: new(uint64),
-		CopiedBToC: new(uint64),
+		CopiedUploadToDex:    new(uint64),
+		CopiedUploadToRouter: new(uint64),
+		CopiedUploadToEdav:   new(uint64),
 	} // .return
 } // .NewMetricsDex
 
-// incCopiedAToB increases the counter for completed copies
-func (m Metrics) incCopiedAToB() {
-	atomic.AddUint64(m.CopiedAToB, 1)
-} // .incCopiedAToB
+// CopiedUploadToDex increases the counter for completed copies
+func (m Metrics) IncUploadToDex() {
+	atomic.AddUint64(m.CopiedUploadToDex, 1)
+} // .CopiedUploadToDex
 
-// incCopiedBToC increases the counter for completed copies
-func (m Metrics) incCopiedBToC() {
-	atomic.AddUint64(m.CopiedBToC, 1)
-} // .incCopiedBToC
+// IncUploadToRouter increases the counter for completed copies
+func (m Metrics) IncUploadToRouter() {
+	atomic.AddUint64(m.CopiedUploadToRouter, 1)
+} // .IncUploadToRouter
+
+// IncUploadToEdav increases the counter for completed copies
+func (m Metrics) IncUploadToEdav() {
+	atomic.AddUint64(m.CopiedUploadToEdav, 1)
+} // .IncUploadToEdav
