@@ -91,9 +91,14 @@ func (sd ServerDex) onUploadComplete(
 			// ------------------------------------------------------------------
 			// ct.Target == models.TARGET_DEX_EDAV
 			// ------------------------------------------------------------------
-			// if ct.Target == models.TARGET_DEX_EDAV {
+			if ct.Target == models.TARGET_DEX_EDAV {
 
-			// }// .if
+				err = sd.copyTusEdavWRetry(eventUploadComplete, dstBlobName, manifest)
+				if err != nil {
+					return err
+				} // .if
+				sd.Metrics.IncUploadToEdav()
+			} // .if
 
 		} // .for
 
@@ -102,6 +107,54 @@ func (sd ServerDex) onUploadComplete(
 	// all good
 	return nil
 } // .OnUploadComplete
+
+// copyTusDexWRetry copy file and metadata from tus to dex container
+func (sd ServerDex) copyTusDexWRetry(eventUploadComplete tusd.HookEvent, dstBlobName string, manifest map[string]*string) error {
+
+	logger := sd.logger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
+
+	copierDex := storeaz.CopierAzTusToDex{
+
+		SrcTusAzBlobClient:    sd.HandlerDex.TusAzBlobClient,
+		SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
+		SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
+		//
+		DstAzContainerName: sd.AppConfig.DexAzStorageContainerName,
+		DstAzBlobName:      dstBlobName,
+		Manifest:           manifest,
+	} // .copierDex
+
+	for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
+
+		err := copierDex.CopyTusSrcToDst()
+		if i == sd.AppConfig.CopyRetryTimes && err != nil {
+			logger.Error("error copy file tus to dex, retry times out", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+			return err
+		} // .if
+
+		if err != nil {
+			logger.Error("error copy file tus to dex, should retry times", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+
+			// try refresh the client on first retry
+			if i == 1 {
+				sd.HandlerDex.TusAzBlobClient, err = storeaz.NewTusAzBlobClient(sd.AppConfig)
+				if err != nil {
+					logger.Error("error copy file tus to dex, error refresh tus blob client", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+					// quit
+					return err
+				} // .if
+			} // .if
+
+			time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
+		} else {
+			logger.Info("file copied tus to dex with manifest", "retryLoopNum", i)
+			break
+		} // .else
+	} // .for
+
+	// all good
+	return nil
+} // .copyWRetry
 
 // copyTusRouterWRetry copy file and metadata from tus to router
 func (sd ServerDex) copyTusRouterWRetry(eventUploadComplete tusd.HookEvent, dstBlobName string, manifest map[string]*string) error {
@@ -151,38 +204,39 @@ func (sd ServerDex) copyTusRouterWRetry(eventUploadComplete tusd.HookEvent, dstB
 	return nil
 } // .copyTusRouterWRetry
 
-// copyTusDexWRetry copy file and metadata from tus to dex container
-func (sd ServerDex) copyTusDexWRetry(eventUploadComplete tusd.HookEvent, dstBlobName string, manifest map[string]*string) error {
+// copyTusEdavWRetry copy file and metadata from tus to edav
+func (sd ServerDex) copyTusEdavWRetry(eventUploadComplete tusd.HookEvent, dstBlobName string, manifest map[string]*string) error {
 
 	logger := sd.logger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
 
-	copierDex := storeaz.CopierAzTusToDex{
+	copierSrcToDst := storeaz.CopierAzSrcDst{
 
 		SrcTusAzBlobClient:    sd.HandlerDex.TusAzBlobClient,
 		SrcTusAzContainerName: sd.AppConfig.TusAzStorageConfig.AzContainerName,
 		SrcTusAzBlobName:      eventUploadComplete.Upload.ID,
 		//
-		DstAzContainerName: sd.AppConfig.DexAzStorageContainerName,
+		DstAzBlobClient:    sd.HandlerDex.EdavAzBlobClient,
+		DstAzContainerName: sd.AppConfig.EdavAzStorageConfig.AzContainerName,
 		DstAzBlobName:      dstBlobName,
 		Manifest:           manifest,
 	} // .copierDex
 
 	for i := 0; i <= sd.AppConfig.CopyRetryTimes; i++ {
 
-		err := copierDex.CopyTusSrcToDst()
+		err := copierSrcToDst.CopyAzSrcToDst()
 		if i == sd.AppConfig.CopyRetryTimes && err != nil {
-			logger.Error("error copy file tus to dex, retry times out", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+			logger.Error("error copy file dex to edav, retry times out", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
 			return err
 		} // .if
 
 		if err != nil {
-			logger.Error("error copy file tus to dex, should retry times", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+			logger.Error("error copy file dex to edav, should retry times", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
 
-			// try refresh the client on first retry
+			// try refresh the edav client, the tus should be good from above copy
 			if i == 1 {
-				sd.HandlerDex.TusAzBlobClient, err = storeaz.NewTusAzBlobClient(sd.AppConfig)
+				sd.HandlerDex.EdavAzBlobClient, err = storeaz.NewEdavAzBlobClient(sd.AppConfig)
 				if err != nil {
-					logger.Error("error copy file tus to dex, error refresh tus blob client", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
+					logger.Error("error copy file dex to edav, error refresh edav blob client", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", sd.AppConfig.CopyRetryTimes)
 					// quit
 					return err
 				} // .if
@@ -190,14 +244,13 @@ func (sd ServerDex) copyTusDexWRetry(eventUploadComplete tusd.HookEvent, dstBlob
 
 			time.Sleep(time.Millisecond * time.Duration(sd.AppConfig.CopyRetryDelay))
 		} else {
-			logger.Info("file copied tus to dex with manifest", "retryLoopNum", i)
+			sd.logger.Info("file copied dex to edav", "retryLoopNum", i)
 			break
 		} // .else
 	} // .for
-
 	// all good
 	return nil
-} // .copyWRetry
+} // .copyTusEdavWRetry
 
 // getDstBlobName makes blob name from upload config including folder structure and adding time ticks
 func getDstBlobName(eventUploadComplete tusd.HookEvent, uploadConfig metadatav1.UploadConfig, ingestDt time.Time) string {
