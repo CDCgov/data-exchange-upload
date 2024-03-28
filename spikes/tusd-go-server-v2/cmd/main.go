@@ -9,6 +9,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/hooks"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
@@ -119,6 +120,13 @@ func main() {
 		if err != nil {
 			logger.Error("error receive az edav blob client", "error", err)
 		} // .if
+
+		azHook := &hooks.AzureUploadCompleteHandler{
+			TusAzBlobClient:    serverDex.HandlerDex.TusAzBlobClient,
+			RouterAzBlobClient: serverDex.HandlerDex.RouterAzBlobClient,
+			EdavAzBlobClient:   serverDex.HandlerDex.EdavAzBlobClient,
+		}
+		cli.PostProcessHook = azHook.AzurePostProcess
 	} // .if
 
 	// ------------------------------------------------------------------
