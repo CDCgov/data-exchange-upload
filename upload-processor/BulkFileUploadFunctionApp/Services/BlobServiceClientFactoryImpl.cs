@@ -1,4 +1,6 @@
+using System;
 using Azure.Storage.Blobs;
+using Azure.Identity;
 
 namespace BulkFileUploadFunctionApp.Services
 {
@@ -19,6 +21,20 @@ namespace BulkFileUploadFunctionApp.Services
             return blobServiceClient;
 
 
+        }
+
+        public BlobServiceClient CreateBlobServiceClient(Uri serviceUri, DefaultAzureCredential credential)
+        {
+            if (serviceUri == null)
+            {
+                throw new ArgumentNullException(nameof(serviceUri));
+            }
+            if (credential == null)
+            {
+                throw new ArgumentNullException(nameof(credential));
+            }
+            var blobServiceClient = new BlobServiceClient(serviceUri, credential);
+            return blobServiceClient;
         }
     }
 }

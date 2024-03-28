@@ -1,0 +1,20 @@
+{
+	"metadata_config": {
+		"version": "1.0",
+		"fields": [
+			{
+				"field_name": "filename",
+				"allowed_values": null,
+				"required": true,
+				"description": "The name of the file submitted."
+			}
+		]
+	},
+	"copy_config": {
+		"filename_suffix": "clock_ticks",
+		"folder_structure": "date_YYYY_MM_DD",
+		"targets": [
+			"edav"
+		]
+	}
+}

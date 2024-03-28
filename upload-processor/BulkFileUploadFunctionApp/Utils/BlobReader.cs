@@ -1,12 +1,10 @@
-﻿using Azure.Storage.Blobs.Models;
-using Azure.Storage.Blobs.Specialized;
-using Azure.Storage.Blobs;
+﻿using Azure.Storage.Blobs;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
-    internal class BlobReader
+    public class BlobReader : IBlobReader
     {
         private readonly ILogger _logger;
 
@@ -18,8 +16,8 @@ namespace BulkFileUploadFunctionApp.Utils
         public async Task<T?> GetObjectFromBlobJsonContent<T>(string connectionString, string sourceContainerName, string blobPathname)
         {
             T? result;
-            var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
 
+            var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
             BlobClient sourceBlob = sourceContainerClient.GetBlobClient(blobPathname);
 
             _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
@@ -33,10 +31,8 @@ namespace BulkFileUploadFunctionApp.Utils
             _logger.LogInformation("File exists, getting lease on file");
 
             using (var stream = await sourceBlob.OpenReadAsync())
-            using (var reader = new StreamReader(stream))
-            using (var jsonReader = new JsonTextReader(reader)) 
             { 
-                result = JsonSerializer.CreateDefault().Deserialize<T>(jsonReader);
+                result = await JsonSerializer.DeserializeAsync<T>(stream);
             }
 
             return result;

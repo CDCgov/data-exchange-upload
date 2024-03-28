@@ -1,10 +1,10 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json.Serialization;
 
 namespace BulkFileUploadFunctionApp.Model
 {
     public record MetadataConfig
     {
-        [JsonProperty("version")] public string? Version { get; init; }
-        [JsonProperty("fields")] public List<MetadataField>? Fields { get; init; }
+        [JsonPropertyName("version")] public string? Version { get; init; }
+        [JsonPropertyName("fields")] public List<MetadataField>? Fields { get; init; }
     }
 }

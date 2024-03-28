@@ -1,9 +1,8 @@
-﻿using System;
-using System.Text;
+﻿using System.Text;
+using System.Text.Json;
 using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Utils;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace BulkFileUploadFunctionApp.Services
 {
@@ -20,14 +19,14 @@ namespace BulkFileUploadFunctionApp.Services
             _logger = logger;
         }
 
-        public async Task<HealthCheckResponse> GetHealthCheck()
+        public async Task<HealthCheckResponse?> GetHealthCheck()
         {
             try
             {
                 var response = await _httpClient.GetAsync("/api/health");
                 response.EnsureSuccessStatusCode();
 
-                var responseBody = await response.Content.ReadAsStringAsync();
+                string responseBody = await response.Content.ReadAsStringAsync();
                 if (string.IsNullOrEmpty(responseBody))
                 {
                     _logger.LogError("Call to PS API returned empty body.");
@@ -36,7 +35,7 @@ namespace BulkFileUploadFunctionApp.Services
                         Status = "DOWN"
                     };
                 }
-                return JsonConvert.DeserializeObject<HealthCheckResponse>(responseBody);
+                return JsonSerializer.Deserialize<HealthCheckResponse>(responseBody);
             } catch (Exception ex)
             {
                 _logger.LogError("Error when calling PS API.");
@@ -47,11 +46,11 @@ namespace BulkFileUploadFunctionApp.Services
                 };
             }
         }
-        public async Task<bool> CreateReport(string uploadId, string destinationId, string eventType, string stageName, CopyReport payload)
+        public async Task<bool> CreateReport<TReport>(string uploadId, string destinationId, string eventType, string stageName, TReport payload)
         {
             try
             {
-                var content = new StringContent(JsonConvert.SerializeObject(payload), Encoding.UTF8, "application/json");
+                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync($"/api/report/json/uploadId/{uploadId}?destinationId={destinationId}&eventType={eventType}&stageName={stageName}", content);
                 response.EnsureSuccessStatusCode();
             } catch (Exception ex)
@@ -78,7 +77,7 @@ namespace BulkFileUploadFunctionApp.Services
                     return null;
                 }
 
-                return JsonConvert.DeserializeObject<Trace>(responseBody);
+                return JsonSerializer.Deserialize<Trace>(responseBody);
             } catch (Exception ex)
             {
                 _logger.LogError("Error when calling PS API.");
@@ -100,7 +99,7 @@ namespace BulkFileUploadFunctionApp.Services
                     _logger.LogError("Call to PS API returned empty body.");
                     return null;
                 }
-                return JsonConvert.DeserializeObject<Span>(responseBody);
+                return JsonSerializer.Deserialize<Span>(responseBody);
             }
             catch (Exception ex)
             {
