@@ -1,4 +1,4 @@
-package handlertusd
+package hooks
 
 import (
 	"net/http"

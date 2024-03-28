@@ -10,7 +10,8 @@ type Flags struct {
 	RunMode            string // local, azure, aws
 	AppLocalConfigPath string // if override
 	AzLocalConfigPath  string // if override
-
+	UsePrebuiltHooks   bool
+	FileHooksDir       string
 } // .flags
 
 var runModes = []string{"local", "azure", "aws", "local_to_azure"}

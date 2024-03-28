@@ -1,11 +1,20 @@
 package slogerxexp
 
 import (
-	slog "golang.org/x/exp/slog"
 	"os"
+
+	slog "golang.org/x/exp/slog"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 )
+
+var (
+	DefaultLogger *slog.Logger
+)
+
+func SetDefaultLogger(l *slog.Logger) {
+	DefaultLogger = l
+}
 
 // AppLogger, used to config TUSD, this is the custom application logger for uniformity
 // TODO: currently tusd supports x/exp/slog and is moving to log/slog

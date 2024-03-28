@@ -12,6 +12,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/filelocker"
 	"github.com/tus/tusd/v2/pkg/filestore"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
+	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 ) // .import
 
@@ -22,6 +23,7 @@ func New(cliFlags cli.Flags, appConfig appconfig.AppConfig, psSender *processing
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
 	// add package name to app logger
 	logger := slogerxexp.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
+	slogerxexp.SetDefaultLogger(logger)
 
 	// tusd.Handler exposes metrics by cli flag and defaults true
 	var handler *tusd.Handler
@@ -106,7 +108,7 @@ func New(cliFlags cli.Flags, appConfig appconfig.AppConfig, psSender *processing
 
 	// Create a new HTTP handler for the tusd server by providing a configuration.
 	// The StoreComposer property must be set to allow the handler to function.
-	handler, err := tusd.NewHandler(tusd.Config{
+	handler, err := hooks.NewHandlerWithHooks(&tusd.Config{
 		BasePath:              appConfig.TusdHandlerBasePath,
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
@@ -118,10 +120,7 @@ func New(cliFlags cli.Flags, appConfig appconfig.AppConfig, psSender *processing
 		// TODO: the tusd logger type is "golang.org/x/exp/slog" vs. app logger "log/slog"
 		// TODO: switch to the log/slog when tusd is on that
 		Logger: logger,
-
-		// pre-create, sender manifest checks
-		PreUploadCreateCallback: checkManifestV1(logger, psSender),
-	}) // .handler
+	}, cli.GetHookHandler(), []hooks.HookType{hooks.HookPreCreate}) // .handler
 	if err != nil {
 		logger.Error("error start tusd handler", "error", err)
 		return nil, err

@@ -1,4 +1,4 @@
-package handlertusd
+package hooks
 
 // TODO: hooks pre-create
 
@@ -8,9 +8,8 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/slogerxexp"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
-	slog "golang.org/x/exp/slog"
 )
 
 var (
@@ -28,11 +27,9 @@ var (
 
 // checkManifestV1 is a TUSD pre-create hook, checks file manifest for fields and values per metadata v1 requirements
 // currently in v1 hooks the required fields are wired in the pre-create hook check: meta_destination_id and meta_ext_event
-func checkManifestV1(logger *slog.Logger, psSender *processingstatus.PsSender) func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
+func CheckManifestV1() func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
 	return func(hook tusd.HookEvent) (tusd.HTTPResponse, tusd.FileInfoChanges, error) {
-
-		// TODO: add ps integration to send report on failure
-		_ = psSender.EndpointHealth // TODO: add ps integration as required.
+		logger := slogerxexp.DefaultLogger
 
 		senderManifest := hook.Upload.MetaData
 
