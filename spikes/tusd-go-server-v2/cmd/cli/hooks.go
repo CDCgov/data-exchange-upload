@@ -24,5 +24,6 @@ func HookHandlerFunc(f func(handler.HookEvent) (handler.HTTPResponse, handler.Fi
 func PrebuiltHooks() tusHooks.HookHandler {
 	handler := &prebuilthooks.PrebuiltHook{}
 	handler.Register(tusHooks.HookPreCreate, HookHandlerFunc(hooks.CheckManifestV1()))
+	handler.Register(tusHooks.HookPostFinish, hooks.LocalPostProcess)
 	return handler
 }

@@ -1,11 +1,11 @@
-package serverdex
+package hooks
 
 import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 )
 
-func (sd ServerDex) hydrateManifestV1(manifest *map[string]*string, hydrateV1Config metadatav1.HydrateV1Config) {
+func hydrateManifestV1(manifest *map[string]*string, hydrateV1Config metadatav1.HydrateV1Config) {
 
 	// Add use-case specific fields and their values.
 	for _, field := range hydrateV1Config.MetadataConfig.Fields {

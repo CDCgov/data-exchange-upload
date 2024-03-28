@@ -21,6 +21,8 @@ const RUN_MODE_LOCAL_TO_AZURE = "local_to_azure"
 const RUN_MODE_AZURE = "azure"
 const RUN_MODE_AWS = "aws"
 
+var CliFlags *Flags
+
 // ParseFlags read cli flags into an Flags struct which is returned
 func ParseFlags() (Flags, error) {
 
@@ -39,6 +41,6 @@ func ParseFlags() (Flags, error) {
 		AppLocalConfigPath: *appLcp,
 		AzLocalConfigPath:  *azLcp,
 	} // .flags
-
+	CliFlags = &flags
 	return flags, nil
 } // .ParseFlags

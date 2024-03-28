@@ -120,7 +120,7 @@ func New(cliFlags cli.Flags, appConfig appconfig.AppConfig, psSender *processing
 		// TODO: the tusd logger type is "golang.org/x/exp/slog" vs. app logger "log/slog"
 		// TODO: switch to the log/slog when tusd is on that
 		Logger: logger,
-	}, cli.GetHookHandler(), []hooks.HookType{hooks.HookPreCreate}) // .handler
+	}, cli.GetHookHandler(), []hooks.HookType{hooks.HookPreCreate, hooks.HookPostFinish}) // .handler
 	if err != nil {
 		logger.Error("error start tusd handler", "error", err)
 		return nil, err

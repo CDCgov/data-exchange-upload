@@ -7,6 +7,14 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 )
 
+var (
+	DefaultLogger *slog.Logger
+)
+
+func SetDefaultLogger(l *slog.Logger) {
+	DefaultLogger = l
+}
+
 // AppLogger, this is the custom application logger for uniformity
 func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 

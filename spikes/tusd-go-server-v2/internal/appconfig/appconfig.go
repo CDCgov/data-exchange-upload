@@ -59,6 +59,8 @@ type AzureStorageConfig struct {
 	AzContainerAccessType string `env:"AZ_CONTAINER_ACCESS_TYPE"`
 } // .AzureStorageConfig
 
+var LoadedConfig *AppConfig
+
 // ParseConfig loads app configuration based on environment variables and returns AppConfig struct
 func ParseConfig(ctx context.Context) (AppConfig, error) {
 
@@ -66,6 +68,6 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 	if err := envconfig.Process(ctx, &ac); err != nil {
 		return AppConfig{}, err
 	} // .if
-
+	LoadedConfig = &ac
 	return ac, nil
 } // .ParseConfig
