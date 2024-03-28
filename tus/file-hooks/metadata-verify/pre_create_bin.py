@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 METADATA_VERSION_ONE = "1.0"
 METADATA_VERSION_TWO = "2.0"
+REQUIRED_VERSION_ONE_FIELDS = ['meta_destination_id', 'meta_ext_event']
+REQUIRED_VERSION_TWO_FIELDS = ['data_stream_id', 'data_stream_route']
+
 STAGE_NAME = 'dex-metadata-verify'
 
 AZURE_STORAGE_ACCOUNT = os.getenv('AZURE_STORAGE_ACCOUNT')
@@ -27,19 +30,12 @@ CONNECTION_STRING = f"DefaultEndpointsProtocol=https;AccountName={AZURE_STORAGE_
 DEX_STORAGE_ACCOUNT_SERVICE = BlobServiceClient.from_connection_string(conn_str=CONNECTION_STRING)
 
 
-def get_version_int_from_str(version):
-    l = [int(x, 10) for x in version.split('.')]
-    l.reverse()
-    version = sum(x * (100 ** i) for i, x in enumerate(l))
-    return version
-
-
-def get_upload_config(dest_id, event_type):
+def get_upload_config(dest_id, event_type, metadata_version):
     if dest_id is None or event_type is None:
         raise Exception("dest_id and event_type are required in metadata")
 
     try:
-        upload_config_file = f"{dest_id}-{event_type}.json"
+        upload_config_file = f"v{metadata_version}/{dest_id}-{event_type}.json"
         blob_client = DEX_STORAGE_ACCOUNT_SERVICE.get_blob_client(container=UPLOAD_CONFIG_CONTAINER, blob=upload_config_file)
 
         if not blob_client.exists():
@@ -93,10 +89,10 @@ def check_metadata_against_config(meta_json, meta_config):
 def get_required_metadata(meta_json):
     metadata_version = meta_json.get('version')
 
-    if metadata_version == METADATA_VERSION_ONE:
-        required_fields = ['data_stream_id', 'data_stream_route']
-    elif metadata_version == METADATA_VERSION_TWO:
-        required_fields = ['meta_destination_id', 'meta_ext_event']
+    if metadata_version == METADATA_VERSION_TWO:
+        required_fields = REQUIRED_VERSION_TWO_FIELDS
+    elif metadata_version == METADATA_VERSION_ONE:
+        required_fields = REQUIRED_VERSION_ONE_FIELDS
     else:
         raise Exception(f"Unsupported metadata version: {metadata_version}")
 
@@ -105,7 +101,7 @@ def get_required_metadata(meta_json):
     if len(missing_metadata_fields) > 0:
         raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
 
-    if metadata_version == METADATA_VERSION_ONE:
+    if metadata_version == METADATA_VERSION_TWO:
         return [
             meta_json['data_stream_id'],
             meta_json['data_stream_route']
@@ -176,8 +172,11 @@ def get_filename_from_metadata(meta_json):
 
 
 def verify_metadata(dest_id, event_type, meta_json):
+    metadata_version = meta_json.get('version')
+    metadata_version = metadata_version.split('.')[0] if metadata_version else None
+
     # check if the program/event type is on the list of allowed
-    upload_config = get_upload_config(dest_id, event_type)
+    upload_config = get_upload_config(dest_id, event_type, metadata_version)
 
     if upload_config is not None:
         check_metadata_against_config(meta_json, upload_config['metadata_config'])

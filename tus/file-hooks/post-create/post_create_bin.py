@@ -15,32 +15,27 @@ logger = logging.getLogger(__name__)
 
 STAGE_NAME = 'dex-metadata-verify'
 
+METADATA_VERSION_ONE = "1.0"
+METADATA_VERSION_TWO = "2.0"
+REQUIRED_VERSION_ONE_FIELDS = ['meta_destination_id', 'meta_ext_event']
+REQUIRED_VERSION_TWO_FIELDS = ['data_stream_id', 'data_stream_route']
+
 def get_required_metadata(metadata_json_dict):
     metadata_version = metadata_json_dict['metadata_config']['version']
-    missing_metadata_fields = []
     
-    if metadata_version == "2.0":
-        required_fields = ['data_stream_id', 'data_stream_route']
+    if metadata_version == METADATA_VERSION_TWO:
+        required_fields = REQUIRED_VERSION_TWO_FIELDS
+    elif metadata_version == METADATA_VERSION_ONE:
+        required_fields = REQUIRED_VERSION_ONE_FIELDS
     else:
-        required_fields = ['meta_destination_id', 'meta_ext_event']
-        
-    for field in required_fields:
-        if field not in metadata_json_dict:
-            missing_metadata_fields.append(field)
+        raise Exception(f"Unsupported metadata version: {metadata_version}")
 
-    if len(missing_metadata_fields) > 0:
+    missing_metadata_fields = [field for field in required_fields if field not in metadata_json_dict]
+
+    if missing_metadata_fields:
         raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
-    
-    if metadata_version == "2.0":
-        return [
-            metadata_json_dict['data_stream_id'],
-            metadata_json_dict['data_stream_route']
-        ]
-    else:
-        return [
-            metadata_json_dict['meta_destination_id'],
-            metadata_json_dict['meta_ext_event']
-        ]
+
+    return [metadata_json_dict[field] for field in required_fields]
 
 def get_filename_from_metadata(metadata_json_dict):
     filename_metadata_fields = ['filename', 'original_filename', 'meta_ext_filename']

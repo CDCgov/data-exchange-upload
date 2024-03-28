@@ -35,6 +35,8 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobServiceClient _edavBlobServiceClient;
         private readonly IBlobReaderFactory _blobReaderFactory;
         private readonly string _uploadConfigContainer; 
+        private readonly string metadataVersionOne = "1.0";
+        private readonly string metadataVersionTwo = "2.0";
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
@@ -82,6 +84,9 @@ namespace BulkFileUploadFunctionApp.Services
             string? uploadId = null;
             string? destinationId = null;
             string? eventType = null;
+            string? version = null;
+            string? dataStreamId = null;
+            string? dataStreamRoute = null;
 
             string? destinationContainerName = null;
 
@@ -114,8 +119,33 @@ namespace BulkFileUploadFunctionApp.Services
                     throw new TusInfoFileException("meta_ext_event is a required metadata field and is missing from the tus info file");
                 eventType = metaExtEvent;
 
-                // Get upload configs for destination and event type
-                UploadConfig uploadConfig = await GetUploadConfig(MetadataVersion.V2, destinationId, eventType);
+                // Get DataStreamId and DataStreamRoute type
+                var dataStreamId = tusInfoFile.MetaData!.GetValueOrDefault("data_stream_id", null);
+                if (dataStreamId == null)
+                    throw new TusInfoFileException("data_stream_id is a required metadata field and is missing from the tus info file");
+                dataStreamId = metaDataStreamId;
+
+                var dataStreamRoute = tusInfoFile.MetaData!.GetValueOrDefault("data_stream_route", null);
+                if (dataStreamRoute == null)
+                    throw new TusInfoFileException("meta_extdata_stream_route_event is a required metadata field and is missing from the tus info file");
+                dataStreamRoute = metaDataStreamRoute;
+
+                var metadataVersion = tusInfoFile.MetaData!.GetValueOrDefault("version", null);
+                if (metadataVersion == null)
+                    throw new TusInfoFileException("version is a required metadata field and is missing from the tus info file");
+                version = metadataVersion; 
+
+                // Get upload configs for destination and event type for V1, data_stream_id and data_stream_route for V2
+                UploadConfig uploadConfig;
+                if (metadataVersion == metadataVersionOne) {
+                    return await GetUploadConfig(MetadataVersion.V1, destinationId, eventType);
+                }
+                else if (metadataVersion == metadataVersionTwo) {
+                    return await GetUploadConfig(MetadataVersion.V2, dataStreamId, dataStreamRoute);
+                }
+                else {
+                    throw new ArgumentException($"Unsupported metadata version: {metadataVersion}");
+                }
 
                 // Hydrate metadata
                 HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);

@@ -13,8 +13,9 @@ class TestUploadConfig(unittest.TestCase):
 
         dest_id = 'destination_id'
         event_type = 'event_type'
+        metadata_version = 1
 
-        upload_config = get_upload_config(dest_id, event_type)
+        upload_config = get_upload_config(dest_id, event_type, metadata_version)
 
         self.assertEqual(upload_config, {"example_key": "example_value"})
 
@@ -26,9 +27,10 @@ class TestUploadConfig(unittest.TestCase):
 
         dest_id = 'destination_id'
         event_type = 'event_type'
+        metadata_version = 1
 
         with self.assertRaises(Exception) as context:
-            get_upload_config(dest_id, event_type)
+            get_upload_config(dest_id, event_type, metadata_version)
 
         self.assertEqual(str(context.exception), "Failed to read upload config file provided")
 
@@ -40,8 +42,9 @@ class TestUploadConfig(unittest.TestCase):
 
         dest_id = 'destination_id'
         event_type = 'event_type'
+        metadata_version = 1
 
         with self.assertRaises(Exception) as context:
-            get_upload_config(dest_id, event_type)
+            get_upload_config(dest_id, event_type, metadata_version)
 
         self.assertEqual(str(context.exception), "Failed to read upload config file provided")
