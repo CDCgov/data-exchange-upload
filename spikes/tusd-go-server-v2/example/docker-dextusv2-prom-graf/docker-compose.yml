@@ -51,6 +51,6 @@ services:
     volumes:
       - ./uploads:/app/uploads
     ports:
-      - "8080:8080"
+      - "8085:8080"
     networks:
       - monitor-net

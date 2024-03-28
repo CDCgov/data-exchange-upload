@@ -1,7 +1,11 @@
+# Docker Compose
 
-# Docker initial notes, use docker-compose
+`docker-compose up`
+`docker-compose down`
 
-# Grafana
+## Docker initial notes, use docker-compose
+
+## Grafana
 
 $ mkdir grafana; cd grafana
 
@@ -9,9 +13,9 @@ $ docker volume create grafana
 
 docker run -d --name=grafana -p 3000:3000 -v grafana:/var/lib/grafana grafana/grafana
 
-# ----------------------------------------------------------
+## ----------------------------------------------------------
 
-# Prometheus 
+## Prometheus 
 
 docker run -p 9090:9090 \
     --name=prometheus \
@@ -19,9 +23,9 @@ docker run -p 9090:9090 \
     -v prometheus-data:/prometheus \
     prom/prometheus
 
-# ----------------------------------------------------------
+## ----------------------------------------------------------
 
-# Service
+## Service
 
 docker build . -t dex-tusd-go-server
 
