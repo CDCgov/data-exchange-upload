@@ -1,4 +1,9 @@
-# V2 Experiment Go
+# Initial Readme V2 Experiment
+Completed as of March/28/2024
+
+---
+
+# V2 Experiment Go 
 
 - Using TUSD official Go implementation as a library and building a custom Go server
 - Refactor current python hooks check in Go [phase 1]
