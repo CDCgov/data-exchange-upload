@@ -59,6 +59,7 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 			allUploadConfigs := make(AllUploadConfigs)
 			destIdsEventsNameMap := make(DestIdsEventsNameMap)
 			destIdEventFileNameMap := make(DestIdEventFileNameMap)
+			hydrateV1ConfigMap := make(map[string]HydrateV1Config)
 
 			for _, allowed := range allowedDestAndEvents {
 
@@ -75,20 +76,20 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 					// ----------------------------------------------------------------------
 					defFilePath, err := filepath.Abs(appConfig.DefinitionsPath + event.DefinitionFileName)
 					if err != nil {
-						logger.Error("error reading file from path", "DefinitionsPath", appConfig.DefinitionsPath)
+						logger.Error("error reading definition file from path", "DefinitionsPath", appConfig.DefinitionsPath)
 						return nil, err
 					} // .if
 
 					defFileContent, err := os.ReadFile(defFilePath)
 					if err != nil {
-						logger.Error("error loading definition from file", "error", err, "event.DefinitionFileName", event.DefinitionFileName)
+						logger.Error("error loading definition from file", "error", err, "defFilePath", defFilePath)
 						return nil, err
 					} // .err
 
 					var definition []Definition
 					err = json.Unmarshal(defFileContent, &definition)
 					if err != nil {
-						logger.Error("error unmarshal to json definition from file", "error", err, "event.DefinitionFileName", event.DefinitionFileName)
+						logger.Error("error unmarshal to json definition from file", "error", err, "defFilePath", defFilePath)
 						return nil, err
 					} // .err
 
@@ -120,6 +121,30 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 
 					allUploadConfigs[updConfFileName] = updConfig
 
+					// ----------------------------------------------------------------------
+					// hydrate v1 to v2 there is only one definition schema for each destination-event
+					// ----------------------------------------------------------------------
+					hydrateFilePath, err := filepath.Abs(appConfig.HydrateV1ConfigPath + updConfFileNameExt)
+					if err != nil {
+						logger.Error("error reading hydrate file from path", "HydrateV1ConfigPath", appConfig.HydrateV1ConfigPath)
+						return nil, err
+					} // .if
+
+					hydrateFileContent, err := os.ReadFile(hydrateFilePath)
+					if err != nil {
+						logger.Error("error loading hydrate config from file", "error", err, "hydrateFilePath", hydrateFilePath)
+						return nil, err
+					} // .err
+
+					var hydrateV1Conf HydrateV1Config
+					err = json.Unmarshal(hydrateFileContent, &hydrateV1Conf)
+					if err != nil {
+						logger.Error("error unmarshal to json hydrate config from file", "error", err, "hydrateFilePath", hydrateFilePath)
+						return nil, err
+					} // .err
+					// use key same as upload config destination-event
+					hydrateV1ConfigMap[updConfFileName] = hydrateV1Conf
+
 				} // .for
 			} // .for
 
@@ -133,6 +158,7 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 				UploadConfigs:          allUploadConfigs,
 				DestIdsEventsNameMap:   destIdsEventsNameMap,
 				DestIdEventFileNameMap: destIdEventFileNameMap,
+				HydrateV1ConfigsMap:    hydrateV1ConfigMap,
 			} // .metaV1Instance
 
 			logger.Info("loaded metadata v1")

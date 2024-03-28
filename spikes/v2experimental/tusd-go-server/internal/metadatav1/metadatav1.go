@@ -11,10 +11,14 @@ type MetadataV1 struct {
 	// maps to do fast checks in hooks
 	DestIdsEventsNameMap   DestIdsEventsNameMap   `json:"-"` // no need to expose on http endpoint but could for visibility if needed
 	DestIdEventFileNameMap DestIdEventFileNameMap `json:"-"` // same above
+
+	HydrateV1ConfigsMap HydrateV1ConfigsMap `json:"hydrate_v1_config_map"`
 } // .MetadataV1
 
 type DestIdsEventsNameMap map[string][]string
 type DestIdEventFileNameMap map[string]string
+
+type HydrateV1ConfigsMap map[string]HydrateV1Config
 
 // -----------------------------------------------------
 // Allowed destination and events
@@ -61,3 +65,19 @@ type UploadConfig struct {
 	FileNameSuffix        string `json:"FilenameSuffix"`
 	FolderStructure       string `json:"FolderStructure"`
 } // .UploadConfig
+
+// -----------------------------------------------------
+// V1 to V2 Hydrate
+// -----------------------------------------------------
+type HydrateV1Config struct {
+	FilenameSuffix  string `json:"filename_suffix"`
+	FolderStructure string `json:"folder_structure"`
+	MetadataConfig  struct {
+		Version string `json:"version"`
+		Fields  []struct {
+			FieldName       string `json:"field_name"`
+			CompatFieldName string `json:"compat_field_name"`
+			DefaultValue    string `json:"default_value"`
+		} `json:"fields"`
+	} `json:"metadata_config"`
+} // .HydrateV1Config

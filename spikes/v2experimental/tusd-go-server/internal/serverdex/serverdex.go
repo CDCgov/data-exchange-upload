@@ -88,6 +88,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 			uploadConfigKey += "-"
 			uploadConfigKey += event.Upload.MetaData[models.META_EXT_EVENT]
 			uploadConfig := sd.MetaV1.UploadConfigs[uploadConfigKey]
+			hydrateV1Config := sd.MetaV1.HydrateV1ConfigsMap[uploadConfigKey]
 
 			var copyTargets []metadatav1.CopyTarget
 
@@ -104,7 +105,7 @@ func (sd *ServerDex) HttpServer() http.Server {
 				} // .if
 			} // .for
 
-			err := sd.onUploadComplete(uploadConfig, copyTargets, event)
+			err := sd.onUploadComplete(uploadConfig, hydrateV1Config, copyTargets, event)
 			if err != nil {
 
 				sd.logger.Error("error copy upload", "error", err)

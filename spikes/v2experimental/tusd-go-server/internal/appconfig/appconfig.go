@@ -25,6 +25,7 @@ type AppConfig struct {
 	AllowedDestAndEventsPath string `env:"ALLOWED_DEST_AND_EVENTS_PATH, required"`
 	DefinitionsPath          string `env:"DEFINITIONS_PATH, required"`
 	UploadConfigPath         string `env:"UPLOAD_CONFIG_PATH, required"`
+	HydrateV1ConfigPath      string `env:"HYDRATE_V1_CONFIG_PATH, required"`
 
 	// Local folder path e.g. ../uploads
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, required"`

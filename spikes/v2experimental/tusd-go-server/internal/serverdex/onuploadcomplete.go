@@ -16,7 +16,11 @@ import (
 ) // .import
 
 // OnUploadComplete gets notification on a tusd upload complete and makes the store copies necessary per config
-func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyTargets []metadatav1.CopyTarget, eventUploadComplete tusd.HookEvent) error {
+func (sd ServerDex) onUploadComplete(
+	uploadConfig metadatav1.UploadConfig,
+	hydrateV1Config metadatav1.HydrateV1Config,
+	copyTargets []metadatav1.CopyTarget,
+	eventUploadComplete tusd.HookEvent) error {
 
 	// ------------------------------------------------------------------
 	// RUN_MODE_LOCAL
@@ -53,6 +57,9 @@ func (sd ServerDex) onUploadComplete(uploadConfig metadatav1.UploadConfig, copyT
 		for mdk, mdv := range eventUploadComplete.Upload.MetaData {
 			manifest[mdk] = to.Ptr(mdv)
 		} // .for
+		// hydrate manifest for v2
+		sd.hydrateManifestV1(&manifest, hydrateV1Config)
+
 		// add ingest datetime to file blob metadata for other services to use same folders YYYY/MM/DD
 		manifest[models.DEX_INGEST_DATE_TIME_KEY_NAME] = to.Ptr(ingestDt.Format(time.RFC3339))
 
