@@ -51,12 +51,19 @@ class MetadataVerify {
         Assert.assertNotNull(uploadId)
     }
 
-    @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
+    @Test(
+        groups = [Constants.Groups.METADATA_VERIFY],
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = ".*Missing one or more required metadata fields.*")
     fun shouldReturnErrorWhenDestinationIDNotProvided() {
         uploadClient.uploadFile(testFile, metadataNoDestId)
     }
 
-    @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
+    @Test(
+        groups = [Constants.Groups.METADATA_VERIFY],
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = ".*Missing one or more required metadata fields.*"
+    )
     fun shouldReturnErrorWhenEventNotProvided() {
         uploadClient.uploadFile(testFile, metadataNoEvent)
     }
