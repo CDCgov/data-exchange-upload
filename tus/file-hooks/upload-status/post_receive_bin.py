@@ -78,7 +78,7 @@ async def post_receive(tguid, offset, size, metadata_json):
         # convert metadata json string to a dictionary
         metadata_json_dict = ast.literal_eval(metadata_json)
 
-        json_data, metadata_version = await process_metadata_version(metadata, filename, tguid, offset, size, metadata_json_dict)
+        json_data, metadata_version = process_metadata_version(metadata, filename, tguid, offset, size, metadata_json_dict)
 
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
 
@@ -93,7 +93,7 @@ async def post_receive(tguid, offset, size, metadata_json):
         sys.exit(1)
 
 
-async def process_metadata_version(metadata, filename, tguid, offset, size, metadata_json_dict):
+def process_metadata_version(metadata, filename, tguid, offset, size, metadata_json_dict):
     metadata_version = metadata.metadata_config.version
 
     if metadata_version == METADATA_VERSION_TWO:

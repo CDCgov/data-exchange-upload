@@ -172,8 +172,8 @@ def get_filename_from_metadata(meta_json):
 
 
 def verify_metadata(dest_id, event_type, meta_json):
-    metadata_version = meta_json.get('version')
-    metadata_version = metadata_version.split('.')[0] if metadata_version else None
+    metadata_version = meta_json.get('version', 'default')
+    metadata_version = metadata_version[0] if metadata_version else None
 
     # check if the program/event type is on the list of allowed
     upload_config = get_upload_config(dest_id, event_type, metadata_version)
