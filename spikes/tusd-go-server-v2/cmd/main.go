@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"runtime/debug"
 
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
@@ -28,7 +28,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
-	cliFlags, err := cliflags.ParseFlags()
+	cliFlags, err := cli.ParseFlags()
 	if err != nil {
 		slog.Error("error starting app, error parsing cli flags", "error", err, "buildInfo.Main.Path", buildInfo.Main.Path)
 		os.Exit(appMainExitCode)
@@ -37,7 +37,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// used to run the app locally, it uploads files locally
 	// ------------------------------------------------------------------
-	if cliFlags.RunMode == cliflags.RUN_MODE_LOCAL || cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE {
+	if cliFlags.RunMode == cli.RUN_MODE_LOCAL || cliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE {
 		err = godotenv.Load(cliFlags.AppLocalConfigPath)
 		if err != nil {
 			slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
@@ -49,7 +49,7 @@ func main() {
 	// used to run the app locally, it uploads files from local to azure
 	// ------------------------------------------------------------------
 	// load the additional azure configuration from local config yaml
-	if cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE {
+	if cliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE {
 		err := godotenv.Load(cliFlags.AzLocalConfigPath)
 		if err != nil {
 			slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
@@ -101,7 +101,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// Load Az dependencies, needed for the DEX handler paths
 	// ------------------------------------------------------------------
-	if cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE || cliFlags.RunMode == cliflags.RUN_MODE_AZURE {
+	if cliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE || cliFlags.RunMode == cli.RUN_MODE_AZURE {
 		// load on server azure service dependencies
 
 		// TODO: create the extra container that tus blob client needs it: one for raw uploads + one for dex uploads (files + manifest)

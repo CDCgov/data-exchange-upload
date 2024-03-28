@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
@@ -25,7 +25,7 @@ func (sd ServerDex) onUploadComplete(
 	// ------------------------------------------------------------------
 	// RUN_MODE_LOCAL
 	// ------------------------------------------------------------------
-	if sd.CliFlags.RunMode == cliflags.RUN_MODE_LOCAL {
+	if sd.CliFlags.RunMode == cli.RUN_MODE_LOCAL {
 
 		sl := storelocal.CopierLocal{
 
@@ -46,7 +46,7 @@ func (sd ServerDex) onUploadComplete(
 	// ------------------------------------------------------------------
 	// RUN_MODE_AZURE, RUN_MODE_LOCAL_TO_AZURE
 	// ------------------------------------------------------------------
-	if sd.CliFlags.RunMode == cliflags.RUN_MODE_AZURE || sd.CliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE {
+	if sd.CliFlags.RunMode == cli.RUN_MODE_AZURE || sd.CliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE {
 
 		// time of ingest
 		ingestDt := time.Now().UTC()

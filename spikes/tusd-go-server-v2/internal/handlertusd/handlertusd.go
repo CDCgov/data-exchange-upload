@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/slogerxexp"
 	"github.com/tus/tusd/v2/pkg/azurestore"
@@ -16,7 +16,7 @@ import (
 ) // .import
 
 // New returns a configured TUSD handler as-is with official implementation
-func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, psSender *processingstatus.PsSender) (*tusd.Handler, error) {
+func New(cliFlags cli.Flags, appConfig appconfig.AppConfig, psSender *processingstatus.PsSender) (*tusd.Handler, error) {
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
@@ -32,7 +32,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, psSender *proce
 	// ------------------------------------------------------------------
 	// AZURE cloud
 	// ------------------------------------------------------------------
-	if cliFlags.RunMode == cliflags.RUN_MODE_AZURE || cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE {
+	if cliFlags.RunMode == cli.RUN_MODE_AZURE || cliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE {
 
 		azConfig := &azurestore.AzConfig{
 			AccountName:         appConfig.TusAzStorageConfig.AzStorageName,
@@ -74,7 +74,7 @@ func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, psSender *proce
 	// ------------------------------------------------------------------
 	//  LOCAL is default if no flag is passed at cli
 	// ------------------------------------------------------------------
-	if cliFlags.RunMode == cliflags.RUN_MODE_LOCAL {
+	if cliFlags.RunMode == cli.RUN_MODE_LOCAL {
 
 		// Create a new FileStore instance which is responsible for
 		// storing the uploaded file on disk in the specified directory.

@@ -1,4 +1,4 @@
-package cliflags
+package cli
 
 import (
 	"errors"

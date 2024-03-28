@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
@@ -23,7 +23,7 @@ import (
 
 // ServerDex, main Upload Api server, handles requests to both tusd handler and dex handler
 type ServerDex struct {
-	CliFlags  cliflags.Flags
+	CliFlags  cli.Flags
 	AppConfig appconfig.AppConfig
 	MetaV1    *metadatav1.MetadataV1
 
@@ -34,7 +34,7 @@ type ServerDex struct {
 } // .ServerDex
 
 // New returns an custom server for DEX Upload Api ready to serve
-func New(cliFlags cliflags.Flags, appConfig appconfig.AppConfig, metaV1 *metadatav1.MetadataV1, psSender *processingstatus.PsSender) (ServerDex, error) {
+func New(cliFlags cli.Flags, appConfig appconfig.AppConfig, metaV1 *metadatav1.MetadataV1, psSender *processingstatus.PsSender) (ServerDex, error) {
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")

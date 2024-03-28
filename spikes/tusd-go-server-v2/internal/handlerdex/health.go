@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/cliflags"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
 ) // .import
@@ -24,7 +24,7 @@ func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 
 	var servicesResponses []models.ServiceHealthResp
 
-	if hd.cliFlags.RunMode == cliflags.RUN_MODE_LOCAL_TO_AZURE || hd.cliFlags.RunMode == cliflags.RUN_MODE_AZURE {
+	if hd.cliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE || hd.cliFlags.RunMode == cli.RUN_MODE_AZURE {
 
 		ch := make(chan models.ServiceHealthResp, 4) // 4 services to check
 
