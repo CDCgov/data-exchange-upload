@@ -15,19 +15,32 @@ class MetadataVerify {
     private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
     private lateinit var uploadClient: UploadClient
     private lateinit var metadataHappyPath: HashMap<String, String>
+    private lateinit var metadataInvalidFilename: HashMap<String, String>
+    private lateinit var metadataNoDestId: HashMap<String, String>
+    private lateinit var metadataNoEvent: HashMap<String, String>
 
-    @Parameters("SENDER_MANIFEST", "USE_CASE")
+    @Parameters(
+        "USE_CASE",
+        "SENDER_MANIFEST",
+        "SENDER_MANIFEST_INVALID_FILENAME",
+        "SENDER_MANIFEST_NO_DEST_ID",
+        "SENDER_MANIFEST_NO_EVENT",
+    )
     @BeforeTest(groups = [Constants.Groups.METADATA_VERIFY])
     fun beforeTest(
-        context: ITestContext,
+        @Optional("dextesting-testevent1") USE_CASE: String,
         @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
-        @Optional("dextesting-testevent1") USE_CASE: String
+        @Optional("invalid-filename.properties") SENDER_MANIFEST_INVALID_FILENAME: String,
+        @Optional("no-dest-id.properties") SENDER_MANIFEST_NO_DEST_ID: String,
+        @Optional("no-event.properties") SENDER_MANIFEST_NO_EVENT: String
     ) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
-        val propertiesFilePath= "properties/$USE_CASE/$SENDER_MANIFEST"
-        metadataHappyPath = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
+        metadataHappyPath = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST")
+        metadataInvalidFilename = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_INVALID_FILENAME")
+        metadataNoDestId = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_DEST_ID")
+        metadataNoEvent = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_EVENT")
     }
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY])
@@ -40,24 +53,12 @@ class MetadataVerify {
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
     fun shouldReturnErrorWhenDestinationIDNotProvided() {
-        val metadata = hashMapOf(
-            "filename" to testFile.name,
-            "meta_ext_event" to TEST_EVENT,
-            "meta_ext_source" to "INTEGRATION-TEST"
-        ) as HashMap<String, String>
-
-        uploadClient.uploadFile(testFile, metadata)
+        uploadClient.uploadFile(testFile, metadataNoDestId)
     }
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
     fun shouldReturnErrorWhenEventNotProvided() {
-        val metadata = hashMapOf(
-            "filename" to testFile.name,
-            "meta_destination_id" to TEST_DESTINATION,
-            "meta_ext_source" to "INTEGRATION-TEST"
-        ) as HashMap<String, String>
-
-        uploadClient.uploadFile(testFile, metadata)
+        uploadClient.uploadFile(testFile, metadataNoEvent)
     }
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
@@ -69,5 +70,10 @@ class MetadataVerify {
         )
 
         uploadClient.uploadFile(testFile, metadata)
+    }
+
+    @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
+    fun shouldReturnErrorWhenFilenameContainsInvalidChars() {
+        uploadClient.uploadFile(testFile, metadataInvalidFilename)
     }
 }
