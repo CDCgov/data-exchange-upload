@@ -138,7 +138,7 @@ namespace BulkFileUploadFunctionApp.Services
                     var uploadConfig = await GetUploadConfig(MetadataVersion.V1, destinationId, eventType);
                     // Hydrate metadata
                     HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);
-                    string? filename = tusInfoFile.MetaData!.GetValueOrDefault("received_filename", null);
+                    string? filename = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_filename", null);
 
                     // Get dex folder and filename 
                     var dateTimeNow = DateTime.UtcNow;
