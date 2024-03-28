@@ -4,6 +4,7 @@ package serverdex
 // note: tusd.Handler exposes metrics by cli flag and defaults true
 
 import (
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -31,5 +32,5 @@ func (sd ServerDex) setupMetrics(handlerTusd *tusd.Handler) {
 	// DEX server metrics
 	// ------------------------------------------------------------------
 
-	prometheus.MustRegister(NewCollector(sd.Metrics))
+	prometheus.MustRegister(NewCollector(*metrics.DefaultMetrics))
 } // setupMetrics

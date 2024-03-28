@@ -29,7 +29,6 @@ type ServerDex struct {
 	handlerTusd *tusd.Handler
 	HandlerDex  *handlerdex.HandlerDex
 	logger      *slog.Logger
-	Metrics     Metrics
 } // .ServerDex
 
 // New returns an custom server for DEX Upload Api ready to serve
@@ -56,7 +55,6 @@ func New(cliFlags cli.Flags, appConfig appconfig.AppConfig, metaV1 *metadatav1.M
 		handlerTusd: handlerTusd,
 		HandlerDex:  handlerDex,
 		logger:      logger,
-		Metrics:     newMetricsDex(),
 	}, nil // .return
 
 } // New

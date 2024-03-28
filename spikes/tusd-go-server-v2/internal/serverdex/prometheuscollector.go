@@ -13,6 +13,7 @@ package serverdex
 import (
 	"sync/atomic"
 
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 ) // .import
 
@@ -32,11 +33,11 @@ var (
 ) // .var
 
 type Collector struct {
-	metrics Metrics
+	metrics metrics.Metrics
 } // .Collector
 
 // New creates a new collector with the provided metrics struct
-func NewCollector(metrics Metrics) Collector {
+func NewCollector(metrics metrics.Metrics) Collector {
 	return Collector{
 		metrics: metrics,
 	} // .return
