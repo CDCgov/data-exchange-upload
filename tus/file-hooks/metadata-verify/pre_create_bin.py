@@ -29,19 +29,20 @@ UPLOAD_CONFIG_CONTAINER = os.getenv('UPLOAD_CONFIG_CONTAINER')
 
 CONNECTION_STRING = f"DefaultEndpointsProtocol=https;AccountName={AZURE_STORAGE_ACCOUNT};AccountKey={AZURE_STORAGE_KEY};EndpointSuffix=core.windows.net"
 DEX_STORAGE_ACCOUNT_SERVICE = BlobServiceClient.from_connection_string(conn_str=CONNECTION_STRING)
+
 INVALID_CHARS = set('<>:"/\\|?*')
 
 
-def get_upload_config(dest_id, event_type, metadata_version):
-    if dest_id is None or event_type is None:
-        raise Exception("dest_id and event_type are required in metadata")
+def get_upload_config(use_case, use_case_category, metadata_version_num):
+    if use_case is None or use_case_category is None:
+        raise Exception("use_case and use_case_category are required in metadata")
 
     try:
-        upload_config_file = f"v{metadata_version}/{dest_id}-{event_type}.json"
+        upload_config_file = f"v{metadata_version_num}/{use_case}-{use_case_category}.json"
         blob_client = DEX_STORAGE_ACCOUNT_SERVICE.get_blob_client(container=UPLOAD_CONFIG_CONTAINER, blob=upload_config_file)
 
         if not blob_client.exists():
-            failure_message = "Not a recognized combination of meta_destination_id (" + dest_id + ") and meta_ext_event (" + event_type + ")"
+            failure_message = "Not a recognized combination of use case (" + use_case + ") and use case category (" + use_case_category + ")"
             raise Exception(failure_message)
         
         downloader = blob_client.download_blob(max_concurrency=1, encoding='UTF-8')
@@ -88,20 +89,20 @@ def check_metadata_against_config(meta_json, meta_config):
         raise Exception(stringify_error_messages(validation_error_messages))
 
 
-def get_required_metadata(meta_json, metadata_version):
-    if metadata_version == METADATA_VERSION_TWO:
-        required_fields = REQUIRED_VERSION_TWO_FIELDS
-    elif metadata_version == METADATA_VERSION_ONE:
+def get_required_metadata(meta_json, metadata_version_str):
+    if metadata_version_str == METADATA_VERSION_ONE:
         required_fields = REQUIRED_VERSION_ONE_FIELDS
+    elif metadata_version_str == METADATA_VERSION_TWO:
+        required_fields = REQUIRED_VERSION_TWO_FIELDS
     else:
-        raise Exception(f"Unsupported metadata version: {metadata_version}")
+        raise Exception(f"Unsupported metadata version: {metadata_version_str}")
 
     missing_metadata_fields = [field for field in required_fields if field not in meta_json]
 
     if len(missing_metadata_fields) > 0:
         raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
 
-    if metadata_version == METADATA_VERSION_TWO:
+    if metadata_version_str == METADATA_VERSION_TWO:
         return [
             meta_json['data_stream_id'],
             meta_json['data_stream_route']
@@ -113,18 +114,18 @@ def get_required_metadata(meta_json, metadata_version):
         ]
 
 
-def report_verification_failure(messages, destination_id, event_type, meta_json):
-    if destination_id is None:
-        destination_id = 'NOT_PROVIDED'
+def report_verification_failure(messages, use_case, use_case_category, meta_json):
+    if use_case is None:
+        use_case = 'NOT_PROVIDED'
 
-    if event_type is None:
-        event_type = 'NOT_PROVIDED'
+    if use_case_category is None:
+        use_case_category = 'NOT_PROVIDED'
 
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
 
     # Create trace for upload
     upload_id = uuid.uuid4()
-    trace_id, parent_span_id = ps_api_controller.create_upload_trace(upload_id, destination_id, event_type)
+    trace_id, parent_span_id = ps_api_controller.create_upload_trace(upload_id, use_case, use_case_category)
 
     # Start the upload stage metadata verification span
     trace_id, metadata_verify_span_id \
@@ -142,7 +143,7 @@ def report_verification_failure(messages, destination_id, event_type, meta_json)
         'issues': messages
     }
     
-    ps_api_controller.create_report(upload_id, destination_id, event_type, STAGE_NAME, json.dumps(payload))
+    ps_api_controller.create_report(upload_id, use_case, use_case_category, STAGE_NAME, json.dumps(payload))
 
     # Stop the upload stage metadata verification span
     ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
@@ -179,18 +180,18 @@ def get_filename_from_metadata(meta_json):
     return filename
 
 
-def get_version_from_metadata(meta_json):
+def get_version_str_from_metadata(meta_json):
     metadata_version = meta_json.get('version', METADATA_VERSION_ONE)
 
     if metadata_version not in SUPPORTED_METADATA_VERSION:
         raise Exception(f"Unsupported metadata version: {metadata_version}")
 
-    return metadata_version[0]
+    return metadata_version
 
 
-def verify_metadata(dest_id, event_type, meta_json):
+def verify_metadata(use_case, use_case_category, meta_json, version_num):
     # check if the program/event type is on the list of allowed
-    upload_config = get_upload_config(dest_id, event_type)
+    upload_config = get_upload_config(use_case, use_case_category, version_num)
 
     if upload_config is not None:
         check_metadata_against_config(meta_json, upload_config['metadata_config'])
@@ -216,20 +217,22 @@ def main(argv):
             metadata = arg
 
     meta_json = None
-    dest_id = None
-    event_type = None
+    use_case = None
+    use_case_category = None
 
     try:
         meta_json = json.loads(metadata)
 
-        version = get_version_from_metadata(meta_json)
+        version_str = get_version_str_from_metadata(meta_json)
 
-        dest_id, event_type = get_required_metadata(meta_json, version)
+        use_case, use_case_category = get_required_metadata(meta_json, version_str)
         
-        verify_metadata(dest_id, event_type, meta_json)
+        version_num = version_str[0]
+
+        verify_metadata(use_case, use_case_category, meta_json, version_num)
     except Exception as e:
         error_msg = str(e)
-        upload_id = report_verification_failure([error_msg], dest_id, event_type, meta_json)
+        upload_id = report_verification_failure([error_msg], use_case, use_case_category, meta_json)
         print(json.dumps({
             'upload_id': str(upload_id),
             'message': error_msg
