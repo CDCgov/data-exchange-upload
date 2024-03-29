@@ -174,9 +174,6 @@ def get_filename_from_metadata(meta_json):
     if filename is None:
         raise Exception('No filename provided.')
 
-    # After obtaining the filename, verify it for invalid characters
-    verify_filename(filename)
-
     return filename
 
 
@@ -195,6 +192,12 @@ def verify_metadata(dest_id, event_type, meta_json):
 
     if upload_config is not None:
         check_metadata_against_config(meta_json, upload_config['metadata_config'])
+
+    # Verify the filename for invalid characters
+    filename = get_filename_from_metadata(meta_json)
+
+    if filename is not None:
+        verify_filename(filename)
 
 
 def main(argv):
@@ -219,10 +222,10 @@ def main(argv):
 
         version = get_version_from_metadata(meta_json)
 
-        dest_id, event_type = get_required_metadata(meta_json, version)
-
         # Verify the filename for invalid characters as an early step
         filename = get_filename_from_metadata(meta_json)
+
+        dest_id, event_type = get_required_metadata(meta_json, version)
         
         verify_metadata(dest_id, event_type, meta_json)
     except Exception as e:
