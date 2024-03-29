@@ -109,6 +109,15 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Get Destination and Event type
                 // TODO: Refactor to something with more generic language, as destination and event are deprecated terms.
+                /*
+                 * Need upload config filename. (aims-celr-csv.json, dextesting-testevent1.json...)
+                 * Input: sender manifest
+                 * Output upload config filename
+                 * 
+                 *
+                 *
+                 */
+                /*
                 var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
                 if (metaDestinationId == null)
                     throw new TusInfoFileException("meta_destination_id is a required metadata field and is missing from the tus info file");
@@ -118,6 +127,7 @@ namespace BulkFileUploadFunctionApp.Services
                 if (metaExtEvent == null)
                     throw new TusInfoFileException("meta_ext_event is a required metadata field and is missing from the tus info file");
                 eventType = metaExtEvent;
+                */
 
                 // retrieve version from metadata or default to V1
                 version = tusInfoFile.MetaData!.GetValueOrDefault("version", metadataVersionOne);
@@ -420,9 +430,13 @@ namespace BulkFileUploadFunctionApp.Services
             return tusInfoFile;
         }
 
-        private async Task<UploadConfig> GetUploadConfig(MetadataVersion version, string destinationId, string eventType)
+        private async Task<UploadConfig> GetUploadConfig(Dictionary<string,string> metadata)
         {
             var uploadConfig = UploadConfig.Default;
+            string version = metadata.GetValueOrDefault("version", metadataVersionOne);
+
+            string useCase = version == metadataVersionOne ? "meta_destination_id"
+
             var configFilename = $"{version.ToString().ToLower()}/{destinationId}-{eventType}.json";
 
             try
