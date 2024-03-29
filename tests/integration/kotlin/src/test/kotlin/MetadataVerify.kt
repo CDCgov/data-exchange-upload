@@ -68,7 +68,11 @@ class MetadataVerify {
         uploadClient.uploadFile(testFile, metadataNoEvent)
     }
 
-    @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
+    @Test(groups = [
+        Constants.Groups.METADATA_VERIFY],
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = ".*Missing required metadata .*filename.*"
+    )
     fun shouldReturnErrorWhenFilenameNotProvided() {
         val metadata = hashMapOf(
             "meta_destination_id" to TEST_DESTINATION,
@@ -79,7 +83,11 @@ class MetadataVerify {
         uploadClient.uploadFile(testFile, metadata)
     }
 
-    @Test(groups = [Constants.Groups.METADATA_VERIFY], expectedExceptions = [ProtocolException::class])
+    @Test(groups = [
+        Constants.Groups.METADATA_VERIFY],
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = ".*Filename .* contains invalid characters.*"
+    )
     fun shouldReturnErrorWhenFilenameContainsInvalidChars() {
         uploadClient.uploadFile(testFile, metadataInvalidFilename)
     }
