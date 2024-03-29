@@ -100,8 +100,8 @@ def get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict)
         json_data = {
             "upload_id": tguid,
             "stage_name": "dex-upload",
-            "destination_id": meta_destination_id,
-            "event_type": meta_ext_event,
+            "destination_id": metadata.meta_destination_id,
+            "event_type": metadata.meta_ext_event,
             "content_type": "json",
             "content": {
                         "schema_name": "upload",
@@ -120,8 +120,8 @@ def get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict)
         json_data = {
             "upload_id": tguid,
             "stage_name": "dex-upload",
-            "data_stream_id": data_stream_id,
-            "data_stream_route": data_stream_route,
+            "data_stream_id": metadata.data_stream_id,
+            "data_stream_route": metadata.data_stream_route,
             "content_type": "json",
             "content": {
                         "schema_name": "upload",
