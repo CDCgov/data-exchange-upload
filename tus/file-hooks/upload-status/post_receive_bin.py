@@ -79,12 +79,12 @@ async def post_receive(tguid, offset, size, metadata_json):
 
         filename = get_filename_from_metadata(metadata)
 
-        logger.info('filename = {0}, metadata_version = {1}'.format(filename, metadata_version))
-
         # convert metadata json string to a dictionary
         metadata_json_dict = ast.literal_eval(metadata_json)
 
         json_data, metadata_version = get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict)
+
+        logger.info('filename = {0}, metadata_version = {1}'.format(filename, metadata_version))
 
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
 
@@ -100,7 +100,7 @@ async def post_receive(tguid, offset, size, metadata_json):
 
 
 def get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict):
-    metadata_version = metadata.metadata_config.version
+    metadata_version = metadata.version
 
     if metadata_version == METADATA_VERSION_ONE: 
         json_data = {
