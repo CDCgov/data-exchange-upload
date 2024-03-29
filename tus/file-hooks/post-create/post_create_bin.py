@@ -31,7 +31,7 @@ def get_required_metadata(metadata_json_dict):
 
     missing_metadata_fields = [field for field in required_fields if field not in metadata_json_dict]
 
-    if missing_metadata_fields:
+    if len(missing_metadata_fields) > 0:
         raise Exception('Missing one or more required metadata fields: ' + str(missing_metadata_fields))
 
     return [metadata_json_dict[field] for field in required_fields]
