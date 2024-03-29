@@ -36,6 +36,7 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly IBlobReaderFactory _blobReaderFactory;
         private readonly string _uploadConfigContainer; 
         private readonly string metadataVersionOne = "1.0";
+        private readonly string metadataVersionTwo = "2.0";
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
@@ -107,37 +108,15 @@ namespace BulkFileUploadFunctionApp.Services
 
                 HydrateMetadata(tusInfoFile, trace.TraceId, trace.SpanId);
 
-                // Get Destination and Event type
-                // TODO: Refactor to something with more generic language, as destination and event are deprecated terms.
-                /*
-                 * Need upload config filename. (aims-celr-csv.json, dextesting-testevent1.json...)
-                 * Input: sender manifest
-                 * Output upload config filename
-                 * 
-                 *
-                 *
-                 */
-                /*
-                var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
-                if (metaDestinationId == null)
-                    throw new TusInfoFileException("meta_destination_id is a required metadata field and is missing from the tus info file");
-                destinationId = metaDestinationId;
-
-                var metaExtEvent = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_event", null);
-                if (metaExtEvent == null)
-                    throw new TusInfoFileException("meta_ext_event is a required metadata field and is missing from the tus info file");
-                eventType = metaExtEvent;
-                */
-
                 // retrieve version from metadata or default to V1
                 version = tusInfoFile.MetaData!.GetValueOrDefault("version", metadataVersionOne);
 
-                var uploadConfig = await GetUploadConfig(VersionUtil.FromString(version), destinationId, eventType);
+                var uploadConfig = await GetUploadConfig(tusInfoFile.MetaData);
 
                 // translate V1 metadata 
                 if (version == metadataVersionOne)
                 {
-                    var uploadConfigV2 = await GetUploadConfig(MetadataVersion.V2, destinationId, eventType);
+                    var uploadConfigV2 = await GetUploadConfig(tusInfoFile.MetaData);
                     tusInfoFile.MetaData = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
                 }
                 
@@ -435,9 +414,10 @@ namespace BulkFileUploadFunctionApp.Services
             var uploadConfig = UploadConfig.Default;
             string version = metadata.GetValueOrDefault("version", metadataVersionOne);
 
-            string useCase = version == metadataVersionOne ? "meta_destination_id"
+            string useCase = version == metadataVersionOne ? "meta_destination_id" : version == metadataVersionTwo ? "data_stream_id" : "meta_destination_id";
+            string useCaseCategory = version == metadataVersionOne ? "meta_ext_event" : version == metadataVersionTwo ? "data_stream_route" : "meta_ext_event";
 
-            var configFilename = $"{version.ToString().ToLower()}/{destinationId}-{eventType}.json";
+            var configFilename = $"{version.ToString().ToLower()}/{useCase}-{useCaseCategory}.json";
 
             try
             {
@@ -445,7 +425,7 @@ namespace BulkFileUploadFunctionApp.Services
                 uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, _uploadConfigContainer, configFilename);
             } catch (Exception e)
             {
-                _logger.LogError($"No upload config found for destination id = {destinationId}, ext event = {eventType}.  Using default config. Exception = ${e.Message}");
+                _logger.LogError($"No upload config found for destination id = {useCase}, ext event = {useCaseCategory}.  Using default config. Exception = ${e.Message}");
             }
 
             if (uploadConfig == null)
