@@ -6,7 +6,7 @@ import java.io.IOException
 import java.net.URL
 
 class UploadClient(url: String, private val authToken: String) {
-    private val client = TusClient()
+    private val client = DexTusClient()
 
     init {
         client.uploadCreationURL = URL("$url/upload")
@@ -31,20 +31,29 @@ class UploadClient(url: String, private val authToken: String) {
         val executor = object : TusExecutor() {
             @Throws(ProtocolException::class, IOException::class)
             override fun makeAttempt() {
-                val uploader = client.resumeOrCreateUpload(uploadHandle)
-                uploader.chunkSize = chunkSize
+                try {
+                    val uploader = client.resumeOrCreateUpload(uploadHandle)
+                    uploader.chunkSize = chunkSize
 
-                do {
-                    val totalBytes = uploadHandle.size
-                    val bytesUploaded = uploader.offset
-                    val progress = bytesUploaded.toDouble() / totalBytes * 100
-                    println(String.format("Upload at %06.2f%%.", progress))
-                } while (uploader.uploadChunk() > -1)
+                    do {
+                        val totalBytes = uploadHandle.size
+                        val bytesUploaded = uploader.offset
+                        val progress = bytesUploaded.toDouble() / totalBytes * 100
+                        println(String.format("Upload at %06.2f%%.", progress))
+                    } while (uploader.uploadChunk() > -1)
 
-                uploader.finish()
-                uploadId = parseUploadIdFromUrl(uploader.uploadURL.toString())
-                println("Upload finished.")
-                println(String.format("Upload available at: %s", uploader.uploadURL.toString()))
+                    uploader.finish()
+                    uploadId = parseUploadIdFromUrl(uploader.uploadURL.toString())
+                    println("Upload finished.")
+                    println(String.format("Upload available at: %s", uploader.uploadURL.toString()))
+                } catch (e: ProtocolException) {
+                    var errorMessage = e.message
+                    client.connection.errorStream.let {
+                        errorMessage = "$errorMessage ; response: ${it.readAllBytes().toString(Charsets.UTF_8)}"
+                    }
+
+                    throw ProtocolException(errorMessage, client.connection)
+                }
             }
         }
 
