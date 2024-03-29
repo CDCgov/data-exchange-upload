@@ -4,30 +4,26 @@ from pre_create_bin import get_required_metadata
 
 class TestGetRequiredMetadata(unittest.TestCase):
 
-    def test_valid_metadata_version_one(self):
+    def test_version_one_with_all_fields(self):
         meta_json = {
-            'version': "1.0",
             'meta_destination_id': '123',
-            'meta_ext_event': 'route_one'
+            'meta_ext_event': 'event1'
         }
-        result = get_required_metadata(meta_json)
-        self.assertEqual(result, ['123', 'route_one'])
+        result = get_required_metadata(meta_json, "1.0")
+        self.assertEqual(result, ['123', 'event1'])
 
-    def test_valid_metadata_version_two(self):
+    def test_version_two_with_all_fields(self):
         meta_json = {
-            'version': "2.0",
             'data_stream_id': '456',
-            'data_stream_route': 'aims-celr'
+            'data_stream_route': 'route1'
         }
-        result = get_required_metadata(meta_json)
-        self.assertEqual(result, ['456', 'aims-celr'])
+        result = get_required_metadata(meta_json, "2.0")
+        self.assertEqual(result, ['456', 'route1'])
 
-    def test_unsupported_metadata_version(self):
-        meta_json = {
-            'version': "3.0",
-            'data_stream_id': '123',
-            'data_stream_route': 'route_one'
-        }
+    def test_missing_required_fields(self):
+        meta_json = {}
+        
         with self.assertRaises(Exception) as context:
-            get_required_metadata(meta_json)
-        self.assertEqual(str(context.exception), "Unsupported metadata version: 3.0")
+            get_required_metadata(meta_json, "1.0")
+        
+        self.assertEqual(str(context.exception), "Missing one or more required metadata fields: ['meta_destination_id', 'meta_ext_event']")

@@ -78,7 +78,7 @@ async def post_receive(tguid, offset, size, metadata_json):
         # convert metadata json string to a dictionary
         metadata_json_dict = ast.literal_eval(metadata_json)
 
-        json_data, metadata_version = process_metadata_version(metadata, filename, tguid, offset, size, metadata_json_dict)
+        json_data, metadata_version = get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict)
 
         logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
 
@@ -93,35 +93,10 @@ async def post_receive(tguid, offset, size, metadata_json):
         sys.exit(1)
 
 
-def process_metadata_version(metadata, filename, tguid, offset, size, metadata_json_dict):
+def get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict):
     metadata_version = metadata.metadata_config.version
 
-    if metadata_version == METADATA_VERSION_TWO:
-        data_stream_id = metadata.data_stream_id
-        data_stream_route = metadata.data_stream_route
-
-        json_data = {
-            "upload_id": tguid,
-            "stage_name": "dex-upload",
-            "data_stream_id": data_stream_id,
-            "data_stream_route": data_stream_route,
-            "content_type": "json",
-            "content": {
-                        "schema_name": "upload",
-                        "schema_version": "1.0",
-                        "tguid": tguid,
-                        "offset": offset,
-                        "size": size,
-                        "filename": filename,
-                        "data_stream_id": data_stream_id,
-                        "data_stream_route": data_stream_route,
-                        "metadata": metadata_json_dict
-            },
-            "disposition_type": "replace"
-        }
-    elif metadata_version == METADATA_VERSION_ONE:
-        meta_destination_id = metadata.meta_destination_id
-        meta_ext_event = metadata.meta_ext_event    
+    if metadata_version == METADATA_VERSION_ONE: 
         json_data = {
             "upload_id": tguid,
             "stage_name": "dex-upload",
@@ -135,13 +110,33 @@ def process_metadata_version(metadata, filename, tguid, offset, size, metadata_j
                         "offset": offset,
                         "size": size,
                         "filename": filename,
-                        "meta_destination_id": meta_destination_id,
-                        "meta_ext_event": meta_ext_event,
+                        "meta_destination_id": metadata.meta_destination_id,
+                        "meta_ext_event": metadata.meta_ext_event,
                         "metadata": metadata_json_dict
             },
             "disposition_type": "replace"
         }
-
+    elif metadata_version == METADATA_VERSION_TWO:
+        json_data = {
+            "upload_id": tguid,
+            "stage_name": "dex-upload",
+            "data_stream_id": data_stream_id,
+            "data_stream_route": data_stream_route,
+            "content_type": "json",
+            "content": {
+                        "schema_name": "upload",
+                        "schema_version": "1.0",
+                        "tguid": tguid,
+                        "offset": offset,
+                        "size": size,
+                        "filename": filename,
+                        "data_stream_id": metadata.data_stream_id,
+                        "data_stream_route": metadata.data_stream_route,
+                        "metadata": metadata_json_dict
+            },
+            "disposition_type": "replace"
+        }
+        
     return json_data, metadata_version
 
 

@@ -6,84 +6,31 @@ class TestVerifyMetadata(unittest.TestCase):
 
     @patch('pre_create_bin.get_upload_config')
     @patch('pre_create_bin.check_metadata_against_config')
-    def test_verify_metadata_success(self, mock_check_metadata_against_config, mock_get_upload_config):
-        dest_id = 'some_dest_id'
-        event_type = 'some_event_type'
+    def test_valid_upload_config(self, mock_check_metadata, mock_get_upload_config):
+        dest_id = '123'
+        event_type = 'event1'
         meta_json = {
-            'filename': 'example.txt', 
-            'version': '1.0'
+            'meta_destination_id': '123',
+            'meta_ext_event': 'event1'
         }
-        
-        mock_config = {
-            'version': '1.0',
-            'fields': [
-                {
-                    'field_name': 'filename',
-                    'allowed_values': None,
-                    'required': True,
-                    'description': 'The name of the file submitted.'
-                }
-            ]
+        mock_get_upload_config.return_value = {
+            'metadata_config': {
+                'required_fields': ['meta_destination_id', 'meta_ext_event']
+            }
         }
-
-        mock_get_upload_config.return_value = {'metadata_config': mock_config}
-        
         verify_metadata(dest_id, event_type, meta_json)
-        
-        mock_get_upload_config.assert_called_once_with(dest_id, event_type, '1')
-        mock_check_metadata_against_config.assert_called_once_with(meta_json, mock_config)
+        mock_get_upload_config.assert_called_once_with(dest_id, event_type)
+        mock_check_metadata.assert_called_once_with(meta_json, {'required_fields': ['meta_destination_id', 'meta_ext_event']})
 
-
-    @patch('pre_create_bin.get_upload_config')
-    def test_verify_metadata_missing_required_field(self, mock_get_upload_config):
-        dest_id = 'some_dest_id'
-        event_type = 'some_event_type'
-        meta_json = {}
-        
-        mock_config = {
-            'version': '1.0',
-            'fields': [
-                {
-                    'field_name': 'filename',
-                    'allowed_values': None,
-                    'required': True,
-                    'description': 'The name of the file submitted.'
-                }
-            ]
-        }
-
-        mock_get_upload_config.return_value = {'metadata_config': mock_config}
-
-        with self.assertRaises(Exception) as context:
-            verify_metadata(dest_id, event_type, meta_json)
-        
-        self.assertTrue("Missing required metadata 'filename', description = 'The name of the file submitted.'" in str(context.exception))
-
-
-    @patch('pre_create_bin.get_upload_config')
-    def test_verify_metadata_invalid_field_value(self, mock_get_upload_config):
-        dest_id = 'some_dest_id'
-        event_type = 'some_event_type'
+    @patch('pre_create_bin.get_upload_config', return_value=None)
+    @patch('pre_create_bin.check_metadata_against_config')
+    def test_invalid_upload_config(self, mock_check_metadata, mock_get_upload_config):
+        dest_id = '123'
+        event_type = 'event1'
         meta_json = {
-            'wrong_field_name': 'example.txt'
+            'meta_destination_id': '123',
+            'meta_ext_event': 'event1'
         }
-        
-        mock_config = {
-            'version': '1.0',
-            'fields': [
-                {
-                    'field_name': 'filename',
-                    'allowed_values': None,
-                    'required': True,
-                    'description': 'The name of the file submitted.'
-                }
-            ]
-        }
-
-        mock_get_upload_config.return_value = {'metadata_config': mock_config}
-
-        with self.assertRaises(Exception) as context:
-            verify_metadata(dest_id, event_type, meta_json)
-        
-        self.assertTrue("Missing required metadata 'filename', description = 'The name of the file submitted.'" in str(context.exception))
-
+        verify_metadata(dest_id, event_type, meta_json)
+        mock_get_upload_config.assert_called_once_with(dest_id, event_type)
+        mock_check_metadata.assert_not_called()

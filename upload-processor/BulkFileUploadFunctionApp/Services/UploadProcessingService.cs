@@ -36,7 +36,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly IBlobReaderFactory _blobReaderFactory;
         private readonly string _uploadConfigContainer; 
         private readonly string metadataVersionOne = "1.0";
-        private readonly string metadataVersionTwo = "2.0";
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
@@ -118,99 +117,48 @@ namespace BulkFileUploadFunctionApp.Services
                     throw new TusInfoFileException("meta_ext_event is a required metadata field and is missing from the tus info file");
                 eventType = metaExtEvent;
 
-                // Get DataStreamId and DataStreamRoute type
-                var dataStreamId = tusInfoFile.MetaData!.GetValueOrDefault("data_stream_id", null);
-                if (dataStreamId == null)
-                    throw new TusInfoFileException("data_stream_id is a required metadata field and is missing from the tus info file");
+                // retrieve version from metadata or default to V1
+                version = tusInfoFile.MetaData!.GetValueOrDefault("version", metadataVersionOne);
 
-                var dataStreamRoute = tusInfoFile.MetaData!.GetValueOrDefault("data_stream_route", null);
-                if (dataStreamRoute == null)
-                    throw new TusInfoFileException("meta_extdata_stream_route_event is a required metadata field and is missing from the tus info file");
+                var uploadConfig = await GetUploadConfig(MetadataVersion.FromString(version), destinationId, eventType);
 
-                var metadataVersion = tusInfoFile.MetaData!.GetValueOrDefault("version", null);
-                if (metadataVersion == null)
-                    throw new TusInfoFileException("version is a required metadata field and is missing from the tus info file");
-                version = metadataVersion; 
-
-                // Get upload configs for destination and event type for V1, data_stream_id and data_stream_route for V2
-                if (metadataVersion == metadataVersionOne) 
+                // hydrate V1 metadata 
+                if (version == metadataVersionOne)
                 {
-                    var uploadConfig = await GetUploadConfig(MetadataVersion.V1, destinationId, eventType);
-                    // Hydrate metadata
                     HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);
-                    string? filename = tusInfoFile.MetaData!.GetValueOrDefault("meta_ext_filename", null);
-
-                    // Get dex folder and filename 
-                    var dateTimeNow = DateTime.UtcNow;
-
-                    // Determine the folder path and filename suffix from the upload configuration.
-                    var folderPath = GetFolderPath(uploadConfig, dateTimeNow);
-                    var filenameSuffix = GetFilenameSuffix(uploadConfig, dateTimeNow);
-
-                    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
-                    var fileExtension = Path.GetExtension(filename);
+                }
                 
-                    string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{filenameSuffix}{fileExtension}";
+                string? filename = tusInfoFile.MetaData!.GetValueOrDefault("received_filename", null);
 
-                    // Container name is "{meta_destination_id}-{extEvent}"
-                    // There are some restrictions on container names -- underscores not allowed, must be all lowercase
-                    destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
+                // Get dex folder and filename 
+                var dateTimeNow = DateTime.UtcNow;
 
-                    // Get copy targets
-                    List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
-                    
-                    return new CopyPrereqs(uploadId,
-                                        blobCreatedUrl,
-                                        tusPayloadFilename, 
-                                        destinationId, 
-                                        eventType, 
-                                        destinationContainerName, 
-                                        destinationBlobFilename, 
-                                        tusInfoFile.MetaData, 
-                                        targets,
-                                        trace);
-                }
-                else if (metadataVersion == metadataVersionTwo) 
-                {
-                    var uploadConfig = await GetUploadConfig(MetadataVersion.V2, dataStreamId, dataStreamRoute);
-                    // Hydrate metadata
-                    HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);
-                    string? filename = tusInfoFile.MetaData!.GetValueOrDefault("received_filename", null);
+                // Determine the folder path and filename suffix from the upload configuration.
+                var folderPath = GetFolderPath(uploadConfig, dateTimeNow);
+                var filenameSuffix = GetFilenameSuffix(uploadConfig, dateTimeNow);
 
-                    // Get dex folder and filename 
-                    var dateTimeNow = DateTime.UtcNow;
+                var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
+                var fileExtension = Path.GetExtension(filename);
+            
+                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{filenameSuffix}{fileExtension}";
 
-                    // Determine the folder path and filename suffix from the upload configuration.
-                    var folderPath = GetFolderPath(uploadConfig, dateTimeNow);
-                    var filenameSuffix = GetFilenameSuffix(uploadConfig, dateTimeNow);
+                // Container name is "{meta_destination_id}-{extEvent}"
+                // There are some restrictions on container names -- underscores not allowed, must be all lowercase
+                destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
 
-                    var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
-                    var fileExtension = Path.GetExtension(filename);
+                // Get copy targets
+                List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
                 
-                    string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{filenameSuffix}{fileExtension}";
-
-                    // Container name is "{meta_destination_id}-{extEvent}"
-                    // There are some restrictions on container names -- underscores not allowed, must be all lowercase
-                    destinationContainerName = $"{destinationId.ToLower()}-{eventType.ToLower()}";
-
-                    // Get copy targets
-                    List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
-                    
-                    return new CopyPrereqs(uploadId,
-                                        blobCreatedUrl,
-                                        tusPayloadFilename, 
-                                        destinationId, 
-                                        eventType, 
-                                        destinationContainerName, 
-                                        destinationBlobFilename, 
-                                        tusInfoFile.MetaData, 
-                                        targets,
-                                        trace);
-                }
-                else 
-                {
-                    throw new ArgumentException($"Unsupported metadata version: {metadataVersion}");
-                }
+                return new CopyPrereqs(uploadId,
+                                    blobCreatedUrl,
+                                    tusPayloadFilename, 
+                                    destinationId, 
+                                    eventType, 
+                                    destinationContainerName, 
+                                    destinationBlobFilename, 
+                                    tusInfoFile.MetaData, 
+                                    targets,
+                                    trace);
             }
             catch(Exception ex)
             {
