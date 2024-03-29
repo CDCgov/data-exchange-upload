@@ -21,6 +21,8 @@ SUPPORTED_METADATA_VERSION = [METADATA_VERSION_ONE, METADATA_VERSION_TWO]
 REQUIRED_VERSION_ONE_FIELDS = ['meta_destination_id', 'meta_ext_event']
 REQUIRED_VERSION_TWO_FIELDS = ['data_stream_id', 'data_stream_route']
 
+FILENAME_METADATA_FIELDS = ['filename', 'original_filename', 'meta_ext_filename', 'received_filename']
+
 STAGE_NAME = 'dex-metadata-verify'
 
 AZURE_STORAGE_ACCOUNT = os.getenv('AZURE_STORAGE_ACCOUNT')
@@ -166,10 +168,9 @@ def verify_filename(filename):
 
 
 def get_filename_from_metadata(meta_json):
-    filename_metadata_fields = ['filename', 'original_filename', 'meta_ext_filename']
     filename = None
 
-    for field in filename_metadata_fields:
+    for field in FILENAME_METADATA_FIELDS:
         if field in meta_json:
             filename = meta_json[field]
             break

@@ -16,6 +16,8 @@ from types import SimpleNamespace
 METADATA_VERSION_ONE = "1.0"
 METADATA_VERSION_TWO = "2.0"
 
+FILENAME_METADATA_FIELDS = ['filename', 'original_filename', 'meta_ext_filename', 'received_filename']
+
 logger = logging.getLogger("post-receive-bin")
 logger.setLevel(logging.DEBUG)
 
@@ -54,6 +56,20 @@ async def send_message(message):
         async with sender:
             await sender.send_messages(message)
 
+
+def get_filename_from_metadata(meta_json):
+    filename = None
+
+    for field in FILENAME_METADATA_FIELDS:
+        if field in meta_json:
+            filename = meta_json[field]
+            break
+    
+    if filename is None:
+        raise Exception('No filename provided.')
+    
+    return filename
+
 async def post_receive(tguid, offset, size, metadata_json):
     try:
         logger.info('python version = {0}'.format(sys.version))
@@ -61,17 +77,7 @@ async def post_receive(tguid, offset, size, metadata_json):
 
         metadata = json.loads(metadata_json, object_hook=lambda d: SimpleNamespace(**d))
 
-        filename = None
-
-        if hasattr(metadata, 'filename'):
-            filename = metadata.filename
-        elif hasattr(metadata, 'meta_ext_filename'):
-            filename = metadata.meta_ext_filename
-        elif hasattr(metadata, 'original_filename'):
-            filename = metadata.original_filename
-
-        if filename is None:
-            raise Exception("filename, meta_ext_filename, or original_filename not found in metadata.")
+        filename = get_filename_from_metadata(metadata)
 
         logger.info('filename = {0}, metadata_version = {1}'.format(filename, metadata_version))
 
