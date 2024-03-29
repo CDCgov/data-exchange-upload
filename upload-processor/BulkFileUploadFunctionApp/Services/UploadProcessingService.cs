@@ -105,6 +105,8 @@ namespace BulkFileUploadFunctionApp.Services
                     trace = await _procStatClient.GetTraceByUploadId(uploadId);
                 });
 
+                HydrateMetadata(tusInfoFile, trace.TraceId, trace.SpanId);
+
                 // Get Destination and Event type
                 // TODO: Refactor to something with more generic language, as destination and event are deprecated terms.
                 var metaDestinationId = tusInfoFile.MetaData!.GetValueOrDefault("meta_destination_id", null);
@@ -122,10 +124,11 @@ namespace BulkFileUploadFunctionApp.Services
 
                 var uploadConfig = await GetUploadConfig(VersionUtil.FromString(version), destinationId, eventType);
 
-                // hydrate V1 metadata 
+                // translate V1 metadata 
                 if (version == metadataVersionOne)
                 {
-                    HydrateMetadata(tusInfoFile, uploadConfig, trace.TraceId, trace.SpanId);
+                    var uploadConfigV2 = await GetUploadConfig(MetadataVersion.V2, destinationId, eventType);
+                    tusInfoFile.MetaData = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
                 }
                 
                 string? filename = tusInfoFile.MetaData!.GetValueOrDefault("received_filename", null);
@@ -505,20 +508,17 @@ namespace BulkFileUploadFunctionApp.Services
             return filenameSuffix;
         }
 
-        private void HydrateMetadata(TusInfoFile tusInfoFile, UploadConfig uploadConfig, string traceId, string spanId)
+        private Dictionary<string, string> TranslateMetadata(Dictionary<string, string> fromMetadata, UploadConfig toConfig)
         {
-            if (tusInfoFile.MetaData == null || tusInfoFile.ID == null)
-            {
-                throw new ArgumentNullException("TusFileInfo Metadata cannot be null.");
-            }
+            Dictionary<string, string> toMetadata = new Dictionary<string, string>(fromMetadata);
 
-            if (uploadConfig.MetadataConfig == null || uploadConfig.MetadataConfig.Fields == null)
+            if (toConfig.MetadataConfig == null || toConfig.MetadataConfig.Fields == null || toConfig.MetadataConfig.Version == null)
             {
                 throw new ArgumentNullException("UploadConfig Metadata fields cannot be null.");
             }
 
             // Add use-case specific fields and their values.
-            foreach (MetadataField field in uploadConfig.MetadataConfig.Fields)
+            foreach (MetadataField field in toConfig.MetadataConfig.Fields)
             {
                 if (field.FieldName == null)
                 {
@@ -527,33 +527,37 @@ namespace BulkFileUploadFunctionApp.Services
                 }
 
                 // Skip if field already provided.
-                if (tusInfoFile.MetaData.ContainsKey(field.FieldName))
+                if (toMetadata.ContainsKey(field.FieldName))
                 {
                     continue;
                 }
 
                 if (field.DefaultValue != null)
                 {
-                    tusInfoFile.MetaData[field.FieldName] = field.DefaultValue;
+                    toMetadata[field.FieldName] = field.DefaultValue;
                     continue;
                 }
 
                 if (field.CompatFieldName != null)
                 {
-                    tusInfoFile.MetaData[field.FieldName] = tusInfoFile.MetaData.GetValueOrDefault(field.CompatFieldName, "");
+                    toMetadata[field.FieldName] = toMetadata.GetValueOrDefault(field.CompatFieldName, "");
                     continue;
                 }
 
-                tusInfoFile.MetaData.Add(field.FieldName, "");
+                toMetadata.Add(field.FieldName, "");
             }
+            toMetadata["version"] = toConfig.MetadataConfig.Version;
 
+            return toMetadata;
+        }
+
+        private void HydrateMetadata(TusInfoFile tusInfoFile, string traceId, string spanId)
+        {
             // Add common fields and their values.
-            tusInfoFile.MetaData["version"] = uploadConfig.MetadataConfig.Version;
             tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
             tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
             tusInfoFile.MetaData["trace_id"] = traceId;
             tusInfoFile.MetaData["parent_span_id"] = spanId;
-            tusInfoFile.MetaData.Remove("filename"); // Remove filename field to use standard received_filename field.
         }
 
         public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs)
