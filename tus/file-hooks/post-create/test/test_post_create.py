@@ -1,5 +1,4 @@
 import unittest
-import sys, os
 from unittest.mock import patch
 
 from post_create_bin import get_required_metadata
@@ -12,9 +11,7 @@ class TestPostCreateMethods(unittest.TestCase):
     
     def test_get_required_metadata_version_1(self):
         metadata_json_dict = {
-            'metadata_config': {
-                'version': '1.0'
-            },
+            'version': '1.0',
             'meta_destination_id': '123',
             'meta_ext_event': '456'
         }
@@ -25,9 +22,7 @@ class TestPostCreateMethods(unittest.TestCase):
 
     def test_get_required_metadata_version_2(self):
         metadata_json_dict = {
-            'metadata_config': {
-                'version': '2.0'
-            },
+            'version': '2.0',
             'data_stream_id': 'stream_id_123',
             'data_stream_route': 'route_123'
         }
@@ -38,9 +33,7 @@ class TestPostCreateMethods(unittest.TestCase):
 
     def test_should_raise_error_if_required_metadata_not_provided(self):
       metadata_json_dict = {
-          'metadata_config': {
-                'version': '2.0'
-          }
+        'version': '2.0'
       }
 
       with self.assertRaises(Exception) as context:
@@ -61,12 +54,12 @@ class TestPostCreateMethods(unittest.TestCase):
     @patch.object(ProcStatController, 'stop_span_for_trace')
     def test_should_send_create_trace_request(self, create_upload_trace_mock, start_span_for_trace_mock, create_report_json_mock, stop_span_for_trace_mock):
         
-        dest = 'destination'
-        event = 'some_event'
+        use_case = 'use_case'
+        use_case_category = 'some_use_case_category'
         metadata_json_dict = {'meta_destination_id': 'destination', 'meta_ext_event': 'some_event'}
         tguid = 'some_tguid'
         
-        post_create(dest, event, metadata_json_dict, tguid)
+        post_create(use_case, use_case_category, metadata_json_dict, tguid)
 
         self.assertEqual(create_upload_trace_mock.call_count, 1)
         self.assertEqual(start_span_for_trace_mock.call_count, 1)
