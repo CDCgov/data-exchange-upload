@@ -120,7 +120,7 @@ namespace BulkFileUploadFunctionApp.Services
                 // retrieve version from metadata or default to V1
                 version = tusInfoFile.MetaData!.GetValueOrDefault("version", metadataVersionOne);
 
-                var uploadConfig = await GetUploadConfig(MetadataVersion.FromString(version), destinationId, eventType);
+                var uploadConfig = await GetUploadConfig(VersionUtil.FromString(version), destinationId, eventType);
 
                 // hydrate V1 metadata 
                 if (version == metadataVersionOne)
