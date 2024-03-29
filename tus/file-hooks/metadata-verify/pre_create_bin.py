@@ -29,6 +29,7 @@ UPLOAD_CONFIG_CONTAINER = os.getenv('UPLOAD_CONFIG_CONTAINER')
 
 CONNECTION_STRING = f"DefaultEndpointsProtocol=https;AccountName={AZURE_STORAGE_ACCOUNT};AccountKey={AZURE_STORAGE_KEY};EndpointSuffix=core.windows.net"
 DEX_STORAGE_ACCOUNT_SERVICE = BlobServiceClient.from_connection_string(conn_str=CONNECTION_STRING)
+INVALID_CHARS = set('<>:"/\\|?*')
 
 
 def get_upload_config(dest_id, event_type, metadata_version):
@@ -154,6 +155,12 @@ def report_verification_failure(messages, destination_id, event_type, meta_json)
 def stringify_error_messages(messages):
     return 'Found the following metadata validation errors: ' + ','.join(messages)
 
+def verify_filename(filename):
+    # Find all invalid characters in the filename
+    found_invalid_chars = {c for c in filename if c in INVALID_CHARS}
+    if found_invalid_chars:
+        invalid_chars_str = ", ".join(sorted(found_invalid_chars))
+        raise ValueError(f"Filename '{filename}' contains invalid characters: {invalid_chars_str}")
 
 def get_filename_from_metadata(meta_json):
     filename_metadata_fields = ['filename', 'original_filename', 'meta_ext_filename']
@@ -166,6 +173,9 @@ def get_filename_from_metadata(meta_json):
 
     if filename is None:
         raise Exception('No filename provided.')
+
+    # After obtaining the filename, verify it for invalid characters
+    verify_filename(filename)
 
     return filename
 
@@ -206,8 +216,14 @@ def main(argv):
 
     try:
         meta_json = json.loads(metadata)
+
         version = get_version_from_metadata(meta_json)
+
         dest_id, event_type = get_required_metadata(meta_json, version)
+
+        # Verify the filename for invalid characters as an early step
+        filename = get_filename_from_metadata(meta_json)
+        
         verify_metadata(dest_id, event_type, meta_json)
     except Exception as e:
         error_msg = str(e)

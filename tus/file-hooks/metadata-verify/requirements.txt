@@ -2,3 +2,4 @@ python_dotenv
 requests
 chardet
 azure-storage-blob
+httmock
