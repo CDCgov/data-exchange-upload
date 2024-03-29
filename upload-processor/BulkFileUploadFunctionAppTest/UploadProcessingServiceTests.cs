@@ -16,8 +16,6 @@ namespace BulkFileUploadFunctionAppTests
     public class UploadProcessingServiceTests
     {
         private Mock<IProcStatClient>? _mockProcStatClient;
-        private Mock<IBlobManagementService> _mockBlobManagementService;
-        private Mock<IBlobClientFactory> _mockBlobClientFactory;
         private Mock<IConfigurationManager> _mockConfigManager;
         private Mock<IFeatureManagementExecutor> _mockFeatureManagementExecutor;
         private Mock<IUploadEventHubService> _mockUploadEventHubService;
@@ -26,11 +24,10 @@ namespace BulkFileUploadFunctionAppTests
         private StorageBlobCreatedEvent _storageBlobCreatedEvent;
         private Mock<IUploadProcessingService>? _mockUploadProcessingService;
         private Mock<IBlobReader> _mockBlobReader;
-        private BlobReaderFactory _blobReaderFactory;
-        private Mock<BlobReaderFactory>? _mockBlobReaderFactory;
         private string sourceContainerName;
         private UploadProcessingService? _function; // temporary placeholder
         private Mock<BlobClient> _mockBlobClient;
+        private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
 
         [TestInitialize]
         public void Initialize()
@@ -40,25 +37,17 @@ namespace BulkFileUploadFunctionAppTests
             _loggerMock = new Mock<ILogger<UploadProcessingService>>();
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             _mockBlobClient = new Mock<BlobClient>();
-            _mockBlobClientFactory = new Mock<IBlobClientFactory>();
-            _mockBlobClientFactory
-                .Setup(x => x.CreateBlobClientAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
-                .ReturnsAsync(_mockBlobClient.Object);
-
-            _mockBlobManagementService = new Mock<IBlobManagementService>();
+            _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
             //_mockBlobManagementService
             //    .Setup(x=> x.GetBlobClientAsync(It.IsAny<Dictionary<string, string>())).ReturnsAsync(_mockBlobClient.Object);
             _mockConfigManager = new Mock<IConfigurationManager>();
             _mockProcStatClient = new Mock<IProcStatClient>();
             _mockFeatureManagementExecutor = new Mock<IFeatureManagementExecutor>();
-            _blobReaderFactory = new BlobReaderFactory();
             _mockBlobReader = new Mock<IBlobReader>();
             _mockUploadEventHubService = new Mock<IUploadEventHubService>();
 
-            _mockBlobReaderFactory = new Mock<BlobReaderFactory>();
-            _mockBlobReaderFactory
-                .Setup(x => x.CreateInstance(It.IsAny<ILogger>()))
-                .Returns(_mockBlobReader.Object);
+      
+
 
             _storageBlobCreatedEvent = new StorageBlobCreatedEvent
             {
@@ -70,8 +59,7 @@ namespace BulkFileUploadFunctionAppTests
                 Data = new StorageBlobCreatedEventData { Url = "https://example.com/blob/10MB-test-file" }
             };
 
-            //BlobManagementService(ILoggerFactory loggerFactory, IBlobClientFactory blobServiceClient)
-            _mockBlobReaderFactory.Setup(x => x.CreateInstance(It.IsAny<ILogger>())).Returns(_mockBlobReader.Object);
+
 
             _mockUploadProcessingService = new Mock<IUploadProcessingService>();
 
@@ -81,7 +69,7 @@ namespace BulkFileUploadFunctionAppTests
                 _loggerFactoryMock.Object, 
                 _mockConfigManager.Object, 
                 _mockProcStatClient.Object, _mockFeatureManagementExecutor.Object,
-                _mockUploadEventHubService.Object, _mockBlobManagementService.Object);
+                _mockUploadEventHubService.Object, _mockBlobServiceClientFactory.Object);
 
         }
 
@@ -148,8 +136,8 @@ namespace BulkFileUploadFunctionAppTests
             };
 
 
-            _mockBlobManagementService.Setup(x => x.GetObjectFromBlobJsonContent<TusInfoFile>(It.IsAny<Dictionary<string, string>>())).ReturnsAsync(tusInfoFile);
-            _mockBlobManagementService.Setup(x => x.GetObjectFromBlobJsonContent<UploadConfig>(It.IsAny<Dictionary<string, string>>())).ReturnsAsync(uploadConfig);
+            //_mockBlobReader.Setup(x => x.Read<TusInfoFile>(It.IsAny<Dictionary<string, string>>())).ReturnsAsync(tusInfoFile);
+            //_mockBlobReader.Setup(x => x.Read<UploadConfig>(It.IsAny<Dictionary<string, string>>())).ReturnsAsync(uploadConfig);
 
             _mockUploadProcessingService
                 .Setup(x => x.GetCopyPrereqs(testBlobUrl))
@@ -170,7 +158,7 @@ namespace BulkFileUploadFunctionAppTests
 
             _function.GetCopyPrereqs(testBlobUrl);
 
-            _mockUploadProcessingService.Verify(x => x.GetCopyPrereqs(testBlobUrl), Times.Never); // change back to Once after PR
+            _mockUploadProcessingService.Verify(x => x.GetCopyPrereqs(testBlobUrl), Times.Once); // change back to Once after PR
         }
         //should copy file to dex container when given any or no copy target
         [TestMethod]

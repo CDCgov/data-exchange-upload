@@ -47,20 +47,11 @@ var host = new HostBuilder()
         services.AddSingleton<IUploadProcessingService, UploadProcessingService>();
 
         // Registers an implementation for the IBlobServiceClientFactory interface to be resolved as a singleton.
-        services.AddSingleton<IBlobClientFactory, BlobClientFactory>();
-
-        // Registers an implementation for the IBlobManagementService interface to be resolved as a singleton.
-        services.AddSingleton<IBlobManagementService, BlobManagementService>();
+        services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactory>();
 
         // Registers an implementation for the IEnvironmentVariableProvider interface to be resolved as a singleton.
         services.AddSingleton<IEnvironmentVariableProvider, EnvironmentVariableProviderImpl>();       
-
-        // Registers an implementation for the IBlobCopyHelper interface to be resolved as a singleton.
-        services.AddSingleton<IBlobCopyHelper, BlobCopyHelper>();
-
-        // Registers an implementation for the BlobReaderFactory's IBlobReader interface to be resolved as a singleton.
-        services.AddSingleton<IBlobReaderFactory, BlobReaderFactory>();
-        
+       
         services.AddSingleton<IFeatureManagementExecutor, FeatureManagementExecutor>();
     })
     .Build();

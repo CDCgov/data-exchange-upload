@@ -4,23 +4,21 @@ using System.Text.Json;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
-    public class BlobReader : IBlobReader
+    public class AzureBlobReader
     {
-        private readonly ILogger _logger;
+        private BlobServiceClient _svcClient { get; init; }
 
-        public BlobReader(ILogger logger)
+        public AzureBlobReader(BlobServiceClient svcClient)
         {
-            _logger = logger;
+            _svcClient = svcClient;
         }
 
-        public async Task<T?> GetObjectFromBlobJsonContent<T>(string connectionString, string sourceContainerName, string blobPathname)
+        public async Task<T?> Read<T>(string containerName, string blobName)
         {
             T? result;
 
-            var sourceContainerClient = new BlobContainerClient(connectionString, sourceContainerName);
-            BlobClient sourceBlob = sourceContainerClient.GetBlobClient(blobPathname);
-
-            _logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
+            var sourceContainerClient = _svcClient.GetBlobContainerClient(containerName);
+            BlobClient sourceBlob = sourceContainerClient.GetBlobClient(blobName);
 
             // Ensure that the source blob exists
             if (!await sourceBlob.ExistsAsync())
@@ -28,10 +26,8 @@ namespace BulkFileUploadFunctionApp.Utils
                 throw new Exception("File is missing");
             }
 
-            _logger.LogInformation("File exists, getting lease on file");
-
             using (var stream = await sourceBlob.OpenReadAsync())
-            { 
+            {
                 result = await JsonSerializer.DeserializeAsync<T>(stream);
             }
 

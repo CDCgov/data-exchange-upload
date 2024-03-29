@@ -13,16 +13,16 @@ namespace BulkFileUploadFunctionApp.Utils
 {
     public class HealthCheckResultUtil
     {
-        private readonly IBlobClientFactory _blobClientFactory;
+        private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
         private readonly ILogger _logger;
 
         // Constructor
-        public HealthCheckResultUtil(IBlobClientFactory blobServiceClientFactory,
+        public HealthCheckResultUtil(IBlobServiceClientFactory blobServiceClientFactory,
                                     IEnvironmentVariableProvider environmentVariableProvider,
                                     ILogger logger)
         {
-            _blobClientFactory = blobServiceClientFactory;
+            _blobServiceClientFactory = blobServiceClientFactory;
             _environmentVariableProvider = environmentVariableProvider;
             _logger = logger;   
         }
@@ -46,10 +46,8 @@ namespace BulkFileUploadFunctionApp.Utils
                 _blobFileInfo.Add("filename", "testevent1.json");
                 _blobFileInfo.Add("destination", "EDAV Blob Container");
                 edavAzureStorageAccountName = _environmentVariableProvider.GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
-                blobServiceClient = new BlobServiceClient(
-                 new Uri($"https://{edavAzureStorageAccountName}.blob.core.windows.net"),
-                 new DefaultAzureCredential() // using Service Principal
-             );
+                blobServiceClient = _blobServiceClientFactory.CreateInstance("edav", new Uri($"https://{edavAzureStorageAccountName}.blob.core.windows.net"),
+                new DefaultAzureCredential());
             }
             else if (storage == "Routing Blob Container")
             {
@@ -58,7 +56,7 @@ namespace BulkFileUploadFunctionApp.Utils
                 storageAccountName = _environmentVariableProvider.GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_NAME");
                 storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_KEY");
                 connectionString = $"DefaultEndpointsProtocol=https;AccountName={storageAccountName};AccountKey={storageAccountKey};EndpointSuffix=core.windows.net";
-                blobServiceClient = await _blobClientFactory.CreateBlobServiceClientAsync(connectionString);
+                blobServiceClient = _blobServiceClientFactory.CreateInstance("routing", connectionString);
             }
             else
             {
@@ -66,7 +64,7 @@ namespace BulkFileUploadFunctionApp.Utils
                 storageAccountName = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME");
                 storageAccountKey = _environmentVariableProvider.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY");
                 connectionString = $"DefaultEndpointsProtocol=https;AccountName={storageAccountName};AccountKey={storageAccountKey};EndpointSuffix=core.windows.net";
-                blobServiceClient = await _blobClientFactory.CreateBlobServiceClientAsync(connectionString);
+                blobServiceClient = _blobServiceClientFactory.CreateInstance("dex", connectionString);
             }
 
             _logger.LogInformation($"Checking health for destination: {storage}");

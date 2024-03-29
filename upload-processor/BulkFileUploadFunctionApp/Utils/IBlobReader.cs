@@ -7,6 +7,9 @@ namespace BulkFileUploadFunctionApp.Utils
 {
     public interface IBlobReader
     {
-        Task<T?> GetObjectFromBlobJsonContent<T>(string connectionString, string sourceContainerName, string blobPathname);
+        //public BlobServiceClient? _svcClient { get; set; }
+        //public string? _blobName { get; set; }
+
+        Task<T?> Read<T>(string containerName, string blobName);
     }
 }

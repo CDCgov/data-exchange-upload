@@ -20,7 +20,7 @@ namespace BulkFileUploadFunctionAppTests
     public class HealthCheckFunctionTests
     {
         private Mock<FunctionContext> _mockFunctionContext;
-        private Mock<IBlobClientFactory> _mockBlobServiceClientFactory;
+        private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
         private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
         private Mock<IConfigurationRefresher> _configurationRefresherMock;
         private Mock<IConfigurationRefresherProvider> _configurationRefresherProviderMock;
@@ -40,7 +40,7 @@ namespace BulkFileUploadFunctionAppTests
         {
             // Instantiate mocks.
             _mockFunctionContext = new Mock<FunctionContext>();
-            _mockBlobServiceClientFactory = new Mock<IBlobClientFactory>();
+            _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
             _mockEnvironmentVariableProvider = new Mock<IEnvironmentVariableProvider>();
             _configurationRefresherMock = new Mock<IConfigurationRefresher>();
             _configurationRefresherProviderMock = new Mock<IConfigurationRefresherProvider>();
@@ -62,7 +62,7 @@ namespace BulkFileUploadFunctionAppTests
                                 .Returns(_mockServiceProvider.Object);
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
-            _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClientAsync(It.IsAny<string>())).Returns(Task.FromResult(mockBlobServiceClient.Object));
+            _mockBlobServiceClientFactory.Setup(m => m.CreateInstance(It.IsAny<string>(), It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
 
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
@@ -118,8 +118,8 @@ namespace BulkFileUploadFunctionAppTests
             // Arrange
             var functionContext = TestHelpers.CreateFunctionContext();
             var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
-            _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClientAsync(It.IsAny<string>()))
-                .Throws(new RequestFailedException("Error"));
+            var mockBlobServiceClient = new Mock<BlobServiceClient>();
+            _mockBlobServiceClientFactory.Setup(m => m.CreateInstance(It.IsAny<string>(), It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
 
             var healthCheckFunction = CreateHealthCheckFunction();
             // Act

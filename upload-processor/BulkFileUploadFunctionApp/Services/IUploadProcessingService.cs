@@ -9,9 +9,9 @@ namespace BulkFileUploadFunctionApp.Services
 
         Task CopyAll(CopyPrereqs copyPrereqs);
 
-        Task CopyFromDexToEdav(CopyPrereqs copyPrereqs);
+        //Task CopyFromDexToEdav(CopyPrereqs copyPrereqs);
     
-        Task CopyFromDexToRouting(CopyPrereqs copyPrereqs);
+       // Task CopyFromDexToRouting(CopyPrereqs copyPrereqs);
 
         Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs);
 
