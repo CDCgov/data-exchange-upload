@@ -1,9 +1,9 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import java.nio.file.Path
 
 plugins {
     kotlin("jvm") version "1.8.10"
+    id("com.adarshr.test-logger") version "4.0.0"
     application
 }
 
