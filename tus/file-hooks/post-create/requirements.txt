@@ -2,3 +2,4 @@ requests
 python_dotenv
 chardet
 httmock
+azure-appconfiguration

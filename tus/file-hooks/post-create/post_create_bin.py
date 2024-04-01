@@ -64,23 +64,28 @@ def post_create(dest, event, metadata_json_dict, tguid):
     logger.info(f'Creating trace for upload {tguid} with destination {dest} and event {event}')
 
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
-    trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, dest, event)
-    logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
 
-    create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, dest, event, metadata_json_dict, tguid)
+    if processing_status_traces_enabled:
+        trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, dest, event)
+        logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
 
-    # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
-    ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
-    logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
+        create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, dest, event, metadata_json_dict, tguid)
+
+        # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
+        ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
+        logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
+    else:
+        logger.debug("Trace creation is disabled by feature flag.")
 
 def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, dest, event, metadata_json_dict, tguid):
 
     try:
         # Start the upload stage metadata verification span
-        trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify")
-        logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
-
-        create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, dest, event)
+        if processing_status_traces_enabled:
+            trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify")
+            logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
+        if processing_status_reports_enabled:
+            create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, dest, event)
 
         # Stop the upload stage metadata verification span
         if metadata_verify_span_id is not None:
@@ -129,9 +134,7 @@ def main(argv):
 
     # Create upload trace.
     dest, event = get_required_metadata(metadata_json_dict)
-
-    if processing_status_traces_enabled:
-        post_create(dest, event, metadata_json_dict, tguid)
+    post_create(dest, event, metadata_json_dict, tguid)
 
 
 if __name__ == '__main__':
