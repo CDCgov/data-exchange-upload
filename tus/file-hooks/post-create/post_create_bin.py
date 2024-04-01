@@ -9,12 +9,29 @@ from dotenv import load_dotenv
 
 from proc_stat_controller import ProcStatController
 
+from azure.appconfiguration import AzureAppConfigurationClient
+
+connection_string = os.getenv('FEATURE_MANAGER_CONNECTION_STRING')
+
+config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 required_metadata_fields = ['meta_destination_id', 'meta_ext_event']
 STAGE_NAME = 'dex-metadata-verify'
+
+def get_feature_flag(flag_name):
+    try:
+        fetched_flag = config_client.get_configuration_setting(key=f".appconfig.featureflag/{flag_name}", label=None)
+        return fetched_flag.value == "true"
+    except Exception as e:
+        print(f"Error fetching feature flag {flag_name}: {e}")
+        return False
+
+processing_status_reports_enabled = get_feature_flag("PROCESSING_STATUS_REPORTS")
+processing_status_traces_enabled = get_feature_flag("PROCESSING_STATUS_TRACES")
 
 def get_required_metadata(metadata_json_dict):
     missing_metadata_fields = []
@@ -112,7 +129,9 @@ def main(argv):
 
     # Create upload trace.
     dest, event = get_required_metadata(metadata_json_dict)
-    post_create(dest, event, metadata_json_dict, tguid)
+
+    if processing_status_traces_enabled:
+        post_create(dest, event, metadata_json_dict, tguid)
 
 
 if __name__ == '__main__':

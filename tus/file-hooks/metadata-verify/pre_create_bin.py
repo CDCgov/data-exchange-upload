@@ -11,6 +11,12 @@ from azure.storage.blob import BlobServiceClient
 
 from proc_stat_controller import ProcStatController
 
+from azure.appconfiguration import AzureAppConfigurationClient
+
+connection_string = os.getenv('FEATURE_MANAGER_CONNECTION_STRING')
+
+config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -26,6 +32,16 @@ CONNECTION_STRING = f"DefaultEndpointsProtocol=https;AccountName={AZURE_STORAGE_
 DEX_STORAGE_ACCOUNT_SERVICE = BlobServiceClient.from_connection_string(conn_str=CONNECTION_STRING)
 INVALID_CHARS = set('<>:"/\\|?*')
 
+def get_feature_flag(flag_name):
+    try:
+        fetched_flag = config_client.get_configuration_setting(key=f".appconfig.featureflag/{flag_name}", label=None)
+        return fetched_flag.value == "true"
+    except Exception as e:
+        print(f"Error fetching feature flag {flag_name}: {e}")
+        return False
+
+processing_status_reports_enabled = get_feature_flag("PROCESSING_STATUS_REPORTS")
+processing_status_traces_enabled = get_feature_flag("PROCESSING_STATUS_TRACES")
 
 def get_version_int_from_str(version):
     l = [int(x, 10) for x in version.split('.')]
@@ -117,30 +133,29 @@ def report_verification_failure(messages, destination_id, event_type, meta_json)
 
     # Create trace for upload
     upload_id = uuid.uuid4()
-    trace_id, parent_span_id = ps_api_controller.create_upload_trace(upload_id, destination_id, event_type)
-
-    # Start the upload stage metadata verification span
-    trace_id, metadata_verify_span_id \
-        = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, STAGE_NAME)
-    logger.debug(
-        f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
+    if processing_status_traces_enabled:
+        # Only create and manage traces if tracing is enabled
+        trace_id, parent_span_id = ps_api_controller.create_upload_trace(upload_id, destination_id, event_type)
+        # Start the upload stage metadata verification span
+        trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, STAGE_NAME)
+        logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
 
     filename = get_filename_from_metadata(meta_json)
-    # Send report with metadata failure issues.
-    payload = {
-        'schema_version': '0.0.1',
-        'schema_name': STAGE_NAME,
-        'filename': filename,
-        'metadata': meta_json,
-        'issues': messages
-    }
-    
-    ps_api_controller.create_report(upload_id, destination_id, event_type, STAGE_NAME, json.dumps(payload))
+    if processing_status_reports_enabled:
+        # Send report with metadata failure issues.
+        payload = {
+            'schema_version': '0.0.1',
+            'schema_name': STAGE_NAME,
+            'filename': filename,
+            'metadata': meta_json,
+            'issues': messages
+        }
+        ps_api_controller.create_report(upload_id, destination_id, event_type, STAGE_NAME, json.dumps(payload))
 
-    # Stop the upload stage metadata verification span
-    ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
-    logger.debug(
-        f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
+    if processing_status_traces_enabled:
+        # Stop the upload stage metadata verification span
+        ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
+        logger.debug(f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
 
     return upload_id
 

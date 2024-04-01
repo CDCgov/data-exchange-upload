@@ -7,9 +7,25 @@ from dotenv import load_dotenv
 
 from proc_stat_controller import ProcStatController
 
+from azure.appconfiguration import AzureAppConfigurationClient
+
+connection_string = os.getenv('FEATURE_MANAGER_CONNECTION_STRING')
+
+config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+def get_feature_flag(flag_name):
+    try:
+        fetched_flag = config_client.get_configuration_setting(key=f".appconfig.featureflag/{flag_name}", label=None)
+        return fetched_flag.value == "true"
+    except Exception as e:
+        print(f"Error fetching feature flag {flag_name}: {e}")
+        return False
+
+processing_status_reports_enabled = get_feature_flag("PROCESSING_STATUS_REPORTS")
+processing_status_traces_enabled = get_feature_flag("PROCESSING_STATUS_TRACES")
 
 def post_finish(upload_id):
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
@@ -35,8 +51,8 @@ def main(argv):
 
     if tguid is None:
         raise Exception('No tguid provided')
-
-    post_finish(tguid)
+    if processing_status_traces_enabled:
+        post_finish(tguid)
 
 
 if __name__ == '__main__':
