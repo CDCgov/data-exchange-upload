@@ -20,7 +20,7 @@ REQUIRED_VERSION_ONE_FIELDS = ['meta_destination_id', 'meta_ext_event']
 REQUIRED_VERSION_TWO_FIELDS = ['data_stream_id', 'data_stream_route']
 
 def get_required_metadata(metadata_json_dict):
-    metadata_version = metadata_json_dict['version']
+    metadata_version = metadata_json_dict.get('version', METADATA_VERSION_ONE)
     
     if metadata_version == METADATA_VERSION_ONE:
         required_fields = REQUIRED_VERSION_ONE_FIELDS
