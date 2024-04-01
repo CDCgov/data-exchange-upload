@@ -15,6 +15,9 @@ from azure.appconfiguration import AzureAppConfigurationClient
 
 connection_string = os.getenv('FEATURE_MANAGER_CONNECTION_STRING')
 
+if connection_string is None:
+    raise ValueError("Connection string for Azure App Configuration is not set.")
+
 config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
 
 load_dotenv()
