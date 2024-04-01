@@ -3,15 +3,12 @@ import sys
 import config
 import datetime
 import json
-import ast
 import asyncio
 import logging
 
 from azure.servicebus.aio import ServiceBusClient
 from azure.servicebus import ServiceBusMessage
 from azure.servicebus import TransportType
-
-from types import SimpleNamespace
 
 METADATA_VERSION_ONE = "1.0"
 METADATA_VERSION_TWO = "2.0"
@@ -59,7 +56,7 @@ async def send_message(message):
 
 def get_filename_from_metadata(meta_json):
     filename = None
-
+    logger.info(f"****{meta_json}")
     for field in FILENAME_METADATA_FIELDS:
         if field in meta_json:
             filename = meta_json[field]
@@ -75,14 +72,12 @@ async def post_receive(tguid, offset, size, metadata_json):
         logger.info('python version = {0}'.format(sys.version))
         logger.info('metadata_json = {0}'.format(metadata_json))
 
-        metadata = json.loads(metadata_json, object_hook=lambda d: SimpleNamespace(**d))
+        metadata = json.loads(metadata_json)
 
         filename = get_filename_from_metadata(metadata)
 
-        # convert metadata json string to a dictionary
-        metadata_json_dict = ast.literal_eval(metadata_json)
-
-        json_data, metadata_version = get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict)
+        metadata_version = metadata.get("version", METADATA_VERSION_ONE)
+        json_data = get_report_body(metadata, metadata_version, filename, tguid, offset, size)
 
         logger.info('filename = {0}, metadata_version = {1}'.format(filename, metadata_version))
 
@@ -99,15 +94,13 @@ async def post_receive(tguid, offset, size, metadata_json):
         sys.exit(1)
 
 
-def get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict):
-    metadata_version = metadata.version
-
+def get_report_body(metadata, metadata_version, filename, tguid, offset, size):
     if metadata_version == METADATA_VERSION_ONE: 
         json_data = {
             "upload_id": tguid,
             "stage_name": "dex-upload",
-            "destination_id": metadata.meta_destination_id,
-            "event_type": metadata.meta_ext_event,
+            "destination_id": metadata["meta_destination_id"],
+            "event_type": metadata["meta_ext_event"],
             "content_type": "json",
             "content": {
                         "schema_name": "upload",
@@ -116,9 +109,9 @@ def get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict)
                         "offset": offset,
                         "size": size,
                         "filename": filename,
-                        "meta_destination_id": metadata.meta_destination_id,
-                        "meta_ext_event": metadata.meta_ext_event,
-                        "metadata": metadata_json_dict
+                        "meta_destination_id": metadata["meta_destination_id"],
+                        "meta_ext_event": metadata["meta_ext_event"],
+                        "metadata": metadata
             },
             "disposition_type": "replace"
         }
@@ -126,8 +119,8 @@ def get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict)
         json_data = {
             "upload_id": tguid,
             "stage_name": "dex-upload",
-            "data_stream_id": metadata.data_stream_id,
-            "data_stream_route": metadata.data_stream_route,
+            "data_stream_id": metadata["data_stream_id"],
+            "data_stream_route": metadata["data_stream_route"],
             "content_type": "json",
             "content": {
                         "schema_name": "upload",
@@ -136,14 +129,14 @@ def get_report_body(metadata, filename, tguid, offset, size, metadata_json_dict)
                         "offset": offset,
                         "size": size,
                         "filename": filename,
-                        "data_stream_id": metadata.data_stream_id,
-                        "data_stream_route": metadata.data_stream_route,
-                        "metadata": metadata_json_dict
+                        "data_stream_id": metadata["data_stream_id"],
+                        "data_stream_route": metadata["data_stream_route"],
+                        "metadata": metadata
             },
             "disposition_type": "replace"
         }
         
-    return json_data, metadata_version
+    return json_data
 
 
 def main(argv):
