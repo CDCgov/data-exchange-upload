@@ -24,7 +24,7 @@ func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 
 	var servicesResponses []models.ServiceHealthResp
 
-	if hd.cliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE || hd.cliFlags.RunMode == cli.RUN_MODE_AZURE {
+	if cli.Flags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE || cli.Flags.RunMode == cli.RUN_MODE_AZURE {
 
 		ch := make(chan models.ServiceHealthResp, 4) // 4 services to check
 
@@ -48,7 +48,7 @@ func (hd *HandlerDex) health(w http.ResponseWriter, r *http.Request) {
 			DexProduct: hd.appConfig.DexProduct,
 			DexApp:     hd.appConfig.DexApp,
 			ServerTime: time.Now().Format(time.RFC3339),
-			RunMode:    hd.cliFlags.RunMode,
+			RunMode:    cli.Flags.RunMode,
 		},
 		Status:   status,
 		Services: servicesResponses,

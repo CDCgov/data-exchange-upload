@@ -30,14 +30,14 @@ func main() {
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
-	cliFlags, err := cli.ParseFlags()
+	err := cli.ParseFlags()
 	if err != nil {
 		slog.Error("error starting app, error parsing cli flags", "error", err, "buildInfo.Main.Path", buildInfo.Main.Path)
 		os.Exit(appMainExitCode)
 	} // .if
 
-	if err := godotenv.Load(cliFlags.AppConfigPath); err != nil {
-		slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
+	if err := godotenv.Load(cli.Flags.AppConfigPath); err != nil {
+		slog.Error("error loading local configuration", "runMode", cli.Flags.RunMode, "error", err)
 		os.Exit(appMainExitCode)
 	} // .if
 
@@ -96,7 +96,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// create dex server, includes dex handler
 	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(cliFlags, appConfig, metaV1, psSender)
+	serverDex, err := serverdex.New(appConfig, metaV1, psSender)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex server", "error", err)
 		os.Exit(appMainExitCode)

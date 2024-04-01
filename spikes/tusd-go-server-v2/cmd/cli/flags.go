@@ -6,7 +6,7 @@ import (
 	"slices"
 ) // .import
 
-type Flags struct {
+var Flags struct {
 	RunMode          string // local, azure, aws
 	AppConfigPath    string // if override
 	UsePrebuiltHooks bool
@@ -20,24 +20,18 @@ const RUN_MODE_LOCAL_TO_AZURE = "local_to_azure"
 const RUN_MODE_AZURE = "azure"
 const RUN_MODE_AWS = "aws"
 
-var CliFlags *Flags
-
 // ParseFlags read cli flags into an Flags struct which is returned
-func ParseFlags() (Flags, error) {
+func ParseFlags() error {
 
-	runMode := flag.String("env", "local", "used to set app run mode: local, local_to_azure, azure, or aws")
-	configFile := flag.String("appconf", "./configs/local/local.env", "used to override the app configuration file path")
+	flag.StringVar(&Flags.RunMode, "env", "local", "used to set app run mode: local, local_to_azure, azure, or aws")
+	flag.StringVar(&Flags.AppConfigPath, "appconf", "./configs/local/local.env", "used to override the app configuration file path")
+	flag.StringVar(&Flags.FileHooksDir, "file-hooks-dir", "", "the path to a directory containing file hooks")
 
 	flag.Parse()
 
-	if !slices.Contains(runModes, *runMode) {
-		return Flags{}, errors.New("cli flag run mode not recognized")
+	if !slices.Contains(runModes, Flags.RunMode) {
+		return errors.New("cli flag run mode not recognized")
 	} // if
 
-	flags := Flags{
-		RunMode:       *runMode,
-		AppConfigPath: *configFile,
-	} // .flags
-	CliFlags = &flags
-	return flags, nil
+	return nil
 } // .ParseFlags

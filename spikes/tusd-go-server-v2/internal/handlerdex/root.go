@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 ) // .import
 
 type RootResp struct {
@@ -22,7 +24,7 @@ func (hd *HandlerDex) root(w http.ResponseWriter, r *http.Request) {
 		DexProduct: hd.appConfig.DexProduct,
 		DexApp:     hd.appConfig.DexApp,
 		ServerTime: time.Now().Format(time.RFC3339),
-		RunMode:    hd.cliFlags.RunMode,
+		RunMode:    cli.Flags.RunMode,
 	}) // .jsonResp
 	if err != nil {
 		errMsg := "error marshal json for root response"

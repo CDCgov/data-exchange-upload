@@ -5,9 +5,15 @@ import (
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/handler"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
+	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
 
 func GetHookHandler() tusHooks.HookHandler {
+	if Flags.FileHooksDir != "" {
+		return &file.FileHook{
+			Directory: Flags.FileHooksDir,
+		}
+	}
 	//TODO This can make decisions based on flags as the tusd implemenation does
 	return PrebuiltHooks()
 }
