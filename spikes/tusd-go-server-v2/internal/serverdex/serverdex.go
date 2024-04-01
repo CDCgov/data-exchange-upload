@@ -10,13 +10,11 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 ) // .import
 
@@ -26,9 +24,8 @@ type ServerDex struct {
 	AppConfig appconfig.AppConfig
 	MetaV1    *metadatav1.MetadataV1
 
-	handlerTusd *tusd.Handler
-	HandlerDex  *handlerdex.HandlerDex
-	logger      *slog.Logger
+	HandlerDex *handlerdex.HandlerDex
+	logger     *slog.Logger
 } // .ServerDex
 
 // New returns an custom server for DEX Upload Api ready to serve
@@ -40,21 +37,14 @@ func New(cliFlags cli.Flags, appConfig appconfig.AppConfig, metaV1 *metadatav1.M
 	logger := sloger.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
 	sloger.SetDefaultLogger(logger)
 
-	handlerTusd, err := handlertusd.New(cliFlags, appConfig, psSender)
-	if err != nil {
-		logger.Error("error starting tusd handler")
-		return ServerDex{}, err
-	} // .handlerTusd
-
 	handlerDex := handlerdex.New(cliFlags, appConfig, psSender)
 
 	return ServerDex{
-		CliFlags:    cliFlags,
-		AppConfig:   appConfig,
-		MetaV1:      metaV1,
-		handlerTusd: handlerTusd,
-		HandlerDex:  handlerDex,
-		logger:      logger,
+		CliFlags:   cliFlags,
+		AppConfig:  appConfig,
+		MetaV1:     metaV1,
+		HandlerDex: handlerDex,
+		logger:     logger,
 	}, nil // .return
 
 } // New
@@ -63,15 +53,9 @@ func New(cliFlags cli.Flags, appConfig appconfig.AppConfig, metaV1 *metadatav1.M
 func (sd *ServerDex) HttpServer() http.Server {
 
 	// --------------------------------------------------------------
-	// 	TUSD handler
-	// --------------------------------------------------------------
-	// Route for TUSD to start listening on and accept http request
-	http.Handle(sd.AppConfig.TusdHandlerBasePath, http.StripPrefix(sd.AppConfig.TusdHandlerBasePath, sd.handlerTusd))
-
-	// --------------------------------------------------------------
 	// 	Prometheus metrics handler for /metrics
 	// --------------------------------------------------------------
-	sd.setupMetrics(sd.handlerTusd)
+	sd.setupMetrics()
 	hooks.SetupHookMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 
