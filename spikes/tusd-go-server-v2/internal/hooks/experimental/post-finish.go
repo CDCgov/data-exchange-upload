@@ -1,4 +1,4 @@
-package hooks
+package experimental
 
 import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"

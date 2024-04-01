@@ -1,4 +1,4 @@
-package hooks
+package experimental
 
 import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"

@@ -2,6 +2,7 @@ package appconfig
 
 import (
 	"context"
+	"errors"
 
 	"github.com/sethvargo/go-envconfig"
 ) // .import
@@ -58,6 +59,36 @@ type AzureStorageConfig struct {
 	AzContainerEndpoint   string `env:"AZ_CONTAINER_ENDPOINT"`
 	AzContainerAccessType string `env:"AZ_CONTAINER_ACCESS_TYPE"`
 } // .AzureStorageConfig
+
+func (azc *AzureStorageConfig) Check() error {
+	errs := []error{}
+	if azc.AzStorageName == "" {
+		errs = append(errs, &MissingConfigError{
+			ConfigName: "AzStorageName",
+		})
+	}
+	if azc.AzStorageName == "" {
+		errs = append(errs, &MissingConfigError{
+			ConfigName: "AzStorageKey",
+		})
+	}
+	if azc.AzStorageName == "" {
+		errs = append(errs, &MissingConfigError{
+			ConfigName: "AzContainerName",
+		})
+	}
+	if azc.AzStorageName == "" {
+		errs = append(errs, &MissingConfigError{
+			ConfigName: "AzContainerEndpoint",
+		})
+	}
+	if azc.AzStorageName == "" {
+		errs = append(errs, &MissingConfigError{
+			ConfigName: "AzContainerAccessType",
+		})
+	}
+	return errors.Join(errs...)
+}
 
 var LoadedConfig *AppConfig
 

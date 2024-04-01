@@ -1,6 +1,7 @@
 package handlertusd
 
 import (
+	"errors"
 	"reflect"
 	"strings"
 
@@ -24,6 +25,12 @@ type Locker interface {
 
 // New returns a configured TUSD handler as-is with official implementation
 func New(store Store, locker Locker, hooksHandler hooks.HookHandler, appConfig appconfig.AppConfig) (*tusd.Handler, error) {
+	if store == nil {
+		return nil, errors.New("No store provided")
+	}
+	if locker == nil {
+		return nil, errors.New("No locker provided")
+	}
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")

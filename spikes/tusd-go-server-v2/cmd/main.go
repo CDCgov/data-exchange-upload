@@ -11,16 +11,12 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/hooks"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/joho/godotenv"
-	"github.com/tus/tusd/v2/pkg/azurestore"
-	"github.com/tus/tusd/v2/pkg/filelocker"
-	"github.com/tus/tusd/v2/pkg/filestore"
+	"github.com/tus/tusd/v2/pkg/memorylocker"
 ) // .import
 
 const appMainExitCode = 1
@@ -77,93 +73,34 @@ func main() {
 		logger.Error("error processing status not available", "error", err)
 	} // .err
 
-	// ------------------------------------------------------------------
-	// create dex server, includes tusd as-is handler + dex handler
-	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(cliFlags, appConfig, metaV1, psSender)
+	store, err := cli.CreateDataStore(appConfig)
 	if err != nil {
-		logger.Error("error starting app, error initialize dex server", "error", err)
+		logger.Error("error starting app, error configuring storage", "error", err)
 		os.Exit(appMainExitCode)
-	} // .if
-
-	var store handlertusd.Store
-	var locker handlertusd.Locker
-	// ------------------------------------------------------------------
-	// Load Az dependencies, needed for the DEX handler paths
-	// ------------------------------------------------------------------
-	if cliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE || cliFlags.RunMode == cli.RUN_MODE_AZURE {
-		// load on server azure service dependencies
-
-		// TODO: create the extra container that tus blob client needs it: one for raw uploads + one for dex uploads (files + manifest)
-		serverDex.HandlerDex.TusAzBlobClient, err = storeaz.NewTusAzBlobClient(appConfig)
-		if err != nil {
-			logger.Error("error receive az tus blob client", "error", err)
-		} // .if
-
-		serverDex.HandlerDex.RouterAzBlobClient, err = storeaz.NewRouterAzBlobClient(appConfig)
-		if err != nil {
-			logger.Error("error receive az router blob client", "error", err)
-		} // .if
-
-		serverDex.HandlerDex.EdavAzBlobClient, err = storeaz.NewEdavAzBlobClient(appConfig)
-		if err != nil {
-			logger.Error("error receive az edav blob client", "error", err)
-		} // .if
-
-		azHook := &hooks.AzureUploadCompleteHandler{
-			TusAzBlobClient:    serverDex.HandlerDex.TusAzBlobClient,
-			RouterAzBlobClient: serverDex.HandlerDex.RouterAzBlobClient,
-			EdavAzBlobClient:   serverDex.HandlerDex.EdavAzBlobClient,
-		}
-		cli.PostProcessHook = azHook.AzurePostProcess
-
-		azConfig := &azurestore.AzConfig{
-			AccountName:         appConfig.TusAzStorageConfig.AzStorageName,
-			AccountKey:          appConfig.TusAzStorageConfig.AzStorageKey,
-			ContainerName:       appConfig.TusAzStorageConfig.AzContainerName,
-			ContainerAccessType: appConfig.TusAzStorageConfig.AzContainerAccessType,
-			// BlobAccessTier:      Flags.AzBlobAccessTier,
-			Endpoint: appConfig.TusAzStorageConfig.AzContainerEndpoint,
-		} // .azConfig
-
-		azService, err := azurestore.NewAzureService(azConfig)
-		if err != nil {
-			logger.Error("error create azure store service", "error", err)
-			os.Exit(appMainExitCode)
-		} // azService
-
-		store = azurestore.New(azService)
-		// store.ObjectPrefix = Flags.AzObjectPrefix
-		// store.Container = appConfig.AzContainerName
-
-		// TODO: set for azure
-		// TODO: set for azure, Upload Locks: https://tus.github.io/tusd/advanced-topics/locks/
-	} else { // .if
-		// Create a new FileStore instance which is responsible for
-		// storing the uploaded file on disk in the specified directory.
-		// This path _must_ exist before tusd will store uploads in it.
-		// If you want to save them on a different medium, for example
-		// a remote FTP server, you can implement your own storage backend
-		// by implementing the tusd.DataStore interface.
-		store = filestore.FileStore{
-			Path: appConfig.LocalFolderUploadsTus,
-		} // .store
-
-		// used to prevent concurrent access to an upload: https://tus.github.io/tusd/advanced-topics/locks/
-		// ok for local dev to use disk based storage
-		locker = filelocker.New(appConfig.LocalFolderUploadsTus)
 	}
+
+	locker := memorylocker.New()
 
 	handlerTusd, err := handlertusd.New(store, locker, cli.GetHookHandler(), appConfig)
 	if err != nil {
 		logger.Error("error starting tusd handler: ", err)
 		os.Exit(appMainExitCode)
 	} // .handlerTusd
+
 	// --------------------------------------------------------------
 	// 	TUSD handler
 	// --------------------------------------------------------------
 	// Route for TUSD to start listening on and accept http request
 	http.Handle(appConfig.TusdHandlerBasePath, http.StripPrefix(appConfig.TusdHandlerBasePath, handlerTusd))
+
+	// ------------------------------------------------------------------
+	// create dex server, includes dex handler
+	// ------------------------------------------------------------------
+	serverDex, err := serverdex.New(cliFlags, appConfig, metaV1, psSender)
+	if err != nil {
+		logger.Error("error starting app, error initialize dex server", "error", err)
+		os.Exit(appMainExitCode)
+	} // .if
 
 	// ------------------------------------------------------------------
 	// Start http custom server
