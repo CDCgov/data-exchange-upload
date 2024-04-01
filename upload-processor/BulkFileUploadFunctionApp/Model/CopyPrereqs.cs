@@ -1,35 +1,37 @@
-using System.Text.Json.Serialization;
-
-using BulkFileUploadFunctionApp.Utils;
-
 namespace BulkFileUploadFunctionApp.Model
 {
     public class CopyPrereqs
     {
-        public string? UploadId { get; set; }
-        public string? SourceBlobUrl { get; set; }
-        public string? TusPayloadFilename { get; set; }
+        public string? UploadId { get; init; }
+        public string? SourceBlobUrl { get; init; }
+        public string? TusPayloadFilename { get; init; }
+        public string? UseCase { get; init; }
+        public string? UseCaseCategory { get; init; }
+        public string? DexBlobFileName { get; init; }
+        public string? DexBlobFolderName { get; init; }
+        public List<CopyTargetsEnum>? Targets { get; init; }
+        public Trace? Trace { get; init; }
         public string? DexBlobUrl { get; set; }
-        public string? DestinationId { get; set; }
-        public string? EventType { get; set; }
-        public string? DexBlobFolderName { get; set; }
-        public string? DexBlobFileName { get; set; }
         public Dictionary<string, string>? Metadata { get; set; }
-        public List<CopyTargetsEnum>? Targets { get; set; }
-        public Trace? Trace { get; set; }
+        
 
         public CopyPrereqs() { }
 
+        public CopyPrereqs(string sourceBlobUrl)
+        {
+            SourceBlobUrl = sourceBlobUrl;
+        }
+
         // create a Default constructor
-        public CopyPrereqs(string uploadId, string sourceBlobUrl, string tusPayloadFilename, string destinationId, string eventType, string dexBlobFolderName, string dexBlobFileName, Dictionary<string, string> metadata, List<CopyTargetsEnum> targets, Trace trace)
+        public CopyPrereqs(string uploadId, string sourceBlobUrl, string tusPayloadFilename, string useCase, string useCaseCategory, string dexBlobFileName, Dictionary<string, string> metadata, List<CopyTargetsEnum> targets, Trace trace)
         {
             UploadId = uploadId;
             SourceBlobUrl = sourceBlobUrl;
             TusPayloadFilename = tusPayloadFilename;
-            DestinationId = destinationId;
-            EventType = eventType;
-            DexBlobFolderName = dexBlobFolderName;
+            UseCase = useCase;
+            UseCaseCategory = useCaseCategory;
             DexBlobFileName = dexBlobFileName;
+            DexBlobFolderName = $"{useCase}-{useCaseCategory}";
             Metadata = metadata;
             Targets = targets;
             Trace = trace;
