@@ -69,21 +69,21 @@ def check_metadata_against_config(meta_json, meta_config):
         
         if field['field_name'] in meta_json:
             field_value = meta_json[field['field_name']]
-
-            if field['allowed_values'] is not None and len(
-                    field['allowed_values']) > 0 and field_value not in field['allowed_values']:
-                validation_error_messages.append(field['field_name'] + ' = ' + field_value + 'is not one of the allowed '
-                                                                                           'values: ' + json.dumps(
-                    field['allowed_values']))
-                print(field['field_name'] + " = " + field_value + " is not one of the allowed values: " + json.dumps(
-                    field['allowed_values']))
-                found_validation_error = True
+            
+            if 'allowed_values' in field:
+                if len(field['allowed_values']) > 0 and field_value not in field['allowed_values']:
+                    validation_error_messages.append(field['field_name'] + ' = ' + field_value + 'is not one of the allowed '
+                                                                                            'values: ' + json.dumps(
+                        field['allowed_values']))
+                    logger.info(field['field_name'] + " = " + field_value + " is not one of the allowed values: " + json.dumps(
+                        field['allowed_values']))
+                    found_validation_error = True
 
     if len(missing_metadata_fields) > 0:
         for field_def in missing_metadata_fields:
             validation_error_messages.append(
                 "Missing required metadata '" + field_def['field_name'] + "', description = '" + field_def['description'] + "'")
-            print(
+            logger.info(
                 "Missing required metadata '" + field_def['field_name'] + "', description = '" + field_def['description'] + "'")
             found_validation_error = True
 
