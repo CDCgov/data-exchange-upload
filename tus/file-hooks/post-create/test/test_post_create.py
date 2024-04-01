@@ -40,11 +40,11 @@ class TestPostCreateMethods(unittest.TestCase):
 
     # Assert the result
     self.assertEqual(result, 'example.txt')
-  
-  @patch.object(ProcStatController, 'create_upload_trace', return_value=("trace_id", "parent_span_id"))
-  @patch.object(ProcStatController, 'start_span_for_trace', return_value=("trace_id", "metadata_verify_span_id"))
-  @patch.object(ProcStatController, 'create_report_json')
+
   @patch.object(ProcStatController, 'stop_span_for_trace')
+  @patch.object(ProcStatController, 'create_report_json')
+  @patch.object(ProcStatController, 'start_span_for_trace', return_value=("trace_id", "metadata_verify_span_id"))
+  @patch.object(ProcStatController, 'create_upload_trace', return_value=("trace_id", "parent_span_id"))
   def test_should_send_create_trace_request(self, create_upload_trace_mock, start_span_for_trace_mock, create_report_json_mock, stop_span_for_trace_mock):
     
     # Test data
