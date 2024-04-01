@@ -416,7 +416,7 @@ namespace BulkFileUploadFunctionApp.Services
                 uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, _uploadConfigContainer, configFilename);
             } catch (Exception e)
             {
-                _logger.LogError($"No upload config found for ${configFilename}.  Using default config. Exception = ${e.Message}");
+                _logger.LogError($"No upload config found for {configFilename}.  Using default config. Exception = {e.Message}");
             }
 
             if (uploadConfig == null)
