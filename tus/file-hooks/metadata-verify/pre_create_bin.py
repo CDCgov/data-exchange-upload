@@ -133,7 +133,13 @@ def report_verification_failure(messages, use_case, use_case_category, meta_json
     logger.debug(
         f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
 
-    filename = get_filename_from_metadata(meta_json)
+    filename = None
+
+    try:
+        filename = get_filename_from_metadata(meta_json)
+    except Exception as e:
+        logger.debug('Unable to get filename. Sending failure report with no filename.')
+
     # Send report with metadata failure issues.
     payload = {
         'schema_version': '0.0.1',
