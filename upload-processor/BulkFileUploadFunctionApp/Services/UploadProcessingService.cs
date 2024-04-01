@@ -6,6 +6,7 @@ using Azure.Identity;
 using System.Text.Json;
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
+using System.Text.Json.Serialization;
 
 namespace BulkFileUploadFunctionApp.Services
 {
@@ -113,11 +114,12 @@ namespace BulkFileUploadFunctionApp.Services
                 string uploadConfigFilename = $"{useCase}-{useCaseCategory}.json";
 
                 var uploadConfig = await GetUploadConfig(uploadConfigFilename, version);
-
+                _logger.LogInformation($"Got upload config for {version}: {JsonSerializer.Serialize(uploadConfig)}");
                 // translate V1 metadata 
                 if (version == MetadataVersion.V1)
                 {
-                    var uploadConfigV2 = await GetUploadConfig(uploadConfigFilename, version);
+                    var uploadConfigV2 = await GetUploadConfig(uploadConfigFilename, MetadataVersion.V2);
+                    _logger.LogInformation($"Translating to {JsonSerializer.Serialize(uploadConfigV2)}");
                     tusInfoFile.MetaData = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
                 }
                 
