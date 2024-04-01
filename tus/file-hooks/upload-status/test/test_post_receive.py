@@ -58,9 +58,6 @@ class TestPostReceive(unittest.TestCase):
     async def test_post_receive_exception(self, mock_send_message, mock_get_report_body):
         mock_get_report_body.return_value = self.expected_json_data
 
-        tguid = "123456"
-        offset = "100"
-        size = "200"
         metadata_json = '{"invalid_key": "test.txt"}'
 
         with self.assertRaises(Exception):

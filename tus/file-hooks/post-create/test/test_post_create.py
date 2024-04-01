@@ -39,7 +39,7 @@ class TestPostCreateMethods(unittest.TestCase):
       with self.assertRaises(Exception) as context:
         get_required_metadata(metadata_json_dict)
 
-      self.assertTrue('Missing one or more required metadata fields: ' in str(context.exception))
+      self.assertIn('Missing one or more required metadata fields: ', str(context.exception))
 
     def test_get_filename_from_metadata(self):
         metadata_json_dict = {'filename': 'example.txt', 'original_filename': 'example_original.txt'}

@@ -51,4 +51,4 @@ class TestVerifyMetadata(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             check_metadata_against_config(meta_json, mock_config)
 
-        self.assertTrue("Missing required metadata 'filename'" in str(context.exception))
+        self.assertIn("Missing required metadata 'filename'", str(context.exception))
