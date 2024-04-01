@@ -62,16 +62,14 @@ def check_metadata_against_config(meta_json, meta_config):
     missing_metadata_fields = []
     found_validation_error = False
     validation_error_messages = []
-
     for field in meta_config['fields']:
         if field['required'] == True and field['field_name'] not in meta_json:
             missing_metadata_fields.append(field)
-        
         if field['field_name'] in meta_json:
             field_value = meta_json[field['field_name']]
             
             if 'allowed_values' in field:
-                if len(field['allowed_values']) > 0 and field_value not in field['allowed_values']:
+                if field['allowed_values'] is not None and len(field['allowed_values']) > 0 and field_value not in field['allowed_values']:
                     validation_error_messages.append(field['field_name'] + ' = ' + field_value + 'is not one of the allowed '
                                                                                             'values: ' + json.dumps(
                         field['allowed_values']))
