@@ -40,27 +40,9 @@ func main() {
 		os.Exit(appMainExitCode)
 	} // .if
 
-	// ------------------------------------------------------------------
-	// used to run the app locally, it uploads files locally
-	// ------------------------------------------------------------------
-	if cliFlags.RunMode == cli.RUN_MODE_LOCAL || cliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE {
-		err = godotenv.Load(cliFlags.AppLocalConfigPath)
-		if err != nil {
-			slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
-			os.Exit(appMainExitCode)
-		} // .if
-	} // .if
-
-	// ------------------------------------------------------------------
-	// used to run the app locally, it uploads files from local to azure
-	// ------------------------------------------------------------------
-	// load the additional azure configuration from local config yaml
-	if cliFlags.RunMode == cli.RUN_MODE_LOCAL_TO_AZURE {
-		err := godotenv.Load(cliFlags.AzLocalConfigPath)
-		if err != nil {
-			slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
-			os.Exit(appMainExitCode)
-		} // .if
+	if err := godotenv.Load(cliFlags.AppConfigPath); err != nil {
+		slog.Error("error loading local configuration", "runMode", cliFlags.RunMode, "error", err)
+		os.Exit(appMainExitCode)
 	} // .if
 
 	// ------------------------------------------------------------------

@@ -7,11 +7,10 @@ import (
 ) // .import
 
 type Flags struct {
-	RunMode            string // local, azure, aws
-	AppLocalConfigPath string // if override
-	AzLocalConfigPath  string // if override
-	UsePrebuiltHooks   bool
-	FileHooksDir       string
+	RunMode          string // local, azure, aws
+	AppConfigPath    string // if override
+	UsePrebuiltHooks bool
+	FileHooksDir     string
 } // .flags
 
 var runModes = []string{"local", "azure", "aws", "local_to_azure"}
@@ -27,8 +26,7 @@ var CliFlags *Flags
 func ParseFlags() (Flags, error) {
 
 	runMode := flag.String("env", "local", "used to set app run mode: local, local_to_azure, azure, or aws")
-	appLcp := flag.String("appconf", "./configs/local/local.env", "used to override the app configuration file path")
-	azLcp := flag.String("azconf", "./configs/local/az.env", "used to override the azure configuration file path")
+	configFile := flag.String("appconf", "./configs/local/local.env", "used to override the app configuration file path")
 
 	flag.Parse()
 
@@ -37,9 +35,8 @@ func ParseFlags() (Flags, error) {
 	} // if
 
 	flags := Flags{
-		RunMode:            *runMode,
-		AppLocalConfigPath: *appLcp,
-		AzLocalConfigPath:  *azLcp,
+		RunMode:       *runMode,
+		AppConfigPath: *configFile,
 	} // .flags
 	CliFlags = &flags
 	return flags, nil
