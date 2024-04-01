@@ -102,8 +102,8 @@ namespace BulkFileUploadFunctionAppTests
                 Trace = _trace,
                 SourceBlobUrl = testBlobUrl,
                 TusPayloadFilename = tusInfoFile.MetaData["filename"],
-                DestinationId = tusInfoFile.MetaData["meta_destination_id"],
-                EventType = tusInfoFile.MetaData["meta_ext_event"],
+                UseCase = tusInfoFile.MetaData["meta_destination_id"],
+                UseCaseCategory = tusInfoFile.MetaData["meta_ext_event"],
                 DexBlobFolderName = uploadConfig.CopyConfig.FolderStructure,
                 DexBlobFileName = tusInfoFile.MetaData["filename"].Replace("test", "dexTest")
             };

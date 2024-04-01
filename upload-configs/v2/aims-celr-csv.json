@@ -36,6 +36,55 @@
 				"required": true,
 				"description": "This recieved is the route of the data stream.",
 				"compat_field_name": "meta_ext_event"
+			},
+			{
+				"field_name": "meta_ext_objectkey",
+				"required": true,
+				"allowed_values": null,
+				"description": "This field is used to track back to the source objectid.",
+				"compat_field_name": null
+			},
+			{
+				"field_name": "meta_ext_file_timestamp",
+				"required": true,
+				"allowed_values": null,
+				"description": "The timestamp on the source for file last modified.",
+				"compat_field_name": null
+			},
+			{
+				"field_name": "meta_username",
+				"required": true,
+				"allowed_values": null,
+				"description": "Username of user or system name who submitted the file.",
+				"compat_field_name": null
+			},
+			{
+				"field_name": "meta_ext_filestatus",
+				"required": true,
+				"allowed_values": null,
+				"description": "The file status in the source system.",
+				"compat_field_name": null
+			},
+			{
+				"field_name": "meta_ext_uploadid",
+				"required": true,
+				"allowed_values": null,
+				"description": "The uploadid in the system source.",
+				"compat_field_name": null
+			},
+			{
+				"field_name": "meta_program",
+				"required": "false",
+				"allowed_values": null,
+				"description": "The program source.",
+				"compat_field_name": null
+			},
+			{
+				"field_name": "meta_ext_source",
+				"required": true,
+				"allowed_values": null,
+				"description": "The source system.",
+				"compat_field_name": null
 			}
 		]
 	},

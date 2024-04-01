@@ -4,46 +4,172 @@
       "fields": [
          {
             "field_name": "sender_id",
+            "allowed_values": [
+               "IZGW"
+            ],
             "required": true,
-				"description": "This field is the identifier for the sender of the data.",
+            "description": "This field is the identifier for the sender of the data.",
             "compat_field_name": "meta_ext_source"
          },
          {
             "field_name": "data_producer_id",
             "required": true,
-				"description": "This field is the identifier for the data producer."
+            "description": "This field is the identifier for the data producer."
          },
          {
             "field_name": "jurisdiction",
+            "allowed_values": [
+               "AKA",
+               "ALA",
+               "ASA",
+               "AZA",
+               "ARA",
+               "CAA",
+               "CHA",
+               "COA",
+               "CTA",
+               "DEA",
+               "DCA",
+               "FMA",
+               "FLA",
+               "GAA",
+               "GUA",
+               "HIA",
+               "IDA",
+               "ILA",
+               "IAA",
+               "INA",
+               "KSA",
+               "KYA",
+               "LAA",
+               "MEA",
+               "MHA",
+               "MDA",
+               "MAA",
+               "MIA",
+               "MNA",
+               "MSA",
+               "MOA",
+               "MTA",
+               "NEA",
+               "NHA",
+               "NJA",
+               "NMA",
+               "BAA",
+               "NYA",
+               "NCA",
+               "NDA",
+               "NVA",
+               "MPA",
+               "OHA",
+               "OKA",
+               "ORA",
+               "PAA",
+               "PHA",
+               "PRA",
+               "RPA",
+               "RIA",
+               "SCA",
+               "SDA",
+               "TNA",
+               "TXA",
+               "UTA",
+               "VTA",
+               "VIA",
+               "VAA",
+               "WAA",
+               "WVA",
+               "WIA",
+               "WYA",
+               "DD2",
+               "HS2",
+               "DS2",
+               "BP2",
+               "IH2",
+               "VA2",
+               "CV1",
+               "WG1",
+               "WM1",
+               "RA1",
+               "KG1",
+               "AB1",
+               "PX1",
+               "AD1",
+               "CW1",
+               "HE1",
+               "HV1",
+               "MG1",
+               "SE1",
+               "MS1",
+               "HM1",
+               "GN1",
+               "TP1",
+               "CP1",
+               "MH1",
+               "GM1",
+               "PI1",
+               "TBA",
+               "THA",
+               "HH2",
+               "HR2",
+               "DV3",
+               "FD3"
+            ],
             "required": true,
-				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
+            "description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
             "compat_field_name": "meta_ext_entity"
          },
          {
             "field_name": "received_filename",
             "required": true,
-				"description": "This field is the name of the file when uploaded.",
+            "description": "This field is the name of the file when uploaded.",
             "compat_field_name": "meta_ext_filename"
          },
          {
             "field_name": "data_stream_id",
             "required": true,
-				"description": "This field is the identifier for the data stream.",
+            "description": "This field is the identifier for the data stream.",
             "compat_field_name": "meta_destination_id"
          },
          {
             "field_name": "data_stream_route",
             "required": true,
-				"description": "This recieved is the route of the data stream.",
+            "description": "This recieved is the route of the data stream.",
             "compat_field_name": "meta_ext_event"
+         },
+         {
+            "field_name": "meta_ext_sourceversion",
+            "allowed_values": [
+               "V2023-09-01"
+            ],
+            "required": true,
+            "description": "Aligns with version of the specification."
+         },
+         {
+            "field_name": "meta_username",
+            "allowed_values": null,
+            "required": true,
+            "description": "Username of user who submitted the file to the IZGW.  If this is a system to system submission then this should be the service account."
+         },
+         {
+            "field_name": "meta_ext_objectkey",
+            "allowed_values": null,
+            "required": true,
+            "description": "This field is used to track back to the source filename/objectid."
+         },
+         {
+            "field_name": "meta_ext_submissionperiod",
+            "allowed_values": null,
+            "required": true,
+            "description": "Submission period for the file submitted."
          }
       ]
    },
    "copy_config": {
-		"filename_suffix": "clock_ticks",
-		"folder_structure": "date_YYYY_MM_DD",
-		"targets": [
-			"edav"
-		]
-	}
+      "filename_suffix": "clock_ticks",
+      "folder_structure": "date_YYYY_MM_DD",
+      "targets": [
+         "edav"
+      ]
+   }
 }

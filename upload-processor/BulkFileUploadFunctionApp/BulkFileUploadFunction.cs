@@ -63,8 +63,7 @@ namespace BulkFileUploadFunctionApp
 
         private async Task ProcessBlobCreatedEvent(string blobCreatedUrl)
         {
-            CopyPrereqs copyPrereqs = new CopyPrereqs();
-            copyPrereqs.SourceBlobUrl = blobCreatedUrl;
+            CopyPrereqs copyPrereqs = new CopyPrereqs(blobCreatedUrl);
 
             try
             {
