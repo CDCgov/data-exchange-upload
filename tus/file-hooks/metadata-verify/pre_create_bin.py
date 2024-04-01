@@ -15,10 +15,13 @@ from azure.appconfiguration import AzureAppConfigurationClient
 
 connection_string = os.getenv('FEATURE_MANAGER_CONNECTION_STRING')
 
-if connection_string is None:
-    raise ValueError("Connection string for Azure App Configuration is not set.")
-
-config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+if connection_string:
+    try:
+        config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+    except Exception as e:
+        raise ValueError(f"Failed to initialize Azure App Configuration: {e}")
+else:
+    config_client = None
 
 load_dotenv()
 
