@@ -27,7 +27,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly IUploadEventHubService _uploadEventHubService;
         private readonly IFeatureManagementExecutor _featureManagementExecutor;
         private readonly IProcStatClient _procStatClient;
-        private readonly string _stageName = "dex-file-copy";
         private readonly string _dexStorageAccountConnectionString;
         private readonly string _routingStorageAccountConnectionString;
         private readonly BlobServiceClient _dexBlobServiceClient;
@@ -36,7 +35,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobServiceClient _edavBlobServiceClient;
         private readonly IBlobReaderFactory _blobReaderFactory;
         private readonly string _uploadConfigContainer; 
-        private readonly string metadataVersionOne = "1.0";
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
@@ -169,7 +167,7 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    copySpan = await _procStatClient.StartSpanForTrace(copyPrereqs.Trace.TraceId, copyPrereqs.Trace.SpanId, _stageName);
+                    copySpan = await _procStatClient.StartSpanForTrace(copyPrereqs.Trace.TraceId, copyPrereqs.Trace.SpanId, Constants.PROC_STAT_REPORT_STAGE_NAME);
                 });
 
                 copyPrereqs.DexBlobUrl = await CopyFromTusToDex(copyPrereqs);
