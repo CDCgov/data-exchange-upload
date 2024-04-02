@@ -76,27 +76,29 @@ namespace BulkFileUploadFunctionApp
                             }
                             break;
 
-                        //case BlobCopyStage.CopyToEdav:
-                        //    try
-                        //    {
-                        //        await _uploadProcessingService.CopyFromDexToEdav(blobCopyRetryEvent.CopyPrereqs);
-                        //    }
-                        //    catch (Exception ex)
-                        //    {
-                        //        await RePublishEvent(blobCopyRetryEvent);
-                        //    }                          
-                        //    break;
+                        case BlobCopyStage.CopyToEdav:
+                           try
+                           {
+                                // TODO: CopyFromDexToTargets(edav writer)
+                               //await _uploadProcessingService.CopyFromDexToEdav(blobCopyRetryEvent.CopyPrereqs);
+                           }
+                           catch (Exception ex)
+                           {
+                               await RePublishEvent(blobCopyRetryEvent);
+                           }                          
+                           break;
 
-                        //case BlobCopyStage.CopyToRouting:
-                        //    try
-                        //    {
-                        //        await _uploadProcessingService.CopyFromDexToRouting(blobCopyRetryEvent.CopyPrereqs);
-                        //    }
-                        //    catch (Exception ex)
-                        //    {
-                        //        await RePublishEvent(blobCopyRetryEvent);
-                        //    }                            
-                        //    break;
+                        case BlobCopyStage.CopyToRouting:
+                           try
+                           {
+                                // TODO: CopyFromDexToTargets(routing writer)
+                                //await _uploadProcessingService.CopyFromDexToRouting(blobCopyRetryEvent.CopyPrereqs);
+                            }
+                            catch (Exception ex)
+                           {
+                               await RePublishEvent(blobCopyRetryEvent);
+                           }                            
+                           break;
                         
                         default:
                             _logger.LogInformation("Invalid copy retry stage provided");

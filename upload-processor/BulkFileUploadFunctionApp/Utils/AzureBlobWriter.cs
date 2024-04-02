@@ -14,40 +14,66 @@ using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 namespace BulkFileUploadFunctionApp.Utils
 {
     // Derived Writer Classes Implementing IBlobWriter and IEnableable
-    public class AzureBlobWriter : Enableable
+    public class AzureBlobWriter : Enableable, IRetryable
     {
-        public BlobServiceClient _src { get; init; }
-        public BlobServiceClient _dest { get; init; }
-        public string _srcContainerName { get; init; }
-        public string _destContainerName { get; init; }
-        public BlobClient _srcBlobClient { get; init; }
-        public BlobClient _destBlobClient { get; init; }
-        public Dictionary<string, string> _metaData { get; init; }
+        public BlobServiceClient Src { get; init; }
+        public BlobServiceClient Dest { get; init; }
+        public string SrcContainerName { get; init; }
+        public string DestContainerName { get; init; }
+        public BlobClient SrcBlobClient { get; init; }
+        public BlobClient DestBlobClient { get; init; }
+        public Dictionary<string, string> MetaData { get; init; }
+        private BlobCopyStage _copyStage;
 
         public AzureBlobWriter(BlobServiceClient src, BlobServiceClient dest, string srcContainerName, string destContainerName,
-            string blobName, Dictionary<string, string> metaData)
+            string blobName, Dictionary<string, string> metaData, BlobCopyStage copyStage)
         {
-            _src = src;
-            _dest = dest;
-            _srcContainerName = srcContainerName;
-            _destContainerName = destContainerName;
-            _srcBlobClient = _src.GetBlobContainerClient(_srcContainerName).GetBlobClient(blobName);
-            _destBlobClient = _dest.GetBlobContainerClient(_destContainerName).GetBlobClient(blobName);
-            _metaData = metaData;
+            Src = src;
+            Dest = dest;
+            SrcContainerName = srcContainerName;
+            DestContainerName = destContainerName;
+            SrcBlobClient = Src.GetBlobContainerClient(SrcContainerName).GetBlobClient(blobName);
+            DestBlobClient = Dest.GetBlobContainerClient(DestContainerName).GetBlobClient(blobName);
+            MetaData = metaData;
+            _copyStage = copyStage; 
         }
 
         public AzureBlobWriter(BlobServiceClient src, BlobServiceClient dest, string srcContainerName, string destContainerName, 
-            string blobName, Dictionary<string,string> metaData, string featureFlagKey, IFeatureManagementExecutor executor)
+            string blobName, Dictionary<string,string> metaData, BlobCopyStage copyStage, string featureFlagKey, IFeatureManagementExecutor executor)
         {
-            _src = src;
-            _dest = dest;
-            _srcContainerName = srcContainerName;
-            _destContainerName = destContainerName;
-            _srcBlobClient = _src.GetBlobContainerClient(_srcContainerName).GetBlobClient(blobName);
-            _destBlobClient = _dest.GetBlobContainerClient(_destContainerName).GetBlobClient(blobName);
-            _metaData = metaData;
+            Src = src;
+            Dest = dest;
+            SrcContainerName = srcContainerName;
+            DestContainerName = destContainerName;
+            SrcBlobClient = Src.GetBlobContainerClient(SrcContainerName).GetBlobClient(blobName);
+            DestBlobClient = Dest.GetBlobContainerClient(DestContainerName).GetBlobClient(blobName);
+            MetaData = metaData;
+            _copyStage = copyStage;
             FeatureFlagKey = featureFlagKey;
             Executor = executor;
+        }
+
+        public void DoWithRetry(Action callback)
+        {
+            try
+            {
+                callback();
+            } catch (Exception ex)
+            {
+                throw new RetryException(_copyStage, ex.Message);
+            }
+        }
+
+        public async Task DoWithRetryAsync(Func<Task> callback)
+        {
+            try
+            {
+               await callback();
+            }
+            catch (Exception ex)
+            {
+                throw new RetryException(_copyStage, ex.Message);
+            }
         }
 
         public override void DoIfEnabled(Action callback)
@@ -68,65 +94,55 @@ namespace BulkFileUploadFunctionApp.Utils
 
             // Lease the source blob for the copy operation 
             // to prevent another client from modifying it.
-            BlobLeaseClient lease = _srcBlobClient.GetBlobLeaseClient();
+            BlobLeaseClient lease = SrcBlobClient.GetBlobLeaseClient();
             // Get the source blob's properties and display the lease state.
-            BlobProperties sourceProperties = await _srcBlobClient.GetPropertiesAsync();
+            BlobProperties sourceProperties = await SrcBlobClient.GetPropertiesAsync();
 
-            try
+            //_logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
+
+            // Ensure that the source blob exists.
+            if (await SrcBlobClient.ExistsAsync())
             {
+                //_logger.LogInformation("File exists, getting lease on file");
+                // Specifying -1 for the lease interval creates an infinite lease.
+                await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
 
-                //_logger.LogInformation($"Checking if source blob with uri {sourceBlob.Uri} exists");
+                //_logger.LogInformation($"Lease state: {sourceProperties.LeaseState}");
+                //_logger.LogInformation("Starting blob copy");
 
-                // Ensure that the source blob exists.
-                if (await _srcBlobClient.ExistsAsync())
-                {
-                    //_logger.LogInformation("File exists, getting lease on file");
-                    // Specifying -1 for the lease interval creates an infinite lease.
-                    await lease.AcquireAsync(TimeSpan.FromSeconds(-1));
+                // Start the copy operation.
+                var sourceUriToUse = sourceSasBlobUri != null ? sourceSasBlobUri : SrcBlobClient.Uri;
+                await DestBlobClient.StartCopyFromUriAsync(sourceUriToUse, MetaData);
 
-                    //_logger.LogInformation($"Lease state: {sourceProperties.LeaseState}");
-                    //_logger.LogInformation("Starting blob copy");
+                //_logger.LogInformation("Finished blob copy");
 
-                    // Start the copy operation.
-                    var sourceUriToUse = sourceSasBlobUri != null ? sourceSasBlobUri : _srcBlobClient.Uri;
-                    await _destBlobClient.StartCopyFromUriAsync(sourceUriToUse, _metaData);
+                // Get the destination blob's properties and display the copy status.
+                BlobProperties destProperties = await DestBlobClient.GetPropertiesAsync();
 
-                    //_logger.LogInformation("Finished blob copy");
+                // _logger.LogInformation($"Copy status: {destProperties.CopyStatus}");
+                // _logger.LogInformation($"Copy progress: {destProperties.CopyProgress}");
+                // _logger.LogInformation($"Completion time: {destProperties.CopyCompletedOn}");
+                // _logger.LogInformation($"Total bytes: {destProperties.ContentLength}");
 
-                    // Get the destination blob's properties and display the copy status.
-                    BlobProperties destProperties = await _destBlobClient.GetPropertiesAsync();
-
-                    // _logger.LogInformation($"Copy status: {destProperties.CopyStatus}");
-                    // _logger.LogInformation($"Copy progress: {destProperties.CopyProgress}");
-                    // _logger.LogInformation($"Completion time: {destProperties.CopyCompletedOn}");
-                    // _logger.LogInformation($"Total bytes: {destProperties.ContentLength}");
-
-                    // Update the source blob's properties.
-                    sourceProperties = await _srcBlobClient.GetPropertiesAsync();
-                }
+                // Update the source blob's properties.
+                sourceProperties = await SrcBlobClient.GetPropertiesAsync();
             }
-            catch (RequestFailedException ex)
-            {
-                // _logger.LogError(ex.Message);
-            }
-            finally
-            {
-                sourceProperties = await _srcBlobClient.GetPropertiesAsync();
-                // _logger.LogInformation($"Post-copy Lease state: {sourceProperties.LeaseState}");
+            
+            sourceProperties = await SrcBlobClient.GetPropertiesAsync();
+            // _logger.LogInformation($"Post-copy Lease state: {sourceProperties.LeaseState}");
 
-                if (sourceProperties.LeaseState == LeaseState.Leased)
-                {
-                    // Release the lease on the source blob
-                    await lease.ReleaseAsync();
-                }
+            if (sourceProperties.LeaseState == LeaseState.Leased)
+            {
+                // Release the lease on the source blob
+                await lease.ReleaseAsync();
             }
         }
 
         public async Task WriteStreamAsync()
         {
-            using var sourceBlobStream = await _srcBlobClient.OpenReadAsync();
+            using var sourceBlobStream = await SrcBlobClient.OpenReadAsync();
             {
-                await _destBlobClient.UploadAsync(sourceBlobStream, null, _metaData);
+                await DestBlobClient.UploadAsync(sourceBlobStream, null, MetaData);
             }
         }
     }

@@ -1,14 +1,10 @@
 using Azure;
-using Azure.Storage.Blobs;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using Azure.Identity;
-using System.Text.Json;
-using BulkFileUploadFunctionApp.Utils;
+using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp.Model;
-using Microsoft.VisualStudio.TestTools.UnitTesting.Logging;
-using System.Reflection.Metadata;
-using Newtonsoft.Json.Bson;
+using BulkFileUploadFunctionApp.Utils;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace BulkFileUploadFunctionApp.Services
 {
@@ -173,49 +169,77 @@ namespace BulkFileUploadFunctionApp.Services
 
             _logger.LogInformation($"Creating destination container client, container name: {copyPrereqs.DexBlobFolderName}");
 
-
             //var srcServiceClient = _blobServiceClientFactory.CreateInstance("tus", _dexStorageAccountConnectionString);
+            var srcServiceClient = _blobServiceClientFactory.CreateInstance("tus", _dexStorageAccountConnectionString);
             string dexToEdavDestinationContainerName = _edavUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
             string dexToEdavDestinationFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
             string DexToRoutingDestinationFilename = dexToEdavDestinationFilename;
             string DexToRoutingDestinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
 
-            AzureBlobWriter DexToEdavBlobWriter = new AzureBlobWriter(_dexBlobServiceClient, _edavBlobServiceClient, 
+            AzureBlobWriter tusToDexBlobWriter = new AzureBlobWriter(srcServiceClient, _dexBlobServiceClient,
+                _tusAzureStorageContainer, copyPrereqs.DexBlobFolderName, copyPrereqs.DexBlobFileName, copyPrereqs.Metadata, BlobCopyStage.CopyToDex);
+            AzureBlobWriter dexToEdavBlobWriter = new AzureBlobWriter(_dexBlobServiceClient, _edavBlobServiceClient, 
                 copyPrereqs.DexBlobFolderName, dexToEdavDestinationContainerName, dexToEdavDestinationFilename, 
-                 copyPrereqs.Metadata);
-            AzureBlobWriter DexToRoutingBlobWriter = new AzureBlobWriter(_dexBlobServiceClient, _routingBlobServiceClient,
+                 copyPrereqs.Metadata, BlobCopyStage.CopyToEdav);
+            AzureBlobWriter dexToRoutingBlobWriter = new AzureBlobWriter(_dexBlobServiceClient, _routingBlobServiceClient,
                 copyPrereqs.DexBlobFolderName, DexToRoutingDestinationContainerName, DexToRoutingDestinationFilename, 
-                 copyPrereqs.Metadata, Constants.ROUTING_FEATURE_FLAG_NAME, _featureManagementExecutor);
+                 copyPrereqs.Metadata, BlobCopyStage.CopyToRouting, Constants.ROUTING_FEATURE_FLAG_NAME, _featureManagementExecutor);
 
             List<AzureBlobWriter> writers = copyPrereqs.Targets.Select(target =>
             {
                 switch (target)
                 {
                     case CopyTargetsEnum.edav:
-                        return DexToEdavBlobWriter;
+                        return dexToEdavBlobWriter;
                     case CopyTargetsEnum.routing:
-                        return DexToRoutingBlobWriter;
+                        return dexToRoutingBlobWriter;
                     default:
-                        return DexToEdavBlobWriter;
+                        return dexToEdavBlobWriter;
                 };
             }).ToList();         
 
             try
             {
-                // copy to targets
-                copyPrereqs.DexBlobUrl = await CopyFromTusToDex(copyPrereqs);
-             
-                await CopyFromDexToTargets(writers, copyPrereqs);
-
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     copySpan = await _procStatClient.StartSpanForTrace(copyPrereqs.Trace.TraceId, copyPrereqs.Trace.SpanId, _stageName);
                 });
+
+                copyPrereqs.DexBlobUrl = await CopyFromTusToDex(tusToDexBlobWriter);
+                await CopyFromDexToTargets(writers, copyPrereqs);
             }
-            catch(Exception ex)
+            catch (RetryException ex)
             {
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-                throw ex;
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                {
+                    string? srcUrl = null;
+                    string? destUrl = null;
+
+                    switch (ex.Stage)
+                    {
+                        case BlobCopyStage.CopyToDex:
+                            srcUrl = tusToDexBlobWriter.SrcBlobClient.Uri.ToString();
+                            destUrl = tusToDexBlobWriter.DestBlobClient.Uri.ToString();
+                            break;
+                        case BlobCopyStage.CopyToEdav:
+                            srcUrl = dexToEdavBlobWriter.SrcBlobClient.Uri.ToString();
+                            destUrl = dexToEdavBlobWriter.DestBlobClient.Uri.ToString();
+                            break;
+                        case BlobCopyStage.CopyToRouting:
+                            srcUrl = dexToRoutingBlobWriter.SrcBlobClient.Uri.ToString();
+                            destUrl = dexToRoutingBlobWriter.DestBlobClient.Uri.ToString();
+                            break;
+                    }
+
+                    SendFailureReport(copyPrereqs.UploadId,
+                                      copyPrereqs.DestinationId,
+                                      copyPrereqs.EventType,
+                                      copyPrereqs.SourceBlobUrl,
+                                      copyPrereqs.DexBlobFolderName,
+                                      $"Failed to copy blob from {srcUrl} to {destUrl}. {ex.Message}");
+                });
+
+                await PublishRetryEvent(ex.Stage, copyPrereqs);
             }
             finally
             {
@@ -231,55 +255,29 @@ namespace BulkFileUploadFunctionApp.Services
         /// </summary>
         /// <param name="copyPreqs">Copy preqs</param>
         /// <returns>dexBlobUrl</returns>
-        public async Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs)
+        public async Task<string> CopyFromTusToDex(AzureBlobWriter tusToDexBlobWriter)
         {
-            try
+            
+
+            await tusToDexBlobWriter.DoWithRetryAsync(async () => 
             {
-                var srcServiceClient = _blobServiceClientFactory.CreateInstance("tus", _dexStorageAccountConnectionString);
-                AzureBlobWriter TusToDexBlobWriter = new AzureBlobWriter(srcServiceClient, _dexBlobServiceClient,
-                    _tusAzureStorageContainer, copyPrereqs.DexBlobFolderName, copyPrereqs.DexBlobFileName, copyPrereqs.Metadata);
+                await tusToDexBlobWriter.WriteLeaseAsync();
+            });
 
-                await TusToDexBlobWriter.WriteLeaseAsync();
-                BlobClient destBlob = TusToDexBlobWriter._destBlobClient;
-                return destBlob.Uri.ToString();
-            }
-            catch (RequestFailedException ex)
-            {
-                _logger.LogError("Failed to copy blob from TUS to Dex");
-
-                // Send copy failure report
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    SendFailureReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.DestinationId, 
-                                      copyPrereqs.EventType, 
-                                      copyPrereqs.SourceBlobUrl, 
-                                      copyPrereqs.DexBlobFolderName, 
-                                      $"Failed to copy blob from TUS to DEX. {ex.Message}");
-                });
-
-                throw ex;
-            }
+            return tusToDexBlobWriter.DestBlobClient.Uri.ToString();
         }
         
         public async Task CopyFromDexToTargets(List<AzureBlobWriter> writers, CopyPrereqs copyPrereqs)
         {
             foreach (AzureBlobWriter writer in writers)
             {
-                try
+                await writer.DoWithRetryAsync(async () =>
                 {
                     writer.DoIfEnabled(async () =>
                     {
-                        // Write to destination
                         await writer.WriteStreamAsync();
                     });
-                }
-                catch(Exception ex)
-                {
-                    // publish retry event
-                    await PublishRetryEvent(BlobCopyStage.CopyToEdav, copyPrereqs);
-                }
-
+                });
             }
         }
 

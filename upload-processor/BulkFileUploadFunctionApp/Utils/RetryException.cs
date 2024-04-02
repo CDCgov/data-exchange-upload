@@ -9,21 +9,19 @@ namespace BulkFileUploadFunctionApp.Utils
 {
     public class RetryException : Exception
     {
+        public BlobCopyStage Stage { get; init; }
         public RetryException()
         {
         }
 
-        public RetryException(string? message) : base(message)
+        public RetryException(BlobCopyStage stage, string? message) : base(message)
         {
-
+            Stage = stage;
         }
 
-        public RetryException(string? message, Exception? innerException) : base(message, innerException)
+        public RetryException(BlobCopyStage stage, string? message, Exception? innerException) : base(message, innerException)
         {
-        }
-
-        protected RetryException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
+            Stage = stage;
         }
     }
 
