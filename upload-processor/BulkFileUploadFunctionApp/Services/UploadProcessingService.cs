@@ -155,42 +155,9 @@ namespace BulkFileUploadFunctionApp.Services
             Span? copySpan = null;
             _logger.LogInformation($"Creating destination container client, container name: {copyPrereqs.DexBlobFolderName}");
 
-            string dexToEdavDestinationContainerName = _edavUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
-            string dexToTargetFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
-            string dexToRoutingDestinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
-
-            AzureBlobWriter tusToDexBlobWriter = new AzureBlobWriter(
-                _dexBlobServiceClient, 
-                _dexBlobServiceClient, 
-                copyPrereqs.TusPayloadFilename,
-                _tusAzureStorageContainer,
-                copyPrereqs.DexBlobFileName,
-                copyPrereqs.DexBlobFolderName, 
-                copyPrereqs.Metadata, 
-                BlobCopyStage.CopyToDex, 
-                _loggerFactory);
-            AzureBlobWriter dexToEdavBlobWriter = new AzureBlobWriter(
-                _dexBlobServiceClient,
-                _edavBlobServiceClient,
-                copyPrereqs.DexBlobFileName,
-                copyPrereqs.DexBlobFolderName,
-                dexToTargetFilename,
-                dexToEdavDestinationContainerName,
-                copyPrereqs.Metadata,
-                BlobCopyStage.CopyToEdav,
-                _loggerFactory);
-            AzureBlobWriter dexToRoutingBlobWriter = new AzureBlobWriter(
-                _dexBlobServiceClient,
-                _routingBlobServiceClient,
-                copyPrereqs.DexBlobFileName,
-                copyPrereqs.DexBlobFolderName,
-                dexToTargetFilename,
-                dexToRoutingDestinationContainerName,
-                copyPrereqs.Metadata,
-                BlobCopyStage.CopyToRouting,
-                _loggerFactory,
-                Constants.ROUTING_FEATURE_FLAG_NAME,
-                _featureManagementExecutor);
+            AzureBlobWriter tusToDexBlobWriter = CreateWriterForStage(BlobCopyStage.CopyToDex, copyPrereqs);
+            AzureBlobWriter dexToEdavBlobWriter = CreateWriterForStage(BlobCopyStage.CopyToEdav, copyPrereqs);
+            AzureBlobWriter dexToRoutingBlobWriter = CreateWriterForStage(BlobCopyStage.CopyToRouting, copyPrereqs);
 
             List<AzureBlobWriter> writers = copyPrereqs.Targets.Select(target =>
             {
@@ -284,7 +251,53 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
 
+        public AzureBlobWriter CreateWriterForStage(BlobCopyStage stage, CopyPrereqs copyPrereqs)
+        {
+            string dexToEdavDestinationContainerName = _edavUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
+            string dexToTargetFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
+            string dexToRoutingDestinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
 
+            switch (stage)
+            {
+                case BlobCopyStage.CopyToDex:
+                    return new AzureBlobWriter(
+                        _dexBlobServiceClient,
+                        _dexBlobServiceClient,
+                        copyPrereqs.TusPayloadFilename,
+                        _tusAzureStorageContainer,
+                        copyPrereqs.DexBlobFileName,
+                        copyPrereqs.DexBlobFolderName,
+                        copyPrereqs.Metadata,
+                        BlobCopyStage.CopyToDex,
+                        _loggerFactory);
+                case BlobCopyStage.CopyToEdav:
+                    return new AzureBlobWriter(
+                        _dexBlobServiceClient,
+                        _edavBlobServiceClient,
+                        copyPrereqs.DexBlobFileName,
+                        copyPrereqs.DexBlobFolderName,
+                        dexToTargetFilename,
+                        dexToEdavDestinationContainerName,
+                        copyPrereqs.Metadata,
+                        BlobCopyStage.CopyToEdav,
+                        _loggerFactory);
+                case BlobCopyStage.CopyToRouting:
+                    return new AzureBlobWriter(
+                        _dexBlobServiceClient,
+                        _routingBlobServiceClient,
+                        copyPrereqs.DexBlobFileName,
+                        copyPrereqs.DexBlobFolderName,
+                        dexToTargetFilename,
+                        dexToRoutingDestinationContainerName,
+                        copyPrereqs.Metadata,
+                        BlobCopyStage.CopyToRouting,
+                        _loggerFactory,
+                        Constants.ROUTING_FEATURE_FLAG_NAME,
+                        _featureManagementExecutor);
+                default:
+                    throw new ArgumentException($"Unsupported stage {stage}.");
+            }
+        }
 
         private async Task<TusInfoFile> GetTusInfoFile(string tusPayloadFilename)
         {

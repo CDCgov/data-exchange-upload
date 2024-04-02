@@ -14,5 +14,7 @@ namespace BulkFileUploadFunctionApp.Services
         Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs);
 
         Task<string> CopyFromTusToDex(AzureBlobWriter tusToDexBlobWriter);
+
+        AzureBlobWriter CreateWriterForStage(BlobCopyStage stage, CopyPrereqs copyPrereqs);
     }
 }

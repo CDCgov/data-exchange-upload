@@ -79,8 +79,8 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToEdav:
                            try
                            {
-                                // TODO: CopyFromDexToTargets(edav writer)
-                               //await _uploadProcessingService.CopyFromDexToEdav(blobCopyRetryEvent.CopyPrereqs);
+                                AzureBlobWriter writer = _uploadProcessingService.CreateWriterForStage(BlobCopyStage.CopyToEdav, blobCopyRetryEvent.CopyPrereqs);
+                                await _uploadProcessingService.CopyFromDexToTargets(new List<AzureBlobWriter> { writer }, blobCopyRetryEvent.CopyPrereqs);
                            }
                            catch (Exception ex)
                            {
@@ -91,8 +91,8 @@ namespace BulkFileUploadFunctionApp
                         case BlobCopyStage.CopyToRouting:
                            try
                            {
-                                // TODO: CopyFromDexToTargets(routing writer)
-                                //await _uploadProcessingService.CopyFromDexToRouting(blobCopyRetryEvent.CopyPrereqs);
+                                AzureBlobWriter writer = _uploadProcessingService.CreateWriterForStage(BlobCopyStage.CopyToRouting, blobCopyRetryEvent.CopyPrereqs);
+                                await _uploadProcessingService.CopyFromDexToTargets(new List<AzureBlobWriter> { writer }, blobCopyRetryEvent.CopyPrereqs);
                             }
                             catch (Exception ex)
                            {
