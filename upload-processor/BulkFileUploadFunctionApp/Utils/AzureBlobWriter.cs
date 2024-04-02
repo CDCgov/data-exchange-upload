@@ -16,7 +16,7 @@ namespace BulkFileUploadFunctionApp.Utils
         public BlobClient SrcBlobClient { get; init; }
         public BlobClient DestBlobClient { get; init; }
         public Dictionary<string, string> MetaData { get; init; }
-        private BlobCopyStage _copyStage;
+        public BlobCopyStage CopyStage { get; init; }
         private ILogger _logger;
 
         public AzureBlobWriter(BlobServiceClient src, BlobServiceClient dest, string srcBlobName, string srcContainerName, string destBlobName, string destContainerName,
@@ -29,7 +29,7 @@ namespace BulkFileUploadFunctionApp.Utils
             SrcBlobClient = Src.GetBlobContainerClient(SrcContainerName).GetBlobClient(srcBlobName);
             DestBlobClient = Dest.GetBlobContainerClient(DestContainerName).GetBlobClient(destBlobName);
             MetaData = metaData;
-            _copyStage = copyStage; 
+            CopyStage = copyStage; 
             _logger = loggerFactory.CreateLogger<AzureBlobWriter>();
         }
 
@@ -43,7 +43,7 @@ namespace BulkFileUploadFunctionApp.Utils
             SrcBlobClient = Src.GetBlobContainerClient(SrcContainerName).GetBlobClient(srcBlobName);
             DestBlobClient = Dest.GetBlobContainerClient(DestContainerName).GetBlobClient(destBlobName);
             MetaData = metaData;
-            _copyStage = copyStage;
+            CopyStage = copyStage;
             FeatureFlagKey = featureFlagKey;
             Executor = executor;
             _logger = loggerFactory.CreateLogger<AzureBlobWriter>(); ;
@@ -56,7 +56,7 @@ namespace BulkFileUploadFunctionApp.Utils
                 callback();
             } catch (Exception ex)
             {
-                throw new RetryException(_copyStage, ex.Message);
+                throw new RetryException(CopyStage, ex.Message);
             }
         }
 
@@ -68,7 +68,7 @@ namespace BulkFileUploadFunctionApp.Utils
             }
             catch (Exception ex)
             {
-                throw new RetryException(_copyStage, ex.Message);
+                throw new RetryException(CopyStage, ex.Message);
             }
         }
 

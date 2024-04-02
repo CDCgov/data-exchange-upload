@@ -4,8 +4,6 @@ using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Utils;
 using Microsoft.Extensions.Configuration;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 
 namespace BulkFileUploadFunctionApp.Services
@@ -16,7 +14,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly ILoggerFactory _loggerFactory;
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly AzureBlobReader _dexBlobReader;
-        private readonly AzureBlobReader _edavBlobReader;
         private readonly string _tusAzureObjectPrefix;
         private readonly string _tusAzureStorageContainer;
         private readonly string _dexAzureStorageAccountName;
@@ -33,11 +30,8 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _routingStorageAccountConnectionString;
         private readonly BlobServiceClient _dexBlobServiceClient;
         private readonly BlobServiceClient _routingBlobServiceClient;
-        private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
         private readonly string _uploadConfigContainer;
-        private readonly string _tusHooksFolder;
-        
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobServiceClientFactory blobServiceClientFactory)
@@ -71,7 +65,6 @@ namespace BulkFileUploadFunctionApp.Services
             // Create or retrieve singleton instances with specified connection strings
             _dexBlobServiceClient = _blobServiceClientFactory.CreateInstance("dex", _dexStorageAccountConnectionString);
             _routingBlobServiceClient = _blobServiceClientFactory.CreateInstance("routing", _routingStorageAccountConnectionString);
-            _tusContainerClient = _dexBlobServiceClient.GetBlobContainerClient(_tusAzureStorageContainer);
             _edavBlobServiceClient = _blobServiceClientFactory.CreateInstance("edav", new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
                 new DefaultAzureCredential());
             _dexBlobReader = new AzureBlobReader(_dexBlobServiceClient);
@@ -91,12 +84,9 @@ namespace BulkFileUploadFunctionApp.Services
                 var sourceBlobUri = new Uri(blobCreatedUrl);
                 string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Last()}";
 
-                // Get metadata
-                // needs blobclient
                 TusInfoFile tusInfoFile = await GetTusInfoFile(tusPayloadFilename);
                 uploadId = tusInfoFile.ID;
 
-                // Get trace
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     trace = await _procStatClient.GetTraceByUploadId(uploadId);
@@ -163,19 +153,14 @@ namespace BulkFileUploadFunctionApp.Services
         public async Task CopyAll(CopyPrereqs copyPrereqs)
         {
             Span? copySpan = null;
-            // Create a BlobClient representing the source blob to copy.
-            // Build a list of Writers that loops through writer classes and calls Write method
-
             _logger.LogInformation($"Creating destination container client, container name: {copyPrereqs.DexBlobFolderName}");
 
-            //var srcServiceClient = _blobServiceClientFactory.CreateInstance("tus", _dexStorageAccountConnectionString);
-            var srcServiceClient = _blobServiceClientFactory.CreateInstance("tus", _dexStorageAccountConnectionString);
             string dexToEdavDestinationContainerName = _edavUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
             string dexToTargetFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
             string dexToRoutingDestinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
 
             AzureBlobWriter tusToDexBlobWriter = new AzureBlobWriter(
-                srcServiceClient, 
+                _dexBlobServiceClient, 
                 _dexBlobServiceClient, 
                 copyPrereqs.TusPayloadFilename,
                 _tusAzureStorageContainer,
@@ -209,7 +194,6 @@ namespace BulkFileUploadFunctionApp.Services
 
             List<AzureBlobWriter> writers = copyPrereqs.Targets.Select(target =>
             {
-                _logger.LogInformation($"***Current target***: {target}");
                 switch (target)
                 {
                     case CopyTargetsEnum.edav:
@@ -220,8 +204,6 @@ namespace BulkFileUploadFunctionApp.Services
                         return dexToEdavBlobWriter;
                 };
             }).ToList();
-
-            _logger.LogInformation($"***writer count***: {writers.Count}");
 
             try
             {
@@ -237,33 +219,19 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    string? srcUrl = null;
-                    string? destUrl = null;
+                    AzureBlobWriter? writer = writers.Find(writer => writer.CopyStage == ex.Stage);
 
-                    // TODO: Search for writer by stage from writes list.
-
-                    switch (ex.Stage)
+                    if (writer != null)
                     {
-                        case BlobCopyStage.CopyToDex:
-                            srcUrl = tusToDexBlobWriter.SrcBlobClient.Uri.ToString();
-                            destUrl = tusToDexBlobWriter.DestBlobClient.Uri.ToString();
-                            break;
-                        case BlobCopyStage.CopyToEdav:
-                            srcUrl = dexToEdavBlobWriter.SrcBlobClient.Uri.ToString();
-                            destUrl = dexToEdavBlobWriter.DestBlobClient.Uri.ToString();
-                            break;
-                        case BlobCopyStage.CopyToRouting:
-                            srcUrl = dexToRoutingBlobWriter.SrcBlobClient.Uri.ToString();
-                            destUrl = dexToRoutingBlobWriter.DestBlobClient.Uri.ToString();
-                            break;
-                    }
-
-                    SendFailureReport(copyPrereqs.UploadId,
+                        string srcUrl = writer.SrcBlobClient.Uri.ToString();
+                        string destUrl = writer.DestBlobClient.Uri.ToString();
+                        SendFailureReport(copyPrereqs.UploadId,
                                       copyPrereqs.UseCase,
                                       copyPrereqs.UseCaseCategory,
                                       copyPrereqs.SourceBlobUrl,
                                       copyPrereqs.DexBlobFolderName,
                                       $"Failed to copy blob from {srcUrl} to {destUrl}. {ex.Message}");
+                    }
                 });
 
                 await PublishRetryEvent(ex.Stage, copyPrereqs);
@@ -277,11 +245,6 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }               
         
-        /// <summary>
-        /// Copies a blob from the tus upload folder to the DEX storage account
-        /// </summary>
-        /// <param name="copyPreqs">Copy preqs</param>
-        /// <returns>dexBlobUrl</returns>
         public async Task<string> CopyFromTusToDex(AzureBlobWriter tusToDexBlobWriter)
         {
             
@@ -325,15 +288,8 @@ namespace BulkFileUploadFunctionApp.Services
 
         private async Task<TusInfoFile> GetTusInfoFile(string tusPayloadFilename)
         {
-            // GET FILE METADATA
             string tusInfoFilename = $"{tusPayloadFilename}.info";             
             _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
-            //Dictionary<string, string> blobInfo = new Dictionary<string, string>
-            //{
-            //    { "connectionstring", _dexStorageAccountConnectionString },
-            //    { "containername", _tusAzureStorageContainer },
-            //    { "filename", tusInfoFilename }
-            //};
             
             var tusInfoFile = await _dexBlobReader.Read<TusInfoFile>(_tusAzureStorageContainer, tusInfoFilename);
 
