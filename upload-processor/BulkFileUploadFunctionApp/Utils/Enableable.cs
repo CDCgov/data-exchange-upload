@@ -12,5 +12,6 @@ namespace BulkFileUploadFunctionApp.Utils
         protected string? FeatureFlagKey { get; init; }
         protected IFeatureManagementExecutor? Executor { get; init; }
         public abstract void DoIfEnabled(Action callback);
+        public abstract Task DoIfEnabledAsync(Func<Task> callback);
     }
 }

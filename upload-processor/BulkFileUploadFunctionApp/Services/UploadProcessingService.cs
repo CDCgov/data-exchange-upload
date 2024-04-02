@@ -13,6 +13,7 @@ namespace BulkFileUploadFunctionApp.Services
     public class UploadProcessingService : IUploadProcessingService
     {
         private readonly ILogger _logger;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly AzureBlobReader _dexBlobReader;
         private readonly AzureBlobReader _edavBlobReader;
@@ -41,6 +42,7 @@ namespace BulkFileUploadFunctionApp.Services
         public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobServiceClientFactory blobServiceClientFactory)
         {
+            _loggerFactory = loggerFactory;
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobServiceClientFactory = blobServiceClientFactory;         
             _featureManagementExecutor = featureManagementExecutor;
@@ -110,12 +112,12 @@ namespace BulkFileUploadFunctionApp.Services
                 string uploadConfigFilename = $"{useCase}-{useCaseCategory}.json";
 
                 var uploadConfig = await GetUploadConfig(uploadConfigFilename, version);
-                _logger.LogInformation($"Got upload config for {version}: {JsonSerializer.Serialize(uploadConfig)}");
+                _logger.LogInformation($"Got upload config for {version}.");
                 // translate V1 metadata 
                 if (version == MetadataVersion.V1)
                 {
                     var uploadConfigV2 = await GetUploadConfig(uploadConfigFilename, MetadataVersion.V2);
-                    _logger.LogInformation($"Translating to {JsonSerializer.Serialize(uploadConfigV2)}");
+                    _logger.LogInformation($"Translating to {MetadataVersion.V2}");
                     tusInfoFile.MetaData = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
                 }
                 
@@ -169,21 +171,45 @@ namespace BulkFileUploadFunctionApp.Services
             //var srcServiceClient = _blobServiceClientFactory.CreateInstance("tus", _dexStorageAccountConnectionString);
             var srcServiceClient = _blobServiceClientFactory.CreateInstance("tus", _dexStorageAccountConnectionString);
             string dexToEdavDestinationContainerName = _edavUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
-            string dexToEdavDestinationFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
-            string DexToRoutingDestinationFilename = dexToEdavDestinationFilename;
-            string DexToRoutingDestinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
+            string dexToTargetFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
+            string dexToRoutingDestinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
 
-            AzureBlobWriter tusToDexBlobWriter = new AzureBlobWriter(srcServiceClient, _dexBlobServiceClient,
-                _tusAzureStorageContainer, copyPrereqs.DexBlobFolderName, copyPrereqs.DexBlobFileName, copyPrereqs.Metadata, BlobCopyStage.CopyToDex);
-            AzureBlobWriter dexToEdavBlobWriter = new AzureBlobWriter(_dexBlobServiceClient, _edavBlobServiceClient, 
-                copyPrereqs.DexBlobFolderName, dexToEdavDestinationContainerName, dexToEdavDestinationFilename, 
-                 copyPrereqs.Metadata, BlobCopyStage.CopyToEdav);
-            AzureBlobWriter dexToRoutingBlobWriter = new AzureBlobWriter(_dexBlobServiceClient, _routingBlobServiceClient,
-                copyPrereqs.DexBlobFolderName, DexToRoutingDestinationContainerName, DexToRoutingDestinationFilename, 
-                 copyPrereqs.Metadata, BlobCopyStage.CopyToRouting, Constants.ROUTING_FEATURE_FLAG_NAME, _featureManagementExecutor);
+            AzureBlobWriter tusToDexBlobWriter = new AzureBlobWriter(
+                srcServiceClient, 
+                _dexBlobServiceClient, 
+                copyPrereqs.TusPayloadFilename,
+                _tusAzureStorageContainer,
+                copyPrereqs.DexBlobFileName,
+                copyPrereqs.DexBlobFolderName, 
+                copyPrereqs.Metadata, 
+                BlobCopyStage.CopyToDex, 
+                _loggerFactory);
+            AzureBlobWriter dexToEdavBlobWriter = new AzureBlobWriter(
+                _dexBlobServiceClient,
+                _edavBlobServiceClient,
+                copyPrereqs.DexBlobFileName,
+                copyPrereqs.DexBlobFolderName,
+                dexToTargetFilename,
+                dexToEdavDestinationContainerName,
+                copyPrereqs.Metadata,
+                BlobCopyStage.CopyToEdav,
+                _loggerFactory);
+            AzureBlobWriter dexToRoutingBlobWriter = new AzureBlobWriter(
+                _dexBlobServiceClient,
+                _routingBlobServiceClient,
+                copyPrereqs.DexBlobFileName,
+                copyPrereqs.DexBlobFolderName,
+                dexToTargetFilename,
+                dexToRoutingDestinationContainerName,
+                copyPrereqs.Metadata,
+                BlobCopyStage.CopyToRouting,
+                _loggerFactory,
+                Constants.ROUTING_FEATURE_FLAG_NAME,
+                _featureManagementExecutor);
 
             List<AzureBlobWriter> writers = copyPrereqs.Targets.Select(target =>
             {
+                _logger.LogInformation($"***Current target***: {target}");
                 switch (target)
                 {
                     case CopyTargetsEnum.edav:
@@ -193,7 +219,9 @@ namespace BulkFileUploadFunctionApp.Services
                     default:
                         return dexToEdavBlobWriter;
                 };
-            }).ToList();         
+            }).ToList();
+
+            _logger.LogInformation($"***writer count***: {writers.Count}");
 
             try
             {
@@ -211,6 +239,8 @@ namespace BulkFileUploadFunctionApp.Services
                 {
                     string? srcUrl = null;
                     string? destUrl = null;
+
+                    // TODO: Search for writer by stage from writes list.
 
                     switch (ex.Stage)
                     {
@@ -266,13 +296,26 @@ namespace BulkFileUploadFunctionApp.Services
         
         public async Task CopyFromDexToTargets(List<AzureBlobWriter> writers, CopyPrereqs copyPrereqs)
         {
+            _logger.LogInformation($"Writting to {writers.Count} target(s).");
             foreach (AzureBlobWriter writer in writers)
             {
                 await writer.DoWithRetryAsync(async () =>
                 {
-                    writer.DoIfEnabled(async () =>
+                    await writer.DoIfEnabledAsync(async () =>
                     {
+                        _logger.LogInformation($"Copying to {writer.DestBlobClient.Uri}");
                         await writer.WriteStreamAsync();
+                        _logger.LogInformation("Complete.");
+
+                        // Send copy success report
+                        await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                        {
+                            SendSuccessReport(copyPrereqs.UploadId,
+                                              copyPrereqs.UseCase,
+                                              copyPrereqs.UseCaseCategory,
+                                              copyPrereqs.DexBlobUrl,
+                                              writer.DestBlobClient.Uri.ToString());
+                        });
                     });
                 });
             }
