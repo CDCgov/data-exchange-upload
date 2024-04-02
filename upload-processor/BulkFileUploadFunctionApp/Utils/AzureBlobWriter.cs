@@ -14,7 +14,7 @@ using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 namespace BulkFileUploadFunctionApp.Utils
 {
     // Derived Writer Classes Implementing IBlobWriter and IEnableable
-    public class AzureBlobWriter
+    public class AzureBlobWriter : Enableable
     {
         public BlobServiceClient _src { get; init; }
         public BlobServiceClient _dest { get; init; }
@@ -23,10 +23,9 @@ namespace BulkFileUploadFunctionApp.Utils
         public BlobClient _srcBlobClient { get; init; }
         public BlobClient _destBlobClient { get; init; }
         public Dictionary<string, string> _metaData { get; init; }
-        public string? _featureFlagKey { get; init; }
 
-        public AzureBlobWriter(BlobServiceClient src, BlobServiceClient dest, string srcContainerName, string destContainerName, 
-            string blobName, Dictionary<string,string> metaData, string featureFlagKey)
+        public AzureBlobWriter(BlobServiceClient src, BlobServiceClient dest, string srcContainerName, string destContainerName,
+            string blobName, Dictionary<string, string> metaData)
         {
             _src = src;
             _dest = dest;
@@ -35,15 +34,32 @@ namespace BulkFileUploadFunctionApp.Utils
             _srcBlobClient = _src.GetBlobContainerClient(_srcContainerName).GetBlobClient(blobName);
             _destBlobClient = _dest.GetBlobContainerClient(_destContainerName).GetBlobClient(blobName);
             _metaData = metaData;
-            _featureFlagKey = featureFlagKey;
         }
 
-        public void DoIfEnabled(string featureFlagKey, Action callback)
+        public AzureBlobWriter(BlobServiceClient src, BlobServiceClient dest, string srcContainerName, string destContainerName, 
+            string blobName, Dictionary<string,string> metaData, string featureFlagKey, IFeatureManagementExecutor executor)
+        {
+            _src = src;
+            _dest = dest;
+            _srcContainerName = srcContainerName;
+            _destContainerName = destContainerName;
+            _srcBlobClient = _src.GetBlobContainerClient(_srcContainerName).GetBlobClient(blobName);
+            _destBlobClient = _dest.GetBlobContainerClient(_destContainerName).GetBlobClient(blobName);
+            _metaData = metaData;
+            FeatureFlagKey = featureFlagKey;
+            Executor = executor;
+        }
+
+        public override void DoIfEnabled(Action callback)
         {
             // Check feature flag and execute callback if enabled
-            if (featureFlagKey == Constants.PROC_STAT_FEATURE_FLAG_NAME) //  "DexFeatureEnabled" ?
+            if(Executor == null || FeatureFlagKey == null)
             {
                 callback();
+            }
+            else
+            {
+                Executor.ExecuteIfEnabled(FeatureFlagKey, callback);
             }
         }
 

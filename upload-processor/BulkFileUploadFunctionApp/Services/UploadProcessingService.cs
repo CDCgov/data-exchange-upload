@@ -182,10 +182,10 @@ namespace BulkFileUploadFunctionApp.Services
 
             AzureBlobWriter DexToEdavBlobWriter = new AzureBlobWriter(_dexBlobServiceClient, _edavBlobServiceClient, 
                 copyPrereqs.DexBlobFolderName, dexToEdavDestinationContainerName, dexToEdavDestinationFilename, 
-                 copyPrereqs.Metadata, Constants.PROC_STAT_FEATURE_FLAG_NAME);
+                 copyPrereqs.Metadata);
             AzureBlobWriter DexToRoutingBlobWriter = new AzureBlobWriter(_dexBlobServiceClient, _routingBlobServiceClient,
                 copyPrereqs.DexBlobFolderName, DexToRoutingDestinationContainerName, DexToRoutingDestinationFilename, 
-                 copyPrereqs.Metadata, Constants.PROC_STAT_FEATURE_FLAG_NAME);
+                 copyPrereqs.Metadata, Constants.ROUTING_FEATURE_FLAG_NAME, _featureManagementExecutor);
 
             List<AzureBlobWriter> writers = copyPrereqs.Targets.Select(target =>
             {
@@ -198,16 +198,14 @@ namespace BulkFileUploadFunctionApp.Services
                     default:
                         return DexToEdavBlobWriter;
                 };
-            }).ToList();
-                //new List<IBlobWriter> { DexToEdavBlobWriter, DexToRoutingBlobWriter };
-            
+            }).ToList();         
 
             try
             {
                 // copy to targets
                 copyPrereqs.DexBlobUrl = await CopyFromTusToDex(copyPrereqs);
              
-                await CopyFromDexToTarget(writers, copyPrereqs);
+                await CopyFromDexToTargets(writers, copyPrereqs);
 
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
@@ -239,8 +237,7 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 var srcServiceClient = _blobServiceClientFactory.CreateInstance("tus", _dexStorageAccountConnectionString);
                 AzureBlobWriter TusToDexBlobWriter = new AzureBlobWriter(srcServiceClient, _dexBlobServiceClient,
-                    _tusAzureStorageContainer, copyPrereqs.DexBlobFolderName, copyPrereqs.DexBlobFileName,
-      copyPrereqs.Metadata, Constants.PROC_STAT_FEATURE_FLAG_NAME);
+                    _tusAzureStorageContainer, copyPrereqs.DexBlobFolderName, copyPrereqs.DexBlobFileName, copyPrereqs.Metadata);
 
                 await TusToDexBlobWriter.WriteLeaseAsync();
                 BlobClient destBlob = TusToDexBlobWriter._destBlobClient;
@@ -265,20 +262,17 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
         
-        public async Task CopyFromDexToTarget(List<AzureBlobWriter> writers, CopyPrereqs copyPrereqs)
+        public async Task CopyFromDexToTargets(List<AzureBlobWriter> writers, CopyPrereqs copyPrereqs)
         {
-            foreach (IBlobWriter writer in writers)
+            foreach (AzureBlobWriter writer in writers)
             {
                 try
                 {
-                    if (writer is IEnableable enableable)
+                    writer.DoIfEnabled(async () =>
                     {
-                        enableable.DoIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                        {
-                            // Write to destination
-                            await writer.Write(writer._destBlobName, writer._destContainerName);
-                        });
-                    }
+                        // Write to destination
+                        await writer.WriteStreamAsync();
+                    });
                 }
                 catch(Exception ex)
                 {
@@ -287,47 +281,6 @@ namespace BulkFileUploadFunctionApp.Services
                 }
 
             }
-            #region oldcode
-            //foreach (CopyTargetsEnum copyTarget in copyPrereqs.Targets)
-            //{
-            //    _logger.LogInformation("Copy Target: " + copyTarget);
-
-            //    if (copyTarget == CopyTargetsEnum.edav)
-            //    {
-            //        try
-            //        {
-            //            await CopyFromDexToEdav(copyPrereqs);
-            //        }
-            //        catch(Exception ex)
-            //        {
-            //            // publish retry event
-            //            await PublishRetryEvent(BlobCopyStage.CopyToEdav,
-            //                                    copyPrereqs);
-            //        }
-            //    }
-            //    else if (copyTarget == CopyTargetsEnum.routing)
-            //    {
-            //        try
-            //        {
-            //            await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.ROUTING_FEATURE_FLAG_NAME, async () =>
-            //            {
-            //                await CopyFromDexToRouting(copyPrereqs);
-            //            });
-
-            //            _featureManagementExecutor.ExecuteIfDisabled(Constants.ROUTING_FEATURE_FLAG_NAME, () =>
-            //            {
-            //                _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
-            //            });
-            //        } catch (Exception ex)
-            //        {
-            //            // publish retry event
-            //            await PublishRetryEvent(BlobCopyStage.CopyToRouting,
-            //                                    copyPrereqs);
-            //        }
-
-            //    }
-            //}
-            #endregion
         }
 
 

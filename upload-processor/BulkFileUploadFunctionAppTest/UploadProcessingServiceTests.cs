@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
@@ -23,11 +24,14 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<ILoggerFactory>? _loggerFactoryMock;
         private StorageBlobCreatedEvent _storageBlobCreatedEvent;
         private Mock<IUploadProcessingService>? _mockUploadProcessingService;
-        private Mock<IBlobReader> _mockBlobReader;
+        private Mock<AzureBlobReader> _mockBlobReader;
         private string sourceContainerName;
         private UploadProcessingService? _function; // temporary placeholder
         private Mock<BlobClient> _mockBlobClient;
         private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
+        private Mock<BlobServiceClient> _mockBlobServiceClient;
+        private Mock<BlobServiceClient> _mockEdavBlobServiceClient;
+        private Mock<Uri> _mockUri;
 
         [TestInitialize]
         public void Initialize()
@@ -37,13 +41,22 @@ namespace BulkFileUploadFunctionAppTests
             _loggerMock = new Mock<ILogger<UploadProcessingService>>();
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             _mockBlobClient = new Mock<BlobClient>();
+            _mockBlobServiceClient = new Mock<BlobServiceClient>();
             _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
-            //_mockBlobManagementService
-            //    .Setup(x=> x.GetBlobClientAsync(It.IsAny<Dictionary<string, string>())).ReturnsAsync(_mockBlobClient.Object);
+            _mockBlobServiceClientFactory
+                .Setup(x=> x.CreateInstance(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns(_mockBlobServiceClient.Object);
+            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt"); //new Mock<Uri>();
+
+            _mockEdavBlobServiceClient = new Mock<BlobServiceClient>();
+            _mockBlobServiceClientFactory
+                .Setup(x => x.CreateInstance(It.IsAny<string>(), _mockUri.Object, It.IsAny<DefaultAzureCredential>()))
+                .Returns(_mockEdavBlobServiceClient.Object);
+
             _mockConfigManager = new Mock<IConfigurationManager>();
             _mockProcStatClient = new Mock<IProcStatClient>();
             _mockFeatureManagementExecutor = new Mock<IFeatureManagementExecutor>();
-            _mockBlobReader = new Mock<IBlobReader>();
+            _mockBlobReader = new Mock<AzureBlobReader>();
             _mockUploadEventHubService = new Mock<IUploadEventHubService>();
 
       
