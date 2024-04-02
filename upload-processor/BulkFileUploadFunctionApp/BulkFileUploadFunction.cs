@@ -64,11 +64,17 @@ namespace BulkFileUploadFunctionApp
         private async Task ProcessBlobCreatedEvent(string blobCreatedUrl)
         {
             CopyPrereqs copyPrereqs = new CopyPrereqs(blobCreatedUrl);
+            try
+            {
+                copyPrereqs = await _uploadProcessingService.GetCopyPrereqs(blobCreatedUrl);
+                _logger.LogInformation($"Copy prereqs: {JsonSerializer.Serialize(copyPrereqs)}");
 
-            copyPrereqs = await _uploadProcessingService.GetCopyPrereqs(blobCreatedUrl);
-            _logger.LogInformation($"Copy prereqs: {JsonSerializer.Serialize(copyPrereqs)}");
-                
-            await _uploadProcessingService.CopyAll(copyPrereqs);
+                await _uploadProcessingService.CopyAll(copyPrereqs);
+            } catch (Exception)
+            {
+                await _uploadProcessingService.PublishRetryEvent(BlobCopyStage.CopyToDex, copyPrereqs);
+            }
+            
         }
     }
 

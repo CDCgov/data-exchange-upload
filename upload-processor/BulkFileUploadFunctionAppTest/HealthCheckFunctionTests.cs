@@ -15,7 +15,6 @@ using BulkFileUploadFunctionApp.Utils;
 
 namespace BulkFileUploadFunctionAppTests
 {
-    // 'HealthCheckFunctionTests' for testing health check functionality with mocked dependencies.
     [TestClass]
     public class HealthCheckFunctionTests
     {
