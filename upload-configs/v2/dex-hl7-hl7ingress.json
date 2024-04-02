@@ -57,7 +57,7 @@
 			{
 				"field_name": "meta_ext_objectkey",
 				"allowed_values": null,
-				"required": "false",
+				"required": false,
 				"description": "The system source file objectid, could be used to track the file to the source."
 			},
 			{
