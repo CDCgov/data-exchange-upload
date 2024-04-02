@@ -13,6 +13,6 @@ namespace BulkFileUploadFunctionApp.Services
 
         Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs);
 
-        Task<string> CopyFromTusToDex(CopyPrereqs copyPrereqs);
+        Task<string> CopyFromTusToDex(AzureBlobWriter tusToDexBlobWriter);
     }
 }
