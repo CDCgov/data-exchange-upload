@@ -23,7 +23,7 @@
 			{
 				"field_name": "meta_ext_objectkey",
 				"allowed_values": null,
-				"required": "false",
+				"required": false,
 				"description": "The system source file objectid, could be used to track the file to the source."
 			},
 			{
@@ -40,20 +40,27 @@
 			},
 			{
 				"field_name": "message_type",
-				"allowed_values": ["CASE", "ELR"],
+				"allowed_values": [
+					"CASE",
+					"ELR"
+				],
 				"required": true,
 				"description": "Identifies if the message is a CASE message or ELR"
 			},
 			{
 				"field_name": "route",
-				"allowed_values": ["COVID19_ELR", "PHLIP_FLU", "PHLIP_VPD"],
-				"required": "false",
+				"allowed_values": [
+					"COVID19_ELR",
+					"PHLIP_FLU",
+					"PHLIP_VPD"
+				],
+				"required": false,
 				"description": "Informs the type of ELR messages when message_type = ELR"
 			},
 			{
 				"field_name": "reporting_jurisdiction",
 				"allowed_values": null,
-				"required": "false",
+				"required": false,
 				"description": "Informs which jurisdiction is uploading the message"
 			}
 		]

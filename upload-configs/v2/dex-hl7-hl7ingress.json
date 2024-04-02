@@ -1,43 +1,93 @@
 {
-   "metadata_config": {
-      "version": "2.0",
-      "fields": [
-         {
-            "field_name": "sender_id",
-            "required": true,
+	"metadata_config": {
+		"version": "2.0",
+		"fields": [
+			{
+				"field_name": "sender_id",
+				"required": true,
 				"description": "This field is the identifier for the sender of the data."
-         },
-         {
-            "field_name": "data_producer_id",
-            "required": true,
+			},
+			{
+				"field_name": "data_producer_id",
+				"required": true,
 				"description": "This field is the identifier for the data producer."
-         },
-         {
-            "field_name": "jurisdiction",				
-            "required": true,
-				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
-         },
-         {
-            "field_name": "received_filename",				
-            "required": true,
+			},
+			{
+				"field_name": "jurisdiction",
+				"required": true,
+				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
+				"compat_field_name": "reporting_jurisdiction"
+			},
+			{
+				"field_name": "received_filename",
+				"required": true,
 				"description": "This field is the name of the file when uploaded.",
-            "compat_field_name": "original_filename"
-         },
-         {
-            "field_name": "data_stream_id",
-            "required": true,
+				"compat_field_name": "original_filename"
+			},
+			{
+				"field_name": "data_stream_id",
+				"required": true,
 				"description": "This field is the identifier for the data stream.",
-            "compat_field_name": "meta_destination_id"
-         },
-         {
-            "field_name": "data_stream_route",
-            "required": true,
+				"compat_field_name": "meta_destination_id"
+			},
+			{
+				"field_name": "data_stream_route",
+				"required": true,
 				"description": "This recieved is the route of the data stream.",
-            "compat_field_name": "meta_ext_event"
-         }
-      ]
-   },
-   "copy_config": {
+				"compat_field_name": "meta_ext_event"
+			},
+			{
+				"field_name": "meta_ext_source",
+				"allowed_values": null,
+				"required": true,
+				"description": "The system source where the data came from."
+			},
+			{
+				"field_name": "meta_ext_sourceversion",
+				"allowed_values": null,
+				"required": true,
+				"description": "The system source version where the data came from."
+			},
+			{
+				"field_name": "meta_username",
+				"allowed_values": null,
+				"required": true,
+				"description": "Username of user who submitted the file. If this is a system to system submission then this should be the service account."
+			},
+			{
+				"field_name": "meta_ext_objectkey",
+				"allowed_values": null,
+				"required": false,
+				"description": "The system source file objectid, could be used to track the file to the source."
+			},
+			{
+				"field_name": "original_file_timestamp",
+				"allowed_values": null,
+				"required": true,
+				"description": "The timestamp of last modified for the file submitted."
+			},
+			{
+				"field_name": "message_type",
+				"allowed_values": [
+					"CASE",
+					"ELR"
+				],
+				"required": true,
+				"description": "Identifies if the message is a CASE message or ELR"
+			},
+			{
+				"field_name": "route",
+				"allowed_values": [
+					"COVID19_ELR",
+					"PHLIP_FLU",
+					"PHLIP_VPD"
+				],
+				"required": false,
+				"description": "Informs the type of ELR messages when message_type = ELR"
+			}
+		]
+	},
+	"copy_config": {
 		"filename_suffix": "clock_ticks",
 		"folder_structure": "date_YYYY_MM_DD",
 		"targets": [

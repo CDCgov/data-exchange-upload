@@ -1,8 +1,6 @@
 import auth.AuthClient
 import org.testng.annotations.Test
 import tus.UploadClient
-import util.EnvConfig
-import util.Metadata
 import io.restassured.RestAssured.*
 import io.restassured.response.ValidatableResponse
 import model.Report
@@ -10,13 +8,16 @@ import org.hamcrest.Matchers.*
 import org.testng.Assert.assertNotNull
 import org.testng.ITestContext
 import org.testng.TestNGException
-import org.testng.annotations.BeforeGroups
-import util.Constants
-import util.TestFile
+import org.testng.annotations.BeforeTest
+import org.testng.annotations.Listeners
+import org.testng.annotations.Optional
+import org.testng.annotations.Parameters
+import util.*
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
+@Listeners(UploadIdTestListener::class)
 @Test()
 class ProcStat {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
@@ -29,16 +30,23 @@ class ProcStat {
     private lateinit var traceResponse: ValidatableResponse
     private lateinit var reportResponse: ValidatableResponse
 
-    @BeforeGroups(groups = [Constants.Groups.PROC_STAT])
-    fun procStatHappyPath(context: ITestContext) {
+    @Parameters("SENDER_MANIFEST", "USE_CASE")
+    @BeforeTest(groups = [Constants.Groups.PROC_STAT])
+    fun beforeTest(
+        context: ITestContext,
+        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
+        @Optional("dextesting-testevent1") USE_CASE: String
+    ) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
-        val senderManifestPropertiesFilename = context.currentXmlTest.getParameter("SENDER_MANIFEST")
-        val propertiesFilePath= "properties/$senderManifestPropertiesFilename"
+
+        val propertiesFilePath= "properties/$USE_CASE/$SENDER_MANIFEST"
         val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         uploadId = uploadClient.uploadFile(testFile, metadata)
                 ?: throw TestNGException("Error uploading file ${testFile.name}")
+        context.setAttribute("uploadId", uploadId)
+
         Thread.sleep(12_000) // Hard delay to wait for PS API to settle.
 
         traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
@@ -92,10 +100,10 @@ class ProcStat {
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
     fun shouldHaveNullIssuesArrayWhenFileUploaded() {
         val jsonPath = reportResponse.extract().jsonPath()
-        val metadataVerifyReport = jsonPath.getList("reports", Report::class.java).first()
+        val metadataVerifyReport = jsonPath.getList("reports", Report::class.java).find { it.stageName == "dex-metadata-verify" }
 
-        assertEquals("dex-metadata-verify", metadataVerifyReport.stageName)
-        assertNull(metadataVerifyReport.issues)
+        assertNotNull(metadataVerifyReport)
+        assertNull(metadataVerifyReport?.issues)
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
@@ -111,11 +119,15 @@ class ProcStat {
         assertNotNull(uploadReport)
     }
 
+    @Parameters("EXPECTED_SOURCE_URL_PREFIXES", "EXPECTED_DESTINATION_URL_PREFIXES")
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
-    fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded(context: ITestContext) {
+    fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded(
+        @Optional("https://ocioededataexchangedev.blob.core.windows.net/dextesting-testevent1") EXPECTED_SOURCE_URL_PREFIXES: String,
+        @Optional("https://ocioederoutingdatasadev.blob.core.windows.net/routeingress/dextesting-testevent1,https://edavdevdatalakedex.blob.core.windows.net/upload/dextesting-testevent1") EXPECTED_DESTINATION_URL_PREFIXES: String
+    ) {
         // Parse the expected URLs from the parameters
-        val expectedSourceUrls = context.currentXmlTest.getParameter("EXPECTED_SOURCE_URL_PREFIXES").split(",")
-        val expectedDestinationUrls = context.currentXmlTest.getParameter("EXPECTED_DESTINATION_URL_PREFIXES").split(",")
+        val expectedSourceUrls = EXPECTED_SOURCE_URL_PREFIXES.split(",")
+        val expectedDestinationUrls = EXPECTED_DESTINATION_URL_PREFIXES.split(",")
 
         val jsonPath = reportResponse.extract().jsonPath()
         val reports = jsonPath.getList("reports", Report::class.java)
@@ -128,12 +140,12 @@ class ProcStat {
 
         // Validate source URLs
         sourceUrls.forEach { sourceUrl ->
-            assert(expectedSourceUrls.any { sourceUrl.contains(it) }) { "Source URL $sourceUrl does not match any expected URLs." }
+            assert(expectedSourceUrls.any { sourceUrl.trim().contains(it.trim()) }) { "Source URL $sourceUrl does not match any expected URLs." }
         }
 
         // Validate destination URLs
         destinationUrls.forEach { destinationUrl ->
-            assert(expectedDestinationUrls.any { destinationUrl.contains(it) }) { "Destination URL $destinationUrl does not match any expected URLs." }
+            assert(expectedDestinationUrls.any { destinationUrl.trim().contains(it.trim()) }) { "Destination URL $destinationUrl does not match any expected URLs." }
         }
     }
 

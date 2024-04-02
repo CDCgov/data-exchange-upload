@@ -1,0 +1,37 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="DEX HL7 HL7INGRESS TST" parallel="tests" thread-count="3">
+    <parameter name="USE_CASE" value="dex-hl7-hl7ingress" />
+    <test name="Metadata Verify">
+        <parameter name="SENDER_MANIFEST" value="dex-hl7-hl7ingress.properties"/>
+        <parameter name="SENDER_MANIFEST_NO_DEST_ID" value="no-dest-id.properties" />
+        <parameter name="SENDER_MANIFEST_NO_EVENT" value="no-event.properties" />
+        <parameter name="SENDER_MANIFEST_INVALID_FILENAME" value="invalid-filename.properties" />
+        <classes>
+            <class name="MetadataVerify" />
+        </classes>
+    </test>
+    <test name="File Copy">
+        <parameter name="SENDER_MANIFEST" value="dex-hl7-hl7ingress.properties"/>
+        <classes>
+            <class name="FileCopy">
+                <methods>
+                    <exclude name="shouldCopyToRoutingContainer" />
+                </methods>
+            </class>
+        </classes>
+    </test>
+    <test name="Proc Stat">
+        <parameter name="SENDER_MANIFEST" value="dex-hl7-hl7ingress.properties"/>
+        <!-- Define parameters for expected URLs as comma-separated lists -->
+        <parameter name="EXPECTED_SOURCE_URL_PREFIXES" value="https://ocioededataexchangetst.blob.core.windows.net/dex-hl7-hl7ingress"/>
+        <parameter name="EXPECTED_DESTINATION_URL_PREFIXES" value="https://edavdevdatalakedextest.blob.core.windows.net/upload/dex-hl7-hl7ingress"/>
+        <groups>
+            <run>
+                <exclude name="proc-stat-trace" />
+            </run>
+        </groups>
+        <classes>
+            <class name="ProcStat" />
+        </classes>
+    </test>
+</suite>

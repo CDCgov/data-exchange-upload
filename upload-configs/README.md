@@ -88,7 +88,7 @@ Example 1:
 			},
 			{
 				"field_name": "meta_program",
-				"required": "false",
+				"required": false,
 				"description": "The program source.",
 				"compat_field_name": null
 			},

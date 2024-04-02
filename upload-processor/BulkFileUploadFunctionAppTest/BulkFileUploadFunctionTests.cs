@@ -43,7 +43,7 @@ namespace BulkFileUploadFunctionAppTests
         {
             string testBlobUrl = "https://example.com/blob/1MB-test-file.txt";
 
-            var blobReaderMock = new Mock<IBlobReader>();
+            var blobReaderMock = new Mock<AzureBlobReader>();
             var blobEvent = new StorageBlobCreatedEvent
             {
                 Data = new StorageBlobCreatedEventData { Url = testBlobUrl }
@@ -102,8 +102,8 @@ namespace BulkFileUploadFunctionAppTests
                 Trace = _trace,
                 SourceBlobUrl = testBlobUrl,
                 TusPayloadFilename = tusInfoFile.MetaData["filename"],
-                DestinationId = tusInfoFile.MetaData["meta_destination_id"],
-                EventType = tusInfoFile.MetaData["meta_ext_event"],
+                UseCase = tusInfoFile.MetaData["meta_destination_id"],
+                UseCaseCategory = tusInfoFile.MetaData["meta_ext_event"],
                 DexBlobFolderName = uploadConfig.CopyConfig.FolderStructure,
                 DexBlobFileName = tusInfoFile.MetaData["filename"].Replace("test", "dexTest")
             };
@@ -129,7 +129,7 @@ namespace BulkFileUploadFunctionAppTests
         {
             string testBlobUrl = "https://example.com/blob/1MB-test-file.txt";
 
-            var blobReaderMock = new Mock<IBlobReader>();
+            var blobReaderMock = new Mock<AzureBlobReader>();
             var blobEvent = new StorageBlobCreatedEvent
             {
                 Data = new StorageBlobCreatedEventData { Url = testBlobUrl }

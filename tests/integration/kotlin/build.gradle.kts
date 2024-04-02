@@ -1,7 +1,9 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.8.10"
+    id("com.adarshr.test-logger") version "4.0.0"
     application
 }
 
@@ -33,15 +35,22 @@ dependencies {
 }
 
 tasks.test {
-    // Detect if suite param was passed in
-    val runSuite = project.hasProperty("suite")
+    testLogging.showStandardStreams = true
+    testLogging.exceptionFormat = TestExceptionFormat.FULL
+
+    // Detect if suite params were passed in
+    val hasEnv = project.hasProperty("env")
+    val hasSuites = project.hasProperty("useCases")
 
     useTestNG {
-        if (runSuite) {
-            // If parameter was passed in, use it in the 'suites' command
-            val suiteToRun = project.properties["suite"]
-            val suite = "src/test/resources/$suiteToRun"
-            suiteXmlFiles = listOf(file(suite))
+        // If true, we want to test with XML suites.  Otherwise, test directly with Gradle and rely on default parameters.
+        if (hasEnv or hasSuites) {
+            val env = project.properties["env"] ?: "dev" // Default to dev.
+            val allUseCases = File("src/test/resources/$env").listFiles().map { it.nameWithoutExtension } // Collect all use cases from the env-specific suite directory.
+            val useCasesToRun: List<String> = project.properties["useCases"]?.toString()?.split(',') ?: allUseCases // If a set of use cases were passed in, use them.  Otherwise, default to running all.
+            val fullyQualifiedSuites = useCasesToRun.map { file("src/test/resources/$env/$it.xml") }
+            println("Running tests for use cases: $useCasesToRun")
+            suiteXmlFiles = fullyQualifiedSuites
         }
     }
 }

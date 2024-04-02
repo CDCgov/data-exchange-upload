@@ -46,7 +46,7 @@
 			},
 			{
 				"field_name": "meta_program",
-				"required": "false",
+				"required": false,
 				"allowed_values": null,
 				"description": "The program source.",
 				"compat_field_name": null
