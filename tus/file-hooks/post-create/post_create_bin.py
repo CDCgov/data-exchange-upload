@@ -8,6 +8,18 @@ from dotenv import load_dotenv
 
 from proc_stat_controller import ProcStatController
 
+from azure.appconfiguration import AzureAppConfigurationClient
+
+connection_string = os.getenv('FEATURE_MANAGER_CONNECTION_STRING')
+
+if connection_string:
+    try:
+        config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+    except Exception as e:
+        raise ValueError(f"Failed to initialize Azure App Configuration: {e}")
+else:
+    config_client = None
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -18,6 +30,17 @@ METADATA_VERSION_ONE = "1.0"
 METADATA_VERSION_TWO = "2.0"
 REQUIRED_VERSION_ONE_FIELDS = ['meta_destination_id', 'meta_ext_event']
 REQUIRED_VERSION_TWO_FIELDS = ['data_stream_id', 'data_stream_route']
+
+def get_feature_flag(flag_name):
+    try:
+        fetched_flag = config_client.get_configuration_setting(key=f".appconfig.featureflag/{flag_name}", label=None)
+        return fetched_flag.value == "true"
+    except Exception as e:
+        print(f"Error fetching feature flag {flag_name}: {e}")
+        return False
+
+processing_status_reports_enabled = get_feature_flag("PROCESSING_STATUS_REPORTS")
+processing_status_traces_enabled = get_feature_flag("PROCESSING_STATUS_TRACES")
 
 def get_required_metadata(metadata_json_dict):
     metadata_version = metadata_json_dict.get('version', METADATA_VERSION_ONE)
@@ -52,23 +75,28 @@ def post_create(use_case, use_case_category, metadata_json_dict, tguid):
     logger.info(f'Creating trace for upload {tguid} with use case {use_case} and use case category {use_case_category}')
 
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
-    trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, use_case, use_case_category)
-    logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
 
-    create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, use_case, use_case_category, metadata_json_dict, tguid)
+    if processing_status_traces_enabled:
+        trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, use_case, use_case_category)
+        logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
 
-    # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
-    ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
-    logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
+        create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, use_case, use_case_category, metadata_json_dict, tguid)
+
+        # Start the upload child span.  Will be stopped in post-finish hook when the upload is complete.
+        ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "dex-upload")
+        logger.debug(f'Created child span for parent span {parent_span_id} with stage name of dex-upload')
+    else:
+        logger.debug("Trace creation is disabled by feature flag.")
 
 def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, use_case, use_case_category, metadata_json_dict, tguid):
 
     try:
         # Start the upload stage metadata verification span
-        trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify")
-        logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
-
-        create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, use_case, use_case_category)
+        if processing_status_traces_enabled:
+            trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, "metadata-verify")
+            logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
+        if processing_status_reports_enabled:
+            create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, use_case, use_case_category)
 
         # Stop the upload stage metadata verification span
         if metadata_verify_span_id is not None:
