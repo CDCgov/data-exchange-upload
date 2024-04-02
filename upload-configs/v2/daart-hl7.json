@@ -40,7 +40,7 @@
 			{
 				"field_name": "original_file_timestamp",
 				"allowed_values": null,
-				"required": "false",
+				"required": false,
 				"description": "The timestamp of last modified for the file submitted."
 			},
 			{
