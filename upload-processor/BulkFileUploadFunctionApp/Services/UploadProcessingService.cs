@@ -142,9 +142,12 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogError("Failed to get copy inputs.");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                
+
                 // Send copy failure report
-                SendFailureReport(uploadId, useCase, useCaseCategory, blobCreatedUrl, destinationContainerName, $"Failed to get copy preqs: {ex.Message}");
+                _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
+                {
+                    SendFailureReport(uploadId, useCase, useCaseCategory, blobCreatedUrl, destinationContainerName, $"Failed to get copy preqs: {ex.Message}");
+                });
 
                 throw new RetryException(BlobCopyStage.CopyToDex, ex.Message);
             }
@@ -157,7 +160,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             AzureBlobWriter tusToDexBlobWriter = CreateWriterForStage(BlobCopyStage.CopyToDex, copyPrereqs);
 
-            List<AzureBlobWriter> writers = copyPrereqs.Targets.Select(target =>
+            List<AzureBlobWriter> dexToTargetWriters = copyPrereqs.Targets.Select(target =>
             {
                 switch (target)
                 {
@@ -178,11 +181,11 @@ namespace BulkFileUploadFunctionApp.Services
                 });
 
                 copyPrereqs.DexBlobUrl = await CopyFromTusToDex(tusToDexBlobWriter);
-                await CopyFromDexToTargets(writers, copyPrereqs);
+                await CopyFromDexToTargets(dexToTargetWriters, copyPrereqs);
             }
             catch (WriteRetryException ex)
             {
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
                 {
                     SendFailureReport(copyPrereqs.UploadId,
                                     copyPrereqs.UseCase,
