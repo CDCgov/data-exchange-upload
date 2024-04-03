@@ -1,10 +1,9 @@
-package serverdex
+package cli
 
 // tusd metrics loading: https://github.com/tus/tusd/blob/main/cmd/tusd/cli/metrics.go
 // note: tusd.Handler exposes metrics by cli flag and defaults true
 
 import (
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tus/tusd/v2/pkg/hooks"
 ) // .import
@@ -14,7 +13,7 @@ var metricsOpenConnections = prometheus.NewGauge(prometheus.GaugeOpts{
 	Help: "Current number of server open connections.",
 }) // .metricsOpenConnections
 
-func (sd ServerDex) setupMetrics() {
+func setupMetrics() {
 
 	// ------------------------------------------------------------------
 	// metrics as exposed by TUSD, refs:
@@ -25,9 +24,4 @@ func (sd ServerDex) setupMetrics() {
 	prometheus.MustRegister(hooks.MetricsHookErrorsTotal)
 	prometheus.MustRegister(hooks.MetricsHookInvocationsTotal)
 
-	// ------------------------------------------------------------------
-	// DEX server metrics
-	// ------------------------------------------------------------------
-
-	prometheus.MustRegister(NewCollector(*metrics.DefaultMetrics))
 } // setupMetrics

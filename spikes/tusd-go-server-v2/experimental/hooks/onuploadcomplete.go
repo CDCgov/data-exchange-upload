@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/experimental/metrics"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/storelocal"

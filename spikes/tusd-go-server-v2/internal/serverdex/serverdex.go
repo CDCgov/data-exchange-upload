@@ -9,10 +9,13 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"github.com/tus/tusd/v2/pkg/hooks"
+	"github.com/prometheus/client_golang/prometheus"
 ) // .import
+
+var metricsOpenConnections = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "dex_server_connections_open",
+	Help: "Current number of server open connections.",
+}) // .metricsOpenConnections
 
 // ServerDex, main Upload Api server, handles requests to both tusd handler and dex handler
 type ServerDex struct {
@@ -40,17 +43,7 @@ func New(appConfig appconfig.AppConfig) (ServerDex, error) {
 // HttpServer, adds the routes for the tusd and dex handlers and can customize the server with port address
 func (sd *ServerDex) HttpServer() http.Server {
 
-	// --------------------------------------------------------------
-	// 	Prometheus metrics handler for /metrics
-	// --------------------------------------------------------------
-	sd.setupMetrics()
-	hooks.SetupHookMetrics()
-	http.Handle("/metrics", promhttp.Handler())
-
-	// --------------------------------------------------------------
-	// 	DEX handler for all other http requests except above
-	// --------------------------------------------------------------
-
+	prometheus.MustRegister(metricsOpenConnections)
 	// --------------------------------------------------------------
 	// 		Custom Server, if needed to customize
 	// --------------------------------------------------------------

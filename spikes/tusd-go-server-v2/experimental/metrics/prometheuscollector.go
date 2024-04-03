@@ -1,4 +1,4 @@
-package serverdex
+package metrics
 
 // Prometheus:
 // - Gauges, can go up-down, mem usage, temp, measuring a numeric value that you want to expose
@@ -13,7 +13,6 @@ package serverdex
 import (
 	"sync/atomic"
 
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 ) // .import
 
@@ -33,11 +32,11 @@ var (
 ) // .var
 
 type Collector struct {
-	metrics metrics.Metrics
+	metrics Metrics
 } // .Collector
 
 // New creates a new collector with the provided metrics struct
-func NewCollector(metrics metrics.Metrics) Collector {
+func NewCollector(metrics Metrics) Collector {
 	return Collector{
 		metrics: metrics,
 	} // .return

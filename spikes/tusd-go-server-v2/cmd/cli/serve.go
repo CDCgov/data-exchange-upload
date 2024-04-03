@@ -9,6 +9,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
@@ -52,6 +54,13 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 
 	handlerDex := handlerdex.New(appConfig, psSender)
 	http.Handle("/", handlerDex)
+
+	// --------------------------------------------------------------
+	// 	Prometheus metrics handler for /metrics
+	// --------------------------------------------------------------
+	hooks.SetupHookMetrics()
+	http.Handle("/metrics", promhttp.Handler())
+	setupMetrics()
 
 	return http.DefaultServeMux, nil
 }
