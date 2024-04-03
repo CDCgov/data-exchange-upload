@@ -32,7 +32,7 @@ func New(appConfig appconfig.AppConfig, metaV1 *metadatav1.MetadataV1, psSender 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
 	// add package name to app logger
-	logger := sloger.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
+	logger := sloger.With("pkg", pkgParts[len(pkgParts)-1])
 	sloger.SetDefaultLogger(logger)
 
 	handlerDex := handlerdex.New(appConfig, psSender)

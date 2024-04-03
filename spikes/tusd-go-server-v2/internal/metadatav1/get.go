@@ -25,7 +25,7 @@ func Get() (*MetadataV1, error) {
 
 		metaV1Instance, err = LoadOnce(appConfig)
 		if err != nil {
-			logger := pkgLogger(appConfig)
+			logger := pkgLogger()
 			logger.Error("error loading metadata v1", "error", err)
 			return nil, err
 		} // .err

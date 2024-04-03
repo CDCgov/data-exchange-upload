@@ -23,12 +23,16 @@ import (
 
 const appMainExitCode = 1
 
-func main() {
+var (
+	appConfig appconfig.AppConfig
+	logger    *slog.Logger
+)
+
+func init() {
 
 	ctx := context.Background()
 
 	buildInfo, _ := debug.ReadBuildInfo()
-
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
@@ -46,7 +50,7 @@ func main() {
 	// ------------------------------------------------------------------
 	// parse and load config from os exported
 	// ------------------------------------------------------------------
-	appConfig, err := appconfig.ParseConfig(ctx)
+	appConfig, err = appconfig.ParseConfig(ctx)
 	if err != nil {
 		slog.Error("error starting app, error parsing app config", "error", err, "buildInfo.Main.Path", buildInfo.Main.Path)
 		os.Exit(appMainExitCode)
@@ -55,9 +59,15 @@ func main() {
 	// ------------------------------------------------------------------
 	// configure app custom logging
 	// ------------------------------------------------------------------
-	logger := sloger.AppLogger(appConfig).With("pkg", "main")
+	logger = cli.AppLogger(appConfig).With("pkg", "main", "buildInfo.Main.Path", buildInfo.Main.Path)
+	sloger.SetDefaultLogger(logger)
+}
 
-	logger.Info("started app", "buildInfo.Main.Path", buildInfo.Main.Path)
+func main() {
+
+	ctx := context.Background()
+
+	logger.Info("started app")
 
 	// logger.Debug("loaded app config", "appConfig", appConfig)
 

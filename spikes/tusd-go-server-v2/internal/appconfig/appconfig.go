@@ -2,10 +2,33 @@ package appconfig
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
+	"net/http"
+	"reflect"
+	"strings"
+	"time"
 
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/sethvargo/go-envconfig"
 ) // .import
+
+var logger *slog.Logger
+
+func init() {
+	type Empty struct{}
+	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
+	// add package name to app logger
+	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
+}
+
+type RootResp struct {
+	System     string `json:"system"`
+	DexProduct string `json:"dex_product"`
+	DexApp     string `json:"dex_app"`
+	ServerTime string `json:"server_time"`
+} // .rootResp
 
 type AppConfig struct {
 
@@ -52,6 +75,25 @@ type AppConfig struct {
 	CopyRetryDelay int `env:"COPY_RETRY_DELAY, required"`
 } // .AppConfig
 
+func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	jsonResp, err := json.Marshal(RootResp{
+		System:     conf.System,
+		DexProduct: conf.DexProduct,
+		DexApp:     conf.DexApp,
+		ServerTime: time.Now().Format(time.RFC3339),
+	}) // .jsonResp
+	if err != nil {
+		errMsg := "error marshal json for root response"
+		logger.Error(errMsg, "error", err.Error())
+		http.Error(w, errMsg, http.StatusInternalServerError)
+		return
+	} // .if
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonResp)
+}
+
 type AzureStorageConfig struct {
 	AzStorageName         string `env:"AZ_STORAGE_NAME"`
 	AzStorageKey          string `env:"AZ_STORAGE_KEY"`
@@ -90,7 +132,11 @@ func (azc *AzureStorageConfig) Check() error {
 	return errors.Join(errs...)
 }
 
-var LoadedConfig *AppConfig
+var LoadedConfig = &AppConfig{}
+
+func Handler() http.Handler {
+	return LoadedConfig
+}
 
 // ParseConfig loads app configuration based on environment variables and returns AppConfig struct
 func ParseConfig(ctx context.Context) (AppConfig, error) {

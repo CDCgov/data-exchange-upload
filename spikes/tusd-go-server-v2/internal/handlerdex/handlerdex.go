@@ -32,7 +32,7 @@ func New(appConfig appconfig.AppConfig, psSender *processingstatus.PsSender) *Ha
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
 	// add package name to app logger
-	logger := sloger.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
+	logger := sloger.With("pkg", pkgParts[len(pkgParts)-1])
 
 	logger.Info("started dex handler")
 
@@ -51,7 +51,7 @@ func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 
 	case "/":
-		hd.root(w, r)
+		appconfig.Handler().ServeHTTP(w, r)
 
 	case "/health":
 		health.Handler().ServeHTTP(w, r)

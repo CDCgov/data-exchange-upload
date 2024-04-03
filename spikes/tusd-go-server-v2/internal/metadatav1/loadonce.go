@@ -28,7 +28,7 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 		defer lock.Unlock()
 		if metaV1Instance == nil { // more expensive check one more time inside lock because access to this point was not blocked
 
-			logger := pkgLogger(appConfig)
+			logger := pkgLogger()
 
 			// ----------------------------------------------------------------------
 			// allowed destination and events
