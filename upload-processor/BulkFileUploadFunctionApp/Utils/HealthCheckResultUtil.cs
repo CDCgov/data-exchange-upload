@@ -37,14 +37,10 @@ namespace BulkFileUploadFunctionApp.Utils
 
             BlobServiceClient blobServiceClient = null;
             HealthCheckResult checkResult = null;
-            Dictionary<string, string> _blobFileInfo = new Dictionary<string, string>();
 
             if (storage == "EDAV Blob Container")
             {
-                _blobFileInfo.Add("connectionstring", connectionString);
-                _blobFileInfo.Add("containername", "dextesting-testevent1");
-                _blobFileInfo.Add("filename", "testevent1.json");
-                _blobFileInfo.Add("destination", "EDAV Blob Container");
+                containerName = "dextesting-testevent1";
                 edavAzureStorageAccountName = _environmentVariableProvider.GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
                 blobServiceClient = _blobServiceClientFactory.CreateInstance("edav", new Uri($"https://{edavAzureStorageAccountName}.blob.core.windows.net"),
                 new DefaultAzureCredential());
