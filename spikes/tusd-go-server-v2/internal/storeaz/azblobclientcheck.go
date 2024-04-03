@@ -11,24 +11,6 @@ import (
 	"github.com/tus/tusd/v2/pkg/azurestore"
 ) // .import
 
-// CheckTusAzBlobClient returns a check on the azure blob client
-func CheckTusAzBlobClient(client *azblob.Client) models.ServiceHealthResp {
-
-	return checkAzBlobClient(tusPrefix, client)
-} // .CheckTusAzBlobClient
-
-// CheckRouterAzBlobClient returns a check on the azure blob client
-func CheckRouterAzBlobClient(client *azblob.Client) models.ServiceHealthResp {
-
-	return checkAzBlobClient(routerPrefix, client)
-} // .CheckRouterAzBlobClient
-
-// CheckEdavAzBlobClient returns a check on the azure blob client
-func CheckEdavAzBlobClient(client *azblob.Client) models.ServiceHealthResp {
-
-	return checkAzBlobClient(edavPrefix, client)
-} // .CheckEdavAzBlobClient
-
 type AzureBlobHealthCheck struct {
 	client *azblob.Client
 }
