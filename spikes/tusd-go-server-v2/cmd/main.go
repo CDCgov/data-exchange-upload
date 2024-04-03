@@ -11,15 +11,10 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/slogerxexp"
 	"github.com/joho/godotenv"
-	"github.com/tus/tusd/v2/pkg/memorylocker"
 ) // .import
 
 const appMainExitCode = 1
@@ -76,46 +71,15 @@ func main() {
 
 	// logger.Debug("loaded app config", "appConfig", appConfig)
 
-	// ------------------------------------------------------------------
-	// load metadata v1 config into singleton to check and have available
-	// ------------------------------------------------------------------
-	metaV1, err := metadatav1.LoadOnce(appConfig)
+	_, err := cli.Serve(appConfig)
 	if err != nil {
-		logger.Error("error starting app, metadata v1 config not available", "error", err)
-		os.Exit(appMainExitCode)
-	} // .err
-
-	psSender, err := processingstatus.New(appConfig)
-	if err != nil {
-		logger.Error("error processing status not available", "error", err)
-	} // .err
-	health.Register(psSender)
-
-	store, storeHealthCheck, err := cli.CreateDataStore(appConfig)
-	if err != nil {
-		logger.Error("error starting app, error configuring storage", "error", err)
+		logger.Error("error starting app, error initialize dex server", "error", err)
 		os.Exit(appMainExitCode)
 	}
-	health.Register(storeHealthCheck)
-
-	locker := memorylocker.New()
-
-	handlerTusd, err := handlertusd.New(store, locker, cli.GetHookHandler(), appConfig.TusdHandlerBasePath)
-	if err != nil {
-		logger.Error("error starting tusd handler: ", err)
-		os.Exit(appMainExitCode)
-	} // .handlerTusd
-
-	// --------------------------------------------------------------
-	// 	TUSD handler
-	// --------------------------------------------------------------
-	// Route for TUSD to start listening on and accept http request
-	http.Handle(appConfig.TusdHandlerBasePath, http.StripPrefix(appConfig.TusdHandlerBasePath, handlerTusd))
-
 	// ------------------------------------------------------------------
 	// create dex server, includes dex handler
 	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(appConfig, metaV1, psSender)
+	serverDex, err := serverdex.New(appConfig)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex server", "error", err)
 		os.Exit(appMainExitCode)

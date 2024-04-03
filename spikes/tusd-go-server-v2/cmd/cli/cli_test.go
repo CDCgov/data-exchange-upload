@@ -8,11 +8,8 @@ import (
 	"testing"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	tus "github.com/eventials/go-tus"
-	"github.com/tus/tusd/v2/pkg/filestore"
-	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
 var (
@@ -21,11 +18,10 @@ var (
 		DefinitionsPath:          "../../configs/file-hooks/metadata-verify/",
 		UploadConfigPath:         "../../configs/upload-configs/",
 		HydrateV1ConfigPath:      "../../configs/upload-configs/v2/",
+		LocalFolderUploadsTus:    "test/uploads",
+		TusdHandlerBasePath:      "/files/",
 	}
-	store = filestore.FileStore{
-		Path: "test/uploads",
-	}
-	locker = memorylocker.New()
+	ts *httptest.Server
 )
 
 func init() {
@@ -41,16 +37,6 @@ type testCase struct {
 }
 
 func TestTus(t *testing.T) {
-	hookHandler := PrebuiltHooks()
-
-	handlerTusd, err := handlertusd.New(store, locker, hookHandler, "/")
-
-	if err != nil {
-		t.Error(err)
-	} // .handlerTusd
-
-	ts := httptest.NewServer(handlerTusd)
-	defer ts.Close()
 
 	cases := map[string]testCase{
 		"good": {
@@ -81,7 +67,7 @@ func TestTus(t *testing.T) {
 		defer f.Close()
 
 		// create the tus client.
-		client, err := tus.NewClient(ts.URL, nil)
+		client, err := tus.NewClient(ts.URL+"/files/", nil)
 		if err != nil {
 			t.Error(err)
 		}
@@ -114,4 +100,14 @@ func TestTus(t *testing.T) {
 	}
 
 	//TODO assert that expected results are in the right place
+}
+
+func TestMain(m *testing.M) {
+	handler, err := Serve(appConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ts = httptest.NewServer(handler)
+	defer ts.Close()
+	os.Exit(m.Run())
 }

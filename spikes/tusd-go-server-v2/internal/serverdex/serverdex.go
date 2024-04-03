@@ -8,9 +8,6 @@ import (
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlerdex"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -20,14 +17,12 @@ import (
 // ServerDex, main Upload Api server, handles requests to both tusd handler and dex handler
 type ServerDex struct {
 	AppConfig appconfig.AppConfig
-	MetaV1    *metadatav1.MetadataV1
 
-	HandlerDex *handlerdex.HandlerDex
-	logger     *slog.Logger
+	logger *slog.Logger
 } // .ServerDex
 
 // New returns an custom server for DEX Upload Api ready to serve
-func New(appConfig appconfig.AppConfig, metaV1 *metadatav1.MetadataV1, psSender *processingstatus.PsSender) (ServerDex, error) {
+func New(appConfig appconfig.AppConfig) (ServerDex, error) {
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
@@ -35,13 +30,9 @@ func New(appConfig appconfig.AppConfig, metaV1 *metadatav1.MetadataV1, psSender 
 	logger := sloger.With("pkg", pkgParts[len(pkgParts)-1])
 	sloger.SetDefaultLogger(logger)
 
-	handlerDex := handlerdex.New(appConfig, psSender)
-
 	return ServerDex{
-		AppConfig:  appConfig,
-		MetaV1:     metaV1,
-		HandlerDex: handlerDex,
-		logger:     logger,
+		AppConfig: appConfig,
+		logger:    logger,
 	}, nil // .return
 
 } // New
@@ -59,7 +50,6 @@ func (sd *ServerDex) HttpServer() http.Server {
 	// --------------------------------------------------------------
 	// 	DEX handler for all other http requests except above
 	// --------------------------------------------------------------
-	http.Handle("/", sd.HandlerDex)
 
 	// --------------------------------------------------------------
 	// 		Custom Server, if needed to customize

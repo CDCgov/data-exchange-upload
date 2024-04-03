@@ -3,11 +3,25 @@ package cli
 import (
 	"log/slog"
 	"os"
+	"reflect"
+	"strings"
 
 	expslog "golang.org/x/exp/slog"
 
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 )
+
+var (
+	logger *slog.Logger
+)
+
+func init() {
+	type Empty struct{}
+	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
+	// add package name to app logger
+	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
+}
 
 // AppLogger, this is the custom application logger for uniformity
 func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {

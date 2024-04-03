@@ -18,7 +18,7 @@ func CreateDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.C
 	// ------------------------------------------------------------------
 	// Load Az dependencies, needed for the DEX handler paths
 	// ------------------------------------------------------------------
-	if appConfig.TusAzStorageConfig.AzContainerName != "" {
+	if appConfig.TusAzStorageConfig != nil && appConfig.TusAzStorageConfig.AzContainerName != "" {
 		if err := appConfig.TusAzStorageConfig.Check(); err != nil {
 			return nil, nil, err
 		}
