@@ -29,12 +29,13 @@ func init() {
 	ctx := context.Background()
 
 	buildInfo, _ := debug.ReadBuildInfo()
+	slog.With("buildInfo.Main.Path", buildInfo.Main.Path)
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
 	err := cli.ParseFlags()
 	if err != nil {
-		slog.Error("error starting app, error parsing cli flags", "error", err, "buildInfo.Main.Path", buildInfo.Main.Path)
+		slog.Error("error starting app, error parsing cli flags", "error", err)
 		os.Exit(appMainExitCode)
 	} // .if
 
@@ -48,7 +49,7 @@ func init() {
 	// ------------------------------------------------------------------
 	appConfig, err = appconfig.ParseConfig(ctx)
 	if err != nil {
-		slog.Error("error starting app, error parsing app config", "error", err, "buildInfo.Main.Path", buildInfo.Main.Path)
+		slog.Error("error starting app, error parsing app config", "error", err)
 		os.Exit(appMainExitCode)
 	} // .if
 

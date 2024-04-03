@@ -58,48 +58,50 @@ func TestTus(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		f, err := os.Open("test/test.txt")
+		testTus(c, t)
+	}
+}
 
-		if err != nil {
-			t.Fatal(err)
-		}
+func testTus(c testCase, t *testing.T) {
+	f, err := os.Open("test/test.txt")
 
-		defer f.Close()
-
-		// create the tus client.
-		client, err := tus.NewClient(ts.URL+"/files/", nil)
-		if err != nil {
-			t.Error(err)
-		}
-
-		fi, err := f.Stat()
-		if err != nil {
-			t.Error(err)
-		}
-
-		fingerprint := fmt.Sprintf("%s-%d-%s", fi.Name(), fi.Size(), fi.ModTime())
-		c.metadata["filename"] = fi.Name()
-
-		// create an upload from a file.
-		upload := tus.NewUpload(f, fi.Size(), c.metadata, fingerprint)
-
-		// create the uploader.
-		uploader, err := client.CreateUpload(upload)
-		if c.err != nil {
-			if c.err.Error() != err.Error() {
-				t.Error("error missmatch", "got", err, "wanted", c.err)
-			}
-		}
-
-		if uploader != nil {
-			// start the uploading process.
-			if err := uploader.Upload(); err != nil {
-				t.Error(err)
-			}
-		}
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	//TODO assert that expected results are in the right place
+	defer f.Close()
+
+	// create the tus client.
+	client, err := tus.NewClient(ts.URL+"/files/", nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fi, err := f.Stat()
+	if err != nil {
+		t.Error(err)
+	}
+
+	fingerprint := fmt.Sprintf("%s-%d-%s", fi.Name(), fi.Size(), fi.ModTime())
+	c.metadata["filename"] = fi.Name()
+
+	// create an upload from a file.
+	upload := tus.NewUpload(f, fi.Size(), c.metadata, fingerprint)
+
+	// create the uploader.
+	uploader, err := client.CreateUpload(upload)
+	if c.err != nil && c.err.Error() != err.Error() {
+		t.Error("error missmatch", "got", err, "wanted", c.err)
+	}
+
+	if uploader == nil {
+		return
+	}
+
+	if err := uploader.Upload(); err != nil {
+		t.Error(err)
+	}
+
 }
 
 func TestWellKnownEndpoints(t *testing.T) {

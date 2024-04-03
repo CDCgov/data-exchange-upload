@@ -1,6 +1,8 @@
 package experimental
 
 import (
+	"log/slog"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -17,6 +19,15 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 ) // .import
+
+var logger *slog.Logger
+
+func init() {
+	type Empty struct{}
+	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
+	// add package name to app logger
+	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1], "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+}
 
 // OnUploadComplete gets notification on a tusd upload complete and makes the store copies necessary per config
 func onLocalUploadComplete(
@@ -123,7 +134,7 @@ func (az *AzureUploadCompleteHandler) onAzureUploadComplete(
 // copyTusDexWRetry copy file and metadata from tus to dex container
 func (az *AzureUploadCompleteHandler) copyTusDexWRetry(eventUploadComplete tusd.HookEvent, dstBlobName string, manifest map[string]*string) error {
 
-	logger := sloger.DefaultLogger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
+	logger := logger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
 
 	copierDex := CopierAzTusToDex{
 
@@ -140,18 +151,18 @@ func (az *AzureUploadCompleteHandler) copyTusDexWRetry(eventUploadComplete tusd.
 
 		err := copierDex.CopyTusSrcToDst()
 		if i == appconfig.LoadedConfig.CopyRetryTimes && err != nil {
-			logger.Error("error copy file tus to dex, retry times out", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+			logger.Error("error copy file tus to dex, retry times out", "error", err, "retryLoopNum", i)
 			return err
 		} // .if
 
 		if err != nil {
-			logger.Error("error copy file tus to dex, should retry times", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+			logger.Error("error copy file tus to dex, should retry times", "error", err, "retryLoopNum", i)
 
 			// try refresh the client on first retry
 			if i == 1 {
 				az.TusAzBlobClient, err = storeaz.NewTusAzBlobClient(*appconfig.LoadedConfig)
 				if err != nil {
-					logger.Error("error copy file tus to dex, error refresh tus blob client", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+					logger.Error("error copy file tus to dex, error refresh tus blob client", "error", err, "retryLoopNum", i)
 					// quit
 					return err
 				} // .if
@@ -171,7 +182,7 @@ func (az *AzureUploadCompleteHandler) copyTusDexWRetry(eventUploadComplete tusd.
 // copyTusRouterWRetry copy file and metadata from tus to router
 func (az *AzureUploadCompleteHandler) copyTusRouterWRetry(eventUploadComplete tusd.HookEvent, dstBlobName string, manifest map[string]*string) error {
 
-	logger := sloger.DefaultLogger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
+	logger := logger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
 
 	copierSrcToDst := CopierAzSrcDst{
 
@@ -189,18 +200,18 @@ func (az *AzureUploadCompleteHandler) copyTusRouterWRetry(eventUploadComplete tu
 
 		err := copierSrcToDst.CopyAzSrcToDst()
 		if i == appconfig.LoadedConfig.CopyRetryTimes && err != nil {
-			logger.Error("error copy file dex to router, retry times out", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+			logger.Error("error copy file dex to router, retry times out", "error", err, "retryLoopNum", i)
 			return err
 		} // .if
 
 		if err != nil {
-			logger.Error("error copy file dex to router, should retry times", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+			logger.Error("error copy file dex to router, should retry times", "error", err, "retryLoopNum", i)
 
 			// try refresh the router client, the tus should be good from above copy
 			if i == 1 {
 				az.RouterAzBlobClient, err = storeaz.NewRouterAzBlobClient(*appconfig.LoadedConfig)
 				if err != nil {
-					logger.Error("error copy file dex to router, error refresh router blob client", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+					logger.Error("error copy file dex to router, error refresh router blob client", "error", err, "retryLoopNum", i)
 					// quit
 					return err
 				} // .if
@@ -219,7 +230,7 @@ func (az *AzureUploadCompleteHandler) copyTusRouterWRetry(eventUploadComplete tu
 // copyTusEdavWRetry copy file and metadata from tus to edav
 func (az *AzureUploadCompleteHandler) copyTusEdavWRetry(eventUploadComplete tusd.HookEvent, dstBlobName string, manifest map[string]*string) error {
 
-	logger := sloger.DefaultLogger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
+	logger := logger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
 
 	copierSrcToDst := CopierAzSrcDst{
 
@@ -237,18 +248,18 @@ func (az *AzureUploadCompleteHandler) copyTusEdavWRetry(eventUploadComplete tusd
 
 		err := copierSrcToDst.CopyAzSrcToDst()
 		if i == appconfig.LoadedConfig.CopyRetryTimes && err != nil {
-			logger.Error("error copy file dex to edav, retry times out", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+			logger.Error("error copy file dex to edav, retry times out", "error", err, "retryLoopNum", i)
 			return err
 		} // .if
 
 		if err != nil {
-			logger.Error("error copy file dex to edav, should retry times", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+			logger.Error("error copy file dex to edav, should retry times", "error", err, "retryLoopNum", i)
 
 			// try refresh the edav client, the tus should be good from above copy
 			if i == 1 {
 				az.EdavAzBlobClient, err = storeaz.NewEdavAzBlobClient(*appconfig.LoadedConfig)
 				if err != nil {
-					logger.Error("error copy file dex to edav, error refresh edav blob client", "error", err, "retryLoopNum", i, "sd.AppConfig.CopyRetryTimes", appconfig.LoadedConfig.CopyRetryTimes)
+					logger.Error("error copy file dex to edav, error refresh edav blob client", "error", err, "retryLoopNum", i)
 					// quit
 					return err
 				} // .if
