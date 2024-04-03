@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -113,7 +114,7 @@ func main() {
 	go func() {
 
 		err := httpServer.ListenAndServe()
-		if err != nil {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("error starting app, error starting http server", "error", err, "port", appConfig.ServerPort)
 			os.Exit(appMainExitCode)
 		} // .if
