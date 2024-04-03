@@ -14,6 +14,7 @@ require (
 	github.com/Azure/go-amqp v1.0.5 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -36,7 +37,9 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus v1.6.1
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.1
+	github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571
 	github.com/joho/godotenv v1.5.1
 	github.com/prometheus/client_golang v1.19.0
 	github.com/sethvargo/go-envconfig v1.0.1
+	github.com/tus/tusd v1.1.0
 )

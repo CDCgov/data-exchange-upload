@@ -5,13 +5,23 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
+	"golang.org/x/exp/slog"
+
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/slogerxexp"
 	"github.com/prometheus/client_golang/prometheus"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/prometheuscollector"
 ) // .import
+
+var logger *slog.Logger
+
+func init() {
+	type Empty struct{}
+	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
+	// add package name to app logger
+	logger = slogerxexp.With("pkg", pkgParts[len(pkgParts)-1])
+}
 
 type Store interface {
 	tusd.DataStore
@@ -24,7 +34,7 @@ type Locker interface {
 }
 
 // New returns a configured TUSD handler as-is with official implementation
-func New(store Store, locker Locker, hooksHandler hooks.HookHandler, appConfig appconfig.AppConfig) (*tusd.Handler, error) {
+func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath string) (*tusd.Handler, error) {
 	if store == nil {
 		return nil, errors.New("No store provided")
 	}
@@ -32,17 +42,10 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, appConfig a
 		return nil, errors.New("No locker provided")
 	}
 
-	type Empty struct{}
-	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
-	// add package name to app logger
-	logger := slogerxexp.AppLogger(appConfig).With("pkg", pkgParts[len(pkgParts)-1])
-	slogerxexp.SetDefaultLogger(logger)
-
 	// tusd.Handler exposes metrics by cli flag and defaults true
 	var handler *tusd.Handler
-	var composer *tusd.StoreComposer
 
-	composer = tusd.NewStoreComposer()
+	composer := tusd.NewStoreComposer()
 	store.UseIn(composer)
 	locker.UseIn(composer)
 
@@ -53,7 +56,7 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, appConfig a
 	// Create a new HTTP handler for the tusd server by providing a configuration.
 	// The StoreComposer property must be set to allow the handler to function.
 	handler, err := hooks.NewHandlerWithHooks(&tusd.Config{
-		BasePath:              appConfig.TusdHandlerBasePath,
+		BasePath:              basePath,
 		StoreComposer:         composer,
 		NotifyCompleteUploads: true,
 		// NotifyTerminatedUploads: true,

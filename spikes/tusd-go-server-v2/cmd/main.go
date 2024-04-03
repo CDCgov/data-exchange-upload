@@ -17,6 +17,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/slogerxexp"
 	"github.com/joho/godotenv"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 ) // .import
@@ -61,6 +62,10 @@ func init() {
 	// ------------------------------------------------------------------
 	logger = cli.AppLogger(appConfig).With("pkg", "main", "buildInfo.Main.Path", buildInfo.Main.Path)
 	sloger.SetDefaultLogger(logger)
+
+	explogger := cli.ExpAppLogger(appConfig).With("pkg", "main", "buildInfo.Main.Path", buildInfo.Main.Path)
+	slogerxexp.SetDefaultLogger(explogger)
+
 }
 
 func main() {
@@ -95,7 +100,7 @@ func main() {
 
 	locker := memorylocker.New()
 
-	handlerTusd, err := handlertusd.New(store, locker, cli.GetHookHandler(), appConfig)
+	handlerTusd, err := handlertusd.New(store, locker, cli.GetHookHandler(), appConfig.TusdHandlerBasePath)
 	if err != nil {
 		logger.Error("error starting tusd handler: ", err)
 		os.Exit(appMainExitCode)
