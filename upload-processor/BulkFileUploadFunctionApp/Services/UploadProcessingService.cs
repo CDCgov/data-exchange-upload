@@ -214,14 +214,17 @@ namespace BulkFileUploadFunctionApp.Services
         
         public async Task<string> CopyFromTusToDex(AzureBlobWriter tusToDexBlobWriter)
         {
-            
-
-            await tusToDexBlobWriter.DoWithRetryAsync(async () => 
+            try
             {
                 await tusToDexBlobWriter.WriteLeaseAsync();
-            });
 
-            return tusToDexBlobWriter.DestBlobClient.Uri.ToString();
+                return tusToDexBlobWriter.DestBlobClient.Uri.ToString();
+            } catch (RequestFailedException ex)
+            {
+                _logger.LogError($"Failed to copy from {tusToDexBlobWriter.SrcBlobClient.Uri} to {tusToDexBlobWriter.DestBlobClient.Uri}.");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+                throw new RetryException(BlobCopyStage.CopyToDex, ex.Message);
+            }
         }
         
         public async Task CopyFromDexToTargets(List<AzureBlobWriter> writers, CopyPrereqs copyPrereqs)
@@ -229,7 +232,7 @@ namespace BulkFileUploadFunctionApp.Services
             _logger.LogInformation($"Writting to {writers.Count} target(s).");
             foreach (AzureBlobWriter writer in writers)
             {
-                await writer.DoWithRetryAsync(async () =>
+                try
                 {
                     await writer.DoIfEnabledAsync(async () =>
                     {
@@ -241,13 +244,19 @@ namespace BulkFileUploadFunctionApp.Services
                         await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                         {
                             SendSuccessReport(copyPrereqs.UploadId,
-                                              copyPrereqs.UseCase,
-                                              copyPrereqs.UseCaseCategory,
-                                              copyPrereqs.DexBlobUrl,
-                                              writer.DestBlobClient.Uri.ToString());
+                                                copyPrereqs.UseCase,
+                                                copyPrereqs.UseCaseCategory,
+                                                copyPrereqs.DexBlobUrl,
+                                                writer.DestBlobClient.Uri.ToString());
                         });
                     });
-                });
+                }
+                catch (RequestFailedException ex)
+                {
+                    _logger.LogError($"Failed to copy from {writer.SrcBlobClient.Uri} to {writer.DestBlobClient.Uri}.");
+                    ExceptionUtils.LogErrorDetails(ex, _logger);
+                    throw new RetryException(writer.CopyStage, ex.Message);
+                }
             }
         }
 

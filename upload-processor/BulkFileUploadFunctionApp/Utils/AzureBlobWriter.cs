@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace BulkFileUploadFunctionApp.Utils
 {
     // Derived Writer Classes Implementing IBlobWriter and IEnableable
-    public class AzureBlobWriter : Enableable, IRetryable
+    public class AzureBlobWriter : Enableable
     {
         public BlobServiceClient Src { get; init; }
         public BlobServiceClient Dest { get; init; }
@@ -48,18 +48,6 @@ namespace BulkFileUploadFunctionApp.Utils
             Executor = executor;
             _logger = loggerFactory.CreateLogger<AzureBlobWriter>(); ;
         }
-
-        public void DoWithRetry(Action callback)
-        {
-            try
-            {
-                callback();
-            } catch (Exception ex)
-            {
-                throw new RetryException(CopyStage, ex.Message);
-            }
-        }
-
         public async Task DoWithRetryAsync(Func<Task> callback)
         {
             try
