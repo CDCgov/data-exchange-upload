@@ -35,8 +35,12 @@ func init() {
 	}
 }
 
-func TestTus(t *testing.T) {
+type testCase struct {
+	metadata tus.Metadata
+	err      error
+}
 
+func TestTus(t *testing.T) {
 	hookHandler := PrebuiltHooks()
 
 	handlerTusd, err := handlertusd.New(store, locker, hookHandler, "/")
@@ -48,45 +52,65 @@ func TestTus(t *testing.T) {
 	ts := httptest.NewServer(handlerTusd)
 	defer ts.Close()
 
-	f, err := os.Open("test/test.txt")
-
-	if err != nil {
-		panic(err)
+	cases := map[string]testCase{
+		"good": {
+			tus.Metadata{
+				"meta_destination_id": "dextesting",
+				"meta_ext_event":      "testevent1",
+			},
+			nil,
+		},
+		"bad": {
+			tus.Metadata{
+				"bad_key":        "dextesting",
+				"meta_ext_event": "testevent1",
+			},
+			tus.ClientError{
+				Code: 400,
+				Body: []byte("meta_destination_id not found in manifest"),
+			},
+		},
 	}
+	for _, c := range cases {
+		f, err := os.Open("test/test.txt")
 
-	defer f.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	// create the tus client.
-	client, err := tus.NewClient(ts.URL, nil)
-	if err != nil {
-		t.Error(err)
-	}
+		defer f.Close()
 
-	fi, err := f.Stat()
-	if err != nil {
-		t.Error(err)
-	}
+		// create the tus client.
+		client, err := tus.NewClient(ts.URL, nil)
+		if err != nil {
+			t.Error(err)
+		}
 
-	metadata := map[string]string{
-		"filename":            fi.Name(),
-		"meta_destination_id": "dextesting",
-		"meta_ext_event":      "testevent1",
-	}
+		fi, err := f.Stat()
+		if err != nil {
+			t.Error(err)
+		}
 
-	fingerprint := fmt.Sprintf("%s-%d-%s", fi.Name(), fi.Size(), fi.ModTime())
+		fingerprint := fmt.Sprintf("%s-%d-%s", fi.Name(), fi.Size(), fi.ModTime())
+		c.metadata["filename"] = fi.Name()
 
-	// create an upload from a file.
-	upload := tus.NewUpload(f, fi.Size(), metadata, fingerprint)
+		// create an upload from a file.
+		upload := tus.NewUpload(f, fi.Size(), c.metadata, fingerprint)
 
-	// create the uploader.
-	uploader, err := client.CreateUpload(upload)
-	if err != nil {
-		t.Fatal(err)
-	}
+		// create the uploader.
+		uploader, err := client.CreateUpload(upload)
+		if c.err != nil {
+			if c.err.Error() != err.Error() {
+				t.Error("error missmatch", "got", err, "wanted", c.err)
+			}
+		}
 
-	// start the uploading process.
-	if err := uploader.Upload(); err != nil {
-		t.Error(err)
+		if uploader != nil {
+			// start the uploading process.
+			if err := uploader.Upload(); err != nil {
+				t.Error(err)
+			}
+		}
 	}
 
 	//TODO assert that expected results are in the right place

@@ -39,6 +39,10 @@ func CreateDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.C
 
 		hc, err := storeaz.NewAzureHealthCheck(azConfig)
 
+		if err != nil {
+			return nil, nil, err
+		} // azService
+
 		return azurestore.New(azService), hc, nil
 		// store.ObjectPrefix = Flags.AzObjectPrefix
 		// store.Container = appConfig.AzContainerName
