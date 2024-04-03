@@ -70,9 +70,12 @@ namespace BulkFileUploadFunctionApp
                 _logger.LogInformation($"Copy prereqs: {JsonSerializer.Serialize(copyPrereqs)}");
 
                 await _uploadProcessingService.CopyAll(copyPrereqs);
-            } catch (Exception)
+            } catch (RetryException ex)
             {
-                await _uploadProcessingService.PublishRetryEvent(BlobCopyStage.CopyToDex, copyPrereqs);
+                await _uploadProcessingService.PublishRetryEvent(ex.Stage, copyPrereqs);
+            } catch (Exception ex)
+            {
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
             
         }

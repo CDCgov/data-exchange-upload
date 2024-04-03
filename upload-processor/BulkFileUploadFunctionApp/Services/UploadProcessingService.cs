@@ -140,13 +140,13 @@ namespace BulkFileUploadFunctionApp.Services
             }
             catch(Exception ex)
             {
-                _logger.LogError("Failed to copy from TUS to Dex");
+                _logger.LogError("Failed to get copy inputs.");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
                 
                 // Send copy failure report
                 SendFailureReport(uploadId, useCase, useCaseCategory, blobCreatedUrl, destinationContainerName, $"Failed to get copy preqs: {ex.Message}");
 
-                throw ex;
+                throw new RetryException(BlobCopyStage.CopyToDex, ex.Message);
             }
         }
         
