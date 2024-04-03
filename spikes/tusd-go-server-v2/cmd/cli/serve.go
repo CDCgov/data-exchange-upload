@@ -29,7 +29,9 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	if err != nil {
 		logger.Error("error processing status not available", "error", err)
 	} // .err
-	health.Register(psSender)
+	if psSender != nil {
+		health.Register(psSender)
+	}
 
 	store, storeHealthCheck, err := CreateDataStore(appConfig)
 	if err != nil {

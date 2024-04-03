@@ -102,6 +102,26 @@ func TestTus(t *testing.T) {
 	//TODO assert that expected results are in the right place
 }
 
+func TestWellKnownEndpoints(t *testing.T) {
+	endpoints := []string{
+		"/",
+		"/health",
+		"/version",
+		"/metadata",
+		"/metadata/v1",
+	}
+	client := ts.Client()
+	for _, endpoint := range endpoints {
+		resp, err := client.Get(ts.URL + endpoint)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != 200 {
+			t.Error("bad response for ", endpoint, resp.StatusCode)
+		}
+	}
+}
+
 func TestMain(m *testing.M) {
 	handler, err := Serve(appConfig)
 	if err != nil {

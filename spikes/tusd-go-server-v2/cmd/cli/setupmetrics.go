@@ -8,11 +8,6 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 ) // .import
 
-var metricsOpenConnections = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "dex_server_connections_open",
-	Help: "Current number of server open connections.",
-}) // .metricsOpenConnections
-
 func setupMetrics() {
 
 	// ------------------------------------------------------------------
@@ -20,7 +15,6 @@ func setupMetrics() {
 	// https://github.com/tus/tusd/blob/main/cmd/tusd/cli/metrics.go
 	// ------------------------------------------------------------------
 
-	prometheus.MustRegister(metricsOpenConnections)
 	prometheus.MustRegister(hooks.MetricsHookErrorsTotal)
 	prometheus.MustRegister(hooks.MetricsHookInvocationsTotal)
 
