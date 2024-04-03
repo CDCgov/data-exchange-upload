@@ -156,19 +156,17 @@ namespace BulkFileUploadFunctionApp.Services
             _logger.LogInformation($"Creating destination container client, container name: {copyPrereqs.DexBlobFolderName}");
 
             AzureBlobWriter tusToDexBlobWriter = CreateWriterForStage(BlobCopyStage.CopyToDex, copyPrereqs);
-            AzureBlobWriter dexToEdavBlobWriter = CreateWriterForStage(BlobCopyStage.CopyToEdav, copyPrereqs);
-            AzureBlobWriter dexToRoutingBlobWriter = CreateWriterForStage(BlobCopyStage.CopyToRouting, copyPrereqs);
 
             List<AzureBlobWriter> writers = copyPrereqs.Targets.Select(target =>
             {
                 switch (target)
                 {
                     case CopyTargetsEnum.edav:
-                        return dexToEdavBlobWriter;
+                        return CreateWriterForStage(BlobCopyStage.CopyToEdav, copyPrereqs);
                     case CopyTargetsEnum.routing:
-                        return dexToRoutingBlobWriter;
+                        return CreateWriterForStage(BlobCopyStage.CopyToRouting, copyPrereqs);
                     default:
-                        return dexToEdavBlobWriter;
+                        return CreateWriterForStage(BlobCopyStage.CopyToEdav, copyPrereqs);
                 };
             }).ToList();
 
@@ -182,23 +180,16 @@ namespace BulkFileUploadFunctionApp.Services
                 copyPrereqs.DexBlobUrl = await CopyFromTusToDex(tusToDexBlobWriter);
                 await CopyFromDexToTargets(writers, copyPrereqs);
             }
-            catch (RetryException ex)
+            catch (WriteRetryException ex)
             {
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    AzureBlobWriter? writer = writers.Find(writer => writer.CopyStage == ex.Stage);
-
-                    if (writer != null)
-                    {
-                        string srcUrl = writer.SrcBlobClient.Uri.ToString();
-                        string destUrl = writer.DestBlobClient.Uri.ToString();
-                        SendFailureReport(copyPrereqs.UploadId,
-                                      copyPrereqs.UseCase,
-                                      copyPrereqs.UseCaseCategory,
-                                      copyPrereqs.SourceBlobUrl,
-                                      copyPrereqs.DexBlobFolderName,
-                                      $"Failed to copy blob from {srcUrl} to {destUrl}. {ex.Message}");
-                    }
+                    SendFailureReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    copyPrereqs.SourceBlobUrl,
+                                    copyPrereqs.DexBlobFolderName,
+                                    $"Failed to copy blob from {ex.srcUri} to {ex.destUri}. {ex.Message}");
                 });
 
                 await PublishRetryEvent(ex.Stage, copyPrereqs);
@@ -223,7 +214,7 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogError($"Failed to copy from {tusToDexBlobWriter.SrcBlobClient.Uri} to {tusToDexBlobWriter.DestBlobClient.Uri}.");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                throw new RetryException(BlobCopyStage.CopyToDex, ex.Message);
+                throw new WriteRetryException(BlobCopyStage.CopyToDex, tusToDexBlobWriter.SrcBlobClient.Uri, tusToDexBlobWriter.DestBlobClient.Uri, ex.Message);
             }
         }
         
@@ -255,7 +246,7 @@ namespace BulkFileUploadFunctionApp.Services
                 {
                     _logger.LogError($"Failed to copy from {writer.SrcBlobClient.Uri} to {writer.DestBlobClient.Uri}.");
                     ExceptionUtils.LogErrorDetails(ex, _logger);
-                    throw new RetryException(writer.CopyStage, ex.Message);
+                    throw new WriteRetryException(writer.CopyStage, writer.SrcBlobClient.Uri, writer.DestBlobClient.Uri, ex.Message);
                 }
             }
         }

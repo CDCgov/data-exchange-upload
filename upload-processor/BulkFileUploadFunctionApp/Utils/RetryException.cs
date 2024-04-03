@@ -25,50 +25,15 @@ namespace BulkFileUploadFunctionApp.Utils
         }
     }
 
-    // Specific RetryException Classes
-    public class DexRetryException : Exception
+    public class WriteRetryException : RetryException
     {
-        public DexRetryException(){ }
+        public Uri srcUri { get; init; }
+        public Uri destUri { get; init; }
 
-        public DexRetryException(string? message) : base(message)
+        public WriteRetryException(BlobCopyStage stage, Uri srcUri, Uri destUri, string? message) : base(stage, message)
         {
-
-        }
-
-        public DexRetryException(string? message, Exception? innerException) : base(message, innerException)
-        {
-        }
-
-        protected DexRetryException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
-    }
-
-    public class RoutingRetryException : Exception
-    {
-        public RoutingRetryException() { }
-        public RoutingRetryException(string? message) : base(message)
-        {
-        }
-        public RoutingRetryException(string? message, Exception? innerException) : base(message, innerException)
-        {
-        }
-        protected RoutingRetryException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
-        }
-    }
-
-    public class EdavRetryException : Exception
-    {
-        public EdavRetryException(){ }
-        public EdavRetryException(string? message) : base(message)
-        {
-        }
-        public EdavRetryException(string? message, Exception? innerException) : base(message, innerException)
-        {
-        }
-        protected EdavRetryException(SerializationInfo info, StreamingContext context) : base(info, context)
-        {
+            this.srcUri = srcUri;
+            this.destUri = destUri;
         }
     }
 }
