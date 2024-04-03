@@ -126,7 +126,7 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 					// ----------------------------------------------------------------------
 					hydrateFilePath, err := filepath.Abs(appConfig.HydrateV1ConfigPath + updConfFileNameExt)
 					if err != nil {
-						logger.Error("error reading hydrate file from path", "HydrateV1ConfigPath", appConfig.HydrateV1ConfigPath)
+						logger.Error("error reading hydrate file from path", "HydrateV1ConfigPath", appConfig.HydrateV1ConfigPath, "error", err)
 						return nil, err
 					} // .if
 

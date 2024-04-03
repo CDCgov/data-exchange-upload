@@ -1,4 +1,4 @@
-package storeaz
+package experimental
 
 import (
 	"context"

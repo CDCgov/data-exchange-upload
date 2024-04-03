@@ -125,7 +125,7 @@ func (az *AzureUploadCompleteHandler) copyTusDexWRetry(eventUploadComplete tusd.
 
 	logger := sloger.DefaultLogger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
 
-	copierDex := storeaz.CopierAzTusToDex{
+	copierDex := CopierAzTusToDex{
 
 		SrcTusAzBlobClient:    az.TusAzBlobClient,
 		SrcTusAzContainerName: appconfig.LoadedConfig.TusAzStorageConfig.AzContainerName,
@@ -173,7 +173,7 @@ func (az *AzureUploadCompleteHandler) copyTusRouterWRetry(eventUploadComplete tu
 
 	logger := sloger.DefaultLogger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
 
-	copierSrcToDst := storeaz.CopierAzSrcDst{
+	copierSrcToDst := CopierAzSrcDst{
 
 		SrcTusAzBlobClient:    az.TusAzBlobClient,
 		SrcTusAzContainerName: appconfig.LoadedConfig.TusAzStorageConfig.AzContainerName,
@@ -221,7 +221,7 @@ func (az *AzureUploadCompleteHandler) copyTusEdavWRetry(eventUploadComplete tusd
 
 	logger := sloger.DefaultLogger.With(models.EVENT_UPLOAD_ID, eventUploadComplete.Upload.ID)
 
-	copierSrcToDst := storeaz.CopierAzSrcDst{
+	copierSrcToDst := CopierAzSrcDst{
 
 		SrcTusAzBlobClient:    az.TusAzBlobClient,
 		SrcTusAzContainerName: appconfig.LoadedConfig.TusAzStorageConfig.AzContainerName,

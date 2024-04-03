@@ -27,6 +27,7 @@ func TestLoadOnce(t *testing.T) {
 		AllowedDestAndEventsPath: "../../configs/allowed_destination_and_events.json",
 		DefinitionsPath:          "../../configs/file-hooks/metadata-verify/",
 		UploadConfigPath:         "../../configs/upload-configs/",
+		HydrateV1ConfigPath:      "../../configs/upload-configs/v2/",
 	} // .appConfig
 
 	metaV1, err := LoadOnce(appConfig)
