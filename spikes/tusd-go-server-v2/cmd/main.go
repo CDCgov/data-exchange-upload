@@ -11,6 +11,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/handlertusd"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/serverdex"
@@ -72,12 +73,14 @@ func main() {
 	if err != nil {
 		logger.Error("error processing status not available", "error", err)
 	} // .err
+	health.Register(psSender)
 
-	store, err := cli.CreateDataStore(appConfig)
+	store, storeHealthCheck, err := cli.CreateDataStore(appConfig)
 	if err != nil {
 		logger.Error("error starting app, error configuring storage", "error", err)
 		os.Exit(appMainExitCode)
 	}
+	health.Register(storeHealthCheck)
 
 	locker := memorylocker.New()
 

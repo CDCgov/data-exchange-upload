@@ -8,6 +8,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/processingstatus"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/pkg/sloger"
 ) // .import
@@ -44,6 +45,7 @@ func New(appConfig appconfig.AppConfig, psSender *processingstatus.PsSender) *Ha
 
 // ServeHTTP handler method for handling http requests
 // it routes request for response to different paths to respective functions
+// TODO: refactor to use a servmux
 func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	switch r.URL.Path {
@@ -52,7 +54,7 @@ func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		hd.root(w, r)
 
 	case "/health":
-		hd.health(w, r)
+		health.Handler().ServeHTTP(w, r)
 
 	case "/version":
 		hd.version(w, r)

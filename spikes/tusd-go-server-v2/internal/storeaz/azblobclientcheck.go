@@ -8,6 +8,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
+	"github.com/tus/tusd/v2/pkg/azurestore"
 ) // .import
 
 // CheckTusAzBlobClient returns a check on the azure blob client
@@ -27,6 +28,24 @@ func CheckEdavAzBlobClient(client *azblob.Client) models.ServiceHealthResp {
 
 	return checkAzBlobClient(edavPrefix, client)
 } // .CheckEdavAzBlobClient
+
+type AzureBlobHealthCheck struct {
+	client *azblob.Client
+}
+
+func NewAzureHealthCheck(conf *azurestore.AzConfig) (*AzureBlobHealthCheck, error) {
+	client, err := newAzBlobClient(tusPrefix, conf.AccountName, conf.AccountKey, conf.Endpoint, conf.ContainerName)
+	if err != nil {
+		return nil, err
+	}
+	return &AzureBlobHealthCheck{
+		client: client,
+	}, nil
+}
+
+func (c *AzureBlobHealthCheck) Health(ctx context.Context) models.ServiceHealthResp {
+	return checkAzBlobClient(tusPrefix, c.client)
+}
 
 // checkAzBlobClient, method for checking still valid and working the azure blob client for a storage
 func checkAzBlobClient(prefix string, client *azblob.Client) models.ServiceHealthResp {

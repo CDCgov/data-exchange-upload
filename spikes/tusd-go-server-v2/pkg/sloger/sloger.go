@@ -15,6 +15,13 @@ func SetDefaultLogger(l *slog.Logger) {
 	DefaultLogger = l
 }
 
+func With(args ...any) *slog.Logger {
+	if DefaultLogger == nil {
+		return slog.With(args...)
+	}
+	return DefaultLogger.With(args...)
+}
+
 // AppLogger, this is the custom application logger for uniformity
 func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 

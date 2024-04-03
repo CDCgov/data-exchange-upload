@@ -1,6 +1,7 @@
 package processingstatus
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,13 +11,17 @@ import (
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/models"
 )
 
-func (pss PsSender) CheckHealth() models.ServiceHealthResp {
+func (pss PsSender) Health(ctx context.Context) models.ServiceHealthResp {
 
 	var shr models.ServiceHealthResp
 	shr.Service = models.PROCESSING_STATUS_APP
 
 	// call processing status health endpoint
-	res, err := http.Get(pss.EndpointHealth)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pss.EndpointHealth, nil)
+	if err != nil {
+		return processingStatusDown(err)
+	}
+	res, err := http.DefaultClient.Do(req)
 	if err != nil || res.StatusCode != http.StatusOK {
 		return processingStatusDown(err)
 	} // .if
