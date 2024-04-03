@@ -160,18 +160,20 @@ namespace BulkFileUploadFunctionApp.Services
 
             AzureBlobWriter tusToDexBlobWriter = CreateWriterForStage(BlobCopyStage.CopyToDex, copyPrereqs);
 
-            List<AzureBlobWriter> dexToTargetWriters = copyPrereqs.Targets.Select(target =>
+            Dictionary<BlobCopyStage, AzureBlobWriter> dexToTargetsMap = new Dictionary<BlobCopyStage, AzureBlobWriter>();
+
+            copyPrereqs.Targets.ForEach(target =>
             {
                 switch (target)
                 {
                     case CopyTargetsEnum.edav:
-                        return CreateWriterForStage(BlobCopyStage.CopyToEdav, copyPrereqs);
+                        dexToTargetsMap.Add(BlobCopyStage.CopyToEdav, CreateWriterForStage(BlobCopyStage.CopyToEdav, copyPrereqs));
+                        break;
                     case CopyTargetsEnum.routing:
-                        return CreateWriterForStage(BlobCopyStage.CopyToRouting, copyPrereqs);
-                    default:
-                        return CreateWriterForStage(BlobCopyStage.CopyToEdav, copyPrereqs);
+                        dexToTargetsMap.Add(BlobCopyStage.CopyToRouting, CreateWriterForStage(BlobCopyStage.CopyToRouting, copyPrereqs));
+                        break;
                 };
-            }).ToList();
+            });
 
             try
             {
@@ -181,7 +183,7 @@ namespace BulkFileUploadFunctionApp.Services
                 });
 
                 copyPrereqs.DexBlobUrl = await CopyFromTusToDex(tusToDexBlobWriter);
-                await CopyFromDexToTargets(dexToTargetWriters, copyPrereqs);
+                await CopyFromDexToTargets(dexToTargetsMap, copyPrereqs);
             }
             catch (WriteRetryException ex)
             {
@@ -221,11 +223,12 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
         
-        public async Task CopyFromDexToTargets(List<AzureBlobWriter> writers, CopyPrereqs copyPrereqs)
+        public async Task CopyFromDexToTargets(Dictionary<BlobCopyStage, AzureBlobWriter> writers, CopyPrereqs copyPrereqs)
         {
             _logger.LogInformation($"Writting to {writers.Count} target(s).");
-            foreach (AzureBlobWriter writer in writers)
+            foreach (KeyValuePair<BlobCopyStage, AzureBlobWriter> entry in writers)
             {
+                var writer = entry.Value;
                 try
                 {
                     await writer.DoIfEnabledAsync(async () =>
@@ -249,7 +252,7 @@ namespace BulkFileUploadFunctionApp.Services
                 {
                     _logger.LogError($"Failed to copy from {writer.SrcBlobClient.Uri} to {writer.DestBlobClient.Uri}.");
                     ExceptionUtils.LogErrorDetails(ex, _logger);
-                    throw new WriteRetryException(writer.CopyStage, writer.SrcBlobClient.Uri, writer.DestBlobClient.Uri, ex.Message);
+                    throw new WriteRetryException(entry.Key, writer.SrcBlobClient.Uri, writer.DestBlobClient.Uri, ex.Message);
                 }
             }
         }
@@ -271,7 +274,6 @@ namespace BulkFileUploadFunctionApp.Services
                         copyPrereqs.DexBlobFileName,
                         copyPrereqs.DexBlobFolderName,
                         copyPrereqs.Metadata,
-                        BlobCopyStage.CopyToDex,
                         _loggerFactory);
                 case BlobCopyStage.CopyToEdav:
                     return new AzureBlobWriter(
@@ -282,7 +284,6 @@ namespace BulkFileUploadFunctionApp.Services
                         dexToTargetFilename,
                         dexToEdavDestinationContainerName,
                         copyPrereqs.Metadata,
-                        BlobCopyStage.CopyToEdav,
                         _loggerFactory);
                 case BlobCopyStage.CopyToRouting:
                     return new AzureBlobWriter(
@@ -293,7 +294,6 @@ namespace BulkFileUploadFunctionApp.Services
                         dexToTargetFilename,
                         dexToRoutingDestinationContainerName,
                         copyPrereqs.Metadata,
-                        BlobCopyStage.CopyToRouting,
                         _loggerFactory,
                         Constants.ROUTING_FEATURE_FLAG_NAME,
                         _featureManagementExecutor);

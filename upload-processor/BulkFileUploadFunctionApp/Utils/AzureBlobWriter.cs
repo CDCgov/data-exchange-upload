@@ -16,11 +16,10 @@ namespace BulkFileUploadFunctionApp.Utils
         public BlobClient SrcBlobClient { get; init; }
         public BlobClient DestBlobClient { get; init; }
         public Dictionary<string, string> MetaData { get; init; }
-        public BlobCopyStage CopyStage { get; init; }
         private ILogger _logger;
 
         public AzureBlobWriter(BlobServiceClient src, BlobServiceClient dest, string srcBlobName, string srcContainerName, string destBlobName, string destContainerName,
-            Dictionary<string, string> metaData, BlobCopyStage copyStage, ILoggerFactory loggerFactory)
+            Dictionary<string, string> metaData, ILoggerFactory loggerFactory)
         {
             Src = src;
             Dest = dest;
@@ -29,12 +28,11 @@ namespace BulkFileUploadFunctionApp.Utils
             SrcBlobClient = Src.GetBlobContainerClient(SrcContainerName).GetBlobClient(srcBlobName);
             DestBlobClient = Dest.GetBlobContainerClient(DestContainerName).GetBlobClient(destBlobName);
             MetaData = metaData;
-            CopyStage = copyStage; 
             _logger = loggerFactory.CreateLogger<AzureBlobWriter>();
         }
 
         public AzureBlobWriter(BlobServiceClient src, BlobServiceClient dest, string srcBlobName, string srcContainerName, string destBlobName, string destContainerName,
-            Dictionary<string,string> metaData, BlobCopyStage copyStage, ILoggerFactory loggerFactory, string featureFlagKey, IFeatureManagementExecutor executor)
+            Dictionary<string,string> metaData, ILoggerFactory loggerFactory, string featureFlagKey, IFeatureManagementExecutor executor)
         {
             Src = src;
             Dest = dest;
@@ -43,21 +41,9 @@ namespace BulkFileUploadFunctionApp.Utils
             SrcBlobClient = Src.GetBlobContainerClient(SrcContainerName).GetBlobClient(srcBlobName);
             DestBlobClient = Dest.GetBlobContainerClient(DestContainerName).GetBlobClient(destBlobName);
             MetaData = metaData;
-            CopyStage = copyStage;
             FeatureFlagKey = featureFlagKey;
             Executor = executor;
             _logger = loggerFactory.CreateLogger<AzureBlobWriter>(); ;
-        }
-        public async Task DoWithRetryAsync(Func<Task> callback)
-        {
-            try
-            {
-               await callback();
-            }
-            catch (Exception ex)
-            {
-                throw new RetryException(CopyStage, ex.Message);
-            }
         }
 
         public override void DoIfEnabled(Action callback)

@@ -9,7 +9,7 @@ namespace BulkFileUploadFunctionApp.Services
 
         Task CopyAll(CopyPrereqs copyPrereqs);
 
-        Task CopyFromDexToTargets(List<AzureBlobWriter> writers, CopyPrereqs copyPrereqs);
+        Task CopyFromDexToTargets(Dictionary<BlobCopyStage, AzureBlobWriter> writers, CopyPrereqs copyPrereqs);
 
         Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs);
 
