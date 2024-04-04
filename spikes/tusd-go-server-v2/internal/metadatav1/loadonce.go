@@ -168,3 +168,7 @@ func LoadOnce(appConfig appconfig.AppConfig) (*MetadataV1, error) {
 
 	return metaV1Instance, nil
 } // .Get
+
+func Unload() {
+	metaV1Instance = nil
+}

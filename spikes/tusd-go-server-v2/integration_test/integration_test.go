@@ -1,20 +1,23 @@
-package cli
+package integration_test
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/cdcgov/data-exchange-upload/tusd-go-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/tusd-go-server/internal/metadatav1"
-	tus "github.com/eventials/go-tus"
+	"github.com/eventials/go-tus"
+	"github.com/joho/godotenv"
 )
 
-var (
-	ts *httptest.Server
-)
+const IntegrationConfigPath = "./integration.env"
+
+var ts *httptest.Server
 
 type testCase struct {
 	metadata tus.Metadata
@@ -48,7 +51,7 @@ func TestTus(t *testing.T) {
 }
 
 func testTus(c testCase, t *testing.T) {
-	f, err := os.Open("test/test.txt")
+	f, err := os.Open("../cmd/cli/test/test.txt")
 
 	if err != nil {
 		t.Fatal(err)
@@ -110,21 +113,27 @@ func TestWellKnownEndpoints(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	appConfig := appconfig.AppConfig{
-		AllowedDestAndEventsPath: "../../configs/allowed_destination_and_events.json",
-		DefinitionsPath:          "../../configs/file-hooks/metadata-verify/",
-		UploadConfigPath:         "../../configs/upload-configs/",
-		HydrateV1ConfigPath:      "../../configs/upload-configs/v2/",
-		LocalFolderUploadsTus:    "test/uploads",
-		TusdHandlerBasePath:      "/files/",
+	if _, ok := os.LookupEnv("UPLOAD_INTEGRATION_TEST"); !ok {
+		log.Println("Not running integration tests")
+		return
 	}
-	_, err := metadatav1.LoadOnce(appConfig)
+	ctx := context.Background()
+	if err := godotenv.Load(IntegrationConfigPath); err != nil {
+		log.Fatal(err)
+	} // .if
+	// ------------------------------------------------------------------
+	// parse and load config from os exported
+	// ------------------------------------------------------------------
+	appConfig, err := appconfig.ParseConfig(ctx)
 	if err != nil {
+		log.Fatal(err)
+	} // .if
+	if _, err := metadatav1.LoadOnce(appConfig); err != nil {
 		log.Fatal(err)
 	}
 	defer metadatav1.Unload()
 
-	handler, err := Serve(appConfig)
+	handler, err := cli.Serve(appConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

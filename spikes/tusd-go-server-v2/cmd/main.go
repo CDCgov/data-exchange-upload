@@ -24,6 +24,9 @@ var (
 	logger    *slog.Logger
 )
 
+// NOTE: this large init file may be an antipattern.
+// A main reason for it is to enable to cross cutting logging aspect.
+// If another way is found to manage that this should be moved to main.
 func init() {
 
 	ctx := context.Background()
