@@ -34,7 +34,7 @@ REQUIRED_VERSION_TWO_FIELDS = ['data_stream_id', 'data_stream_route']
 def get_feature_flag(flag_name):
     try:
         fetched_flag = config_client.get_configuration_setting(key=f".appconfig.featureflag/{flag_name}", label=None)
-        return fetched_flag.value == "true"
+        return fetched_flag.value
     except Exception as e:
         print(f"Error fetching feature flag {flag_name}: {e}")
         return False
@@ -73,10 +73,12 @@ def get_filename_from_metadata(metadata_json_dict):
 
 def post_create(use_case, use_case_category, metadata_json_dict, tguid):
     logger.info(f'Creating trace for upload {tguid} with use case {use_case} and use case category {use_case_category}')
+    print(f"processing_status_traces_enabled: {processing_status_traces_enabled}")
 
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
 
     if processing_status_traces_enabled:
+        print("processing_status_traces_enabled...")
         trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, use_case, use_case_category)
         logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
 

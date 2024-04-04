@@ -49,7 +49,7 @@ INVALID_CHARS = set('<>:"/\\|?*')
 def get_feature_flag(flag_name):
     try:
         fetched_flag = config_client.get_configuration_setting(key=f".appconfig.featureflag/{flag_name}", label=None)
-        return fetched_flag.value == "true"
+        return fetched_flag.value
     except Exception as e:
         print(f"Error fetching feature flag {flag_name}: {e}")
         return False
@@ -148,11 +148,14 @@ def report_verification_failure(messages, use_case, use_case_category, meta_json
     # Create trace for upload
     upload_id = uuid.uuid4()
     if processing_status_traces_enabled:
-        # Only create and manage traces if tracing is enabled
-        trace_id, parent_span_id = ps_api_controller.create_upload_trace(upload_id, use_case, use_case_category)
-        # Start the upload stage metadata verification span
-        trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, STAGE_NAME)
-        logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
+        try:
+            # Only create and manage traces if tracing is enabled
+            trace_id, parent_span_id = ps_api_controller.create_upload_trace(upload_id, use_case, use_case_category)
+            # Start the upload stage metadata verification span
+            trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, STAGE_NAME)
+            logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
+        except Exception as e:
+            logger.debug('Unable to Start a child span.')
 
     filename = None
 

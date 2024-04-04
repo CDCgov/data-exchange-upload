@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def get_feature_flag(flag_name):
     try:
         fetched_flag = config_client.get_configuration_setting(key=f".appconfig.featureflag/{flag_name}", label=None)
-        return fetched_flag.value == "true"
+        return fetched_flag.value
     except Exception as e:
         print(f"Error fetching feature flag {flag_name}: {e}")
         return False
