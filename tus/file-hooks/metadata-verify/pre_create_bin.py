@@ -155,7 +155,7 @@ def report_verification_failure(messages, use_case, use_case_category, meta_json
             trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, STAGE_NAME)
             logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
         except Exception as e:
-            logger.debug('Unable to Start a child span.')
+            logger.debug('Unable to create and manage traces.')
 
     filename = None
 
@@ -165,21 +165,27 @@ def report_verification_failure(messages, use_case, use_case_category, meta_json
         logger.debug('Unable to get filename. Sending failure report with no filename.')
 
     if processing_status_reports_enabled:
-        # Send report with metadata failure issues.
-        payload = {
-            'schema_version': '0.0.1',
-            'schema_name': STAGE_NAME,
-            'filename': filename,
-            'metadata': meta_json,
-            'issues': messages
-        }
+        try:
+            # Send report with metadata failure issues.
+            payload = {
+                'schema_version': '0.0.1',
+                'schema_name': STAGE_NAME,
+                'filename': filename,
+                'metadata': meta_json,
+                'issues': messages
+            }
 
-        ps_api_controller.create_report(upload_id, use_case, use_case_category, STAGE_NAME, json.dumps(payload))
+            ps_api_controller.create_report(upload_id, use_case, use_case_category, STAGE_NAME, json.dumps(payload))
+        except Exception as e:
+            logger.debug('Unable to Send report with metadata failure issues.')
 
     if processing_status_traces_enabled:
-        # Stop the upload stage metadata verification span
-        ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
-        logger.debug(f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
+        try:
+            # Stop the upload stage metadata verification span
+            ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
+            logger.debug(f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
+        except Exception as e:
+            logger.debug('Unable to Stop the upload stage metadata verification span.')
 
     return upload_id
 
