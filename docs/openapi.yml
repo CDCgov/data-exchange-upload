@@ -525,7 +525,7 @@ paths:
         unique identifier (tguid) used to resume uploads or identify the filename
         it is persisted as in blob storage once completed. The tguid will be
         used for getting a specific uploaded file's status. This endpoint is 
-        deprecated in the development environment. 
+        deprecated in both the development environment and staging environment. 
       security:
         - bearerAuth: []
       parameters:
@@ -553,7 +553,8 @@ paths:
       description: >-
         Provides upload statuses for the given destination identifier that can
         be optionally filtered by meta_ext_event and date range.  Returned data
-        is paginated. This endpoint is deprecated in development environment.
+        is paginated. This endpoint is deprecated in both the development environment 
+        and staging environment.
       security:
         - bearerAuth: []
       parameters:
