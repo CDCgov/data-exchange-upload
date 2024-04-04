@@ -67,7 +67,7 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 		// TODO: the tusd logger type is "golang.org/x/exp/slog" vs. app logger "log/slog"
 		// TODO: switch to the log/slog when tusd is on that
 		Logger: logger,
-	}, hooksHandler, []hooks.HookType{hooks.HookPreCreate, hooks.HookPostFinish}) // .handler
+	}, hooksHandler, []hooks.HookType{hooks.HookPreCreate, hooks.HookPostCreate, hooks.HookPostReceive, hooks.HookPreFinish, hooks.HookPostFinish, hooks.HookPostTerminate}) // .handler
 	if err != nil {
 		logger.Error("error start tusd handler", "error", err)
 		return nil, err
