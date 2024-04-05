@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/experimental/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/upload-server/experimental/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/experimental/storelocal"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"

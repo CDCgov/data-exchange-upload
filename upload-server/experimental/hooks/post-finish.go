@@ -1,8 +1,8 @@
 package hooks
 
 import (
+	"github.com/cdcgov/data-exchange-upload/upload-server/experimental/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"

@@ -2,7 +2,7 @@ package hooks
 
 import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadatav1"
+	"github.com/cdcgov/data-exchange-upload/upload-server/experimental/metadatav1"
 )
 
 func hydrateManifestV1(manifest *map[string]*string, hydrateV1Config metadatav1.HydrateV1Config) {

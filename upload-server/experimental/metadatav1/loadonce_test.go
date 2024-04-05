@@ -32,7 +32,7 @@ func TestLoadOnce(t *testing.T) {
 
 	metaV1, err := LoadOnce(appConfig)
 	if err != nil {
-		t.Errorf("got %q, wanted %q", err, "metadata load no error")
+		t.Fatalf("got %q, wanted %q", err, "metadata load no error")
 	} // .err
 
 	if len((*metaV1).AllowedDestAndEvents) == 0 {

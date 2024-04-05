@@ -7,7 +7,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/processingstatus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -15,15 +14,6 @@ import (
 )
 
 func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
-
-	// ------------------------------------------------------------------
-	// load metadata v1 config into singleton to check and have available
-	// ------------------------------------------------------------------
-	_, err := metadatav1.LoadOnce(appConfig)
-	if err != nil {
-		logger.Error("error starting app, metadata v1 config not available", "error", err)
-		return nil, err
-	} // .err
 
 	psSender, err := processingstatus.New(appConfig)
 	if err != nil {

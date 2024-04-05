@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"slices"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadatav1"
+	"github.com/cdcgov/data-exchange-upload/upload-server/experimental/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
 	tusd "github.com/tus/tusd/v2/pkg/handler"

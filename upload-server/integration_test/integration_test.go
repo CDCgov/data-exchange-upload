@@ -10,7 +10,6 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadatav1"
 	"github.com/eventials/go-tus"
 	"github.com/joho/godotenv"
 )
@@ -98,7 +97,6 @@ func TestWellKnownEndpoints(t *testing.T) {
 		"/health",
 		"/version",
 		"/metadata",
-		"/metadata/v1",
 	}
 	client := ts.Client()
 	for _, endpoint := range endpoints {
@@ -128,10 +126,6 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	} // .if
-	if _, err := metadatav1.LoadOnce(appConfig); err != nil {
-		log.Fatal(err)
-	}
-	defer metadatav1.Unload()
 
 	handler, err := cli.Serve(appConfig)
 	if err != nil {

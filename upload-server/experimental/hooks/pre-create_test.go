@@ -9,8 +9,8 @@ import (
 	// "time"
 	// "math/rand"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/experimental/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadatav1"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 
 	"github.com/joho/godotenv"
