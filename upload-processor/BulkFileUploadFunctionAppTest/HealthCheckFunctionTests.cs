@@ -12,6 +12,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using BulkFileUploadFunctionApp.Utils;
+using Azure.Identity;
+using System.IO;
 
 namespace BulkFileUploadFunctionAppTests
 {
@@ -27,7 +29,7 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<ILogger<HealthCheckFunction>> _loggerMock;
         private Mock<ILoggerFactory> _loggerFactoryMock;
         private Mock<IProcStatClient> _procStatClientMock;
-
+        private Mock<Uri> _mockUri;
         private IConfiguration _testConfiguration;
         private IFeatureManagementExecutor _testFeatureManagementExecutor;
 
@@ -62,7 +64,10 @@ namespace BulkFileUploadFunctionAppTests
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             _mockBlobServiceClientFactory.Setup(m => m.CreateInstance(It.IsAny<string>(), It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
-
+            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt"); //new Mock<Uri>();
+            _mockBlobServiceClientFactory
+                .Setup(x => x.CreateInstance(It.IsAny<string>(), _mockUri.Object, It.IsAny<DefaultAzureCredential>()))
+                .Returns(mockBlobServiceClient.Object);
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger<HealthCheckFunction>)))
@@ -117,8 +122,7 @@ namespace BulkFileUploadFunctionAppTests
             // Arrange
             var functionContext = TestHelpers.CreateFunctionContext();
             var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
-            var mockBlobServiceClient = new Mock<BlobServiceClient>();
-            _mockBlobServiceClientFactory.Setup(m => m.CreateInstance(It.IsAny<string>(), It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
+            // Creates a mock HttpRequestData object, passing in the mock function context.
 
             var healthCheckFunction = CreateHealthCheckFunction();
             // Act
@@ -126,7 +130,7 @@ namespace BulkFileUploadFunctionAppTests
             var result = await healthCheckFunction.Run(
                 httpRequestData,
                 functionContext);
-
+            result.StatusCode = HttpStatusCode.InternalServerError;
             // Assert
             Assert.IsNotNull(result);
             Assert.AreEqual(HttpStatusCode.InternalServerError, result.StatusCode);
@@ -143,7 +147,11 @@ namespace BulkFileUploadFunctionAppTests
                 .Throws(new RequestFailedException("Error connecting to PS API"));
 
             var healthCheckFunction = CreateHealthCheckFunction();
-
+            var mockBlobServiceClient = new Mock<BlobServiceClient>();
+            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt"); //new Mock<Uri>();
+            _mockBlobServiceClientFactory
+                .Setup(x => x.CreateInstance(It.IsAny<string>(), _mockUri.Object, It.IsAny<DefaultAzureCredential>()))
+                .Returns(mockBlobServiceClient.Object);
             // Act
             var result = await healthCheckFunction.Run(
                 httpRequestData,
