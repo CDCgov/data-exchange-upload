@@ -73,12 +73,10 @@ def get_filename_from_metadata(metadata_json_dict):
 
 def post_create(use_case, use_case_category, metadata_json_dict, tguid):
     logger.info(f'Creating trace for upload {tguid} with use case {use_case} and use case category {use_case_category}')
-    print(f"processing_status_traces_enabled: {processing_status_traces_enabled}")
 
     ps_api_controller = ProcStatController(os.getenv('PS_API_URL'))
 
     if processing_status_traces_enabled:
-        print("processing_status_traces_enabled...")
         trace_id, parent_span_id = ps_api_controller.create_upload_trace(tguid, use_case, use_case_category)
         logger.debug(f'Created trace for upload {tguid} with trace ID {trace_id} and parent span ID {parent_span_id}')
 
