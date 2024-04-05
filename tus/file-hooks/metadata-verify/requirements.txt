@@ -3,3 +3,4 @@ requests
 chardet
 azure-storage-blob
 httmock
+azure-appconfiguration
