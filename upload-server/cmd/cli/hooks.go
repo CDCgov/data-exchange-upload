@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/hooks"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/handler"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
@@ -14,7 +13,6 @@ func GetHookHandler() tusHooks.HookHandler {
 			Directory: Flags.FileHooksDir,
 		}
 	}
-	//TODO This can make decisions based on flags as the tusd implemenation does
 	return PrebuiltHooks()
 }
 
@@ -29,6 +27,5 @@ func HookHandlerFunc(f func(handler.HookEvent) (handler.HTTPResponse, handler.Fi
 
 func PrebuiltHooks() tusHooks.HookHandler {
 	handler := &prebuilthooks.PrebuiltHook{}
-	handler.Register(tusHooks.HookPreCreate, HookHandlerFunc(hooks.CheckManifestV1))
 	return handler
 }

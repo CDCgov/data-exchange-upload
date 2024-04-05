@@ -1,4 +1,4 @@
-package experimental
+package hooks
 
 import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
