@@ -20,18 +20,18 @@ namespace BulkFileUploadFunctionAppTests
     [TestClass]
     public class HealthCheckFunctionTests
     {
-        private Mock<FunctionContext> _mockFunctionContext;
-        private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
-        private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
-        private Mock<IConfigurationRefresher> _configurationRefresherMock;
-        private Mock<IConfigurationRefresherProvider> _configurationRefresherProviderMock;
-        private Mock<IServiceProvider> _mockServiceProvider;
-        private Mock<ILogger<HealthCheckFunction>> _loggerMock;
-        private Mock<ILoggerFactory> _loggerFactoryMock;
-        private Mock<IProcStatClient> _procStatClientMock;
-        private Mock<Uri> _mockUri;
-        private IConfiguration _testConfiguration;
-        private IFeatureManagementExecutor _testFeatureManagementExecutor;
+        private Mock<FunctionContext>? _mockFunctionContext;
+        private Mock<IBlobServiceClientFactory>? _mockBlobServiceClientFactory;
+        private Mock<IEnvironmentVariableProvider>? _mockEnvironmentVariableProvider;
+        private Mock<IConfigurationRefresher>? _configurationRefresherMock;
+        private Mock<IConfigurationRefresherProvider>? _configurationRefresherProviderMock;
+        private Mock<IServiceProvider>? _mockServiceProvider;
+        private Mock<ILogger<HealthCheckFunction>>? _loggerMock;
+        private Mock<ILoggerFactory>? _loggerFactoryMock;
+        private Mock<IProcStatClient>? _procStatClientMock;
+        private Mock<Uri>? _mockUri;
+        private IConfiguration? _testConfiguration;
+        private IFeatureManagementExecutor? _testFeatureManagementExecutor;
 
 
         // Initializes mock objects for HTTP request/response, function context, blob service, environment variables, and logger.
@@ -50,7 +50,7 @@ namespace BulkFileUploadFunctionAppTests
             _loggerMock = new Mock<ILogger<HealthCheckFunction>>();
             _procStatClientMock = new Mock<IProcStatClient>();
 
-            _testConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+            _testConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             {
                 {$"FeatureManagement:{Constants.PROC_STAT_FEATURE_FLAG_NAME}", "true"}
             }).Build();
@@ -64,11 +64,19 @@ namespace BulkFileUploadFunctionAppTests
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             _mockBlobServiceClientFactory.Setup(m => m.CreateInstance(It.IsAny<string>(), It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
-            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt"); //new Mock<Uri>();
+            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt");
             _mockBlobServiceClientFactory
                 .Setup(x => x.CreateInstance(It.IsAny<string>(), _mockUri.Object, It.IsAny<DefaultAzureCredential>()))
                 .Returns(mockBlobServiceClient.Object);
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
+            if (TestHelpers.CreateUpResponse() != null)
+            {
+                _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
+            }
+            else
+            {
+                _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Throws(new RequestFailedException("Error connecting to PS API"));
+            }
             _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger<HealthCheckFunction>)))
                                 .Returns(_loggerMock.Object);
@@ -80,6 +88,10 @@ namespace BulkFileUploadFunctionAppTests
 
         private HealthCheckFunction CreateHealthCheckFunction()
         {
+            if(_mockBlobServiceClientFactory == null || _mockEnvironmentVariableProvider == null || _loggerFactoryMock == null || _testFeatureManagementExecutor == null || _procStatClientMock == null)
+            {
+                throw new InvalidOperationException("Mock objects are not initialized");
+            }
             return new HealthCheckFunction(
                 _mockBlobServiceClientFactory.Object,
                 _mockEnvironmentVariableProvider.Object,
@@ -143,12 +155,20 @@ namespace BulkFileUploadFunctionAppTests
             var functionContext = TestHelpers.CreateFunctionContext();
             var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
 
+            if(_procStatClientMock == null)
+            {
+                throw new InvalidOperationException("Mock objects are not initialized");
+            }
             _procStatClientMock.Setup(mock => mock.GetHealthCheck())
                 .Throws(new RequestFailedException("Error connecting to PS API"));
 
             var healthCheckFunction = CreateHealthCheckFunction();
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
-            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt"); //new Mock<Uri>();
+            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt");
+            if(_mockBlobServiceClientFactory == null)
+            {
+                throw new InvalidOperationException("Mock objects are not initialized");
+            }
             _mockBlobServiceClientFactory
                 .Setup(x => x.CreateInstance(It.IsAny<string>(), _mockUri.Object, It.IsAny<DefaultAzureCredential>()))
                 .Returns(mockBlobServiceClient.Object);
@@ -197,11 +217,6 @@ namespace BulkFileUploadFunctionAppTests
         {
             // Creates a MemoryStream to represent the HTTP request body.
             var memoryStream = new MemoryStream();
-
-            // Retrieves an ILoggerFactory from the function context's service provider,
-            // allowing for logging within the mock HttpRequestData.
-            var loggerFactory = functionContext.InstanceServices.GetService<ILoggerFactory>();
-            var logger = loggerFactory.CreateLogger("Test");
 
             // Creates a mock HttpRequestData object, passing in the mock function context.
             var httpRequestDataMock = new Mock<HttpRequestData>(functionContext);
