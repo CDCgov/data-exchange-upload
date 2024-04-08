@@ -26,7 +26,7 @@ type Checkable interface {
 }
 
 // HealthResp, app health response
-type HealthResp struct { // TODO: line up with DEX other products and apps
+type HealthResp struct {
 	Status   string                     `json:"status"` // general app health
 	Services []models.ServiceHealthResp `json:"services"`
 } // .HealthResp

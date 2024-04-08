@@ -26,6 +26,5 @@ func (ph *PrebuiltHook) Register(t tusHooks.HookType, hook func(handler.HookEven
 	if ph.hookMapping == nil {
 		ph.hookMapping = map[tusHooks.HookType]func(handler.HookEvent) (tusHooks.HookResponse, error){}
 	}
-	// TODO: defensive programming check that hooktype is one of the expected values
 	ph.hookMapping[t] = hook
 }

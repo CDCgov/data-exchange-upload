@@ -32,7 +32,8 @@ func init() {
 	ctx := context.Background()
 
 	buildInfo, _ := debug.ReadBuildInfo()
-	slog.With("buildInfo.Main.Path", buildInfo.Main.Path)
+	logInfo := []any{"buildInfo.Main.Path", buildInfo.Main.Path}
+	slog.With(logInfo...)
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
@@ -59,10 +60,11 @@ func init() {
 	// ------------------------------------------------------------------
 	// configure app custom logging
 	// ------------------------------------------------------------------
-	logger = cli.AppLogger(appConfig).With("pkg", "main", "buildInfo.Main.Path", buildInfo.Main.Path)
+	logInfo = append(logInfo, "pkg", "main")
+	logger = cli.AppLogger(appConfig).With(logInfo...)
 	sloger.SetDefaultLogger(logger)
 
-	explogger := cli.ExpAppLogger(appConfig).With("pkg", "main", "buildInfo.Main.Path", buildInfo.Main.Path)
+	explogger := cli.ExpAppLogger(appConfig).With(logInfo...)
 	slogerxexp.SetDefaultLogger(explogger)
 
 }

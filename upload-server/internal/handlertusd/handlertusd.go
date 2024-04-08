@@ -64,8 +64,6 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 		// NotifyCreatedUploads:    true,
 		// PreUploadCreateCallback:
 
-		// TODO: the tusd logger type is "golang.org/x/exp/slog" vs. app logger "log/slog"
-		// TODO: switch to the log/slog when tusd is on that
 		Logger: logger,
 	}, hooksHandler, []hooks.HookType{hooks.HookPreCreate, hooks.HookPostCreate, hooks.HookPostReceive, hooks.HookPreFinish, hooks.HookPostFinish, hooks.HookPostTerminate}) // .handler
 	if err != nil {

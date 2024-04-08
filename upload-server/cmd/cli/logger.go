@@ -50,8 +50,8 @@ func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 } // .AppLogger
 
 // AppLogger, used to config TUSD, this is the custom application logger for uniformity
-// TODO: currently tusd supports x/exp/slog and is moving to log/slog
-// TODO: then this package should be removed and replaced by the app logger in sloger/sloger.go
+// NOTE: currently tusd supports x/exp/slog and is moving to log/slog
+// then this package should be removed and replaced by the app logger in sloger/sloger.go
 func ExpAppLogger(appConfig appconfig.AppConfig) *expslog.Logger {
 
 	// Configure debug on if needed, otherwise should be off
