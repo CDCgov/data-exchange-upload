@@ -30,8 +30,7 @@ func TestTus(t *testing.T) {
 			},
 			nil,
 		},
-		/* // disabled until built in metadatavalidation hook is in place
-		"bad": {
+		"missing meta_destination_id": {
 			tus.Metadata{
 				"bad_key":        "dextesting",
 				"meta_ext_event": "testevent1",
@@ -41,9 +40,88 @@ func TestTus(t *testing.T) {
 				Body: []byte("meta_destination_id not found in manifest"),
 			},
 		},
-		*/
+		"missing meta_ext_event": {
+			tus.Metadata{
+				"meta_destination_id": "dextesting",
+				"bad_key":             "testevent1",
+			},
+			tus.ClientError{
+				Code: 400,
+				Body: []byte("meta_ext_event not found in manifest"),
+			},
+		},
+		"unkown meta_ext_event": {
+			tus.Metadata{
+				"meta_destination_id": "dextesting",
+				"meta_ext_event":      "nonsense",
+			},
+			tus.ClientError{
+				Code: 400,
+				Body: []byte("configuration not found"),
+			},
+		},
+		"v2 good": {
+			tus.Metadata{
+				"version":           "2.0",
+				"data_stream_id":    "dextesting",
+				"data_stream_route": "testevent1",
+			},
+			nil,
+		},
+		"daart good": {
+			tus.Metadata{
+				"meta_destination_id":    "daart",
+				"meta_ext_event":         "hl7",
+				"original_filename":      "test",
+				"message_type":           "ELR",
+				"route":                  "DAART",
+				"reporting_jurisdiction": "test",
+			},
+			nil,
+		},
+		"daart bad": {
+			tus.Metadata{
+				"meta_destination_id":    "daart",
+				"meta_ext_event":         "hl7",
+				"original_filename":      "test",
+				"message_type":           "bad",
+				"route":                  "DAART",
+				"reporting_jurisdiction": "test",
+			},
+			tus.ClientError{
+				Code: 400,
+			},
+		},
+		"daart v2 bad (missing things)": {
+			tus.Metadata{
+				"version":                "2.0",
+				"data_stream_id":         "daart",
+				"data_stream_route":      "hl7",
+				"original_filename":      "test",
+				"message_type":           "bad",
+				"route":                  "DAART",
+				"reporting_jurisdiction": "test",
+			},
+			tus.ClientError{
+				Code: 400,
+			},
+		},
+		"daart v2 good": {
+			tus.Metadata{
+				"version":           "2.0",
+				"data_stream_id":    "daart",
+				"data_stream_route": "hl7",
+				"data_producer_id":  "test",
+				"received_filename": "test",
+				"message_type":      "bad",
+				"route":             "DAART",
+				"jurisdiction":      "test",
+			},
+			nil,
+		},
 	}
-	for _, c := range cases {
+	for name, c := range cases {
+		t.Log(name)
 		testTus(c, t)
 	}
 }
