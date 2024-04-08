@@ -5,13 +5,13 @@
       {
         "field_name": "data_stream_id",
         "required": true,
-        "allowed_values": ["CSV_01"],
+        "allowed_values": ["EHDI_PHL_01"],
         "description": "This field is the identifier for the data stream."
       },
       {
         "field_name": "data_stream_route",
         "required": true,
-        "allowed_values": ["EHDI_PHL_01"],
+        "allowed_values": ["CSV_01"],
         "description": "This recieved is the route of the data stream."
       },
       {
