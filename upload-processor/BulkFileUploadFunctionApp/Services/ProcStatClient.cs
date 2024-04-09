@@ -53,7 +53,14 @@ namespace BulkFileUploadFunctionApp.Services
                 var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync($"/api/report/json/uploadId/{uploadId}?destinationId={destinationId}&eventType={eventType}&stageName={stageName}", content);
                 response.EnsureSuccessStatusCode();
-            } catch (Exception ex)
+            }
+            catch (HttpRequestException httpEx)
+            {
+                _logger.LogError($"Http Error when calling PS API. Status Code: {httpEx.StatusCode}");
+                ExceptionUtils.LogErrorDetails(httpEx, _logger);
+                return false;
+            }
+            catch (Exception ex)
             {
                 _logger.LogError("Error when calling PS API.");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
@@ -123,6 +130,12 @@ namespace BulkFileUploadFunctionApp.Services
                     return null;
                 }
                 return responseBody;
+            }
+            catch(HttpRequestException httpEx)
+            {
+                _logger.LogError($"Http Error when calling PS API. {httpEx.Message}");
+                ExceptionUtils.LogErrorDetails(httpEx, _logger);
+                return null;
             }
             catch (Exception ex)
             {

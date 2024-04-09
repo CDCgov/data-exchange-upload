@@ -33,5 +33,6 @@ namespace BulkFileUploadFunctionApp.Utils
 
             return result;
         }
+ 
     }
 }
