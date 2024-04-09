@@ -2,7 +2,6 @@ package v2
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -33,11 +32,11 @@ func (c *Config) GetConfig(loader validation.ConfigLoader) (*validation.Metadata
 func NewFromManifest(manifest handler.MetaData) (*Config, error) {
 	dataStreamID, ok := manifest["data_stream_id"]
 	if !ok {
-		return nil, errors.New("Missing data_stream_id")
+		return nil, &validation.ErrorMissingRequired{Field: "data_stream_id"}
 	}
 	dataStreamRoute, ok := manifest["data_stream_route"]
 	if !ok {
-		return nil, errors.New("Missing data_stream_route")
+		return nil, &validation.ErrorMissingRequired{Field: "data_stream_route"}
 	}
 
 	return &Config{

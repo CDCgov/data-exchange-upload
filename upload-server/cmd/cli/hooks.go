@@ -35,6 +35,7 @@ type FileConfigLoader struct {
 }
 
 func (l *FileConfigLoader) LoadConfig(path string) ([]byte, error) {
+
 	file, err := l.FileSystem.Open(path)
 	if err != nil {
 		return nil, err

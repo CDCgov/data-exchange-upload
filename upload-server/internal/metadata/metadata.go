@@ -3,6 +3,8 @@ package metadata
 import (
 	"errors"
 	"log/slog"
+	"net/http"
+	"os"
 	"reflect"
 	"strings"
 
@@ -63,8 +65,54 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 
 	config, err := getVersionFromManifest(manifest, v.Loader)
 	if err != nil {
+		if _, ok := err.(*validation.ErrorMissingRequired); ok {
+			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       err.Error(),
+			})
+			resp.RejectUpload = true
+			return resp, nil
+		}
+		if errors.Is(err, os.ErrNotExist) {
+			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
+				StatusCode: http.StatusBadRequest,
+				Body:       err.Error(),
+			})
+			resp.RejectUpload = true
+			return resp, nil
+		}
+
 		// TODO: does this fail the upload if an error is returned
 		return resp, err
+	}
+
+	//TODO: validate against invalid characters in the `filename`
+	/*
+		invalidChars := `<>:"/\|?*`
+		if strings.ContainsAny(path, invalidChars) {
+			return nil, errors.New("invalid character found in path")
+		}
+	*/
+	var errs error
+	for _, field := range config.Fields {
+		if err := field.Validate(manifest); err != nil {
+
+			if _, ok := err.(*validation.ErrorMissing); !ok {
+				logger.Error("validation failure", "error", err)
+				errs = errors.Join(errs, err)
+			} else {
+				logger.Info("validation warning", "error", err)
+			}
+		}
+	}
+
+	if errs != nil {
+		logger.Info("building handler response")
+		resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
+			StatusCode: http.StatusBadRequest,
+			Body:       errs.Error(),
+		})
+		resp.RejectUpload = true
 	}
 
 	logger.Info("checking config", "config", config)

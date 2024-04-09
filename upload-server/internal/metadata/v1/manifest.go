@@ -2,7 +2,6 @@ package v1
 
 import (
 	"encoding/json"
-	"errors"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -32,11 +31,11 @@ func (c *Config) GetConfig(loader validation.ConfigLoader) (*validation.Metadata
 func NewFromManifest(manifest handler.MetaData) (*Config, error) {
 	metaDestinationID, ok := manifest["meta_destination_id"]
 	if !ok {
-		return nil, errors.New("Missing meta_destination_id")
+		return nil, &validation.ErrorMissingRequired{Field: "meta_destination_id"}
 	}
 	metaExtEvent, ok := manifest["meta_ext_event"]
 	if !ok {
-		return nil, errors.New("Missing meta_ext_event")
+		return nil, &validation.ErrorMissingRequired{Field: "meta_ext_event"}
 	}
 
 	return &Config{

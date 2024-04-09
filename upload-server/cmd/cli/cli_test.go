@@ -85,8 +85,8 @@ func TestTus(t *testing.T) {
 				"meta_ext_event":         "hl7",
 				"original_filename":      "test",
 				"message_type":           "bad",
-				"route":                  "DAART",
 				"reporting_jurisdiction": "test",
+				"route":                  "DAART",
 			},
 			tus.ClientError{
 				Code: 400,
@@ -113,7 +113,7 @@ func TestTus(t *testing.T) {
 				"data_stream_route": "hl7",
 				"data_producer_id":  "test",
 				"received_filename": "test",
-				"message_type":      "bad",
+				"message_type":      "ELR",
 				"route":             "DAART",
 				"jurisdiction":      "test",
 			},
