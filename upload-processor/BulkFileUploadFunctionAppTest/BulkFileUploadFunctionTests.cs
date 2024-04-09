@@ -42,7 +42,6 @@ namespace BulkFileUploadFunctionAppTests
         public async Task GivenValidInputs_WhenRunIsCalled_ThenShouldCopyAll()
         {
             string testBlobUrl = "https://example.com/blob/1MB-test-file.txt";
-            //var blobReaderMock = new Mock<AzureBlobReader>();
             var blobEvent = new StorageBlobCreatedEvent
             {
                 Data = new StorageBlobCreatedEventData { Url = testBlobUrl }

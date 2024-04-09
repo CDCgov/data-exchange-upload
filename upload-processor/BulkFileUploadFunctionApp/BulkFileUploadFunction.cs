@@ -44,7 +44,7 @@ namespace BulkFileUploadFunctionApp
                 if (blobCreatedEvents == null)
                     throw new Exception("Unexpected data content of event; unable to establish a StorageBlobCreatedEvent array");
 
-                if (blobCreatedEvents.Any())
+                if (!blobCreatedEvents.Any())
                     throw new Exception("Unexpected data content of event; there should be at least one element in the array");
 
                 foreach(StorageBlobCreatedEvent blobCreatedEvent in blobCreatedEvents)
