@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/handler"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
@@ -27,5 +28,6 @@ func HookHandlerFunc(f func(handler.HookEvent) (handler.HTTPResponse, handler.Fi
 
 func PrebuiltHooks() tusHooks.HookHandler {
 	handler := &prebuilthooks.PrebuiltHook{}
+	handler.Register(tusHooks.HookPreCreate, metadata.VerifySenderManifest)
 	return handler
 }
