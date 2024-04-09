@@ -64,16 +64,20 @@ namespace BulkFileUploadFunctionAppTests
 
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
             _mockBlobServiceClientFactory.Setup(m => m.CreateInstance(It.IsAny<string>(), It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
-            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt"); //new Mock<Uri>();
+            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt");
             _mockBlobServiceClientFactory
                 .Setup(x => x.CreateInstance(It.IsAny<string>(), _mockUri.Object, It.IsAny<DefaultAzureCredential>()))
                 .Returns(mockBlobServiceClient.Object);
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
-            if(_procStatClientMock != null)
+            if (TestHelpers.CreateUpResponse() != null)
             {
                 _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
             }
-
+            else
+            {
+                _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Throws(new RequestFailedException("Error connecting to PS API"));
+            }
+            _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger<HealthCheckFunction>)))
                                 .Returns(_loggerMock.Object);
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(IFeatureManagementExecutor)))
@@ -189,10 +193,10 @@ namespace BulkFileUploadFunctionAppTests
 
             var healthCheckFunction = CreateHealthCheckFunction();
             var mockBlobServiceClient = new Mock<BlobServiceClient>();
-            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt"); //new Mock<Uri>();
+            _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt");
             if(_mockBlobServiceClientFactory == null)
             {
-                _mockBlobServiceClientFactory = new Mock<IBlobServiceClientFactory>();
+                throw new InvalidOperationException("Mock objects are not initialized");
             }
             _mockBlobServiceClientFactory
                 .Setup(x => x.CreateInstance(It.IsAny<string>(), _mockUri.Object, It.IsAny<DefaultAzureCredential>()))
