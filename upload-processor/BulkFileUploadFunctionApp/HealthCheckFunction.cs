@@ -87,7 +87,15 @@ namespace BulkFileUploadFunctionApp
                 await _featureManagementExecutor
                 .ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
-                    HealthCheckResponse procStatHealthCheck = await _procStatClient.GetHealthCheck();
+                    if(_procStatClient == null)
+                    {
+                        throw new Exception("ProcStatClient is null");
+                    }
+                    HealthCheckResponse? procStatHealthCheck = await _procStatClient.GetHealthCheck();
+                    if (procStatHealthCheck == null)
+                    {
+                        throw new Exception("ProcStatHealthCheck is null");
+                    }
                     healthCheckResponse.DependencyHealthChecks.Add(procStatHealthCheck.ToHealthCheckResult(Constants.PROC_STAT_SERVICE_NAME));
                 });
             } catch (Exception ex)

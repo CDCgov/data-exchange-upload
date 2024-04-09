@@ -23,9 +23,9 @@ namespace BulkFileUploadFunctionApp.Services
         {
             _logger = loggerFactory.CreateLogger<UploadEventHubService>();
 
-            _uploadEventHubNamespaceConnectionString = Environment.GetEnvironmentVariable("AzureEventHubConnectionString", EnvironmentVariableTarget.Process);
-            _retryEventHubName = Environment.GetEnvironmentVariable("RetryEventHubName", EnvironmentVariableTarget.Process);
-            _replayEventHubName = Environment.GetEnvironmentVariable("ReplayEventHubName", EnvironmentVariableTarget.Process);
+            _uploadEventHubNamespaceConnectionString = Environment.GetEnvironmentVariable("AzureEventHubConnectionString", EnvironmentVariableTarget.Process)?? "";
+            _retryEventHubName = Environment.GetEnvironmentVariable("RetryEventHubName", EnvironmentVariableTarget.Process) ?? "";
+            _replayEventHubName = Environment.GetEnvironmentVariable("ReplayEventHubName", EnvironmentVariableTarget.Process) ?? "";
 
             _retryEventHubProducerClient = new EventHubProducerClient(_uploadEventHubNamespaceConnectionString, _retryEventHubName);
             _replayEventHubProducerClient = new EventHubProducerClient(_uploadEventHubNamespaceConnectionString, _replayEventHubName);

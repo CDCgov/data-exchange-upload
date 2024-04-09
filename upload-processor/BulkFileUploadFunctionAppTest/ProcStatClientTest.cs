@@ -11,7 +11,7 @@ namespace BulkFileUploadFunctionAppTest
     [TestClass]
     public class ProcStatClientTest
     {
-        private Mock<ILogger<ProcStatClient>> _mockLogger;
+        private Mock<ILogger<ProcStatClient>>? _mockLogger;
 
         [TestInitialize]
         public void Initialize()
@@ -35,11 +35,18 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.
             var response = await client.GetHealthCheck();
-
+            if(response == null)
+            {
+                response = new HealthCheckResponse();
+            }
             Assert.AreEqual("UP", response.Status);
         }
 
@@ -52,11 +59,20 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+            
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
+
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.
             var response = await client.GetHealthCheck();
-
+            if(response == null)
+            {
+                response = new HealthCheckResponse();
+            }
             Assert.AreEqual("DOWN", response.Status);
         }
 
@@ -68,11 +84,19 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.
             var response = await client.GetHealthCheck();
 
+            if(response == null)
+            {
+                response = new HealthCheckResponse();
+            }
             Assert.AreEqual("DOWN", response.Status);
         }
 
@@ -85,6 +109,10 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
             var testReport = new CopyReport("test source Url", "test dest Url", "success");
 
@@ -103,6 +131,12 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
+
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
             var testReport = new CopyReport("test source Url", "test dest Url", "success");
 
@@ -128,6 +162,12 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
+
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.
@@ -145,6 +185,11 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.
@@ -161,6 +206,12 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
+
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.
@@ -185,6 +236,12 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
+
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.
@@ -202,6 +259,12 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+
+
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.
@@ -218,6 +281,12 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
+
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.
@@ -239,6 +308,12 @@ namespace BulkFileUploadFunctionAppTest
             {
                 BaseAddress = new Uri("http://localhost")
             };
+
+            if(_mockLogger == null)
+            {
+                _mockLogger = new Mock<ILogger<ProcStatClient>>();
+            }
+
             var client = new ProcStatClient(httpClient, _mockLogger.Object);
 
             // Act.

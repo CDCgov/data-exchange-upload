@@ -54,61 +54,82 @@ namespace BulkFileUploadFunctionApp
         {
             try
             {
-                if(blobCopyRetryEvent.RetryAttempt <= _maxRetryAttempts) {
-
-                    // exponential backoff
-                    await Task.Delay(1000 * blobCopyRetryEvent.RetryAttempt);
-
-                    _logger.LogInformation($"Copy retry attempt: {blobCopyRetryEvent.RetryAttempt} Stage: {blobCopyRetryEvent.CopyRetryStage}");
-
-                    switch (blobCopyRetryEvent.CopyRetryStage)
+                if(blobCopyRetryEvent != null)
+                {
+                    if (blobCopyRetryEvent.RetryAttempt <= _maxRetryAttempts)
                     {
-                        case BlobCopyStage.CopyToDex:
-                            try
-                            {
-                                CopyPrereqs copyPrereqs = await _uploadProcessingService.GetCopyPrereqs(blobCopyRetryEvent.CopyPrereqs.SourceBlobUrl);
 
-                                await _uploadProcessingService.CopyAll(copyPrereqs);
-                            }
-                            catch (Exception ex)
-                            {
-                                await RePublishEvent(blobCopyRetryEvent);
-                            }
-                            break;
+                        // exponential backoff
+                        await Task.Delay(1000 * blobCopyRetryEvent.RetryAttempt);
 
-                        case BlobCopyStage.CopyToEdav:
-                            try
-                            {
-                                AzureBlobWriter writer = _uploadProcessingService.CreateWriterForStage(BlobCopyStage.CopyToEdav, blobCopyRetryEvent.CopyPrereqs);
-                                await _uploadProcessingService.CopyFromDexToTargets(new Dictionary<BlobCopyStage, AzureBlobWriter> { { BlobCopyStage.CopyToEdav, writer } }, blobCopyRetryEvent.CopyPrereqs);
-                           }
-                           catch (Exception ex)
-                           {
-                               await RePublishEvent(blobCopyRetryEvent);
-                           }                          
-                           break;
+                        _logger.LogInformation($"Copy retry attempt: {blobCopyRetryEvent.RetryAttempt} Stage: {blobCopyRetryEvent.CopyRetryStage}");
 
-                        case BlobCopyStage.CopyToRouting:
-                           try
-                           {
-                                AzureBlobWriter writer = _uploadProcessingService.CreateWriterForStage(BlobCopyStage.CopyToRouting, blobCopyRetryEvent.CopyPrereqs);
-                                await _uploadProcessingService.CopyFromDexToTargets(new Dictionary<BlobCopyStage, AzureBlobWriter> { { BlobCopyStage.CopyToRouting, writer } }, blobCopyRetryEvent.CopyPrereqs);
+                        if (blobCopyRetryEvent.CopyPrereqs != null)
+                        {
+                            switch (blobCopyRetryEvent.CopyRetryStage)
+                            {
+                                case BlobCopyStage.CopyToDex:
+                                    try
+                                    {
+                                        if(!String.IsNullOrEmpty(blobCopyRetryEvent.CopyPrereqs.SourceBlobUrl))
+                                        {
+                                            CopyPrereqs copyPrereqs = await _uploadProcessingService.GetCopyPrereqs(blobCopyRetryEvent.CopyPrereqs.SourceBlobUrl);
+
+                                            await _uploadProcessingService.CopyAll(copyPrereqs);
+                                        }
+                                        else
+                                        {
+                                            await RePublishEvent(blobCopyRetryEvent);
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError($"Failed to copy to dex: {ex.Message}");
+                                        await RePublishEvent(blobCopyRetryEvent);
+                                    }
+                                    break;
+
+                                case BlobCopyStage.CopyToEdav:
+                                    try
+                                    {
+                                        AzureBlobWriter writer = _uploadProcessingService.CreateWriterForStage(BlobCopyStage.CopyToEdav, blobCopyRetryEvent.CopyPrereqs);
+                                        await _uploadProcessingService.CopyFromDexToTargets(new Dictionary<BlobCopyStage, AzureBlobWriter> { { BlobCopyStage.CopyToEdav, writer } }, blobCopyRetryEvent.CopyPrereqs);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError($"Failed to copy to edav: {ex.Message}");
+                                        await RePublishEvent(blobCopyRetryEvent);
+                                    }
+                                    break;
+
+                                case BlobCopyStage.CopyToRouting:
+                                    try
+                                    {
+                                        AzureBlobWriter writer = _uploadProcessingService.CreateWriterForStage(BlobCopyStage.CopyToRouting, blobCopyRetryEvent.CopyPrereqs);
+                                        await _uploadProcessingService.CopyFromDexToTargets(new Dictionary<BlobCopyStage, AzureBlobWriter> { { BlobCopyStage.CopyToRouting, writer } }, blobCopyRetryEvent.CopyPrereqs);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError($"Failed to copy to routing: {ex.Message}");
+                                        await RePublishEvent(blobCopyRetryEvent);
+                                    }
+                                    break;
+
+                                default:
+                                    _logger.LogInformation("Invalid copy retry stage provided");
+                                    break;
                             }
-                            catch (Exception ex)
-                           {
-                               await RePublishEvent(blobCopyRetryEvent);
-                           }                            
-                           break;
-                        
-                        default:
-                            _logger.LogInformation("Invalid copy retry stage provided");
-                            break;
+
+                        }
                     }
-                } else {
+                    else
+                    {
 
-                    await RePublishEvent(blobCopyRetryEvent);
+                        await RePublishEvent(blobCopyRetryEvent);
+                    }
+
                 }
-                
+
             } catch(Exception ex) {
 
                 _logger.LogError($"Failed to process retry event: " + blobCopyRetryEvent);

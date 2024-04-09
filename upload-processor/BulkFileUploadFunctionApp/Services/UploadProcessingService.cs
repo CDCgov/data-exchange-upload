@@ -85,7 +85,7 @@ namespace BulkFileUploadFunctionApp.Services
                 string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Last()}";
 
                 TusInfoFile tusInfoFile = await GetTusInfoFile(tusPayloadFilename);
-                uploadId = tusInfoFile.ID;
+                uploadId = tusInfoFile.ID ?? "";
 
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
@@ -108,6 +108,10 @@ namespace BulkFileUploadFunctionApp.Services
                 {
                     var uploadConfigV2 = await GetUploadConfig(uploadConfigFilename, MetadataVersion.V2);
                     _logger.LogInformation($"Translating to {MetadataVersion.V2}");
+                    if(tusInfoFile.MetaData == null)
+                    {
+                        tusInfoFile.MetaData = new Dictionary<string, string>();
+                    }
                     tusInfoFile.MetaData = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
                 }
                 
@@ -126,8 +130,37 @@ namespace BulkFileUploadFunctionApp.Services
                 string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{filenameSuffix}{fileExtension}";
 
                 // Get copy targets
+                if(uploadConfig.CopyConfig == null)
+                {
+                    throw new ArgumentNullException("UploadConfig CopyConfig cannot be null.");
+                }
+                if(uploadConfig.CopyConfig.TargetEnums == null)
+                {
+                    throw new ArgumentNullException("UploadConfig CopyConfig Targets cannot be null.");
+                }
                 List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
                 
+                if (targets.Count == 0)
+                {
+                    throw new ArgumentException("No copy targets provided.");
+                }
+                if(uploadId == null || useCase == null || useCaseCategory == null || destinationContainerName == null)
+                {
+                    throw new ArgumentNullException("Required metadata fields are null.");
+                }
+                if(tusPayloadFilename == null || destinationBlobFilename == null)
+                {
+                    throw new ArgumentNullException("Required file paths are null.");
+                }
+                if(trace == null)
+                {
+                    throw new ArgumentNullException("Trace is null.");
+                }
+                if(tusInfoFile.MetaData == null)
+                {
+                    throw new ArgumentNullException("Metadata is null.");
+                }
+
                 return new CopyPrereqs(uploadId,
                                     blobCreatedUrl,
                                     tusPayloadFilename, 
@@ -162,6 +195,10 @@ namespace BulkFileUploadFunctionApp.Services
 
             Dictionary<BlobCopyStage, AzureBlobWriter> dexToTargetsMap = new Dictionary<BlobCopyStage, AzureBlobWriter>();
 
+            if(copyPrereqs.Targets == null)
+            {
+                throw new ArgumentNullException("CopyPrereqs Targets cannot be null.");
+            }
             copyPrereqs.Targets.ForEach(target =>
             {
                 switch (target)
@@ -177,6 +214,10 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
+                if(copyPrereqs.Trace == null)
+                {
+                    throw new ArgumentNullException("Trace is null.");
+                }
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     copySpan = await _procStatClient.StartSpanForTrace(copyPrereqs.Trace.TraceId, copyPrereqs.Trace.SpanId, Constants.PROC_STAT_REPORT_STAGE_NAME);
@@ -201,9 +242,20 @@ namespace BulkFileUploadFunctionApp.Services
             }
             finally
             {
-                if(copySpan != null) 
+                if(copySpan != null && copyPrereqs != null) 
                 {
-                    await _procStatClient.StopSpanForTrace(copyPrereqs.Trace.TraceId, copySpan.SpanId);
+                    var spanId = copySpan.SpanId ?? "";
+                    var trace = copyPrereqs.Trace ?? null;
+                    if(trace == null)
+                    {
+                        throw new ArgumentNullException("Trace is null.");
+                    }
+                    else
+                    {
+                        var traceId = trace.TraceId ?? "";
+                        await _procStatClient.StopSpanForTrace(traceId, spanId);
+
+                    }
                 }
             }
         }               
@@ -240,6 +292,18 @@ namespace BulkFileUploadFunctionApp.Services
                         // Send copy success report
                         await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                         {
+                            if(writer.DestBlobClient.Uri == null)
+                            {
+                                throw new ArgumentNullException("Destination blob URI is null.");
+                            }
+                            if(copyPrereqs.DexBlobUrl == null)
+                            {
+                                throw new ArgumentNullException("Dex blob URI is null.");
+                            }
+                            if(copyPrereqs.UploadId == null || copyPrereqs.UseCase == null || copyPrereqs.UseCaseCategory == null)
+                            {
+                                throw new ArgumentNullException("Required metadata fields are null.");
+                            }
                             SendSuccessReport(copyPrereqs.UploadId,
                                                 copyPrereqs.UseCase,
                                                 copyPrereqs.UseCaseCategory,
@@ -259,13 +323,35 @@ namespace BulkFileUploadFunctionApp.Services
 
         public AzureBlobWriter CreateWriterForStage(BlobCopyStage stage, CopyPrereqs copyPrereqs)
         {
-            string dexToEdavDestinationContainerName = _edavUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
-            string dexToTargetFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
-            string dexToRoutingDestinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
+            string? dexToEdavDestinationContainerName = _edavUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
+            string? dexToTargetFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
+            string? dexToRoutingDestinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
+
+            if (copyPrereqs.DexBlobFileName == null)
+            {
+                throw new ArgumentNullException("DexBlobFileName is null.");
+            }
+            if (copyPrereqs.DexBlobFolderName == null)
+            {
+                throw new ArgumentNullException("DexBlobFolderName is null.");
+            }
+            if (copyPrereqs.UploadId == null || copyPrereqs.UseCase == null || copyPrereqs.UseCaseCategory == null)
+            {
+                throw new ArgumentNullException("Required metadata fields are null.");
+            }
+            if (copyPrereqs.Metadata == null)
+            {
+                throw new ArgumentNullException("Metadata is null.");
+            }
 
             switch (stage)
             {
                 case BlobCopyStage.CopyToDex:
+                    if (copyPrereqs.TusPayloadFilename == null)
+                    {
+                        throw new ArgumentNullException("Dex TusPayloadFilename is null.");
+                    }
+
                     return new AzureBlobWriter(
                         _dexBlobServiceClient,
                         _dexBlobServiceClient,
@@ -276,6 +362,15 @@ namespace BulkFileUploadFunctionApp.Services
                         copyPrereqs.Metadata,
                         _loggerFactory);
                 case BlobCopyStage.CopyToEdav:
+                    if (dexToEdavDestinationContainerName == null)
+                    {
+                        throw new ArgumentNullException("Destination container name is null.");
+                    }
+                    if (dexToTargetFilename == null)
+                    {
+                        throw new ArgumentNullException("Destination container name is null.");
+                    }
+
                     return new AzureBlobWriter(
                         _dexBlobServiceClient,
                         _edavBlobServiceClient,
@@ -286,6 +381,15 @@ namespace BulkFileUploadFunctionApp.Services
                         copyPrereqs.Metadata,
                         _loggerFactory);
                 case BlobCopyStage.CopyToRouting:
+                    if (dexToTargetFilename == null)
+                    {
+                        throw new ArgumentNullException("Destination container name is null.");
+                    }
+                    if (dexToRoutingDestinationContainerName == null)
+                    {
+                        throw new ArgumentNullException("Destination container name is null.");
+                    }
+
                     return new AzureBlobWriter(
                         _dexBlobServiceClient,
                         _routingBlobServiceClient,
@@ -309,6 +413,10 @@ namespace BulkFileUploadFunctionApp.Services
             
             var tusInfoFile = await _dexBlobReader.Read<TusInfoFile>(_tusAzureStorageContainer, tusInfoFilename);
 
+            if (tusInfoFile == null)
+            {
+                throw new Exception("Tus info file not found.");
+            }
             if (tusInfoFile.ID == null)
                 throw new Exception("Malformed tus info file. No ID provided.");
             
@@ -338,13 +446,26 @@ namespace BulkFileUploadFunctionApp.Services
                 throw new UploadConfigException($"Unable to parse JSON for upload config {configFilename}");
             }
 
-            // Convert copy target strings to enums.
-            List<CopyTargetsEnum> targetEnums = uploadConfig.CopyConfig.Targets.ConvertAll(targetStr =>
+            if(uploadConfig.CopyConfig == null)
             {
-                Enum.TryParse(targetStr, out CopyTargetsEnum targetEnum);
-                return targetEnum;
-            }).ToList();
-            uploadConfig.CopyConfig.TargetEnums = targetEnums;
+                throw new ArgumentNullException("UploadConfig CopyConfig cannot be null.");
+            }
+            else
+            {
+                var cConfig = uploadConfig.CopyConfig;
+                // Convert copy target strings to enums.
+                if (cConfig.Targets == null)
+                {
+                    throw new ArgumentNullException("UploadConfig CopyConfig Targets cannot be null.");
+                }
+                List<CopyTargetsEnum> targetEnums = cConfig.Targets.ConvertAll(targetStr =>
+                {
+                    Enum.TryParse(targetStr, out CopyTargetsEnum targetEnum);
+                    return targetEnum;
+                }).ToList();
+                uploadConfig.CopyConfig.TargetEnums = targetEnums;
+
+            }
 
             return uploadConfig;
         }           
@@ -358,6 +479,15 @@ namespace BulkFileUploadFunctionApp.Services
         private string GetFolderPath(UploadConfig uploadConfig, DateTime dateTimeNow)
         {
             string folderPath;
+            
+            if(uploadConfig.CopyConfig == null)
+            {
+                throw new ArgumentNullException("UploadConfig CopyConfig cannot be null.");
+            }
+            if(uploadConfig.CopyConfig.FolderStructure == null)
+            {
+                _logger.LogWarning("No upload folder structure scheme provided, using root");
+            }
             switch (uploadConfig.CopyConfig.FolderStructure)
             {
                 case "root":
@@ -390,6 +520,10 @@ namespace BulkFileUploadFunctionApp.Services
         private string GetFilenameSuffix(UploadConfig uploadConfig, DateTime dateTimeNow)
         {
             string filenameSuffix;
+            if(uploadConfig.CopyConfig == null)
+            {
+                throw new ArgumentNullException("UploadConfig CopyConfig cannot be null.");
+            }
             switch (uploadConfig.CopyConfig.FilenameSuffix)
             {
                 case "none":
@@ -453,10 +587,14 @@ namespace BulkFileUploadFunctionApp.Services
         private void HydrateMetadata(TusInfoFile tusInfoFile, string? traceId, string? spanId)
         {
             // Add common fields and their values.
-            tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
-            tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
-            tusInfoFile.MetaData["trace_id"] = traceId;
-            tusInfoFile.MetaData["parent_span_id"] = spanId;
+            if(tusInfoFile.MetaData == null)
+            {
+                tusInfoFile.MetaData = new Dictionary<string, string>();
+            }
+            tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID ?? ""; // TODO: verify this field can be replaced with upload_id only.
+            tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID ?? "";
+            tusInfoFile.MetaData["trace_id"] = traceId ?? "";
+            tusInfoFile.MetaData["parent_span_id"] = spanId ?? "";
         }
 
         public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs)

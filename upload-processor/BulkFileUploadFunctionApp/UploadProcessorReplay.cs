@@ -27,7 +27,7 @@ namespace BulkFileUploadFunctionApp
         private readonly string _dexStorageAccountConnectionString;
         private readonly string _replayCheckpointContainer;
         private DateTimeOffset stopProcessingAfterTime;
-        private EventProcessorClient replayEventProcessorClient;
+        private EventProcessorClient? replayEventProcessorClient;
 
 
         public UploadProcessorReplay(ILoggerFactory loggerFactory, IUploadEventHubService uploadEventHubService)
@@ -35,9 +35,9 @@ namespace BulkFileUploadFunctionApp
             _logger = loggerFactory.CreateLogger<UploadEventHubService>();
             _uploadEventHubService = uploadEventHubService;
 
-            _uploadEventHubNamespaceConnectionString = Environment.GetEnvironmentVariable("AzureEventHubConnectionString", EnvironmentVariableTarget.Process);
-            _replayEventHubName = Environment.GetEnvironmentVariable("ReplayEventHubName", EnvironmentVariableTarget.Process);
-            _consumerGroup = Environment.GetEnvironmentVariable("AzureEventHubConsumerGroup", EnvironmentVariableTarget.Process);
+            _uploadEventHubNamespaceConnectionString = Environment.GetEnvironmentVariable("AzureEventHubConnectionString", EnvironmentVariableTarget.Process) ?? "";
+            _replayEventHubName = Environment.GetEnvironmentVariable("ReplayEventHubName", EnvironmentVariableTarget.Process) ?? "";
+            _consumerGroup = Environment.GetEnvironmentVariable("AzureEventHubConsumerGroup", EnvironmentVariableTarget.Process) ?? "";
 
             _dexAzureStorageAccountName = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
             _dexAzureStorageAccountKey = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_KEY", EnvironmentVariableTarget.Process) ?? "";
@@ -53,7 +53,7 @@ namespace BulkFileUploadFunctionApp
         {
             try
             {
-                ProcessReplayEventHubEventsAsync();
+                await ProcessReplayEventHubEventsAsync();
 
                 return req.CreateResponse(HttpStatusCode.OK);
             
@@ -113,6 +113,13 @@ namespace BulkFileUploadFunctionApp
                 BlobCopyRetryEvent? replayEvent = JsonSerializer.Deserialize<BlobCopyRetryEvent>(eventJsonString);
 
                 _logger.LogInformation("Replaying event: " + eventJsonString);
+
+                if(replayEvent == null)
+                {
+                    _logger.LogInformation("Failed to deserialize replay event.");
+                    return;
+                }
+
                 await _uploadEventHubService.PublishRetryEvent(replayEvent);
 
                 _logger.LogInformation("Updating replay checkpoint");

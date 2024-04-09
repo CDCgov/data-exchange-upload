@@ -5,6 +5,8 @@ namespace BulkFileUploadFunctionApp.Services
     {
         public string GetEnvironmentVariable(string name)
         {
+            string value = String.Empty;
+
             if (string.IsNullOrEmpty(name))
             {
                 // Handle the case where the name is null or empty.
@@ -14,7 +16,12 @@ namespace BulkFileUploadFunctionApp.Services
 
             // Retrieve the environment variable. 
             // This will return null if the environment variable does not exist.
-            string value = Environment.GetEnvironmentVariable(name);
+
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable(name)))
+            {
+                value = Environment.GetEnvironmentVariable(name)?? "";
+            }
+
 
             // Optionally, you might want to handle the case where the environment variable is not found.
             // For example, you can return a default value, log a warning, or throw an exception.

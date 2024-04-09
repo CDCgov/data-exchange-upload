@@ -78,11 +78,28 @@ namespace BulkFileUploadFunctionAppTests
                 DexBlobFileName = tusInfoFile.MetaData["filename"].Replace("test", "dexTest")
             };
 
+            if(_mockUploadProcessingService == null)
+            {
+                _mockUploadProcessingService = new Mock<IUploadProcessingService>();
+            }
             _mockUploadProcessingService
                 .Setup(x => x.GetCopyPrereqs(testBlobUrl))
                 .Returns(Task.FromResult(copyPrereqs));
+        
+            if(_function == null)
+            {
+                _loggerMock = new Mock<ILogger<UploadProcessingService>>();
 
-             await _function.Run(events);
+                _loggerFactoryBUFMock = new Mock<ILoggerFactory>();
+                _loggerFactoryBUFMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
+
+                _function = new BulkFileUploadFunction(
+                        _loggerFactoryBUFMock.Object,
+                        _mockUploadProcessingService.Object
+                        );
+
+            }
+            await _function.Run(events);
 
             _mockUploadProcessingService.Verify(x => x.CopyAll(copyPrereqs), Times.Once);
         }
@@ -97,9 +114,27 @@ namespace BulkFileUploadFunctionAppTests
             };
             string[] events = new string[] { JsonSerializer.Serialize(new[] { blobEvent }) };
 
+            if (_mockUploadProcessingService == null)
+            {
+                _mockUploadProcessingService = new Mock<IUploadProcessingService>();
+            }
             _mockUploadProcessingService
                 .Setup(x => x.GetCopyPrereqs(It.IsAny<string>()))
                 .Throws(new Exception());
+
+            if (_function == null)
+            {
+                _loggerMock = new Mock<ILogger<UploadProcessingService>>();
+
+                _loggerFactoryBUFMock = new Mock<ILoggerFactory>();
+                _loggerFactoryBUFMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
+
+                _function = new BulkFileUploadFunction(
+                        _loggerFactoryBUFMock.Object,
+                        _mockUploadProcessingService.Object
+                        );
+
+            }
 
             await _function.Run(events);
 

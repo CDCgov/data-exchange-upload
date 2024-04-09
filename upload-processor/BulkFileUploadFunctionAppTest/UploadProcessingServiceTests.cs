@@ -19,27 +19,24 @@ namespace BulkFileUploadFunctionAppTests
     public class UploadProcessingServiceTests
     {
         private UploadProcessingService? _uploadProcessingService;
-
         private Mock<IProcStatClient>? _mockProcStatClient;
-        private Mock<IConfigurationManager> _mockConfigManager;
-        private Mock<IFeatureManagementExecutor> _mockFeatureManagementExecutor;
-        private Mock<IUploadEventHubService> _mockUploadEventHubService;
+        private Mock<IConfigurationManager>? _mockConfigManager;
+        private Mock<IFeatureManagementExecutor>? _mockFeatureManagementExecutor;
+        private Mock<IUploadEventHubService>? _mockUploadEventHubService;
         private Mock<ILogger<UploadProcessingService>>? _loggerMock;
         private Mock<ILoggerFactory>? _loggerFactoryMock;
-        private StorageBlobCreatedEvent _storageBlobCreatedEvent;
+        private StorageBlobCreatedEvent? _storageBlobCreatedEvent;
         private Mock<IUploadProcessingService>? _mockUploadProcessingService;
-        private Mock<AzureBlobReader> _mockBlobReader;
-        private string sourceContainerName;
-        private Mock<BlobClient> _mockBlobClient;
-        private Mock<IBlobServiceClientFactory> _mockBlobServiceClientFactory;
-        private Mock<BlobServiceClient> _mockBlobServiceClient;
-        private Mock<BlobServiceClient> _mockEdavBlobServiceClient;
-        private Mock<Uri> _mockUri;
+        private Mock<AzureBlobReader>? _mockBlobReader;
+        private Mock<BlobClient>? _mockBlobClient;
+        private Mock<IBlobServiceClientFactory>? _mockBlobServiceClientFactory;
+        private Mock<BlobServiceClient>? _mockBlobServiceClient;
+        private Mock<BlobServiceClient>? _mockEdavBlobServiceClient;
+        private Mock<Uri>? _mockUri;
 
         [TestInitialize]
         public void Initialize()
         {
-            sourceContainerName = "bulkuploads";
             _loggerFactoryMock = new Mock<ILoggerFactory>();
             _loggerMock = new Mock<ILogger<UploadProcessingService>>();
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);

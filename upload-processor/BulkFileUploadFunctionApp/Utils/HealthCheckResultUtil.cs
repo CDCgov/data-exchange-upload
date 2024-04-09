@@ -36,8 +36,8 @@ namespace BulkFileUploadFunctionApp.Utils
             string edavAzureStorageAccountName = string.Empty;
             string containerName = string.Empty;
 
-            BlobServiceClient blobServiceClient = null;
-            HealthCheckResult checkResult = null;
+            BlobServiceClient? blobServiceClient = null;
+            //HealthCheckResult? checkResult = null;
 
             if (storage == "EDAV Blob Container")
             {
@@ -68,13 +68,12 @@ namespace BulkFileUploadFunctionApp.Utils
 
             _logger.LogInformation($"Checking health for destination: {storage}");
 
-            checkResult = await CheckBlobStorageHealthAsync(storage, containerName, blobServiceClient);
-
-            return checkResult;
+            
+            return await Task.FromResult(CheckBlobStorageHealth(storage, containerName, blobServiceClient));
 
         }
 
-        private async Task<HealthCheckResult> CheckBlobStorageHealthAsync(string destination, string containerName, BlobServiceClient blobServiceClient)
+        private HealthCheckResult CheckBlobStorageHealth(string destination, string containerName, BlobServiceClient blobServiceClient)
         {
             try
             {

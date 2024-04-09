@@ -84,11 +84,13 @@ namespace BulkFileUploadFunctionApp.Model
 
             MetadataVersion versionNum = GetMetadataVersion();
 
+#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
             string? useCase = versionNum == MetadataVersion.V1 
                 ? MetaData.GetValueOrDefault(Constants.USE_CASE_FIELDNAME_V1, null) 
                 : versionNum == MetadataVersion.V2
                 ? MetaData.GetValueOrDefault(Constants.USE_CASE_FIELDNAME_V2, null) : null;
-            
+#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
+
 
             if (useCase == null)
             {
@@ -107,10 +109,12 @@ namespace BulkFileUploadFunctionApp.Model
 
             MetadataVersion versionNum = GetMetadataVersion();
 
+#pragma warning disable CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
             string? useCaseCategory = versionNum == MetadataVersion.V1
                 ? MetaData.GetValueOrDefault(Constants.USE_CASE_CATEGORY_FIELDNAME_V1, null)
                 : versionNum == MetadataVersion.V2
                 ? MetaData.GetValueOrDefault(Constants.USE_CASE_CATEGORY_FIELDNAME_V2, null) : null;
+#pragma warning restore CS8620 // Argument cannot be used for parameter due to differences in the nullability of reference types.
 
             if (useCaseCategory == null)
             {

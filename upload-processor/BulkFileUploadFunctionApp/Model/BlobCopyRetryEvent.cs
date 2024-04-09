@@ -13,6 +13,6 @@ namespace BulkFileUploadFunctionApp.Model
         public int RetryAttempt { get; set; }
 
         [JsonPropertyName("copyPrereqs")]
-        public CopyPrereqs CopyPrereqs { get; set; }
+        public CopyPrereqs? CopyPrereqs { get; set; }
     }
 }

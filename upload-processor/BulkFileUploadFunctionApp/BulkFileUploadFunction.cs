@@ -92,7 +92,8 @@ namespace BulkFileUploadFunctionApp
             _getCurrentConfig = getCurrentConfig;
         }
 
-        public IDisposable BeginScope<TState>(TState state) => default;
+        // figure out a way to implement BeginScope<TState> without violating lint rule CS8633
+        public IDisposable? BeginScope<TState>(TState state) => default;
 
         public bool IsEnabled(LogLevel logLevel)
         {
