@@ -1,6 +1,10 @@
 package cli
 
 import (
+	"io"
+	"io/fs"
+	"os"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -26,8 +30,25 @@ func HookHandlerFunc(f func(handler.HookEvent) (handler.HTTPResponse, handler.Fi
 	}
 }
 
+type FileConfigLoader struct {
+	FileSystem fs.FS
+}
+
+func (l *FileConfigLoader) LoadConfig(path string) ([]byte, error) {
+	file, err := l.FileSystem.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	return io.ReadAll(file)
+}
+
 func PrebuiltHooks() tusHooks.HookHandler {
 	handler := &prebuilthooks.PrebuiltHook{}
-	handler.Register(tusHooks.HookPreCreate, metadata.VerifySenderManifest)
+	preCreateHook := metadata.SenderManifestVerification{
+		Loader: &FileConfigLoader{
+			FileSystem: os.DirFS("../../../upload-configs"),
+		},
+	}
+	handler.Register(tusHooks.HookPreCreate, preCreateHook.Verify)
 	return handler
 }
