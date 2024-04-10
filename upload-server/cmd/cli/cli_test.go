@@ -65,6 +65,10 @@ func TestTus(t *testing.T) {
 				"version":           "2.0",
 				"data_stream_id":    "dextesting",
 				"data_stream_route": "testevent1",
+				"sender_id":         "test",
+				"data_producer_id":  "test",
+				"jurisdiction":      "test",
+				"received_filename": "test",
 			},
 			nil,
 		},
@@ -97,6 +101,7 @@ func TestTus(t *testing.T) {
 				"version":                "2.0",
 				"data_stream_id":         "daart",
 				"data_stream_route":      "hl7",
+				"sender_id":              "test",
 				"original_filename":      "test",
 				"message_type":           "bad",
 				"route":                  "DAART",
@@ -112,6 +117,7 @@ func TestTus(t *testing.T) {
 				"data_stream_id":    "daart",
 				"data_stream_route": "hl7",
 				"data_producer_id":  "test",
+				"sender_id":         "test",
 				"received_filename": "test",
 				"message_type":      "ELR",
 				"route":             "DAART",
@@ -121,16 +127,19 @@ func TestTus(t *testing.T) {
 		},
 	}
 	for name, c := range cases {
-		t.Log(name)
-		testTus(c, t)
+		if err := testTus(c); err != nil {
+			t.Error(name, err)
+		} else {
+			t.Log("test case", name, "passed")
+		}
 	}
 }
 
-func testTus(c testCase, t *testing.T) {
+func testTus(c testCase) error {
 	f, err := os.Open("test/test.txt")
 
 	if err != nil {
-		t.Fatal(err)
+		return fmt.Errorf("failed to open test file %w", err)
 	}
 
 	defer f.Close()
@@ -138,12 +147,12 @@ func testTus(c testCase, t *testing.T) {
 	// create the tus client.
 	client, err := tus.NewClient(ts.URL+"/files/", nil)
 	if err != nil {
-		t.Error(err)
+		return fmt.Errorf("failed to create test client %w", err)
 	}
 
 	fi, err := f.Stat()
 	if err != nil {
-		t.Error(err)
+		return fmt.Errorf("failed to stat test file %w", err)
 	}
 
 	fingerprint := fmt.Sprintf("%s-%d-%s", fi.Name(), fi.Size(), fi.ModTime())
@@ -154,18 +163,25 @@ func testTus(c testCase, t *testing.T) {
 
 	// create the uploader.
 	uploader, err := client.CreateUpload(upload)
-	if c.err != nil && (err == nil || c.err.Error() != err.Error()) {
-		t.Error("error missmatch", "got", err, "wanted", c.err)
+	if c.err != nil {
+		if err == nil || c.err.Error() != err.Error() {
+			return fmt.Errorf("error missmatch; got: %w wanted: %w", err, c.err)
+		}
+		return nil
 	}
 
-	if uploader == nil {
-		return
+	if err != nil || uploader == nil {
+		tErr, ok := err.(tus.ClientError)
+		if ok {
+			return fmt.Errorf("got a nil uploader or unexpected error %w, %s", err, string(tErr.Body))
+		}
+		return fmt.Errorf("got a nil uploader or unexpected error %w", err)
 	}
 
 	if err := uploader.Upload(); err != nil {
-		t.Error(err)
+		return fmt.Errorf("failed to upload file %w", err)
 	}
-
+	return nil
 }
 
 func TestWellKnownEndpoints(t *testing.T) {
