@@ -82,7 +82,7 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 var sourceBlobUri = new Uri(blobCreatedUrl);
-                string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Count()-1}";
+                string tusPayloadFilename = $"/{_tusAzureObjectPrefix}/{sourceBlobUri.Segments.Last()}";
 
                 TusInfoFile tusInfoFile = await GetTusInfoFile(tusPayloadFilename);
                 uploadId = tusInfoFile.ID ?? "";

@@ -10,6 +10,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Diagnostics;
+using System.IO;
+using System.Reflection.Metadata;
+using System.Text;
 using System.Text.Json;
 using Trace = BulkFileUploadFunctionApp.Model.Trace;
 
@@ -33,10 +36,13 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<BlobServiceClient>? _mockBlobServiceClient;
         private Mock<BlobServiceClient>? _mockEdavBlobServiceClient;
         private Mock<Uri>? _mockUri;
+        private Mock<ILogger<BlobServiceClientFactory>> _mockLogger;
+        private Mock<BlobContainerClient>? _mockBlobContainerClient;
 
         [TestInitialize]
         public void Initialize()
         {
+            _mockLogger = new Mock<ILogger<BlobServiceClientFactory>>();
             _loggerFactoryMock = new Mock<ILoggerFactory>();
             _loggerMock = new Mock<ILogger<UploadProcessingService>>();
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
@@ -47,12 +53,14 @@ namespace BulkFileUploadFunctionAppTests
                 .Setup(x=> x.CreateInstance(It.IsAny<string>(), It.IsAny<string>()))
                 .Returns(_mockBlobServiceClient.Object);
             _mockUri = new Mock<Uri>("https://example.com/blob/1MB-test-file.txt"); //new Mock<Uri>();
+            //_mockUri.Setup(x => x.AbsoluteUri).Returns("https://example.com/blob/1MB-test-file.txt");
 
             _mockEdavBlobServiceClient = new Mock<BlobServiceClient>();
             _mockBlobServiceClientFactory
                 .Setup(x => x.CreateInstance(It.IsAny<string>(), _mockUri.Object, It.IsAny<DefaultAzureCredential>()))
                 .Returns(_mockEdavBlobServiceClient.Object);
 
+            _mockBlobContainerClient = new Mock<BlobContainerClient>();
             _mockConfigManager = new Mock<IConfigurationManager>();
             _mockProcStatClient = new Mock<IProcStatClient>();
             _mockFeatureManagementExecutor = new Mock<IFeatureManagementExecutor>();
@@ -77,13 +85,16 @@ namespace BulkFileUploadFunctionAppTests
             _mockUploadProcessingService = new Mock<IUploadProcessingService>();
 
             _mockUploadProcessingService.CallBase = true;
+            //_uploadProcessingService = new UploadProcessingService(
+            //    _loggerFactoryMock.Object, 
+            //    _mockConfigManager.Object, 
+            //    _mockProcStatClient.Object, _mockFeatureManagementExecutor.Object,
+            //    _mockUploadEventHubService.Object, _mockBlobServiceClientFactory.Object);
 
-            _uploadProcessingService = new UploadProcessingService(
-                _loggerFactoryMock.Object, 
-                _mockConfigManager.Object, 
-                _mockProcStatClient.Object, _mockFeatureManagementExecutor.Object,
-                _mockUploadEventHubService.Object, _mockBlobServiceClientFactory.Object);
 
         }
+
+
     }
+
 }
