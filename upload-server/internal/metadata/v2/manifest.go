@@ -1,7 +1,7 @@
 package v2
 
 import (
-	"encoding/json"
+	"errors"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -14,29 +14,19 @@ type Config struct {
 	DataStreamRoute string
 }
 
-func (c *Config) GetConfig(loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
+func (c *Config) Path() string {
 	path := fmt.Sprintf("%s/%s-%s.json", "v2", c.DataStreamID, c.DataStreamRoute)
-	// load the file
-	b, err := loader.LoadConfig(path)
-	if err != nil {
-		return nil, err
-	}
-	config := &validation.UploadConfig{}
-	if err := json.Unmarshal(b, config); err != nil {
-		return nil, err
-	}
-	return &config.Metadata, nil
-
+	return path
 }
 
-func NewFromManifest(manifest handler.MetaData) (*Config, error) {
+func NewFromManifest(manifest handler.MetaData) (validation.ConfigLocation, error) {
 	dataStreamID, ok := manifest["data_stream_id"]
 	if !ok {
-		return nil, &validation.ErrorMissingRequired{Field: "data_stream_id"}
+		return nil, errors.Join(validation.ErrFailure, &validation.ErrorMissing{Field: "data_stream_id"})
 	}
 	dataStreamRoute, ok := manifest["data_stream_route"]
 	if !ok {
-		return nil, &validation.ErrorMissingRequired{Field: "data_stream_route"}
+		return nil, errors.Join(validation.ErrFailure, &validation.ErrorMissing{Field: "data_stream_route"})
 	}
 
 	return &Config{

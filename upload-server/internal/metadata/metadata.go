@@ -1,7 +1,9 @@
 package metadata
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -25,33 +27,41 @@ func init() {
 	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
 }
 
-var RequiredManifestFields = map[string][]string{
-	"1.0": {"meta_destination_id", "meta_ext_event"},
-	"2.0": {"data_stream_id", "data_stream_route"},
+var registeredVersions = map[string]func(handler.MetaData) (validation.ConfigLocation, error){
+	"1.0": v1.NewFromManifest,
+	"2.0": v2.NewFromManifest,
 }
+
+var cachedConfigs = map[string]*validation.MetadataConfig{}
 
 func getVersionFromManifest(manifest handler.MetaData, loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
 	version, ok := manifest["version"]
 	if !ok {
 		version = "1.0"
 	}
-
-	switch version {
-	case "1.0":
-		getter, err := v1.NewFromManifest(manifest)
-		if err != nil {
-			return nil, err
-		}
-		return getter.GetConfig(loader)
-	case "2.0":
-		getter, err := v2.NewFromManifest(manifest)
-		if err != nil {
-			return nil, err
-		}
-		return getter.GetConfig(loader)
-	default:
-		return nil, errors.New("Unsupported metadata version")
+	v, ok := registeredVersions[version]
+	if !ok {
+		return nil, fmt.Errorf("unsupported version %s %w", version, validation.ErrFailure)
 	}
+	configLoc, err := v(manifest)
+	if err != nil {
+		return nil, err
+	}
+	configPath := configLoc.Path()
+	config, ok := cachedConfigs[configPath]
+	if !ok {
+		b, err := loader.LoadConfig(configPath)
+		if err != nil {
+			return nil, err
+		}
+		c := &validation.UploadConfig{}
+		if err := json.Unmarshal(b, c); err != nil {
+			return nil, err
+		}
+		config = &c.Metadata
+		cachedConfigs[configPath] = config
+	}
+	return config, nil
 }
 
 type SenderManifestVerification struct {
@@ -62,21 +72,22 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 	resp := hooks.HookResponse{}
 
 	manifest := event.Upload.MetaData
+	logger.Info("checking the sender manifest:", "manifest", manifest)
 
 	config, err := getVersionFromManifest(manifest, v.Loader)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) || errors.Is(err, ErrValidationFailure) {
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, validation.ErrFailure) {
 			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       err.Error(),
 			})
 			resp.RejectUpload = true
 
-
-			// TODO: does this fail the upload if an error is returned
 			return resp, nil
 		}
+		return resp, err
 	}
+	logger.Info("checking config", "config", config)
 
 	//TODO: validate against invalid characters in the `filename`
 	/*
@@ -87,19 +98,15 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 	*/
 	var errs error
 	for _, field := range config.Fields {
-		if err := field.Validate(manifest); err != nil {
-
-			if _, ok := err.(*validation.ErrorMissing); !ok {
-				logger.Error("validation failure", "error", err)
-				errs = errors.Join(errs, err)
-			} else {
-				logger.Info("validation warning", "error", err)
-			}
-		}
+		err := field.Validate(manifest)
+		errs = errors.Join(errs, err)
 	}
 
 	if errs != nil {
-		logger.Info("building handler response")
+		logger.Error("validation errors and warnings", "errors", errs)
+	}
+
+	if errors.Is(errs, validation.ErrFailure) {
 		resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
 			StatusCode: http.StatusBadRequest,
 			Body:       errs.Error(),
@@ -107,7 +114,5 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 		resp.RejectUpload = true
 	}
 
-	logger.Info("checking config", "config", config)
-	logger.Info("checking the sender manifest:", "manifest", manifest)
 	return resp, nil
 }

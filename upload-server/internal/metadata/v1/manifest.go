@@ -1,11 +1,10 @@
 package v1
 
 import (
-	"encoding/json"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/tus/tusd/v2/pkg/handler"
 
+	"errors"
 	"fmt"
 )
 
@@ -14,28 +13,20 @@ type Config struct {
 	MetaExtEvent      string
 }
 
-func (c *Config) GetConfig(loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
+func (c *Config) Path() string {
 	path := fmt.Sprintf("%s/%s-%s.json", "v1", c.MetaDestinationId, c.MetaExtEvent)
-	// load the file
-	b, err := loader.LoadConfig(path)
-	if err != nil {
-		return nil, err
-	}
-	config := &validation.UploadConfig{}
-	if err := json.Unmarshal(b, config); err != nil {
-		return nil, err
-	}
-	return &config.Metadata, nil
+	return path
+
 }
 
-func NewFromManifest(manifest handler.MetaData) (*Config, error) {
+func NewFromManifest(manifest handler.MetaData) (validation.ConfigLocation, error) {
 	metaDestinationID, ok := manifest["meta_destination_id"]
 	if !ok {
-		return nil, &validation.ErrorMissingRequired{Field: "meta_destination_id"}
+		return nil, errors.Join(validation.ErrFailure, &validation.ErrorMissing{Field: "meta_destination_id"})
 	}
 	metaExtEvent, ok := manifest["meta_ext_event"]
 	if !ok {
-		return nil, &validation.ErrorMissingRequired{Field: "meta_ext_event"}
+		return nil, errors.Join(validation.ErrFailure, &validation.ErrorMissing{Field: "meta_ext_event"})
 	}
 
 	return &Config{
