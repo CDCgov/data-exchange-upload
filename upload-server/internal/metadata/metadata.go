@@ -65,25 +65,17 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 
 	config, err := getVersionFromManifest(manifest, v.Loader)
 	if err != nil {
-		if _, ok := err.(*validation.ErrorMissingRequired); ok {
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, ErrValidationFailure) {
 			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       err.Error(),
 			})
 			resp.RejectUpload = true
-			return resp, nil
-		}
-		if errors.Is(err, os.ErrNotExist) {
-			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
-				StatusCode: http.StatusBadRequest,
-				Body:       err.Error(),
-			})
-			resp.RejectUpload = true
-			return resp, nil
-		}
 
-		// TODO: does this fail the upload if an error is returned
-		return resp, err
+
+			// TODO: does this fail the upload if an error is returned
+			return resp, nil
+		}
 	}
 
 	//TODO: validate against invalid characters in the `filename`
