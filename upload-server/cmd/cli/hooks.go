@@ -79,7 +79,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) tusHooks.HookHandler {
 		},
 	}
 
-	if appConfig.DexAzUploadConfig.AzContainerName != "" {
+	if appConfig.DexAzUploadConfig != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.DexAzUploadConfig)
 		if err != nil {
 			//TODO this needs to be passed up the chain and prevent startup
