@@ -1,6 +1,9 @@
 package validation
 
-import "errors"
+import (
+	"context"
+	"errors"
+)
 
 type UploadConfig struct {
 	Metadata MetadataConfig `json:"metadata_config"`
@@ -45,7 +48,7 @@ func (fc *FieldConfig) Validate(manifest map[string]string) error {
 }
 
 type ConfigLoader interface {
-	LoadConfig(path string) ([]byte, error)
+	LoadConfig(ctx context.Context, path string) ([]byte, error)
 }
 
 type ConfigLocation interface {

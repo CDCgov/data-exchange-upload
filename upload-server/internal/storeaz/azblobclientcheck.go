@@ -16,7 +16,7 @@ type AzureBlobHealthCheck struct {
 }
 
 func NewAzureHealthCheck(conf *azurestore.AzConfig) (*AzureBlobHealthCheck, error) {
-	client, err := newAzBlobClient(tusPrefix, conf.AccountName, conf.AccountKey, conf.Endpoint, conf.ContainerName)
+	client, err := newAzBlobClient(conf.AccountName, conf.AccountKey, conf.Endpoint, conf.ContainerName)
 	if err != nil {
 		return nil, err
 	}

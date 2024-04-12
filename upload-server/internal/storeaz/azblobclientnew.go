@@ -15,60 +15,37 @@ var (
 	tusPrefix                        = "Tus storage"
 	routerPrefix                     = "Router storage"
 	edavPrefix                       = "Edav storage"
-	errStorageNameEmpty              = "error storage name from app config is empty"
-	errStorageKeyEmpty               = "error storage key from app config is empty"
-	errStorageContainerEndpointEmpty = "error storage container endpoint from app config is empty"
+	errStorageNameEmpty              = errors.New("error storage name from app config is empty")
+	errStorageKeyEmpty               = errors.New("error storage key from app config is empty")
+	errStorageContainerEndpointEmpty = errors.New("error storage container endpoint from app config is empty")
 ) // .var
 
 // NewTusAzBlobClient returns a azure blob client
-func NewTusAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
+func NewBlobClient(conf appconfig.AzureStorageConfig) (*azblob.Client, error) {
 
 	return newAzBlobClient(
-		tusPrefix,
-		appConfig.TusAzStorageConfig.AzStorageName,
-		appConfig.TusAzStorageConfig.AzStorageKey,
-		appConfig.TusAzStorageConfig.AzContainerEndpoint,
-		appConfig.TusAzStorageConfig.AzContainerName)
+		conf.AzStorageName,
+		conf.AzStorageKey,
+		conf.AzContainerEndpoint,
+		conf.AzContainerName)
 } // .NewTusAzBlobClient
 
-// NewRouterAzBlobClient returns a azure blob client
-func NewRouterAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
-
-	return newAzBlobClient(
-		routerPrefix,
-		appConfig.RouterAzStorageConfig.AzStorageName,
-		appConfig.RouterAzStorageConfig.AzStorageKey,
-		appConfig.RouterAzStorageConfig.AzContainerEndpoint,
-		appConfig.RouterAzStorageConfig.AzContainerName)
-} // .NewRouterAzBlobClient
-
-// NewEdavAzBlobClient returns a azure blob client
-func NewEdavAzBlobClient(appConfig appconfig.AppConfig) (*azblob.Client, error) {
-
-	return newAzBlobClient(
-		edavPrefix,
-		appConfig.EdavAzStorageConfig.AzStorageName,
-		appConfig.EdavAzStorageConfig.AzStorageKey,
-		appConfig.EdavAzStorageConfig.AzContainerEndpoint,
-		appConfig.EdavAzStorageConfig.AzContainerName)
-} // .NewEdavAzBlobClient
-
 // newAzBlobClient, method for returning azure blob client for a storage needed
-func newAzBlobClient(prefix, azStorageName, azStorageKey, azContainerEndpoint, azContainerName string) (*azblob.Client, error) {
+func newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint, azContainerName string) (*azblob.Client, error) {
 
 	// check guard if names are not empty
 	if len(strings.TrimSpace(azStorageName)) == 0 {
-		return nil, NewError(prefix, errStorageNameEmpty)
+		return nil, errStorageNameEmpty
 	} // .if
 
 	// check guard if names are not empty
 	if len(strings.TrimSpace(azStorageKey)) == 0 {
-		return nil, NewError(prefix, errStorageKeyEmpty)
+		return nil, errStorageKeyEmpty
 	} // .if
 
 	// check guard if names are not empty
 	if len(strings.TrimSpace(azContainerEndpoint)) == 0 {
-		return nil, NewError(prefix, errStorageContainerEndpointEmpty)
+		return nil, errStorageContainerEndpointEmpty
 	} // .if
 
 	// getting the client

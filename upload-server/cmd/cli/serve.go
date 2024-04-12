@@ -32,7 +32,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 
 	locker := memorylocker.New()
 
-	handlerTusd, err := handlertusd.New(store, locker, GetHookHandler(), appConfig.TusdHandlerBasePath)
+	handlerTusd, err := handlertusd.New(store, locker, GetHookHandler(appConfig), appConfig.TusdHandlerBasePath)
 	if err != nil {
 		logger.Error("error starting tusd handler: ", err)
 		return nil, err

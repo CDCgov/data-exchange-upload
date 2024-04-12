@@ -1,6 +1,7 @@
 package metadata
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,7 +35,7 @@ var registeredVersions = map[string]func(handler.MetaData) (validation.ConfigLoc
 
 var cachedConfigs = map[string]*validation.MetadataConfig{}
 
-func getVersionFromManifest(manifest handler.MetaData, loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
+func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
 	version, ok := manifest["version"]
 	if !ok {
 		version = "1.0"
@@ -50,7 +51,7 @@ func getVersionFromManifest(manifest handler.MetaData, loader validation.ConfigL
 	configPath := configLoc.Path()
 	config, ok := cachedConfigs[configPath]
 	if !ok {
-		b, err := loader.LoadConfig(configPath)
+		b, err := loader.LoadConfig(ctx, configPath)
 		if err != nil {
 			return nil, err
 		}
@@ -74,7 +75,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
 
-	config, err := getVersionFromManifest(manifest, v.Loader)
+	config, err := getVersionFromManifest(event.Context, manifest, v.Loader)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) || errors.Is(err, validation.ErrFailure) {
 			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
