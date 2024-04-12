@@ -75,7 +75,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) tusHooks.HookHandler {
 
 	preCreateHook := metadata.SenderManifestVerification{
 		Loader: &FileConfigLoader{
-			FileSystem: os.DirFS("../upload-configs"),
+			FileSystem: os.DirFS(appConfig.UploadConfigPath),
 		},
 	}
 

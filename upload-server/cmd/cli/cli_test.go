@@ -207,8 +207,7 @@ func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		AllowedDestAndEventsPath: "../../configs/allowed_destination_and_events.json",
 		DefinitionsPath:          "../../configs/file-hooks/metadata-verify/",
-		UploadConfigPath:         "../../configs/upload-configs/",
-		HydrateV1ConfigPath:      "../../configs/upload-configs/v2/",
+		UploadConfigPath:         "../../../upload-configs/",
 		LocalFolderUploadsTus:    "test/uploads",
 		TusdHandlerBasePath:      "/files/",
 	}
