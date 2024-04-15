@@ -3,6 +3,8 @@ package validation
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 )
 
 type UploadConfig struct {
@@ -28,6 +30,21 @@ type FieldConfig struct {
 	AllowedValues []string `json:"allowed_values"`
 }
 
+func validFileName(value string) error {
+	invalidChars := `<>:"/\|?*`
+	if strings.ContainsAny(value, invalidChars) {
+		return fmt.Errorf("invalid character found in %s %w", value, ErrFailure)
+	}
+	return nil
+}
+
+var BuiltIns = map[string][]func(string) error{
+	"filename":          {validFileName},
+	"original_filename": {validFileName},
+	"meta_ext_filename": {validFileName},
+	"received_filename": {validFileName},
+}
+
 func (fc *FieldConfig) Validate(manifest map[string]string) error {
 	value, ok := manifest[fc.FieldName]
 	if !ok {
@@ -43,6 +60,13 @@ func (fc *FieldConfig) Validate(manifest map[string]string) error {
 			}
 		}
 		return errors.Join(ErrFailure, &ErrorNotAnAllowedValue{field: fc.FieldName, value: value})
+	}
+	if validators, ok := BuiltIns[fc.FieldName]; ok {
+		for _, validator := range validators {
+			if err := validator(value); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

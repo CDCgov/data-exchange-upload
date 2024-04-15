@@ -111,13 +111,6 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 	}
 	logger.Info("checking config", "config", config)
 
-	//TODO: validate against invalid characters in the `filename`
-	/*
-		invalidChars := `<>:"/\|?*`
-		if strings.ContainsAny(path, invalidChars) {
-			return nil, errors.New("invalid character found in path")
-		}
-	*/
 	var errs error
 	for _, field := range config.Fields {
 		err := field.Validate(manifest)
