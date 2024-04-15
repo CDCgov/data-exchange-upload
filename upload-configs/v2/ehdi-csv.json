@@ -5,31 +5,61 @@
       {
         "field_name": "data_stream_id",
         "required": true,
-        "allowed_values": ["NRSS_ELR_01"],
+        "allowed_values": ["ehdi"],
         "description": "This field is the identifier for the data stream."
       },
       {
         "field_name": "data_stream_route",
         "required": true,
-        "allowed_values": ["HL7_01", "CSV_01"],
+        "allowed_values": ["csv"],
         "description": "This recieved is the route of the data stream."
       },
       {
         "field_name": "sender_id",
         "required": true,
-        "allowed_values": ["APHL"],
+        "allowed_values": [
+          "RI_DOH",
+          "IN_DOH",
+          "UT_DOH",
+          "IA_DOH",
+          "LA_DOH",
+          "NJ_DOH",
+          "ND_DOH",
+          "NE_DOH", 
+          "MI_DOH"
+        ],
         "description": "This field is the identifier for the sender of the data."
       },
       {
         "field_name": "data_producer_id",
         "required": true,
-        "allowed_values": ["IN_TEST", "DC_TEST", "IA_TEST", "CA_TEST"],
+        "allowed_values": [
+          "RI_DOH",
+          "IN_DOH",
+          "UT_DOH",
+          "IA_DOH",
+          "LA_DOH",
+          "NJ_DOH",
+          "ND_DOH",
+          "NE_DOH", 
+          "MI_DOH"
+        ],
         "description": "This field is the identifier for the data producer."
       },
       {
         "field_name": "jurisdiction",
         "required": true,
-        "allowed_values": ["DC", "IN", "CA", "IA"],
+        "allowed_values": [
+          "RI",
+          "IN",
+          "UT",
+          "IA",
+          "LA",
+          "NJ",
+          "ND",
+          "NE", 
+          "MI"
+        ],
         "description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
       },
       {

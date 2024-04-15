@@ -5,13 +5,13 @@
       {
         "field_name": "data_stream_id",
         "required": true,
-        "allowed_values": ["NRSS_ELR_01"],
+        "allowed_values": ["nrss"],
         "description": "This field is the identifier for the data stream."
       },
       {
         "field_name": "data_stream_route",
         "required": true,
-        "allowed_values": ["HL7_01", "CSV_01"],
+        "allowed_values": ["hl7"],
         "description": "This recieved is the route of the data stream."
       },
       {
