@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
@@ -33,25 +34,29 @@ var registeredVersions = map[string]func(handler.MetaData) (validation.ConfigLoc
 	"2.0": v2.NewFromManifest,
 }
 
-var cachedConfigs = map[string]*validation.MetadataConfig{}
+var cachedConfigs = &configCache{}
 
-func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
-	version, ok := manifest["version"]
+type configCache struct {
+	sync.Map
+}
+
+func (c *configCache) GetConfig(key any) (*validation.MetadataConfig, bool) {
+	config, ok := c.Load(key)
 	if !ok {
-		version = "1.0"
+		return nil, ok
 	}
-	v, ok := registeredVersions[version]
+	metaConfig, ok := config.(*validation.MetadataConfig)
+	return metaConfig, ok
+}
+
+func (c *configCache) SetConfig(key any, config *validation.MetadataConfig) {
+	c.Store(key, config)
+}
+
+func loadConfig(ctx context.Context, path string, loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
+	config, ok := cachedConfigs.GetConfig(path)
 	if !ok {
-		return nil, fmt.Errorf("unsupported version %s %w", version, validation.ErrFailure)
-	}
-	configLoc, err := v(manifest)
-	if err != nil {
-		return nil, err
-	}
-	configPath := configLoc.Path()
-	config, ok := cachedConfigs[configPath]
-	if !ok {
-		b, err := loader.LoadConfig(ctx, configPath)
+		b, err := loader.LoadConfig(ctx, path)
 		if err != nil {
 			return nil, err
 		}
@@ -60,9 +65,25 @@ func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, load
 			return nil, err
 		}
 		config = &c.Metadata
-		cachedConfigs[configPath] = config
+		cachedConfigs.SetConfig(path, config)
 	}
 	return config, nil
+}
+
+func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
+	version, ok := manifest["version"]
+	if !ok {
+		version = "1.0"
+	}
+	configLocationBuilder, ok := registeredVersions[version]
+	if !ok {
+		return nil, fmt.Errorf("unsupported version %s %w", version, validation.ErrFailure)
+	}
+	configLoc, err := configLocationBuilder(manifest)
+	if err != nil {
+		return nil, err
+	}
+	return loadConfig(ctx, configLoc.Path(), loader)
 }
 
 type SenderManifestVerification struct {

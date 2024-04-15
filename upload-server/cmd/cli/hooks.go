@@ -19,11 +19,11 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
 
-func GetHookHandler(appConfig appconfig.AppConfig) tusHooks.HookHandler {
+func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	if Flags.FileHooksDir != "" {
 		return &file.FileHook{
 			Directory: Flags.FileHooksDir,
-		}
+		}, nil
 	}
 	return PrebuiltHooks(appConfig)
 }
@@ -70,7 +70,7 @@ func (l *AzureConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte
 	return io.ReadAll(downloadResponse.Body)
 }
 
-func PrebuiltHooks(appConfig appconfig.AppConfig) tusHooks.HookHandler {
+func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	preCreateHook := metadata.SenderManifestVerification{
@@ -82,10 +82,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) tusHooks.HookHandler {
 	if appConfig.DexAzUploadConfig != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.DexAzUploadConfig)
 		if err != nil {
-			//TODO this needs to be passed up the chain and prevent startup
-
-			logger.Error("failed to connect to azure", "error", err)
-
+			return nil, err
 		}
 		preCreateHook.Loader = &AzureConfigLoader{
 			Client:        client,
@@ -94,5 +91,5 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) tusHooks.HookHandler {
 	}
 
 	handler.Register(tusHooks.HookPreCreate, preCreateHook.Verify)
-	return handler
+	return handler, nil
 }
