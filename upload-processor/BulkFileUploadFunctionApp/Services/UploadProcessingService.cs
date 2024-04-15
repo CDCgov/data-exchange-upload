@@ -345,6 +345,8 @@ namespace BulkFileUploadFunctionApp.Services
         {
             string destinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
             string destinationFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
+            _logger.LogInformation($"destinationContainerName 'value': {destinationContainerName}");
+             _logger.LogInformation($"destinationFilename 'value': {destinationFilename}");
 
             try
             {
@@ -352,6 +354,7 @@ namespace BulkFileUploadFunctionApp.Services
                 BlobClient sourceBlobClient = sourceContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
 
                 BlobContainerClient destContainerClient = _routingBlobServiceClient.GetBlobContainerClient(destinationContainerName);
+                _logger.LogInformation($"destContainerClient 'value': {destContainerClient}");
                 await destContainerClient.CreateIfNotExistsAsync();
 
                 BlobClient destBlobClient = destContainerClient.GetBlobClient(destinationFilename);
