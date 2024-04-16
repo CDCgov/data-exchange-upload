@@ -1,4 +1,4 @@
-package cli
+package testing
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	tus "github.com/eventials/go-tus"
 )
@@ -205,14 +206,12 @@ func TestWellKnownEndpoints(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
-		AllowedDestAndEventsPath: "../../configs/allowed_destination_and_events.json",
-		DefinitionsPath:          "../../configs/file-hooks/metadata-verify/",
-		UploadConfigPath:         "../../../upload-configs/",
-		LocalFolderUploadsTus:    "test/uploads",
-		TusdHandlerBasePath:      "/files/",
+		UploadConfigPath:      "../../upload-configs/",
+		LocalFolderUploadsTus: "test/uploads",
+		TusdHandlerBasePath:   "/files/",
 	}
 
-	handler, err := Serve(appConfig)
+	handler, err := cli.Serve(appConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -43,10 +43,12 @@ func init() {
 		os.Exit(appMainExitCode)
 	} // .if
 
-	if err := godotenv.Load(cli.Flags.AppConfigPath); err != nil {
-		slog.Error("error loading local configuration", "runMode", cli.Flags.RunMode, "error", err)
-		os.Exit(appMainExitCode)
-	} // .if
+	if cli.Flags.AppConfigPath != "" {
+		if err := godotenv.Load(cli.Flags.AppConfigPath); err != nil {
+			slog.Error("error loading local configuration", "error", err)
+			os.Exit(appMainExitCode)
+		} // .if
+	}
 
 	// ------------------------------------------------------------------
 	// parse and load config from os exported
@@ -79,7 +81,7 @@ func main() {
 
 	_, err := cli.Serve(appConfig)
 	if err != nil {
-		logger.Error("error starting app, error initialize dex server", "error", err)
+		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
 	}
 	// ------------------------------------------------------------------

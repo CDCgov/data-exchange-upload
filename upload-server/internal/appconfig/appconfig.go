@@ -46,14 +46,9 @@ type AppConfig struct {
 	MetadataVersions string `env:"METADATA_VERSIONS, required"`
 
 	// Metadata v1
-	AllowedDestAndEventsPath string `env:"ALLOWED_DEST_AND_EVENTS_PATH, required"`
-	DefinitionsPath          string `env:"DEFINITIONS_PATH, required"`
-	UploadConfigPath         string `env:"UPLOAD_CONFIG_PATH, required"`
-	HydrateV1ConfigPath      string `env:"HYDRATE_V1_CONFIG_PATH, required"`
+	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, required"`
 
-	// Local folder path e.g. ../uploads
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, required"`
-	LocalFolderUploadsA   string `env:"LOCAL_FOLDER_UPLOADS_A, required"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, required"`
@@ -64,11 +59,8 @@ type AppConfig struct {
 	ProcessingStatusServiceBusQueue     string `env:"PROCESSING_STATUS_SERVICE_BUS_QUEUE"`
 
 	// Azure TUS Upload storage
-	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_"`
-	DexAzUploadConfig  *AzureStorageConfig `env:", prefix=DEX_"`
-
-	CopyRetryTimes int `env:"COPY_RETRY_TIMES, required"`
-	CopyRetryDelay int `env:"COPY_RETRY_DELAY, required"`
+	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_, noinit"`
+	DexAzUploadConfig  *AzureStorageConfig `env:", prefix=DEX_, noinit"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
