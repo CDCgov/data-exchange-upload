@@ -51,7 +51,7 @@ func init() {
 	// ------------------------------------------------------------------
 	// parse and load config from os exported
 	// ------------------------------------------------------------------
-	appConfig, err = appconfig.ParseConfig(ctx)
+	appConfig, err := appconfig.ParseConfig(ctx)
 	if err != nil {
 		slog.Error("error starting app, error parsing app config", "error", err)
 		os.Exit(appMainExitCode)
