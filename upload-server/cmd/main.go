@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"testing"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -36,10 +37,12 @@ func init() {
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
-	if err := cli.ParseFlags(); err != nil {
-		slog.Error("error starting app, error parsing cli flags", "error", err)
-		os.Exit(appMainExitCode)
-	} // .if
+	if !testing.Testing() {
+		if err := cli.ParseFlags(); err != nil {
+			slog.Error("error starting app, error parsing cli flags", "error", err)
+			os.Exit(appMainExitCode)
+		} // .if
+	}
 
 	if cli.Flags.AppConfigPath != "" {
 		slog.Info("Loading environment from", "file", cli.Flags.AppConfigPath)
@@ -74,9 +77,7 @@ func init() {
 func main() {
 	ctx := context.Background()
 
-	logger.Info("started app")
-
-	// logger.Debug("loaded app config", "appConfig", appConfig)
+	logger.Info("starting app")
 
 	// start serving the app
 	_, err := cli.Serve(appConfig)
@@ -84,6 +85,8 @@ func main() {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
 	}
+
+	logger.Info("http handlers ready")
 	// ------------------------------------------------------------------
 	// create dex server, includes dex handler
 	// ------------------------------------------------------------------
@@ -92,6 +95,8 @@ func main() {
 		logger.Error("error starting app, error initialize dex server", "error", err)
 		os.Exit(appMainExitCode)
 	} // .if
+
+	logger.Info("http server ready")
 
 	// ------------------------------------------------------------------
 	// Start http custom server
