@@ -40,7 +40,7 @@ type configCache struct {
 	sync.Map
 }
 
-func (c *configCache) GetConfig(key any) (*validation.MetadataConfig, bool) {
+func (c *configCache) GetConfig(key interface{}) (*validation.MetadataConfig, bool) {
 	config, ok := c.Load(key)
 	if !ok {
 		return nil, ok
@@ -49,7 +49,7 @@ func (c *configCache) GetConfig(key any) (*validation.MetadataConfig, bool) {
 	return metaConfig, ok
 }
 
-func (c *configCache) SetConfig(key any, config *validation.MetadataConfig) {
+func (c *configCache) SetConfig(key interface{}, config *validation.MetadataConfig) {
 	c.Store(key, config)
 }
 
@@ -72,7 +72,7 @@ func loadConfig(ctx context.Context, path string, loader validation.ConfigLoader
 
 func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
 	version, ok := manifest["version"]
-	if !ok {
+	if version == "" {
 		version = "1.0"
 	}
 	configLocationBuilder, ok := registeredVersions[version]

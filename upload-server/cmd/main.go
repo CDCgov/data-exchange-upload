@@ -28,7 +28,6 @@ var (
 // A main reason for it is to enable to cross cutting logging aspect.
 // If another way is found to manage that this should be moved to main.
 func init() {
-
 	ctx := context.Background()
 
 	buildInfo, _ := debug.ReadBuildInfo()
@@ -37,8 +36,7 @@ func init() {
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
-	err := cli.ParseFlags()
-	if err != nil {
+	if err := cli.ParseFlags(); err != nil {
 		slog.Error("error starting app, error parsing cli flags", "error", err)
 		os.Exit(appMainExitCode)
 	} // .if
@@ -72,13 +70,13 @@ func init() {
 }
 
 func main() {
-
 	ctx := context.Background()
 
 	logger.Info("started app")
 
 	// logger.Debug("loaded app config", "appConfig", appConfig)
 
+	// start serving the app
 	_, err := cli.Serve(appConfig)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
@@ -99,13 +97,13 @@ func main() {
 	httpServer := serverDex.HttpServer()
 
 	go func() {
-
 		err := httpServer.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("error starting app, error starting http server", "error", err, "port", appConfig.ServerPort)
 			os.Exit(appMainExitCode)
 		} // .if
 	}() // .go
+
 	logger.Info("started http server with tusd and dex handlers", "port", appConfig.ServerPort)
 
 	// ------------------------------------------------------------------
@@ -113,7 +111,6 @@ func main() {
 	// ------------------------------------------------------------------
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
-
 	<-sigint
 
 	// ------------------------------------------------------------------
