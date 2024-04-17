@@ -60,7 +60,7 @@ func BenchmarkCheckManifestV1(b *testing.B) {
 			"filename": "file.name",
 		} // .senderManifest
 
-		metaDestinationId, ok := senderManifest[models.META_DESTINATION_ID]
+		metaDestinationID, ok := senderManifest[models.META_DESTINATION_ID]
 		if !ok {
 			_ = tusd.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
