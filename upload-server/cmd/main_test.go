@@ -5,6 +5,7 @@ package main
 
 import (
 	"os"
+	"syscall"
 	"testing"
 	"time"
 
@@ -28,6 +29,8 @@ func TestMain(m *testing.M) {
 		go main()
 		// wait for main to start (should make this more resilient)
 		time.Sleep(5 * time.Second)
-		os.Exit(m.Run())
+		result := m.Run()
+		syscall.Kill(os.Getpid(), syscall.SIGINT)
+		os.Exit(result)
 	}
 }
