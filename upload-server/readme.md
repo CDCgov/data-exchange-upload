@@ -26,7 +26,7 @@ Repo is structured (as feasible) based on the [golang-standards/project-layout](
             "program": "cmd/main.go",
             "cwd": "${workspaceFolder}",
             "args": [
-                "-env", "local"
+                "-appconf", "./configs/local/local.env"
             ]
         }
     ]
