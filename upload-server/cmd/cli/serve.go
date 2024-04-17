@@ -53,6 +53,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	// 	TUSD handler
 	// --------------------------------------------------------------
 	// Route for TUSD to start listening on and accept http request
+	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)
 	http.Handle(appConfig.TusdHandlerBasePath, http.StripPrefix(appConfig.TusdHandlerBasePath, handlerTusd))
 
 	// initialize and route handler for DEX

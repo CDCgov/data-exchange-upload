@@ -42,6 +42,7 @@ func init() {
 	} // .if
 
 	if cli.Flags.AppConfigPath != "" {
+		slog.Info("Loading environment from", "file", cli.Flags.AppConfigPath)
 		if err := godotenv.Load(cli.Flags.AppConfigPath); err != nil {
 			slog.Error("error loading local configuration", "error", err)
 			os.Exit(appMainExitCode)
@@ -51,7 +52,8 @@ func init() {
 	// ------------------------------------------------------------------
 	// parse and load config from os exported
 	// ------------------------------------------------------------------
-	appConfig, err := appconfig.ParseConfig(ctx)
+	var err error
+	appConfig, err = appconfig.ParseConfig(ctx)
 	if err != nil {
 		slog.Error("error starting app, error parsing app config", "error", err)
 		os.Exit(appMainExitCode)
