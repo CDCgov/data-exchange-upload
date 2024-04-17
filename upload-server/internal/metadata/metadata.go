@@ -40,7 +40,7 @@ type configCache struct {
 	sync.Map
 }
 
-func (c *configCache) GetConfig(key interface{}) (*validation.MetadataConfig, bool) {
+func (c *configCache) GetConfig(key any) (*validation.MetadataConfig, bool) {
 	config, ok := c.Load(key)
 	if !ok {
 		return nil, ok
@@ -49,7 +49,7 @@ func (c *configCache) GetConfig(key interface{}) (*validation.MetadataConfig, bo
 	return metaConfig, ok
 }
 
-func (c *configCache) SetConfig(key interface{}, config *validation.MetadataConfig) {
+func (c *configCache) SetConfig(key any, config *validation.MetadataConfig) {
 	c.Store(key, config)
 }
 
