@@ -15,14 +15,16 @@ import (
 
 func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 
+	// initialize processing status sender
 	psSender, err := processingstatus.New(appConfig)
 	if err != nil {
-		logger.Error("error processing status not available", "error", err)
-	} // .err
+		logger.Error("error initializing processing status not available", "error", err)
+	}
 	if psSender != nil {
 		health.Register(psSender)
 	}
 
+	// create and register data store
 	store, storeHealthCheck, err := CreateDataStore(appConfig)
 	if err != nil {
 		logger.Error("error starting app, error configuring storage", "error", err)
@@ -30,20 +32,31 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	}
 	health.Register(storeHealthCheck)
 
+	// initialize locker
 	locker := memorylocker.New()
 
-	handlerTusd, err := handlertusd.New(store, locker, GetHookHandler(), appConfig.TusdHandlerBasePath)
+	// get and initialize tusd hook handlers
+	hookHandler, err := GetHookHandler(appConfig)
 	if err != nil {
-		logger.Error("error starting tusd handler: ", err)
+		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
-	} // .handlerTusd
+	}
+
+	// initialize tusd handler
+	handlerTusd, err := handlertusd.New(store, locker, hookHandler, appConfig.TusdHandlerBasePath)
+	if err != nil {
+		logger.Error("error starting tusd handler: ", "error", err)
+		return nil, err
+	}
 
 	// --------------------------------------------------------------
 	// 	TUSD handler
 	// --------------------------------------------------------------
 	// Route for TUSD to start listening on and accept http request
+	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)
 	http.Handle(appConfig.TusdHandlerBasePath, http.StripPrefix(appConfig.TusdHandlerBasePath, handlerTusd))
 
+	// initialize and route handler for DEX
 	handlerDex := handlerdex.New(appConfig, psSender)
 	http.Handle("/", handlerDex)
 
