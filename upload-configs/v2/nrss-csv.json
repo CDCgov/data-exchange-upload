@@ -17,13 +17,13 @@
       {
         "field_name": "sender_id",
         "required": true,
-        "allowed_values": ["APHL"],
+        "allowed_values": ["TEST-NRSS"],
         "description": "This field is the identifier for the sender of the data."
       },
       {
         "field_name": "data_producer_id",
         "required": true,
-        "allowed_values": ["IN_TEST", "DC_TEST", "IA_TEST", "CA_TEST"],
+        "allowed_values": ["IN-TEST", "DC-TEST", "IA-TEST", "CA-TEST"],
         "description": "This field is the identifier for the data producer."
       },
       {
