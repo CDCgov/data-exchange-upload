@@ -9,6 +9,12 @@ services:
       - "10000:10000"
       - "10001:10001"
       - "10002:10002"
+  cache:
+    image: redis:alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server
   upload-server-integration:
     image: golang:alpine
     volumes:
@@ -38,6 +44,8 @@ services:
       - DEX_AZ_CONTAINER_NAME=config
       - DEX_AZ_CONTAINER_ENDPOINT=http://azurite:10000/devstoreaccount1
       - PODMAN_CI_TESTS=true
+      - TUS_REDIS_LOCK_URI=redis://redispw@cache:6379
     command: go test --tags=integration -v -coverprofile=c.out -coverpkg=./... ./cmd
     depends_on:
       - azurite
+      - cache

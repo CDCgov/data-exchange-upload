@@ -5,6 +5,7 @@ package main
 
 import (
 	"os"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -14,13 +15,19 @@ import (
 
 func TestTus(t *testing.T) {
 	url := "http://localhost:8080/files/"
+	var wg sync.WaitGroup
 	for name, c := range dexTesting.Cases {
-		if err := dexTesting.RunTusTestCase(url, "../testing/test/test.txt", c); err != nil {
-			t.Error(name, err)
-		} else {
-			t.Log("test case", name, "passed")
-		}
+		wg.Add(1)
+		go func(t *testing.T) {
+			defer wg.Done()
+			if err := dexTesting.RunTusTestCase(url, "../testing/test/test.txt", c); err != nil {
+				t.Error(name, err)
+			} else {
+				t.Log("test case", name, "passed")
+			}
+		}(t)
 	}
+	wg.Wait()
 }
 
 func TestMain(m *testing.M) {
