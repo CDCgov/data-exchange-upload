@@ -27,7 +27,12 @@ func WithLogger(logger *slog.Logger) LockerOption {
 	}
 }
 
-func New(client *redis.Client, lockerOptions ...LockerOption) handler.Locker {
+func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
+	connection, err := redis.ParseURL(uri)
+	if err != nil {
+		return nil, err
+	}
+	client := redis.NewClient(connection)
 	rs := redsync.New(goredis.NewPool(client))
 
 	locker := &RedisLocker{
@@ -42,7 +47,7 @@ func New(client *redis.Client, lockerOptions ...LockerOption) handler.Locker {
 		locker.logger = slog.Default()
 	}
 
-	return locker
+	return locker, nil
 }
 
 type LockExchange interface {
@@ -78,6 +83,10 @@ type RedisLocker struct {
 	rs     *redsync.Redsync
 	redis  *redis.Client
 	logger *slog.Logger
+}
+
+func (locker *RedisLocker) UseIn(composer *handler.StoreComposer) {
+	composer.UseLocker(locker)
 }
 
 func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {

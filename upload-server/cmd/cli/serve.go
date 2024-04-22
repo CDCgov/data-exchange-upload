@@ -8,6 +8,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/processingstatus"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
@@ -33,7 +34,16 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	health.Register(storeHealthCheck)
 
 	// initialize locker
-	locker := memorylocker.New()
+	var locker handlertusd.Locker
+	locker = memorylocker.New()
+	if appConfig.TusRedisLockURI != "" {
+		var err error
+		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))
+		if err != nil {
+			logger.Error("error configuring redis locker", "error", err)
+			return nil, err
+		}
+	}
 
 	// get and initialize tusd hook handlers
 	hookHandler, err := GetHookHandler(appConfig)

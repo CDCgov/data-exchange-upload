@@ -7,16 +7,15 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/redis/go-redis/v9"
 )
 
 func TestLockUnlock(t *testing.T) {
 	s := miniredis.RunT(t)
-	rdb := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-	})
 
-	locker := New(rdb)
+	locker, err := New("redis://" + s.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test_lock_unlock")
@@ -42,11 +41,10 @@ func TestLockUnlock(t *testing.T) {
 
 func TestMultipleLocks(t *testing.T) {
 	s := miniredis.RunT(t)
-	rdb := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-	})
-
-	locker := New(rdb)
+	locker, err := New("redis://" + s.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test_multiple_locks_01")
@@ -72,11 +70,10 @@ func TestMultipleLocks(t *testing.T) {
 
 func TestKeepAlive(t *testing.T) {
 	s := miniredis.RunT(t)
-	rdb := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-	})
-
-	locker := New(rdb)
+	locker, err := New("redis://" + s.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test_keep_alive")
@@ -101,11 +98,10 @@ func TestKeepAlive(t *testing.T) {
 
 func TestHeldLockExchange(t *testing.T) {
 	s := miniredis.RunT(t)
-	rdb := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-	})
-
-	locker := New(rdb)
+	locker, err := New("redis://" + s.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test_exchange")
@@ -135,11 +131,10 @@ func TestHeldLockExchange(t *testing.T) {
 
 func TestHeldLockNoExchange(t *testing.T) {
 	s := miniredis.RunT(t)
-	rdb := redis.NewClient(&redis.Options{
-		Addr: s.Addr(),
-	})
-
-	locker := New(rdb)
+	locker, err := New("redis://" + s.Addr())
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test_no_exchange")

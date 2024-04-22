@@ -61,6 +61,8 @@ type AppConfig struct {
 	// Azure TUS Upload storage
 	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_, noinit"`
 	DexAzUploadConfig  *AzureStorageConfig `env:", prefix=DEX_, noinit"`
+
+	TusRedisLockURI string `env:"TUS_REDIS_LOCK_URI"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
