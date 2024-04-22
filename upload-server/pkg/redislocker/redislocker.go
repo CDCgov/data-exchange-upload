@@ -2,7 +2,6 @@ package redislocker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -173,13 +172,9 @@ func (l *redisLock) keepAlive(ctx context.Context) error {
 }
 
 func (l *redisLock) Unlock() error {
+	if l.cancel != nil {
+		defer l.cancel()
+	}
 	_, err := l.mutex.Unlock()
-	if err != nil {
-		return err
-	}
-	if l.cancel == nil {
-		return errors.New("something's gone horribly wrong")
-	}
-	l.cancel()
-	return nil
+	return err
 }
