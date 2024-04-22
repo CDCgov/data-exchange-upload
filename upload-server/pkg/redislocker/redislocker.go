@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"time"
 
@@ -83,6 +82,7 @@ func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {
 		exchange: &RedisLockExchange{
 			client: locker.redis,
 		},
+		logger: locker.logger.With("upload_id", id),
 	}, nil
 }
 
@@ -92,6 +92,7 @@ type redisLock struct {
 	ctx      context.Context
 	cancel   func()
 	exchange LockExchange
+	logger   *slog.Logger
 }
 
 func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
@@ -101,6 +102,14 @@ func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
 		}
 	}
 	go l.exchange.Listen(l.ctx, l.id, releaseRequested)
+	go func() {
+		if err := l.keepAlive(l.ctx); err != nil {
+			l.cancel()
+			if releaseRequested != nil {
+				releaseRequested()
+			}
+		}
+	}()
 	return nil
 }
 
@@ -110,7 +119,6 @@ func (l *redisLock) lock(ctx context.Context) error {
 	}
 
 	l.ctx, l.cancel = context.WithCancel(context.Background())
-	go l.keepAlive(l.ctx)
 
 	return nil
 }
@@ -130,19 +138,21 @@ func (l *redisLock) retryLock(ctx context.Context) error {
 	}
 }
 
-func (l *redisLock) keepAlive(ctx context.Context) {
+func (l *redisLock) keepAlive(ctx context.Context) error {
 	//insures that an extend will be canceled if it's unlocked in the middle of an attempt
 	for {
 		select {
 		case <-time.After(time.Until(l.mutex.Until()) - 4*time.Second):
-			log.Println("extend lock attempt started", time.Now())
+			l.logger.Info("extend lock attempt started", "time", time.Now())
 			_, err := l.mutex.ExtendContext(ctx)
 			if err != nil {
-				log.Fatal("failed to extend lock:", err)
+				l.logger.Error("failed to extend lock", "time", time.Now(), "error", err)
+				return err
 			}
+			l.logger.Info("lock extended", "time", time.Now())
 		case <-ctx.Done():
-			log.Println("lock was closed")
-			return
+			l.logger.Info("lock was closed")
+			return nil
 		}
 	}
 }

@@ -1,4 +1,4 @@
-package redislocker_test
+package redislocker
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
-	redislocker "github.com/whytheplatypus/tusredislock"
 )
 
 func TestLockUnlock(t *testing.T) {
@@ -16,7 +15,7 @@ func TestLockUnlock(t *testing.T) {
 		Addr: s.Addr(),
 	})
 
-	locker := redislocker.New(rdb)
+	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test")
@@ -46,7 +45,7 @@ func TestMultipleLocks(t *testing.T) {
 		Addr: s.Addr(),
 	})
 
-	locker := redislocker.New(rdb)
+	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test")
@@ -76,7 +75,7 @@ func TestKeepAlive(t *testing.T) {
 		Addr: s.Addr(),
 	})
 
-	locker := redislocker.New(rdb)
+	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test")
@@ -84,7 +83,9 @@ func TestKeepAlive(t *testing.T) {
 		t.Error(err)
 	}
 	requestRelease := func() {
-		l.Unlock()
+		if err := l.Unlock(); err != nil {
+			t.Error(err)
+		}
 	}
 	if err := l.Lock(ctx, requestRelease); err != nil {
 		t.Error(err)
@@ -105,7 +106,7 @@ func TestHeldLockExchange(t *testing.T) {
 		Addr: s.Addr(),
 	})
 
-	locker := redislocker.New(rdb)
+	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test")
@@ -113,7 +114,9 @@ func TestHeldLockExchange(t *testing.T) {
 		t.Error(err)
 	}
 	requestRelease := func() {
-		l.Unlock()
+		if err := l.Unlock(); err != nil {
+			t.Error(err)
+		}
 	}
 	if err := l.Lock(ctx, requestRelease); err != nil {
 		t.Error(err)
@@ -137,7 +140,7 @@ func TestHeldLockNoExchange(t *testing.T) {
 		Addr: s.Addr(),
 	})
 
-	locker := redislocker.New(rdb)
+	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	l, err := locker.NewLock("test")
