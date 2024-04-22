@@ -13,6 +13,12 @@ import (
 	"github.com/tus/tusd/v2/pkg/handler"
 )
 
+var (
+	PrefixString  = "tusd_lock_release_request_%s"
+	RetryInterval = 500 * time.Millisecond
+	LockExpiry    = 8 * time.Second
+)
+
 type LockerOption func(l *RedisLocker)
 
 func WithLogger(logger *slog.Logger) LockerOption {
@@ -49,7 +55,7 @@ type RedisLockExchange struct {
 }
 
 func (e *RedisLockExchange) channelName(id string) string {
-	return fmt.Sprintf("tusd_lock_release_request_%s", id)
+	return fmt.Sprintf(PrefixString, id)
 }
 
 func (e *RedisLockExchange) Listen(ctx context.Context, id string, callback func()) {
@@ -75,7 +81,7 @@ type RedisLocker struct {
 }
 
 func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {
-	mutex := locker.rs.NewMutex(id)
+	mutex := locker.rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
 	return &redisLock{
 		id:    id,
 		mutex: mutex,
@@ -127,7 +133,7 @@ func (l *redisLock) retryLock(ctx context.Context) error {
 	for {
 		l.exchange.Request(ctx, l.id)
 		select {
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(RetryInterval):
 			if err := l.lock(ctx); err != nil {
 				continue
 			}
@@ -142,7 +148,7 @@ func (l *redisLock) keepAlive(ctx context.Context) error {
 	//insures that an extend will be canceled if it's unlocked in the middle of an attempt
 	for {
 		select {
-		case <-time.After(time.Until(l.mutex.Until()) - 4*time.Second):
+		case <-time.After(time.Until(l.mutex.Until()) / 2):
 			l.logger.Info("extend lock attempt started", "time", time.Now())
 			_, err := l.mutex.ExtendContext(ctx)
 			if err != nil {
@@ -159,9 +165,12 @@ func (l *redisLock) keepAlive(ctx context.Context) error {
 
 func (l *redisLock) Unlock() error {
 	_, err := l.mutex.Unlock()
+	if err != nil {
+		return err
+	}
 	if l.cancel == nil {
 		return errors.New("something's gone horribly wrong")
 	}
 	l.cancel()
-	return err
+	return nil
 }

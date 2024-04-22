@@ -2,6 +2,7 @@ package redislocker
 
 import (
 	"context"
+	"os"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ func TestLockUnlock(t *testing.T) {
 	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	l, err := locker.NewLock("test")
+	l, err := locker.NewLock("test_lock_unlock")
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,7 +49,7 @@ func TestMultipleLocks(t *testing.T) {
 	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	l, err := locker.NewLock("test")
+	l, err := locker.NewLock("test_multiple_locks_01")
 	if err != nil {
 		t.Error(err)
 	}
@@ -59,7 +60,7 @@ func TestMultipleLocks(t *testing.T) {
 		t.Error(err)
 	}
 	defer l.Unlock()
-	otherL, err := locker.NewLock("testTwo")
+	otherL, err := locker.NewLock("test_multiple_locks_02")
 	if err != nil {
 		t.Error(err)
 	}
@@ -78,20 +79,18 @@ func TestKeepAlive(t *testing.T) {
 	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	l, err := locker.NewLock("test")
+	l, err := locker.NewLock("test_keep_alive")
 	if err != nil {
 		t.Error(err)
 	}
 	requestRelease := func() {
-		if err := l.Unlock(); err != nil {
-			t.Error(err)
-		}
+		t.Error("Should not have been released")
 	}
 	if err := l.Lock(ctx, requestRelease); err != nil {
 		t.Error(err)
 	}
 	t.Log("wait for refresh")
-	<-time.After(15 * time.Second)
+	<-time.After(2 * time.Second)
 	t.Log("done with wait")
 
 	if err := l.Unlock(); err != nil {
@@ -109,7 +108,7 @@ func TestHeldLockExchange(t *testing.T) {
 	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	l, err := locker.NewLock("test")
+	l, err := locker.NewLock("test_exchange")
 	if err != nil {
 		t.Error(err)
 	}
@@ -122,7 +121,7 @@ func TestHeldLockExchange(t *testing.T) {
 		t.Error(err)
 	}
 	//assert that request release is called
-	otherL, err := locker.NewLock("test")
+	otherL, err := locker.NewLock("test_exchange")
 	if err != nil {
 		t.Error(err)
 	}
@@ -143,7 +142,7 @@ func TestHeldLockNoExchange(t *testing.T) {
 	locker := New(rdb)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	l, err := locker.NewLock("test")
+	l, err := locker.NewLock("test_no_exchange")
 	if err != nil {
 		t.Error(err)
 	}
@@ -154,7 +153,7 @@ func TestHeldLockNoExchange(t *testing.T) {
 		t.Error(err)
 	}
 	//assert that request release is called
-	otherL, err := locker.NewLock("test")
+	otherL, err := locker.NewLock("test_no_exchange")
 	if err != nil {
 		t.Error(err)
 	}
@@ -163,4 +162,10 @@ func TestHeldLockNoExchange(t *testing.T) {
 	} else {
 		t.Log(err)
 	}
+}
+
+func TestMain(m *testing.M) {
+	RetryInterval = 10 * time.Millisecond
+	LockExpiry = 1 * time.Second
+	os.Exit(m.Run())
 }
