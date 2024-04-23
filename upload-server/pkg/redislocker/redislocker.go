@@ -2,6 +2,7 @@ package redislocker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -20,6 +21,7 @@ var (
 
 const (
 	RELEASE_REQUEST = "release requested"
+	LOCKED_RELEASED = "release requested"
 )
 
 type LockerOption func(l *RedisLocker)
@@ -78,8 +80,11 @@ func (e *RedisLockExchange) Listen(ctx context.Context, id string, callback func
 }
 
 func (e *RedisLockExchange) Request(ctx context.Context, id string) {
-
 	e.client.Publish(ctx, e.channelName(id), RELEASE_REQUEST)
+}
+
+func (e *RedisLockExchange) Release(ctx context.Context, id string) {
+	e.client.Publish(ctx, e.channelName(id), LOCKED_RELEASED)
 }
 
 type RedisLocker struct {
@@ -114,10 +119,8 @@ type redisLock struct {
 }
 
 func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
-	if err := l.aquireLock(ctx); err != nil {
-		if err := l.retryLock(ctx); err != nil {
-			return err
-		}
+	if err := l.requestLock(ctx); err != nil {
+		return err
 	}
 	go l.exchange.Listen(l.ctx, l.id, releaseRequested)
 	go func() {
@@ -133,7 +136,11 @@ func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
 
 func (l *redisLock) aquireLock(ctx context.Context) error {
 	if err := l.mutex.TryLockContext(ctx); err != nil {
-		return err
+		// Currently there aren't any errors
+		// defined by redsync we don't want to retry.
+		// If there are any return just that error without
+		// handler.ErrFileLocked to show it's non-recoverable.
+		return errors.Join(err, handler.ErrFileLocked)
 	}
 
 	l.ctx, l.cancel = context.WithCancel(context.Background())
@@ -141,17 +148,23 @@ func (l *redisLock) aquireLock(ctx context.Context) error {
 	return nil
 }
 
-func (l *redisLock) retryLock(ctx context.Context) error {
+func (l *redisLock) requestLock(ctx context.Context) error {
+	var errs error
 	for {
+		err := l.aquireLock(ctx)
+		if err == nil {
+			return nil
+		}
+		errs = errors.Join(errs, err)
+		if !errors.Is(errs, handler.ErrFileLocked) {
+			return errs
+		}
 		l.exchange.Request(ctx, l.id)
 		select {
 		case <-time.After(RetryInterval):
-			if err := l.aquireLock(ctx); err != nil {
-				continue
-			}
-			return nil
+			continue
 		case <-ctx.Done():
-			return handler.ErrLockTimeout
+			return errors.Join(errs, handler.ErrLockTimeout)
 		}
 	}
 }
