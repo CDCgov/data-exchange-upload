@@ -15,7 +15,8 @@ import (
 
 var (
 	LockExchangeChannelPrefix = "tusd_lock_release_request_%s"
-	RetryInterval             = 500 * time.Millisecond
+	LockReleaseChannelPrefix  = "tusd_lock_released_%s"
+	RetryInterval             = 10 * time.Second
 	LockExpiry                = 8 * time.Second
 )
 
@@ -60,16 +61,22 @@ type LockExchange interface {
 	Request(ctx context.Context, id string)
 }
 
+type BidirectionalLockExchange interface {
+	LockExchange
+	ReleaseChannel(ctx context.Context, id string) <-chan *redis.Message
+	Release(ctx context.Context, id string)
+}
+
 type RedisLockExchange struct {
 	client *redis.Client
 }
 
-func (e *RedisLockExchange) channelName(id string) string {
-	return fmt.Sprintf(LockExchangeChannelPrefix, id)
+func (e *RedisLockExchange) channelName(prefix string, id string) string {
+	return fmt.Sprintf(prefix, id)
 }
 
 func (e *RedisLockExchange) Listen(ctx context.Context, id string, callback func()) {
-	psub := e.client.PSubscribe(ctx, e.channelName(id))
+	psub := e.client.PSubscribe(ctx, e.channelName(LockExchangeChannelPrefix, id))
 	c := psub.Channel()
 	select {
 	case <-c:
@@ -79,12 +86,17 @@ func (e *RedisLockExchange) Listen(ctx context.Context, id string, callback func
 	}
 }
 
+func (e *RedisLockExchange) ReleaseChannel(ctx context.Context, id string) <-chan *redis.Message {
+	psub := e.client.PSubscribe(ctx, e.channelName(LockReleaseChannelPrefix, id))
+	return psub.Channel()
+}
+
 func (e *RedisLockExchange) Request(ctx context.Context, id string) {
-	e.client.Publish(ctx, e.channelName(id), RELEASE_REQUEST)
+	e.client.Publish(ctx, e.channelName(LockExchangeChannelPrefix, id), RELEASE_REQUEST)
 }
 
 func (e *RedisLockExchange) Release(ctx context.Context, id string) {
-	e.client.Publish(ctx, e.channelName(id), LOCKED_RELEASED)
+	e.client.Publish(ctx, e.channelName(LockReleaseChannelPrefix, id), LOCKED_RELEASED)
 }
 
 type RedisLocker struct {
@@ -114,7 +126,7 @@ type redisLock struct {
 	mutex    *redsync.Mutex
 	ctx      context.Context
 	cancel   func()
-	exchange LockExchange
+	exchange BidirectionalLockExchange
 	logger   *slog.Logger
 }
 
@@ -150,6 +162,7 @@ func (l *redisLock) aquireLock(ctx context.Context) error {
 
 func (l *redisLock) requestLock(ctx context.Context) error {
 	var errs error
+	c := l.exchange.ReleaseChannel(ctx, l.id)
 	for {
 		err := l.aquireLock(ctx)
 		if err == nil {
@@ -161,6 +174,8 @@ func (l *redisLock) requestLock(ctx context.Context) error {
 		}
 		l.exchange.Request(ctx, l.id)
 		select {
+		case <-c:
+			continue
 		case <-time.After(RetryInterval):
 			continue
 		case <-ctx.Done():
@@ -193,5 +208,6 @@ func (l *redisLock) Unlock() error {
 		defer l.cancel()
 	}
 	_, err := l.mutex.Unlock()
+	l.exchange.Release(l.ctx, l.id)
 	return err
 }
