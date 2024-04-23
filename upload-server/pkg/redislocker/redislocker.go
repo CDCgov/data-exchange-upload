@@ -16,7 +16,7 @@ import (
 var (
 	LockExchangeChannelPrefix = "tusd_lock_release_request_%s"
 	LockReleaseChannelPrefix  = "tusd_lock_released_%s"
-	RetryInterval             = 10 * time.Second
+	RetryInterval             = 1 * time.Second
 	LockExpiry                = 8 * time.Second
 )
 
