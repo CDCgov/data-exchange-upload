@@ -34,8 +34,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	health.Register(storeHealthCheck)
 
 	// initialize locker
-	var locker handlertusd.Locker
-	locker = memorylocker.New()
+	var locker handlertusd.Locker = memorylocker.New()
 	if appConfig.TusRedisLockURI != "" {
 		var err error
 		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))

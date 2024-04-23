@@ -13,9 +13,13 @@ import (
 )
 
 var (
-	PrefixString  = "tusd_lock_release_request_%s"
-	RetryInterval = 500 * time.Millisecond
-	LockExpiry    = 8 * time.Second
+	LockExchangeChannelPrefix = "tusd_lock_release_request_%s"
+	RetryInterval             = 500 * time.Millisecond
+	LockExpiry                = 8 * time.Second
+)
+
+const (
+	RELEASE_REQUEST = "release requested"
 )
 
 type LockerOption func(l *RedisLocker)
@@ -59,7 +63,7 @@ type RedisLockExchange struct {
 }
 
 func (e *RedisLockExchange) channelName(id string) string {
-	return fmt.Sprintf(PrefixString, id)
+	return fmt.Sprintf(LockExchangeChannelPrefix, id)
 }
 
 func (e *RedisLockExchange) Listen(ctx context.Context, id string, callback func()) {
@@ -75,7 +79,7 @@ func (e *RedisLockExchange) Listen(ctx context.Context, id string, callback func
 
 func (e *RedisLockExchange) Request(ctx context.Context, id string) {
 
-	e.client.Publish(ctx, e.channelName(id), "please release")
+	e.client.Publish(ctx, e.channelName(id), RELEASE_REQUEST)
 }
 
 type RedisLocker struct {
@@ -110,7 +114,7 @@ type redisLock struct {
 }
 
 func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
-	if err := l.lock(ctx); err != nil {
+	if err := l.aquireLock(ctx); err != nil {
 		if err := l.retryLock(ctx); err != nil {
 			return err
 		}
@@ -127,7 +131,7 @@ func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
 	return nil
 }
 
-func (l *redisLock) lock(ctx context.Context) error {
+func (l *redisLock) aquireLock(ctx context.Context) error {
 	if err := l.mutex.TryLockContext(ctx); err != nil {
 		return err
 	}
@@ -142,7 +146,7 @@ func (l *redisLock) retryLock(ctx context.Context) error {
 		l.exchange.Request(ctx, l.id)
 		select {
 		case <-time.After(RetryInterval):
-			if err := l.lock(ctx); err != nil {
+			if err := l.aquireLock(ctx); err != nil {
 				continue
 			}
 			return nil
