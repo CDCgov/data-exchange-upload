@@ -15,7 +15,7 @@ var (
 )
 
 func TestTus(t *testing.T) {
-	url := ts.URL + "/files/"
+	url := ts.URL
 	for name, c := range Cases {
 		if err := RunTusTestCase(url, "test/test.txt", c); err != nil {
 			t.Error(name, err)

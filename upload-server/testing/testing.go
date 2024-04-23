@@ -2,7 +2,11 @@ package testing
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/eventials/go-tus"
 )
@@ -127,7 +131,7 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 	defer f.Close()
 
 	// create the tus client.
-	client, err := tus.NewClient(url, nil)
+	client, err := tus.NewClient(url + "/files/", nil)
 	if err != nil {
 		return fmt.Errorf("failed to create test client %w", err)
 	}
@@ -163,5 +167,20 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 	if err := uploader.Upload(); err != nil {
 		return fmt.Errorf("failed to upload file %w", err)
 	}
+
+	// check the file
+	resp, err := http.Get(url + "/info/" + filepath.Base(uploader.Url()))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to get upload info %s", resp.Status)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	log.Println(string(body))
+
 	return nil
 }
