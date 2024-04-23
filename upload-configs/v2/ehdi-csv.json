@@ -18,15 +18,15 @@
         "field_name": "sender_id",
         "required": true,
         "allowed_values": [
-          "RI-EHDI",
-          "IN-EHDI",
-          "UT-EHDI",
-          "IA-EHDI",
-          "LA-EHDI",
-          "NJ-EHDI",
-          "ND-EHDI",
-          "NE-EHDI", 
-          "MI-EHDI"
+          "RI-PHA",
+          "IN-PHA",
+          "UT-PHA",
+          "IA-PHA",
+          "LA-PHA",
+          "NJ-PHA",
+          "ND-PHA",
+          "NE-PHA", 
+          "MI-PHA"
         ],
         "description": "This field is the identifier for the sender of the data."
       },
@@ -34,15 +34,15 @@
         "field_name": "data_producer_id",
         "required": true,
         "allowed_values": [
-          "RI-EHDI",
-          "IN-EHDI",
-          "UT-EHDI",
-          "IA-EHDI",
-          "LA-EHDI",
-          "NJ-EHDI",
-          "ND-EHDI",
-          "NE-EHDI", 
-          "MI-EHDI"
+          "RI-PHA",
+          "IN-PHA",
+          "UT-PHA",
+          "IA-PHA",
+          "LA-PHA",
+          "NJ-PHA",
+          "ND-PHA",
+          "NE-PHA", 
+          "MI-PHA"
         ],
         "description": "This field is the identifier for the data producer."
       },
