@@ -17,8 +17,6 @@ FROM alpine:latest
 WORKDIR /app 
 
 COPY --from=builder /app/dextusd .
-COPY --from=builder /app/configs ./configs  
-COPY --from=builder /app/uploads ./uploads 
 
 EXPOSE 8080
 
