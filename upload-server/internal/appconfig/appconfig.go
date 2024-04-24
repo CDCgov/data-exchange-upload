@@ -52,9 +52,10 @@ type AppConfig struct {
 	ProcessingStatusServiceBusNamespace string `env:"PROCESSING_STATUS_SERVICE_BUS_NAMESPACE"`
 	ProcessingStatusServiceBusQueue     string `env:"PROCESSING_STATUS_SERVICE_BUS_QUEUE"`
 
+	AzureConnection *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	// Azure TUS Upload storage
-	TusStorageConfigAzure     *AzureStorageConfig `env:", prefix=TUS_, noinit"`
-	UploadManifestConfigAzure *AzureStorageConfig `env:", prefix=UPLOAD_CONFIG_, noinit"`
+	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
+	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -77,38 +78,21 @@ func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type AzureStorageConfig struct {
-	AzStorageName         string `env:"AZ_STORAGE_NAME"`
-	AzStorageKey          string `env:"AZ_STORAGE_KEY"`
-	AzContainerName       string `env:"AZ_CONTAINER_NAME"`
-	AzContainerEndpoint   string `env:"AZ_CONTAINER_ENDPOINT"`
-	AzContainerAccessType string `env:"AZ_CONTAINER_ACCESS_TYPE"`
+	StorageName       string `env:"STORAGE_ACCOUNT"`
+	StorageKey        string `env:"STORAGE_KEY"`
+	ContainerEndpoint string `env:"ENDPOINT"`
 } // .AzureStorageConfig
 
 func (azc *AzureStorageConfig) Check() error {
 	errs := []error{}
-	if azc.AzStorageName == "" {
+	if azc.StorageName == "" {
 		errs = append(errs, &MissingConfigError{
 			ConfigName: "AzStorageName",
 		})
 	}
-	if azc.AzStorageName == "" {
+	if azc.StorageKey == "" {
 		errs = append(errs, &MissingConfigError{
 			ConfigName: "AzStorageKey",
-		})
-	}
-	if azc.AzStorageName == "" {
-		errs = append(errs, &MissingConfigError{
-			ConfigName: "AzContainerName",
-		})
-	}
-	if azc.AzStorageName == "" {
-		errs = append(errs, &MissingConfigError{
-			ConfigName: "AzContainerEndpoint",
-		})
-	}
-	if azc.AzStorageName == "" {
-		errs = append(errs, &MissingConfigError{
-			ConfigName: "AzContainerAccessType",
 		})
 	}
 	return errors.Join(errs...)

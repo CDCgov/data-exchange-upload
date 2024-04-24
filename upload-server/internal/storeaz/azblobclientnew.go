@@ -1,13 +1,10 @@
 package storeaz
 
 import (
-	"context"
 	"errors"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 ) // .import
 
@@ -24,14 +21,13 @@ var (
 func NewBlobClient(conf appconfig.AzureStorageConfig) (*azblob.Client, error) {
 
 	return newAzBlobClient(
-		conf.AzStorageName,
-		conf.AzStorageKey,
-		conf.AzContainerEndpoint,
-		conf.AzContainerName)
+		conf.StorageName,
+		conf.StorageKey,
+		conf.ContainerEndpoint)
 } // .NewTusAzBlobClient
 
 // newAzBlobClient, method for returning azure blob client for a storage needed
-func newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint, azContainerName string) (*azblob.Client, error) {
+func newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint string) (*azblob.Client, error) {
 
 	// check guard if names are not empty
 	if len(strings.TrimSpace(azStorageName)) == 0 {
@@ -56,22 +52,6 @@ func newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint, azContain
 	} // .if
 
 	client, err := azblob.NewClientWithSharedKeyCredential(azContainerEndpoint, credential, nil)
-	if err != nil {
-		return nil, err
-	} // .if
-
-	// test if the client is
-	_, err = client.CreateContainer(context.TODO(), azContainerName, nil)
-
-	// check to see if error is blob does exists which means client is ok
-	var responseErr *azcore.ResponseError
-	if errors.As(err, &responseErr) {
-		if responseErr.ErrorCode == string(bloberror.ContainerAlreadyExists) {
-			// connection ok
-			return client, nil
-		} // .if
-	} // .if
-
 	if err != nil {
 		return nil, err
 	} // .if
