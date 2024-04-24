@@ -18,18 +18,18 @@ func CreateDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.C
 	// ------------------------------------------------------------------
 	// Load Az dependencies, needed for the DEX handler paths
 	// ------------------------------------------------------------------
-	if appConfig.TusAzStorageConfig != nil && appConfig.TusAzStorageConfig.AzContainerName != "" {
-		if err := appConfig.TusAzStorageConfig.Check(); err != nil {
+	if appConfig.TusStorageConfigAzure != nil && appConfig.TusStorageConfigAzure.AzContainerName != "" {
+		if err := appConfig.TusStorageConfigAzure.Check(); err != nil {
 			return nil, nil, err
 		}
 
 		azConfig := &azurestore.AzConfig{
-			AccountName:         appConfig.TusAzStorageConfig.AzStorageName,
-			AccountKey:          appConfig.TusAzStorageConfig.AzStorageKey,
-			ContainerName:       appConfig.TusAzStorageConfig.AzContainerName,
-			ContainerAccessType: appConfig.TusAzStorageConfig.AzContainerAccessType,
+			AccountName:         appConfig.TusStorageConfigAzure.AzStorageName,
+			AccountKey:          appConfig.TusStorageConfigAzure.AzStorageKey,
+			ContainerName:       appConfig.TusStorageConfigAzure.AzContainerName,
+			ContainerAccessType: appConfig.TusStorageConfigAzure.AzContainerAccessType,
 			// BlobAccessTier:      Flags.AzBlobAccessTier,
-			Endpoint: appConfig.TusAzStorageConfig.AzContainerEndpoint,
+			Endpoint: appConfig.TusStorageConfigAzure.AzContainerEndpoint,
 		} // .azConfig
 
 		azService, err := azurestore.NewAzureService(azConfig)

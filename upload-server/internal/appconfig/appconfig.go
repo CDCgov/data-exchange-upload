@@ -33,41 +33,35 @@ type RootResp struct {
 type AppConfig struct {
 
 	// App and for Logger
-	System        string `env:"SYSTEM, required"`
-	DexProduct    string `env:"DEX_PRODUCT, required"`
-	DexApp        string `env:"DEX_APP, required"`
-	LoggerDebugOn bool   `env:"LOGGER_DEBUG_ON"`
+	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
 	// Server
-	ServerPort  string `env:"SERVER_PORT, required"`
-	Environment string `env:"ENVIRONMENT, required"`
+	ServerPort string `env:"SERVER_PORT, default=8080"`
+	//QUESTION: this is arbitrary so is it useful?
+	Environment string `env:"ENVIRONMENT, default=DEV"`
 
-	// Metadata
-	MetadataVersions string `env:"METADATA_VERSIONS, required"`
+	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
 
-	// Metadata v1
-	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, required"`
-
-	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, required"`
+	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 
 	// TUSD
-	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, required"`
+	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
 
 	// Processing Status
-	ProcessingStatusHealthURI           string `env:"PROCESSING_STATUS_HEALTH_URI, required"`
-	ProcessingStatusServiceBusNamespace string `env:"PROCESSING_STATUS_SERVICE_BUS_NAMESPACE, required"`
+	ProcessingStatusHealthURI           string `env:"PROCESSING_STATUS_HEALTH_URI"`
+	ProcessingStatusServiceBusNamespace string `env:"PROCESSING_STATUS_SERVICE_BUS_NAMESPACE"`
 	ProcessingStatusServiceBusQueue     string `env:"PROCESSING_STATUS_SERVICE_BUS_QUEUE"`
 
 	// Azure TUS Upload storage
-	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_, noinit"`
-	DexAzUploadConfig  *AzureStorageConfig `env:", prefix=DEX_, noinit"`
+	TusStorageConfigAzure     *AzureStorageConfig `env:", prefix=TUS_, noinit"`
+	UploadManifestConfigAzure *AzureStorageConfig `env:", prefix=UPLOAD_CONFIG_, noinit"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	jsonResp, err := json.Marshal(RootResp{
-		System:     conf.System,
-		DexProduct: conf.DexProduct,
-		DexApp:     conf.DexApp,
+		System:     "DEX",
+		DexProduct: "UPLOAD API",
+		DexApp:     "upload server",
 		ServerTime: time.Now().Format(time.RFC3339),
 	}) // .jsonResp
 	if err != nil {
