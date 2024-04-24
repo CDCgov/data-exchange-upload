@@ -3,7 +3,6 @@ package redislocker
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -14,15 +13,10 @@ import (
 )
 
 var (
-	LockExchangeChannelPrefix = "tusd_lock_release_request_%s"
-	LockReleaseChannelPrefix  = "tusd_lock_released_%s"
-	RetryInterval             = 1 * time.Second
-	LockExpiry                = 8 * time.Second
-)
-
-const (
-	RELEASE_REQUEST = "release requested"
-	LOCKED_RELEASED = "release requested"
+	LockExchangeChannel = "tusd_lock_release_request"
+	LockReleaseChannel  = "tusd_lock_released"
+	RetryInterval       = 1 * time.Second
+	LockExpiry          = 8 * time.Second
 )
 
 type LockerOption func(l *RedisLocker)
@@ -71,32 +65,41 @@ type RedisLockExchange struct {
 	client *redis.Client
 }
 
-func (e *RedisLockExchange) channelName(prefix string, id string) string {
-	return fmt.Sprintf(prefix, id)
-}
-
 func (e *RedisLockExchange) Listen(ctx context.Context, id string, callback func()) {
-	psub := e.client.PSubscribe(ctx, e.channelName(LockExchangeChannelPrefix, id))
+	psub := e.client.PSubscribe(ctx, LockExchangeChannel)
 	c := psub.Channel()
-	select {
-	case <-c:
-		callback()
-	case <-ctx.Done():
-		return
+	for {
+		select {
+		case m := <-c:
+			if m.Payload == id {
+				callback()
+			}
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 
 func (e *RedisLockExchange) ReleaseChannel(ctx context.Context, id string) <-chan *redis.Message {
-	psub := e.client.PSubscribe(ctx, e.channelName(LockReleaseChannelPrefix, id))
-	return psub.Channel()
+	psub := e.client.PSubscribe(ctx, LockReleaseChannel)
+	releaseMessages := make(chan *redis.Message)
+	c := psub.Channel()
+	go func() {
+		for m := range c {
+			if m.Payload == id {
+				releaseMessages <- m
+			}
+		}
+	}()
+	return releaseMessages
 }
 
 func (e *RedisLockExchange) Request(ctx context.Context, id string) {
-	e.client.Publish(ctx, e.channelName(LockExchangeChannelPrefix, id), RELEASE_REQUEST)
+	e.client.Publish(ctx, LockExchangeChannel, id)
 }
 
 func (e *RedisLockExchange) Release(ctx context.Context, id string) {
-	e.client.Publish(ctx, e.channelName(LockReleaseChannelPrefix, id), LOCKED_RELEASED)
+	e.client.Publish(ctx, LockReleaseChannel, id)
 }
 
 type RedisLocker struct {
