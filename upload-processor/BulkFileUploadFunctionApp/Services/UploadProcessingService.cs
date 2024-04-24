@@ -33,20 +33,12 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobServiceClient _routingBlobServiceClient;
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
-        private readonly IBlobReaderFactory _blobReaderFactory;
         private readonly string _uploadConfigContainer; 
 
         public UploadProcessingService(ILoggerFactory loggerFactory, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
         {
-            _logger = loggerFactory.CreateLogger<UploadProcessingService>();
-            _blobCopyHelper = new(_logger);
-            _blobReaderFactory = blobReaderFactory;
-            _blobReader = _blobReaderFactory.CreateInstance(_logger);
-            
-            _featureManagementExecutor = featureManagementExecutor;
-            _procStatClient = procStatClient;
-
+            // Get environment variables.
             _tusAzureObjectPrefix = Environment.GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX", EnvironmentVariableTarget.Process) ?? "tus-prefix";
             _tusAzureStorageContainer = Environment.GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER", EnvironmentVariableTarget.Process) ?? "bulkuploads";
             _dexAzureStorageAccountName = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
@@ -61,6 +53,7 @@ namespace BulkFileUploadFunctionApp.Services
             // Instantiate helper services.
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobCopyHelper = new(_logger);
+            _blobReader = blobReaderFactory.CreateInstance(_logger);
             _featureManagementExecutor = featureManagementExecutor;
             _procStatClient = procStatClient;
 

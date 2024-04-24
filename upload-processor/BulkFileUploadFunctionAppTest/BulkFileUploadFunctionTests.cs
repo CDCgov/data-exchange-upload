@@ -77,7 +77,6 @@ namespace BulkFileUploadFunctionAppTests
 
             CopyConfig copyConfig = new CopyConfig
             {
-                FilenameSuffix = ".txt",
                 FolderStructure = "/blob",
                 TargetEnums = new List<CopyTargetsEnum>()
             };
@@ -163,7 +162,6 @@ namespace BulkFileUploadFunctionAppTests
 
             CopyConfig copyConfig = new CopyConfig
             {
-                FilenameSuffix = ".txt",
                 FolderStructure = "/blob",
                 TargetEnums = new List<CopyTargetsEnum>()
             };
