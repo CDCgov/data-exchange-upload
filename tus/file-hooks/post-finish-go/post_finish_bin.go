@@ -51,7 +51,7 @@ func getFeatureFlag(flagName string) bool {
 	return false
 }
 
-func postFinish(uploadID string) {
+func post_finish(uploadID string) {
 	controller := NewProcStatController(os.Getenv("PS_API_URL"), 2*time.Second)
 	traceID, spanID, err := controller.GetSpanByUploadID(uploadID, "dex-upload")
 	if err != nil {
@@ -69,31 +69,13 @@ func postFinish(uploadID string) {
 }
 
 
-func main() {
+func main() {	
 	//processingStatusReportsEnabled := getFeatureFlag("PROCESSING_STATUS_REPORTS")
-	processingStatusTracesEnabled := getFeatureFlag("PROCESSING_STATUS_TRACES")
+	processingStatusTracesEnabled := getFeatureFlag("PROCESSING_STATUS_TRACES")	
 
 	if processingStatusTracesEnabled {
 		fmt.Println("Processing for ID:", tguid)
-		err := postFinishRun(tguid)
-		if err != nil {
-			log.Fatalf("Failed to execute post-finish script: %v", err)
-		}
+		post_finish(tguid)
 	}
 }
 
-// postFinish executes the shell script with the provided ID.
-func postFinishRun(id string) error {
-	// Prepare the command to run the external shell script
-	cmd := exec.Command("./post-finish-bin", "--id", id)
-
-	// Set the environment variable that the script expects
-	cmd.Env = append(os.Environ(), "TUS_ID="+id)
-
-	// Run the command and wait for it to complete
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	return nil
-}
