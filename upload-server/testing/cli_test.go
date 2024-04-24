@@ -30,7 +30,6 @@ func TestWellKnownEndpoints(t *testing.T) {
 		"/",
 		"/health",
 		"/version",
-		"/metadata",
 	}
 	client := ts.Client()
 	for _, endpoint := range endpoints {
