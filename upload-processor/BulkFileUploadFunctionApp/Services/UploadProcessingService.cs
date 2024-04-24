@@ -102,7 +102,7 @@ namespace BulkFileUploadFunctionApp.Services
                     trace = await _procStatClient.GetTraceByUploadId(uploadId);
                 });
 
-                HydrateMetadata(tusInfoFile, trace?.TraceId, trace?.SpanId);
+                HydrateMetadata(tusInfoFile);
 
                 // retrieve version from metadata or default to V1
                 version = tusInfoFile.GetMetadataVersion();
@@ -536,13 +536,11 @@ namespace BulkFileUploadFunctionApp.Services
             return toMetadata;
         }
 
-        private void HydrateMetadata(TusInfoFile tusInfoFile, string? traceId, string? spanId)
+        private void HydrateMetadata(TusInfoFile tusInfoFile)
         {
             // Add common fields and their values.
             tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
             tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
-            tusInfoFile.MetaData["trace_id"] = traceId;
-            tusInfoFile.MetaData["parent_span_id"] = spanId;
         }
 
         public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs)
