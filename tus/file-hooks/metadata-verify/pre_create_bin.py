@@ -11,6 +11,18 @@ from azure.storage.blob import BlobServiceClient
 
 from proc_stat_controller import ProcStatController
 
+from azure.appconfiguration import AzureAppConfigurationClient
+
+connection_string = os.getenv('FEATURE_MANAGER_CONNECTION_STRING')
+
+if connection_string:
+    try:
+        config_client = AzureAppConfigurationClient.from_connection_string(connection_string)
+    except Exception as e:
+        raise ValueError(f"Failed to initialize Azure App Configuration: {e}")
+else:
+    config_client = None
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -34,6 +46,16 @@ DEX_STORAGE_ACCOUNT_SERVICE = BlobServiceClient.from_connection_string(conn_str=
 
 INVALID_CHARS = set('<>:"/\\|?*')
 
+def get_feature_flag(flag_name):
+    try:
+        fetched_flag = config_client.get_configuration_setting(key=f".appconfig.featureflag/{flag_name}", label=None)
+        return fetched_flag.value
+    except Exception as e:
+        print(f"Error fetching feature flag {flag_name}: {e}")
+        return False
+
+processing_status_reports_enabled = get_feature_flag("PROCESSING_STATUS_REPORTS")
+processing_status_traces_enabled = get_feature_flag("PROCESSING_STATUS_TRACES")
 
 def get_upload_config(use_case, use_case_category, metadata_version_num):
     if use_case is None or use_case_category is None:
@@ -125,13 +147,15 @@ def report_verification_failure(messages, use_case, use_case_category, meta_json
 
     # Create trace for upload
     upload_id = uuid.uuid4()
-    trace_id, parent_span_id = ps_api_controller.create_upload_trace(upload_id, use_case, use_case_category)
-
-    # Start the upload stage metadata verification span
-    trace_id, metadata_verify_span_id \
-        = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, STAGE_NAME)
-    logger.debug(
-        f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
+    if processing_status_traces_enabled:
+        try:
+            # Only create and manage traces if tracing is enabled
+            trace_id, parent_span_id = ps_api_controller.create_upload_trace(upload_id, use_case, use_case_category)
+            # Start the upload stage metadata verification span
+            trace_id, metadata_verify_span_id = ps_api_controller.start_span_for_trace(trace_id, parent_span_id, STAGE_NAME)
+            logger.debug(f'Started child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id}')
+        except Exception as e:
+            logger.debug('Unable to create and manage traces.')
 
     filename = None
 
@@ -140,21 +164,28 @@ def report_verification_failure(messages, use_case, use_case_category, meta_json
     except Exception as e:
         logger.debug('Unable to get filename. Sending failure report with no filename.')
 
-    # Send report with metadata failure issues.
-    payload = {
-        'schema_version': '0.0.1',
-        'schema_name': STAGE_NAME,
-        'filename': filename,
-        'metadata': meta_json,
-        'issues': messages
-    }
-    
-    ps_api_controller.create_report(upload_id, use_case, use_case_category, STAGE_NAME, json.dumps(payload))
+    if processing_status_reports_enabled:
+        try:
+            # Send report with metadata failure issues.
+            payload = {
+                'schema_version': '0.0.1',
+                'schema_name': STAGE_NAME,
+                'filename': filename,
+                'metadata': meta_json,
+                'issues': messages
+            }
 
-    # Stop the upload stage metadata verification span
-    ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
-    logger.debug(
-        f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
+            ps_api_controller.create_report(upload_id, use_case, use_case_category, STAGE_NAME, json.dumps(payload))
+        except Exception as e:
+            logger.debug('Unable to Send report with metadata failure issues.')
+
+    if processing_status_traces_enabled:
+        try:
+            # Stop the upload stage metadata verification span
+            ps_api_controller.stop_span_for_trace(trace_id, metadata_verify_span_id)
+            logger.debug(f'Stopped child span {metadata_verify_span_id} with stage name metadata-verify of parent span {parent_span_id} ')
+        except Exception as e:
+            logger.debug('Unable to Stop the upload stage metadata verification span.')
 
     return upload_id
 

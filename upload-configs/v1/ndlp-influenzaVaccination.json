@@ -50,7 +50,7 @@
 		"filename_suffix": "clock_ticks",
 		"folder_structure": "date_YYYY_MM_DD",
 		"targets": [
-			"routing"
+			"edav"
 		]
 	}
 }

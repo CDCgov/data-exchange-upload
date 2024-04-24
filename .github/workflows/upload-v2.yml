@@ -1,0 +1,17 @@
+name: DEV - Upload Server
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+        - main
+    paths:
+        - upload-server/**
+
+jobs:
+  remote-trigger:
+    uses: ./.github/workflows/remote-cd-trigger-template.yml
+    with:
+      WORKFLOW: upload-v2.yml
+    secrets: inherit
+
