@@ -1,35 +1,51 @@
 {
-	"metadata_config": {
-		"version": "2.0",
-		"fields": [
+  "metadata_config": {
+    "version": "2.0",
+    "fields": [
       {
         "field_name": "data_stream_id",
         "required": true,
-        "allowed_values": ["nrss"],
+        "allowed_values": [
+          "nrss"
+        ],
         "description": "This field is the identifier for the data stream."
       },
       {
         "field_name": "data_stream_route",
         "required": true,
-        "allowed_values": ["hl7v2"],
+        "allowed_values": [
+          "hl7v2"
+        ],
         "description": "This recieved is the route of the data stream."
       },
       {
         "field_name": "sender_id",
         "required": true,
-        "allowed_values": ["APHL-NRSS"],
+        "allowed_values": [
+          "APHL-NRSS"
+        ],
         "description": "This field is the identifier for the sender of the data."
       },
       {
         "field_name": "data_producer_id",
         "required": true,
-        "allowed_values": ["IN-TEST", "DC-TEST", "IA-TEST", "CA-TEST"],
+        "allowed_values": [
+          "IN-TEST",
+          "DC-TEST",
+          "IA-TEST",
+          "CA-TEST"
+        ],
         "description": "This field is the identifier for the data producer."
       },
       {
         "field_name": "jurisdiction",
         "required": true,
-        "allowed_values": ["DC", "IN", "CA", "IA"],
+        "allowed_values": [
+          "DC",
+          "IN",
+          "CA",
+          "IA"
+        ],
         "description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
       },
       {
@@ -67,13 +83,12 @@
         "allowed_values": null,
         "description": "The source system"
       }
-		]
-	},
-	"copy_config": {
-		"filename_suffix": "clock_ticks",
-		"folder_structure": "date_YYYY_MM_DD",
-		"targets": [
-			"routing"
-		]
-	}
+    ]
+  },
+  "copy_config": {
+    "folder_structure": "date_YYYY_MM_DD",
+    "targets": [
+      "routing"
+    ]
+  }
 }
