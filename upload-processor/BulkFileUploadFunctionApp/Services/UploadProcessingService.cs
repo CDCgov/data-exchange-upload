@@ -36,7 +36,7 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly IBlobReaderFactory _blobReaderFactory;
         private readonly string _uploadConfigContainer; 
 
-        public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
+        public UploadProcessingService(ILoggerFactory loggerFactory, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
         {
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
@@ -126,14 +126,12 @@ namespace BulkFileUploadFunctionApp.Services
                 // Get dex folder and filename 
                 var dateTimeNow = DateTime.UtcNow;
 
-                // Determine the folder path and filename suffix from the upload configuration.
+                // Determine the folder path from the upload configuration.
                 var folderPath = GetFolderPath(uploadConfig, dateTimeNow);
-                var filenameSuffix = GetFilenameSuffix(uploadConfig, dateTimeNow);
-
                 var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
                 var fileExtension = Path.GetExtension(filename);
             
-                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{filenameSuffix}{fileExtension}";
+                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}_{uploadId}{fileExtension}";
 
                 // Get copy targets
                 List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
@@ -465,32 +463,6 @@ namespace BulkFileUploadFunctionApp.Services
             }
 
             return folderPath;
-        }
-
-        /// <summary>
-        /// Determines the filename suffix from the upload configuration.
-        /// </summary>
-        /// <param name="uploadConfig"></param>
-        /// <param name="dateTimeNow"></param>
-        /// <returns></returns>
-        private string GetFilenameSuffix(UploadConfig uploadConfig, DateTime dateTimeNow)
-        {
-            string filenameSuffix;
-            switch (uploadConfig.CopyConfig.FilenameSuffix)
-            {
-                case "none":
-                    filenameSuffix = ""; // no suffix
-                    break;
-                case "clock_ticks":
-                    filenameSuffix = $"_{dateTimeNow.Ticks}";
-                    break;
-                default:
-                    _logger.LogWarning("No filename suffix scheme provided or one provided is unrecognized, using none");
-                    filenameSuffix = ""; // no suffix
-                    break;
-            }
-
-            return filenameSuffix;
         }
 
         private Dictionary<string, string> TranslateMetadata(Dictionary<string, string> fromMetadata, UploadConfig toConfig)
