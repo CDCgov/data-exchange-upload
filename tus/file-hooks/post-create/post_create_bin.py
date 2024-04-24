@@ -42,6 +42,7 @@ def get_feature_flag(flag_name):
 processing_status_reports_enabled = get_feature_flag("PROCESSING_STATUS_REPORTS")
 processing_status_traces_enabled = get_feature_flag("PROCESSING_STATUS_TRACES")
 
+
 def get_required_metadata(metadata_json_dict):
     metadata_version = metadata_json_dict.get('version', METADATA_VERSION_ONE)
     
@@ -59,6 +60,7 @@ def get_required_metadata(metadata_json_dict):
 
     return [metadata_json_dict[field] for field in required_fields]
 
+
 def get_filename_from_metadata(metadata_json_dict):
     filename_metadata_fields = ['filename', 'original_filename', 'meta_ext_filename']
 
@@ -70,6 +72,7 @@ def get_filename_from_metadata(metadata_json_dict):
             break
 
     return filename
+
 
 def post_create(use_case, use_case_category, metadata_json_dict, tguid):
     logger.info(f'Creating trace for upload {tguid} with use case {use_case} and use case category {use_case_category}')
@@ -88,8 +91,8 @@ def post_create(use_case, use_case_category, metadata_json_dict, tguid):
     else:
         logger.debug("Trace creation is disabled by feature flag.")
 
-def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, use_case, use_case_category, metadata_json_dict, tguid):
 
+def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_id, use_case, use_case_category, metadata_json_dict, tguid):
     try:
         # Start the upload stage metadata verification span
         if processing_status_traces_enabled:
@@ -106,8 +109,8 @@ def create_metadata_verification_span(ps_api_controller, trace_id, parent_span_i
     except Exception as e:
         logger.error(f"An exception occurred during creation of metadata verification span: {e}")
 
-def create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, use_case, use_case_category):
 
+def create_metadata_verification_report_json(ps_api_controller, metadata_json_dict, tguid, use_case, use_case_category):
     try:
         json_payload = { 
             "schema_version": "0.0.1",
@@ -123,6 +126,7 @@ def create_metadata_verification_report_json(ps_api_controller, metadata_json_di
     except Exception as e:
         logger.error(f"An exception occurred uploading metadata verification report json: {e}")
         raise Exception(f"Unable to upload report json.")
+
 
 def main(argv):
     
