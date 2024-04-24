@@ -16,7 +16,8 @@ services:
     working_dir: /code
     environment:
       - AZURE_STORAGE_ACCOUNT=devstoreaccount1
-      - AZURE_STORAGE_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
+      # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
+      - AZURE_STORAGE_KEY=${AZURITE_STORAGE_KEY}
       - AZURE_ENDPOINT=http://azurite:10000/devstoreaccount1
       - TUS_AZURE_CONTAINER_NAME=test
       - DEX_MANIFEST_CONFIG_CONTAINER_NAME=config
