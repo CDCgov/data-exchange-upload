@@ -1,14 +1,9 @@
-using System.Net;
 using Azure;
 using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Model;
-using Microsoft.Azure.Functions.Worker;
-using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 using Azure.Identity;
-using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
@@ -37,7 +32,6 @@ namespace BulkFileUploadFunctionApp.Utils
             string containerName = string.Empty;
 
             BlobServiceClient? blobServiceClient = null;
-            //HealthCheckResult? checkResult = null;
 
             if (storage == "EDAV Blob Container")
             {
@@ -45,8 +39,6 @@ namespace BulkFileUploadFunctionApp.Utils
                 edavAzureStorageAccountName = _environmentVariableProvider.GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
                 blobServiceClient = new BlobServiceClient(new Uri($"https://{edavAzureStorageAccountName}.blob.core.windows.net"),
                 new DefaultAzureCredential());
-                //blobServiceClient = _blobServiceClientFactory.CreateInstance("edav", new Uri($"https://{edavAzureStorageAccountName}.blob.core.windows.net"),
-                //new DefaultAzureCredential());
             }
             else if (storage == "Routing Blob Container")
             {

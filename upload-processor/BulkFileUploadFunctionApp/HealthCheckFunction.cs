@@ -1,6 +1,5 @@
 using System.Net;
 using Azure;
-using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Utils;
@@ -8,9 +7,6 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using Azure.Identity;
-using Microsoft.Extensions.Configuration.AzureAppConfiguration;
-using Microsoft.Extensions.Configuration;
 
 
 namespace BulkFileUploadFunctionApp
