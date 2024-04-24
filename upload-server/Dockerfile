@@ -22,4 +22,4 @@ COPY --from=builder /app/uploads ./uploads
 
 EXPOSE 8080
 
-CMD ["./dextusd", "-env", "local_to_azure"]
+CMD ["./dextusd"]
