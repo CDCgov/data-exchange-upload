@@ -39,7 +39,6 @@ metadata <em>fields</em>
 copy_config
 | Field | Type | Description | 
 | --- | --- | --- |
-| filename_suffix | string enum | Determines the suffix that gets appended to the filename when it is copied to destination storage accounts.  Valid values are “clock_ticks” or null |
 | folder_structure | string enum | Determines how the file is organized in the destination storage account.  Valid values are “date_YYYY_MM_DD”  and “root” |
 | targets | array of strings | Determines where the file copies to, either EDAV or routing |
 
@@ -107,7 +106,6 @@ Example 1:
 		]
 	},
 	"copy_config": {
-		"filename_suffix": "clock_ticks",
 		"folder_structure": "date_YYYY_MM_DD",
 		"targets": [
 			"routing"
