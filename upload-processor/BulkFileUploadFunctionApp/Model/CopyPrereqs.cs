@@ -31,7 +31,7 @@ namespace BulkFileUploadFunctionApp.Model
             UseCase = useCase;
             UseCaseCategory = useCaseCategory;
             DexBlobFileName = dexBlobFileName;
-            DexBlobFolderName = $"{useCase}-{useCaseCategory}";
+            DexBlobFolderName = $"{useCase}-{useCaseCategory}".ToLower();
             Metadata = metadata;
             Targets = targets;
             Trace = trace;
