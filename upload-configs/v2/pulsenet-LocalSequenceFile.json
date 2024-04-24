@@ -15,12 +15,6 @@
          {
             "field_name": "jurisdiction",
             "required": true,
-            "description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
-         },
-         {
-            "field_name": "received_filename",
-            "required": true,
-            "description": "This field is the name of the file when uploaded.",
             "compat_field_name": "filename"
          },
          {
@@ -38,7 +32,6 @@
       ]
    },
    "copy_config": {
-      "filename_suffix": "clock_ticks",
       "folder_structure": "date_YYYY_MM_DD",
       "targets": [
          "edav"
