@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
@@ -49,7 +50,10 @@ func CreateDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.C
 			return nil, nil, err
 		} // azService
 
-		return azurestore.New(azService), hc, nil
+		store := azurestore.New(azService)
+		store.ObjectPrefix = appConfig.TusUploadPrefix
+		store.Container = appConfig.AzureUploadContainer
+		return store, hc, nil
 	} // .if
 
 	// Create a new FileStore instance which is responsible for
@@ -58,8 +62,11 @@ func CreateDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.C
 	// If you want to save them on a different medium, for example
 	// a remote FTP server, you can implement your own storage backend
 	// by implementing the tusd.DataStore interface.
+	path := appConfig.LocalFolderUploadsTus
+	path = filepath.Join(path, appConfig.TusUploadPrefix)
+
 	return filestore.FileStore{
-		Path: appConfig.LocalFolderUploadsTus,
+		Path: path,
 	}, &FileStoreHealthCheck{path: appConfig.LocalFolderUploadsTus}, nil // .store
 }
 
