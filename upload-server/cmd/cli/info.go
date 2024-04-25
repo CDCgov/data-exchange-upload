@@ -18,8 +18,8 @@ var (
 )
 
 type UploadInspecter interface {
-	InspectInfoFile(id string) (map[string]any, error)
-	InspectUploadedFile(id string) (map[string]any, error)
+	InspectInfoFile(c context.Context, id string) (map[string]any, error)
+	InspectUploadedFile(c context.Context, id string) (map[string]any, error)
 }
 
 func NewFileSystemUploadInspector(baseDir string) *FileSystemUploadInspector {
@@ -48,7 +48,7 @@ type InfoFileData struct {
 	MetaData map[string]any `json:"MetaData"`
 }
 
-func (fsui *FileSystemUploadInspector) InspectInfoFile(id string) (map[string]any, error) {
+func (fsui *FileSystemUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
 	// First, read in the id + .info file.
 	//TODO make this stronger
 	infoFilename := fsui.BaseDir + "/" + id + ".info"
@@ -66,7 +66,7 @@ func (fsui *FileSystemUploadInspector) InspectInfoFile(id string) (map[string]an
 	return jsonMap.MetaData, nil
 }
 
-func (fsui *FileSystemUploadInspector) InspectUploadedFile(id string) (map[string]any, error) {
+func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
 	filename := fsui.BaseDir + "/" + id
 	fi, err := os.Stat(filename)
 	if err != nil {
@@ -79,12 +79,12 @@ func (fsui *FileSystemUploadInspector) InspectUploadedFile(id string) (map[strin
 	return uploadedFileInfo, nil
 }
 
-func (aui *AzureUploadInspector) InspectInfoFile(id string) (map[string]any, error) {
+func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
 	filename := aui.TusDir + "/" + id + ".info"
 	infoBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 
 	// Download info file from blob client.
-	downloadResponse, err := infoBlobClient.DownloadStream(context.TODO(), nil)
+	downloadResponse, err := infoBlobClient.DownloadStream(c, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -103,10 +103,10 @@ func (aui *AzureUploadInspector) InspectInfoFile(id string) (map[string]any, err
 	return jsonMap.MetaData, nil
 }
 
-func (aui *AzureUploadInspector) InspectUploadedFile(id string) (map[string]any, error) {
+func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
 	filename := aui.TusDir + "/" + id
 	uploadBlobClient := aui.TusContainerClient.NewBlobClient(filename)
-	propertiesResponse, err := uploadBlobClient.GetProperties(context.TODO(), nil)
+	propertiesResponse, err := uploadBlobClient.GetProperties(c, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -129,10 +129,9 @@ type InfoHandler struct {
 }
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	//todo get the upload id
 	id := r.PathValue("UploadID")
 
-	fileInfo, err := ih.inspecter.InspectInfoFile(id)
+	fileInfo, err := ih.inspecter.InspectInfoFile(r.Context(), id)
 	if err != nil {
 		//todo real error handling
 		status := http.StatusNotFound
@@ -142,7 +141,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, err.Error(), status)
 		return
 	}
-	uploadedFileInfo, err := ih.inspecter.InspectUploadedFile(id)
+	uploadedFileInfo, err := ih.inspecter.InspectUploadedFile(r.Context(), id)
 	if err != nil {
 		//todo real error handling
 		status := http.StatusNotFound
