@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
-	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
@@ -55,6 +55,9 @@ func (fsui *FileSystemUploadInspector) InspectInfoFile(c context.Context, id str
 	infoFilename := fsui.BaseDir + "/" + id + ".info"
 	fileBytes, err := os.ReadFile(infoFilename)
 	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, errors.Join(err, ErrNotFound)
+		}
 		return nil, err
 	}
 
@@ -71,7 +74,7 @@ func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id
 	filename := fsui.BaseDir + "/" + id
 	fi, err := os.Stat(filename)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, ErrNotFound)
 	}
 	uploadedFileInfo := map[string]any{
 		"updated_at": fi.ModTime(),
@@ -87,6 +90,10 @@ func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (
 	// Download info file from blob client.
 	downloadResponse, err := infoBlobClient.DownloadStream(c, nil)
 	if err != nil {
+		azErr, ok := err.(*azcore.ResponseError)
+		if ok && azErr.StatusCode == http.StatusNotFound {
+			return nil, errors.Join(err, ErrNotFound)
+		}
 		return nil, err
 	}
 
@@ -109,7 +116,7 @@ func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id strin
 	uploadBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 	propertiesResponse, err := uploadBlobClient.GetProperties(c, nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, ErrNotFound)
 	}
 
 	uploadedFileInfo := map[string]any{
@@ -154,12 +161,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 }
 
 func getStatusFromError(err error) int {
-	switch e := err.(type) {
-	case azblob.StorageError:
-		if e.ServiceCode() == azblob.ServiceCodeBlobNotFound {
-			return http.StatusNotFound
-		}
-	case *os.PathError:
+	if errors.Is(err, ErrNotFound) {
 		return http.StatusNotFound
 	}
 
