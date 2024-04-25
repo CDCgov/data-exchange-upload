@@ -30,7 +30,7 @@ type FieldConfig struct {
 }
 
 func validFileName(value string) error {
-	invalidChars := `<>:"/\|?*`
+	invalidChars := `/`
 	if strings.ContainsAny(value, invalidChars) {
 		return fmt.Errorf("invalid character found in %s %w", value, ErrFailure)
 	}

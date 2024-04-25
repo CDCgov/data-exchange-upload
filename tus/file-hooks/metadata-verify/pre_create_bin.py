@@ -44,7 +44,8 @@ UPLOAD_CONFIG_CONTAINER = os.getenv('UPLOAD_CONFIG_CONTAINER')
 CONNECTION_STRING = f"DefaultEndpointsProtocol=https;AccountName={AZURE_STORAGE_ACCOUNT};AccountKey={AZURE_STORAGE_KEY};EndpointSuffix=core.windows.net"
 DEX_STORAGE_ACCOUNT_SERVICE = BlobServiceClient.from_connection_string(conn_str=CONNECTION_STRING)
 
-INVALID_CHARS = set('<>:"/\\|?*')
+# Allow all chars except forward slash.
+INVALID_CHARS = set('/')
 
 def get_feature_flag(flag_name):
     try:
