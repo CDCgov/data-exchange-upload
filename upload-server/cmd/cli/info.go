@@ -1,12 +1,16 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"os"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
 
 var (
@@ -26,6 +30,18 @@ func NewFileSystemUploadInspector(baseDir string) *FileSystemUploadInspector {
 
 type FileSystemUploadInspector struct {
 	BaseDir string
+}
+
+func NewAzureUploadInspector(containerClient *container.Client, tusDir string) *AzureUploadInspector {
+	return &AzureUploadInspector{
+		TusContainerClient: containerClient,
+		TusDir:             tusDir,
+	}
+}
+
+type AzureUploadInspector struct {
+	TusContainerClient *container.Client
+	TusDir             string
 }
 
 type InfoFileData struct {
@@ -60,6 +76,46 @@ func (fsui *FileSystemUploadInspector) InspectUploadedFile(id string) (map[strin
 		"updated_at": fi.ModTime(),
 		"size_bytes": fi.Size(),
 	}
+	return uploadedFileInfo, nil
+}
+
+func (aui *AzureUploadInspector) InspectInfoFile(id string) (map[string]any, error) {
+	filename := aui.TusDir + "/" + id + ".info"
+	infoBlobClient := aui.TusContainerClient.NewBlobClient(filename)
+
+	// Download info file from blob client.
+	downloadResponse, err := infoBlobClient.DownloadStream(context.TODO(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	fileBytes, err := io.ReadAll(downloadResponse.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Deserialize to hash map.
+	jsonMap := &InfoFileData{}
+	if err := json.Unmarshal(fileBytes, jsonMap); err != nil {
+		return nil, err
+	}
+
+	return jsonMap.MetaData, nil
+}
+
+func (aui *AzureUploadInspector) InspectUploadedFile(id string) (map[string]any, error) {
+	filename := aui.TusDir + "/" + id
+	uploadBlobClient := aui.TusContainerClient.NewBlobClient(filename)
+	propertiesResponse, err := uploadBlobClient.GetProperties(context.TODO(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	uploadedFileInfo := map[string]any{
+		"updated_at": propertiesResponse.LastModified,
+		"size_bytes": propertiesResponse.ContentLength,
+	}
+
 	return uploadedFileInfo, nil
 }
 
@@ -109,8 +165,13 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 func createInspector(appConfig *appconfig.AppConfig) (UploadInspecter, error) {
 	if appConfig.TusAzStorageConfig != nil {
-		//return NewAzureUploadInspector(appConfig.TusAzStorageConfig)
-		return nil, errors.New("not implemented")
+		// Create tus container client.
+		containerClient, err := storeaz.NewContainerClient(*appConfig.TusAzStorageConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		return NewAzureUploadInspector(containerClient, appConfig.TusdHandlerBasePath), nil
 	}
 	if appConfig.LocalFolderUploadsTus != "" {
 		return NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus), nil
