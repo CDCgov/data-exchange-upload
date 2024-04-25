@@ -1,6 +1,7 @@
 package testing
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,11 @@ import (
 type testCase struct {
 	metadata tus.Metadata
 	err      error
+}
+
+type InfoResponse struct {
+	manifest map[string]any
+	fileInfo map[string]any `json:"file_info"`
 }
 
 var Cases = map[string]testCase{
@@ -131,7 +137,7 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 	defer f.Close()
 
 	// create the tus client.
-	client, err := tus.NewClient(url + "/files/", nil)
+	client, err := tus.NewClient(url+"/files/", nil)
 	if err != nil {
 		return fmt.Errorf("failed to create test client %w", err)
 	}
@@ -181,6 +187,15 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 		return err
 	}
 	log.Println(string(body))
+	infoJson := &InfoResponse{}
+	if err := json.Unmarshal(body, infoJson); err != nil {
+		return err
+	}
+
+	_, ok := infoJson.manifest["data_stream_id"]
+	if !ok {
+		return fmt.Errorf("Invalid info response: %s", infoJson)
+	}
 
 	return nil
 }

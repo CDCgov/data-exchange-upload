@@ -43,6 +43,18 @@ func TestWellKnownEndpoints(t *testing.T) {
 	}
 }
 
+func TestFileInfoNotFound(t *testing.T) {
+	client := ts.Client()
+	resp, err := client.Get(ts.URL + "/info/1234")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 404 {
+		t.Error("Expected 404 but got", resp.StatusCode)
+	}
+}
+
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",

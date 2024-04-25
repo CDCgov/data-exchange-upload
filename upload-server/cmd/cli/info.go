@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
@@ -80,7 +81,7 @@ func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id
 }
 
 func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
-	filename := aui.TusDir + "/" + id + ".info"
+	filename := id + ".info"
 	infoBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 
 	// Download info file from blob client.
@@ -104,7 +105,7 @@ func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (
 }
 
 func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
-	filename := aui.TusDir + "/" + id
+	filename := id
 	uploadBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 	propertiesResponse, err := uploadBlobClient.GetProperties(c, nil)
 	if err != nil {
@@ -133,22 +134,12 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	fileInfo, err := ih.inspecter.InspectInfoFile(r.Context(), id)
 	if err != nil {
-		//todo real error handling
-		status := http.StatusNotFound
-		if !errors.Is(err, ErrNotFound) {
-			status = http.StatusInternalServerError
-		}
-		http.Error(rw, err.Error(), status)
+		http.Error(rw, err.Error(), getStatusFromError(err))
 		return
 	}
 	uploadedFileInfo, err := ih.inspecter.InspectUploadedFile(r.Context(), id)
 	if err != nil {
-		//todo real error handling
-		status := http.StatusNotFound
-		if !errors.Is(err, ErrNotFound) {
-			status = http.StatusInternalServerError
-		}
-		http.Error(rw, err.Error(), status)
+		http.Error(rw, err.Error(), getStatusFromError(err))
 		return
 	}
 
@@ -160,6 +151,19 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(rw)
 	enc.Encode(response)
 
+}
+
+func getStatusFromError(err error) int {
+	switch e := err.(type) {
+	case azblob.StorageError:
+		if e.ServiceCode() == azblob.ServiceCodeBlobNotFound {
+			return http.StatusNotFound
+		}
+	case *os.PathError:
+		return http.StatusNotFound
+	}
+
+	return http.StatusInternalServerError
 }
 
 func createInspector(appConfig *appconfig.AppConfig) (UploadInspecter, error) {
@@ -176,7 +180,7 @@ func createInspector(appConfig *appconfig.AppConfig) (UploadInspecter, error) {
 		return NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus), nil
 	}
 
-	return nil, errors.New("oh no badly configured!")
+	return nil, errors.New("Unable to create inspector given app configuration.")
 }
 
 func GetUploadInfoHandler(appConfig *appconfig.AppConfig) (http.Handler, error) {
