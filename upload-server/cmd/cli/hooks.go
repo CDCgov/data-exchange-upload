@@ -79,6 +79,12 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
+	postReceiveHook := metadata.SenderManifestVerification{
+		Loader: &FileConfigLoader{
+			FileSystem: os.DirFS(appConfig.UploadConfigPath),
+		},
+	}
+
 	if appConfig.DexAzUploadConfig != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.DexAzUploadConfig)
 		if err != nil {
@@ -91,5 +97,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	}
 
 	handler.Register(tusHooks.HookPreCreate, preCreateHook.Verify)
+	handler.Register(tusHooks.HookPostReceive, postReceiveHook.PostReceive)
 	return handler, nil
 }

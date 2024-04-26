@@ -86,6 +86,7 @@ func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, load
 	return loadConfig(ctx, configLoc.Path(), loader)
 }
 
+// TODO: Rename to something like: HookConfigLoader
 type SenderManifestVerification struct {
 	Loader validation.ConfigLoader
 }
@@ -130,4 +131,30 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 	}
 
 	return resp, nil
+}
+
+// TODO: Relocate in to maybe internal/hooks or internal/upload-status ?
+func (v *SenderManifestVerification) PostReceive(event handler.HookEvent) (hooks.HookResponse, error) {
+	resp := hooks.HookResponse{}
+
+	// Get values from event
+	uploadId := event.Upload.ID
+	uploadSize := event.Upload.Size
+	uploadOffset := event.Upload.Offset
+	manifest := event.Upload.MetaData
+
+	logger.Info(
+		"[PostReceive]: event.Upload values",
+		" manifest: ", manifest,
+		" uploadId: ", uploadId,
+		" uploadSize: ", uploadSize,
+		" uploadOffset: ", uploadOffset,
+	)
+
+	// TODO: Add shell script logic here.
+
+	// TODO: Covert Python post_receive_bin.py starting here...
+
+	return resp, nil
+
 }
