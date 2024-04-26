@@ -36,27 +36,7 @@ func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string)
 }
 
 func newAzContainerClient(azStorageName, azStorageKey, azContainerEndpoint, azContainerName string) (*container.Client, error) {
-	// check guard if names are not empty
-	if len(strings.TrimSpace(azStorageName)) == 0 {
-		return nil, errStorageNameEmpty
-	} // .if
-
-	// check guard if names are not empty
-	if len(strings.TrimSpace(azStorageKey)) == 0 {
-		return nil, errStorageKeyEmpty
-	} // .if
-
-	// check guard if names are not empty
-	if len(strings.TrimSpace(azContainerEndpoint)) == 0 {
-		return nil, errStorageContainerEndpointEmpty
-	} // .if
-
-	credential, err := azblob.NewSharedKeyCredential(azStorageName, azStorageKey)
-	if err != nil {
-		return nil, err
-	} // .if
-
-	client, err := azblob.NewClientWithSharedKeyCredential(azContainerEndpoint, credential, nil)
+	client, err := newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint)
 	if err != nil {
 		return nil, err
 	} // .if
