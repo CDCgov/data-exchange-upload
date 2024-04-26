@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -18,8 +17,8 @@ type testCase struct {
 }
 
 type InfoResponse struct {
-	manifest map[string]any
-	fileInfo map[string]any `json:"file_info"`
+	Manifest map[string]any `json:"manifest"`
+	FileInfo map[string]any `json:"file_info"`
 }
 
 var Cases = map[string]testCase{
@@ -186,15 +185,15 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 	if err != nil {
 		return err
 	}
-	log.Println(string(body))
+
 	infoJson := &InfoResponse{}
 	if err := json.Unmarshal(body, infoJson); err != nil {
 		return err
 	}
 
-	_, ok := infoJson.manifest["data_stream_id"]
+	_, ok := infoJson.FileInfo["size_bytes"]
 	if !ok {
-		return fmt.Errorf("Invalid info response: %s", infoJson)
+		return fmt.Errorf("invalid info response: %s", infoJson)
 	}
 
 	return nil

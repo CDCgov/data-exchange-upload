@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
@@ -50,9 +51,9 @@ type InfoFileData struct {
 }
 
 func (fsui *FileSystemUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
-	// First, read in the id + .info file.
-	//TODO make this stronger
-	infoFilename := fsui.BaseDir + "/" + id + ".info"
+	// First, read in the .info file.
+	// TODO add tus prefix dir.
+	infoFilename := filepath.Join(fsui.BaseDir, id+".info")
 	fileBytes, err := os.ReadFile(infoFilename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -71,7 +72,8 @@ func (fsui *FileSystemUploadInspector) InspectInfoFile(c context.Context, id str
 }
 
 func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
-	filename := fsui.BaseDir + "/" + id
+	// TODO add tus prefix dir.
+	filename := filepath.Join(fsui.BaseDir, id)
 	fi, err := os.Stat(filename)
 	if err != nil {
 		return nil, errors.Join(err, ErrNotFound)
@@ -84,6 +86,7 @@ func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id
 }
 
 func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
+	// TODO add tus prefix dir.
 	filename := id + ".info"
 	infoBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 
@@ -112,6 +115,7 @@ func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (
 }
 
 func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
+	// TODO add tus prefix dir.
 	filename := id
 	uploadBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 	propertiesResponse, err := uploadBlobClient.GetProperties(c, nil)
