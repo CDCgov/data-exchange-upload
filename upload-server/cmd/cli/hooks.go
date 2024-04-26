@@ -126,39 +126,11 @@ func getFilenameFromMetadata(metadata map[string]interface{}) string {
 func postCreate(useCase, useCaseCategory string, metadata map[string]interface{}, tguid string) {
 	logger.Printf("Creating trace for upload %s with use case %s and use case category %s\n", tguid, useCase, useCaseCategory)
 
-	psAPIController := NewProcStatController(os.Getenv("PS_API_URL"))
-
-	if processingStatusTracesEnabled {
-		traceID, parentSpanID := psAPIController.CreateUploadTrace(tguid, useCase, useCaseCategory)
-		logger.Printf("Created trace for upload %s with trace ID %s and parent span ID %s\n", tguid, traceID, parentSpanID)
-
-		createMetadataVerificationSpan(psAPIController, traceID, parentSpanID, useCase, useCaseCategory, metadata, tguid)
-
-		// Start the upload child span. Will be stopped in post-finish hook when the upload is complete.
-		psAPIController.StartSpanForTrace(traceID, parentSpanID, "dex-upload")
-		logger.Printf("Created child span for parent span %s with stage name of dex-upload\n", parentSpanID)
-	} else {
-		logger.Printf("Trace creation is disabled by feature flag.\n")
-	}
+	// send report message via service bus integration
+	createMetadataVerificationReportJSON(metadata, tguid, useCase, useCaseCategory)
 }
 
-func createMetadataVerificationSpan(psAPIController *ProcStatController, traceID, parentSpanID, useCase, useCaseCategory string, metadata map[string]interface{}, tguid string) {
-	if processingStatusTracesEnabled {
-		_, metadataVerifySpanID := psAPIController.StartSpanForTrace(traceID, parentSpanID, "metadata-verify")
-		logger.Printf("Started child span %s with stage name metadata-verify of parent span %s\n", metadataVerifySpanID, parentSpanID)
-	}
-
-	if processingStatusReportsEnabled {
-		createMetadataVerificationReportJSON(psAPIController, metadata, tguid, useCase, useCaseCategory)
-	}
-
-	if processingStatusTracesEnabled {
-		psAPIController.StopSpanForTrace(traceID, metadataVerifySpanID)
-		logger.Printf("Stopped child span %s with stage name metadata-verify of parent span %s\n", metadataVerifySpanID, parentSpanID)
-	}
-}
-
-func createMetadataVerificationReportJSON(psAPIController *ProcStatController, metadata map[string]interface{}, tguid, useCase, useCaseCategory string) {
+func createMetadataVerificationReportJSON(metadata map[string]interface{}, tguid, useCase, useCaseCategory string) {
 	jsonPayload := map[string]interface{}{
 		"schema_version": "0.0.1",
 		"schema_name":    STAGE_NAME,
@@ -167,8 +139,6 @@ func createMetadataVerificationReportJSON(psAPIController *ProcStatController, m
 		"metadata":       metadata,
 		"issues":         []interface{}{},
 	}
-
-	psAPIController.CreateReportJSON(tguid, useCase, useCaseCategory, STAGE_NAME, jsonPayload)
 }
 
 func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
