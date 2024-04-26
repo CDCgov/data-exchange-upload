@@ -41,8 +41,8 @@ Within a particular JSON file, you will find the custom sender manifest schema f
 
 #### Smoke tests
 
-- `/tests/integration/kotlin` - The Upload API's official smoke test suite for testing all onboarded use cases across all e
-- `/tests/integration/playwright`
+- `/tests/smoke/kotlin` - The Upload API's official smoke test suite for testing all onboarded use cases across all e
+- `/tests/smoke/playwright`
 
 #### spikes
 
