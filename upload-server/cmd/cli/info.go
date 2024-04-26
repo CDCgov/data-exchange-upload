@@ -24,20 +24,22 @@ type UploadInspecter interface {
 	InspectUploadedFile(c context.Context, id string) (map[string]any, error)
 }
 
-func NewFileSystemUploadInspector(baseDir string) *FileSystemUploadInspector {
+func NewFileSystemUploadInspector(baseDir string, tusPrefix string) *FileSystemUploadInspector {
 	return &FileSystemUploadInspector{
-		BaseDir: baseDir,
+		BaseDir:   baseDir,
+		TusPrefix: tusPrefix,
 	}
 }
 
 type FileSystemUploadInspector struct {
-	BaseDir string
+	BaseDir   string
+	TusPrefix string
 }
 
-func NewAzureUploadInspector(containerClient *container.Client, tusDir string) *AzureUploadInspector {
+func NewAzureUploadInspector(containerClient *container.Client, tusPrefix string) *AzureUploadInspector {
 	return &AzureUploadInspector{
 		TusContainerClient: containerClient,
-		TusDir:             tusDir,
+		TusPrefix:          tusPrefix,
 	}
 }
 
@@ -52,7 +54,7 @@ type InfoHandler struct {
 
 type AzureUploadInspector struct {
 	TusContainerClient *container.Client
-	TusDir             string
+	TusPrefix          string
 }
 
 type InfoFileData struct {
@@ -61,8 +63,7 @@ type InfoFileData struct {
 
 func (fsui *FileSystemUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
 	// First, read in the .info file.
-	// TODO add tus prefix dir.
-	infoFilename := filepath.Join(fsui.BaseDir, id+".info")
+	infoFilename := filepath.Join(fsui.BaseDir, fsui.TusPrefix, id+".info")
 	fileBytes, err := os.ReadFile(infoFilename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -81,8 +82,7 @@ func (fsui *FileSystemUploadInspector) InspectInfoFile(c context.Context, id str
 }
 
 func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
-	// TODO add tus prefix dir.
-	filename := filepath.Join(fsui.BaseDir, id)
+	filename := filepath.Join(fsui.BaseDir, fsui.TusPrefix, id)
 	fi, err := os.Stat(filename)
 	if err != nil {
 		return nil, errors.Join(err, ErrNotFound)
@@ -95,8 +95,7 @@ func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id
 }
 
 func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
-	// TODO add tus prefix dir.
-	filename := id + ".info"
+	filename := filepath.Join(aui.TusPrefix, id+".info")
 	infoBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 
 	// Download info file from blob client.
@@ -124,8 +123,7 @@ func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (
 }
 
 func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
-	// TODO add tus prefix dir.
-	filename := id
+	filename := filepath.Join(aui.TusPrefix, id)
 	uploadBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 	propertiesResponse, err := uploadBlobClient.GetProperties(c, nil)
 	if err != nil {
@@ -180,10 +178,10 @@ func createInspector(appConfig *appconfig.AppConfig) (UploadInspecter, error) {
 			return nil, err
 		}
 
-		return NewAzureUploadInspector(containerClient, appConfig.TusdHandlerBasePath), nil
+		return NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
 	}
 	if appConfig.LocalFolderUploadsTus != "" {
-		return NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus), nil
+		return NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
 	}
 
 	return nil, errors.New("unable to create inspector given app configuration")
