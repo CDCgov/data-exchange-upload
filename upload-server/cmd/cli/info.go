@@ -4,15 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
+	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/azureinspector"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/fileinspector"
 )
 
 var (
@@ -24,25 +22,6 @@ type UploadInspecter interface {
 	InspectUploadedFile(c context.Context, id string) (map[string]any, error)
 }
 
-func NewFileSystemUploadInspector(baseDir string, tusPrefix string) *FileSystemUploadInspector {
-	return &FileSystemUploadInspector{
-		BaseDir:   baseDir,
-		TusPrefix: tusPrefix,
-	}
-}
-
-type FileSystemUploadInspector struct {
-	BaseDir   string
-	TusPrefix string
-}
-
-func NewAzureUploadInspector(containerClient *container.Client, tusPrefix string) *AzureUploadInspector {
-	return &AzureUploadInspector{
-		TusContainerClient: containerClient,
-		TusPrefix:          tusPrefix,
-	}
-}
-
 type InfoResponse struct {
 	Manifest map[string]any `json:"manifest"`
 	FileInfo map[string]any `json:"file_info"`
@@ -52,90 +31,8 @@ type InfoHandler struct {
 	inspecter UploadInspecter
 }
 
-type AzureUploadInspector struct {
-	TusContainerClient *container.Client
-	TusPrefix          string
-}
-
 type InfoFileData struct {
 	MetaData map[string]any `json:"MetaData"`
-}
-
-func (fsui *FileSystemUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
-	// First, read in the .info file.
-	infoFilename := filepath.Join(fsui.BaseDir, fsui.TusPrefix, id+".info")
-	fileBytes, err := os.ReadFile(infoFilename)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil, errors.Join(err, ErrNotFound)
-		}
-		return nil, err
-	}
-
-	// Deserialize to hash map.
-	jsonMap := &InfoFileData{}
-	if err := json.Unmarshal(fileBytes, jsonMap); err != nil {
-		return nil, err
-	}
-
-	return jsonMap.MetaData, nil
-}
-
-func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
-	filename := filepath.Join(fsui.BaseDir, fsui.TusPrefix, id)
-	fi, err := os.Stat(filename)
-	if err != nil {
-		return nil, errors.Join(err, ErrNotFound)
-	}
-	uploadedFileInfo := map[string]any{
-		"updated_at": fi.ModTime(),
-		"size_bytes": fi.Size(),
-	}
-	return uploadedFileInfo, nil
-}
-
-func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
-	filename := filepath.Join(aui.TusPrefix, id+".info")
-	infoBlobClient := aui.TusContainerClient.NewBlobClient(filename)
-
-	// Download info file from blob client.
-	downloadResponse, err := infoBlobClient.DownloadStream(c, nil)
-	if err != nil {
-		azErr, ok := err.(*azcore.ResponseError)
-		if ok && azErr.StatusCode == http.StatusNotFound {
-			return nil, errors.Join(err, ErrNotFound)
-		}
-		return nil, err
-	}
-
-	fileBytes, err := io.ReadAll(downloadResponse.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// Deserialize to hash map.
-	jsonMap := &InfoFileData{}
-	if err := json.Unmarshal(fileBytes, jsonMap); err != nil {
-		return nil, err
-	}
-
-	return jsonMap.MetaData, nil
-}
-
-func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
-	filename := filepath.Join(aui.TusPrefix, id)
-	uploadBlobClient := aui.TusContainerClient.NewBlobClient(filename)
-	propertiesResponse, err := uploadBlobClient.GetProperties(c, nil)
-	if err != nil {
-		return nil, errors.Join(err, ErrNotFound)
-	}
-
-	uploadedFileInfo := map[string]any{
-		"updated_at": propertiesResponse.LastModified,
-		"size_bytes": propertiesResponse.ContentLength,
-	}
-
-	return uploadedFileInfo, nil
 }
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -143,12 +40,12 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	fileInfo, err := ih.inspecter.InspectInfoFile(r.Context(), id)
 	if err != nil {
-		http.Error(rw, err.Error(), getStatusFromError(err))
+		http.Error(rw, "error getting file manifest", getStatusFromError(err))
 		return
 	}
 	uploadedFileInfo, err := ih.inspecter.InspectUploadedFile(r.Context(), id)
 	if err != nil {
-		http.Error(rw, err.Error(), getStatusFromError(err))
+		http.Error(rw, fmt.Sprintf("error getting file info.  Manifest: %#v", fileInfo), getStatusFromError(err))
 		return
 	}
 
@@ -178,10 +75,10 @@ func createInspector(appConfig *appconfig.AppConfig) (UploadInspecter, error) {
 			return nil, err
 		}
 
-		return NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
+		return azureinspector.NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
 	}
 	if appConfig.LocalFolderUploadsTus != "" {
-		return NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
+		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
 	}
 
 	return nil, errors.New("unable to create inspector given app configuration")
