@@ -54,6 +54,9 @@ type AppConfig struct {
 
 	AzureConnection *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	// Azure TUS Upload storage
+
+	TusRedisLockURI string `env:"TUS_REDIS_LOCK_URI"`
+
 	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
 	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 

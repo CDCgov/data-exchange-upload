@@ -24,7 +24,7 @@ jobs:
       - name: Vet
         run: go vet ./...
       - name: Run Tests
-        run: go test -coverprofile=c.out -coverpkg=./... ./testing
+        run: go test -coverprofile=c.out -coverpkg=./... ./...
       - name: Show coverage
         run: go tool cover -func=c.out
       - name: Build Check
