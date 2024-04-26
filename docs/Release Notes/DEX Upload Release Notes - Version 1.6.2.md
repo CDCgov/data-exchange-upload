@@ -1,6 +1,6 @@
 # DEX Upload Release Notes - Version 1.6.2
 
-*Release Date:* 2023-04-26  <br/>
+*Release Date:* 2024-04-26  <br/>
 *Version Number:* Version 1.6.2  <br/>
 *[Release Changelog](https://github.com/CDCgov/data-exchange-upload/blob/main/CHANGELOG.md)*  <br/>
 *[API Swagger Documentation](https://cdcgov.github.io/data-exchange-upload/)* <br/>
