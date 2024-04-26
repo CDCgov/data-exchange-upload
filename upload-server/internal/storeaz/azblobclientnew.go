@@ -27,12 +27,12 @@ func NewBlobClient(conf appconfig.AzureStorageConfig) (*azblob.Client, error) {
 		conf.ContainerEndpoint)
 } // .NewTusAzBlobClient
 
-func NewContainerClient(conf appconfig.AzureStorageConfig) (*container.Client, error) {
+func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string) (*container.Client, error) {
 	return newAzContainerClient(
-		conf.AzStorageName,
-		conf.AzStorageKey,
-		conf.AzContainerEndpoint,
-		conf.AzContainerName)
+		conf.StorageName,
+		conf.StorageKey,
+		conf.ContainerEndpoint,
+		containerName)
 }
 
 func newAzContainerClient(azStorageName, azStorageKey, azContainerEndpoint, azContainerName string) (*container.Client, error) {

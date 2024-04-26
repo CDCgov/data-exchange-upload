@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("Expected file not found")
+	ErrNotFound = errors.New("expected file not found")
 )
 
 type UploadInspecter interface {
@@ -173,9 +173,9 @@ func getStatusFromError(err error) int {
 }
 
 func createInspector(appConfig *appconfig.AppConfig) (UploadInspecter, error) {
-	if appConfig.TusAzStorageConfig != nil {
+	if appConfig.AzureConnection != nil {
 		// Create tus container client.
-		containerClient, err := storeaz.NewContainerClient(*appConfig.TusAzStorageConfig)
+		containerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +186,7 @@ func createInspector(appConfig *appconfig.AppConfig) (UploadInspecter, error) {
 		return NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus), nil
 	}
 
-	return nil, errors.New("Unable to create inspector given app configuration.")
+	return nil, errors.New("unable to create inspector given app configuration")
 }
 
 func GetUploadInfoHandler(appConfig *appconfig.AppConfig) (http.Handler, error) {
