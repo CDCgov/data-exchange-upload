@@ -8,17 +8,13 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/eventials/go-tus"
 )
 
 type testCase struct {
 	metadata tus.Metadata
 	err      error
-}
-
-type InfoResponse struct {
-	Manifest map[string]any `json:"manifest"`
-	FileInfo map[string]any `json:"file_info"`
 }
 
 var Cases = map[string]testCase{
@@ -186,7 +182,7 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 		return err
 	}
 
-	infoJson := &InfoResponse{}
+	infoJson := &cli.InfoResponse{}
 	if err := json.Unmarshal(body, infoJson); err != nil {
 		return err
 	}
