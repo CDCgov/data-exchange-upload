@@ -70,6 +70,23 @@ func (l *AzureConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte
 	return io.ReadAll(downloadResponse.Body)
 }
 
+func post_finish(uploadID string) {
+	controller := NewProcStatController(os.Getenv("PS_API_URL"), 2*time.Second)
+	traceID, spanID, err := controller.GetSpanByUploadID(uploadID, "dex-upload")
+	if err != nil {
+		controller.Logger.Printf("Failed to get span for upload %s: %v", uploadID, err)
+		return
+	}
+	controller.Logger.Printf("Got span for upload %s with trace ID %s and span ID %s", uploadID, traceID, spanID)
+
+	err = controller.StopSpanForTrace(traceID, spanID)
+	if err != nil {
+		controller.Logger.Printf("Failed to stop child span for parent span %s with stage name of dex-upload: %v", spanID, err)
+		return
+	}
+	controller.Logger.Printf("Stopped child span for parent span %s with stage name of dex-upload", spanID)
+}
+
 func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
@@ -90,6 +107,22 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		}
 	}
 
+	postFinishHook := HookHandlerFunc(func(e handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
+			
+		if e.Type = tusHooks.HookPostFinish{		
+
+			processingStatusTracesEnabled := getFeatureFlag("PROCESSING_STATUS_TRACES")
+
+	    if processingStatusTracesEnabled {
+		   fmt.Println("Processing for ID:", e.tguid)
+		   post_finish(e.tguid)
+	     }		  
+		
+		}
+		
+			return handler.HTTPResponse{}, nil, nil
+		})
+	handler.Register(tusHooks.HookPostFinish, postFinishHook.Verify)
 	handler.Register(tusHooks.HookPreCreate, preCreateHook.Verify)
 	return handler, nil
 }

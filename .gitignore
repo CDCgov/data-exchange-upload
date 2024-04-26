@@ -13,9 +13,9 @@ tusdotnet/DEXTUSServer/obj/
 tusdotnet/TUSTestHelpers/obj/
 
 # IDE
-.vscode/
-.idea/
 
+.idea/
+.vscode/
 *.pyc
 
 tus/file-hooks/metadata-verify/pre_create_bin.spec
