@@ -3,10 +3,13 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -98,9 +101,76 @@ func (v *HookConfigLoader) PostReceive(event handler.HookEvent) (hooks.HookRespo
 		" uploadOffset: ", uploadOffset,
 	)
 
-	// TODO: Add shell script logic here.
+	// TODO: Add shell script logic here.-------------------------------------
 
-	// TODO: Covert Python post_receive_bin.py starting here...
+	// filePath := fmt.Sprintf("/tmp/testing1111.txt")
+	filePath := fmt.Sprintf("/tmp/%s.txt", uploadId)
+	firstUpdate := true
+	var elapsedSeconds int64 = 0
+
+	// Check if the file exists
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		logger.Info("[post-receive]: Latest offset file NOT found")
+	} else {
+		logger.Info("[post-receive]: Found latest offset file")
+
+		// Read the latest offset
+		latestOffsetBytes, err := os.ReadFile(filePath)
+		if err != nil {
+			logger.Error("[post-receive]: ERROR: Failed to read offset:", "err", err)
+			// return // Should we return error here?
+		} else {
+			logger.Info("[post-receive]: GOOD: Calling postReceive()")
+			// ./post-receive-bin --id $id --offset $offset --size $size --metadata "$metadata"
+		}
+		latestOffsetStr := string(latestOffsetBytes)
+
+		// Get file modification time
+		fileInfo, err := os.Stat(filePath)
+		if err != nil {
+			logger.Info("[post-receive]: ERROR: Failed to stat offset file:", "err", err)
+			// return // Should we return error here?
+		}
+		lastModifiedEpoch := fileInfo.ModTime().Unix()
+
+		// Get current time
+		nowEpoch := time.Now().Unix()
+
+		// Calculate elapsed seconds
+		elapsedSeconds = nowEpoch - lastModifiedEpoch
+
+		logger.Info("[post-receive]: Upload information.",
+			"uploadOffset", uploadOffset,
+			", latestOffset =", latestOffsetStr,
+			", nowEpoch =", nowEpoch,
+			", lastModifiedEpoch =", lastModifiedEpoch,
+			", elapsedSec =", elapsedSeconds)
+	}
+
+	// Conditional Update Logic
+	if firstUpdate || elapsedSeconds >= 1 || uploadOffset == uploadSize {
+
+		logger.Info("[post-receive]: Updating latest offset file and processing update.",
+			"offset", uploadOffset)
+
+		uploadOffsetStr := strconv.FormatInt(uploadOffset, 10)
+		// Convert string to byte slice
+		data := []byte(uploadOffsetStr)
+
+		err := os.WriteFile(filePath, data, 0644)
+		if err != nil {
+			// Handle error, likely log it or return
+			logger.Info("[post-receive]: Error updating offset file:", "err", err)
+		} else {
+			logger.Info("[post-receive]: Latest offset file updated, calling post-receive-bin.",
+				"offset", uploadOffset)
+		}
+
+		// TODO: Replace post-receive-bin.py Python with Go HERE
+		//     ./post-receive-bin --id $id --offset $offset --size $size --metadata "$metadata"
+	} else {
+		logger.Info("[post-receive]: Skipping update")
+	}
 
 	return resp, nil
 
