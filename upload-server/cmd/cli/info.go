@@ -41,6 +41,15 @@ func NewAzureUploadInspector(containerClient *container.Client, tusDir string) *
 	}
 }
 
+type InfoResponse struct {
+	Manifest map[string]any `json:"manifest"`
+	FileInfo map[string]any `json:"file_info"`
+}
+
+type InfoHandler struct {
+	inspecter UploadInspecter
+}
+
 type AzureUploadInspector struct {
 	TusContainerClient *container.Client
 	TusDir             string
@@ -129,15 +138,6 @@ func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id strin
 	}
 
 	return uploadedFileInfo, nil
-}
-
-type InfoResponse struct {
-	Manifest map[string]any `json:"manifest"`
-	FileInfo map[string]any `json:"file_info"`
-}
-
-type InfoHandler struct {
-	inspecter UploadInspecter
 }
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
