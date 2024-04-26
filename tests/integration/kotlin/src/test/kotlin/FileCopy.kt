@@ -75,25 +75,19 @@ class FileCopy {
 
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToEdavContainer() {
-        val options = ListBlobsOptions()
-            .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(), useCase))
-            .setDetails(BlobListDetails().setRetrieveMetadata(true))
-        val edavUploadBlob = edavContainerClient.listBlobs(options, Duration.ofMillis(EnvConfig.AZURE_BLOB_SEARCH_DURATION_MILLIS))
-            .first { blob -> blob.metadata?.containsValue(uploadId) == true }
+        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime.now(), useCase)}/${testFile.nameWithoutExtension}_${uploadId}${testFile.extension}"
+        val edavUploadBlob = edavContainerClient.getBlobClient(expectedFilename)
 
         Assert.assertNotNull(edavUploadBlob)
-        Assert.assertEquals(edavUploadBlob.properties.contentLength, testFile.length())
+        Assert.assertEquals(edavUploadBlob.properties.blobSize, testFile.length())
     }
 
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToRoutingContainer() {
-        val options = ListBlobsOptions()
-            .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(), useCase))
-            .setDetails(BlobListDetails().setRetrieveMetadata(true))
-        val routingUploadBlob = routingContainerClient.listBlobs(options, Duration.ofMillis(EnvConfig.AZURE_BLOB_SEARCH_DURATION_MILLIS))
-            .first { blob -> blob.metadata?.containsValue(uploadId) == true }
+        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime.now(), useCase)}/${testFile.nameWithoutExtension}_${uploadId}${testFile.extension}"
+        val routingUploadBlob = edavContainerClient.getBlobClient(expectedFilename)
 
         Assert.assertNotNull(routingUploadBlob)
-        Assert.assertEquals(routingUploadBlob.properties.contentLength, testFile.length())
+        Assert.assertEquals(routingUploadBlob.properties.blobSize, testFile.length())
     }
 }

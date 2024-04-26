@@ -21,31 +21,15 @@ services:
       - .:/code
     working_dir: /code
     environment:
-      - PROCESSING_STATUS_HEALTH_URI=https://www.cdc.gov/
-      - PROCESSING_STATUS_SERVICE_BUS_NAMESPACE=TODO
-      - PROCESSING_STATUS_SERVICE_BUS_QUEUE=TODO
-      - METADATA_VERSIONS=[v1,v2]
-      - UPLOAD_CONFIG_PATH="./configs/upload-configs/"
-      - SYSTEM=DEX 
-      - DEX_PRODUCT=Upload_Api
-      - DEX_APP=upload-server
-      - LOGGER_DEBUG_ON=true
-      - SERVER_PORT=8080
-      - ENVIRONMENT=DEV
-      - TUSD_HANDLER_BASE_PATH=/files/
-      - LOCAL_FOLDER_UPLOADS_TUS=./uploads
-      - TUS_AZ_STORAGE_NAME=devstoreaccount1
-      - TUS_AZ_STORAGE_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
-      - TUS_AZ_CONTAINER_NAME=test
-      - TUS_AZ_CONTAINER_ENDPOINT=http://azurite:10000/devstoreaccount1
-      - TUS_AZ_CONTAINER_ACCESS_TYPE=container
-      - DEX_AZ_STORAGE_NAME=devstoreaccount1
-      - DEX_AZ_STORAGE_KEY=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
-      - DEX_AZ_CONTAINER_NAME=config
-      - DEX_AZ_CONTAINER_ENDPOINT=http://azurite:10000/devstoreaccount1
+      - AZURE_STORAGE_ACCOUNT=devstoreaccount1
+      # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
+      - AZURE_STORAGE_KEY=${AZURITE_STORAGE_KEY}
+      - AZURE_ENDPOINT=http://azurite:10000/devstoreaccount1
+      - TUS_AZURE_CONTAINER_NAME=test
+      - DEX_MANIFEST_CONFIG_CONTAINER_NAME=config
       - PODMAN_CI_TESTS=true
       - TUS_REDIS_LOCK_URI=redis://redispw@cache:6379
-    command: go test --tags=integration -v -coverprofile=c.out -coverpkg=./... ./cmd
+    command: go test --tags=integration -coverprofile=c.out -coverpkg=./... ./cmd
     depends_on:
       - azurite
       - cache

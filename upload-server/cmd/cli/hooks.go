@@ -79,14 +79,14 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	if appConfig.DexAzUploadConfig != nil {
-		client, err := storeaz.NewBlobClient(*appConfig.DexAzUploadConfig)
+	if appConfig.AzureConnection != nil {
+		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
 		if err != nil {
 			return nil, err
 		}
 		preCreateHook.Loader = &AzureConfigLoader{
 			Client:        client,
-			ContainerName: appConfig.DexAzUploadConfig.AzContainerName,
+			ContainerName: appConfig.AzureManifestConfigContainer,
 		}
 	}
 

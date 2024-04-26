@@ -18,7 +18,6 @@ type MetadataConfig struct {
 }
 
 type CopyConfig struct {
-	FilenameSuffix  string   `json:"filename_suffix"`
 	FolderStructure string   `json:"folder_structure"`
 	Targets         []string `json:"targets"`
 }
@@ -31,7 +30,7 @@ type FieldConfig struct {
 }
 
 func validFileName(value string) error {
-	invalidChars := `<>:"/\|?*`
+	invalidChars := `/`
 	if strings.ContainsAny(value, invalidChars) {
 		return fmt.Errorf("invalid character found in %s %w", value, ErrFailure)
 	}

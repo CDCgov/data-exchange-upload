@@ -33,43 +33,41 @@ type RootResp struct {
 type AppConfig struct {
 
 	// App and for Logger
-	System        string `env:"SYSTEM, required"`
-	DexProduct    string `env:"DEX_PRODUCT, required"`
-	DexApp        string `env:"DEX_APP, required"`
-	LoggerDebugOn bool   `env:"LOGGER_DEBUG_ON"`
+	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
 	// Server
-	ServerPort  string `env:"SERVER_PORT, required"`
-	Environment string `env:"ENVIRONMENT, required"`
+	ServerPort string `env:"SERVER_PORT, default=8080"`
+	//QUESTION: this is arbitrary so is it useful?
+	Environment string `env:"ENVIRONMENT, default=DEV"`
 
-	// Metadata
-	MetadataVersions string `env:"METADATA_VERSIONS, required"`
+	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
 
-	// Metadata v1
-	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, required"`
-
-	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, required"`
+	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 
 	// TUSD
-	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, required"`
+	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
 
 	// Processing Status
-	ProcessingStatusHealthURI           string `env:"PROCESSING_STATUS_HEALTH_URI, required"`
-	ProcessingStatusServiceBusNamespace string `env:"PROCESSING_STATUS_SERVICE_BUS_NAMESPACE, required"`
+	ProcessingStatusHealthURI           string `env:"PROCESSING_STATUS_HEALTH_URI"`
+	ProcessingStatusServiceBusNamespace string `env:"PROCESSING_STATUS_SERVICE_BUS_NAMESPACE"`
 	ProcessingStatusServiceBusQueue     string `env:"PROCESSING_STATUS_SERVICE_BUS_QUEUE"`
 
+	AzureConnection *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	// Azure TUS Upload storage
-	TusAzStorageConfig *AzureStorageConfig `env:", prefix=TUS_, noinit"`
-	DexAzUploadConfig  *AzureStorageConfig `env:", prefix=DEX_, noinit"`
 
 	TusRedisLockURI string `env:"TUS_REDIS_LOCK_URI"`
+
+	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
+	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
+
+	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus_prefix"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	jsonResp, err := json.Marshal(RootResp{
-		System:     conf.System,
-		DexProduct: conf.DexProduct,
-		DexApp:     conf.DexApp,
+		System:     "DEX",
+		DexProduct: "UPLOAD API",
+		DexApp:     "upload server",
 		ServerTime: time.Now().Format(time.RFC3339),
 	}) // .jsonResp
 	if err != nil {
@@ -85,38 +83,21 @@ func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 type AzureStorageConfig struct {
-	AzStorageName         string `env:"AZ_STORAGE_NAME"`
-	AzStorageKey          string `env:"AZ_STORAGE_KEY"`
-	AzContainerName       string `env:"AZ_CONTAINER_NAME"`
-	AzContainerEndpoint   string `env:"AZ_CONTAINER_ENDPOINT"`
-	AzContainerAccessType string `env:"AZ_CONTAINER_ACCESS_TYPE"`
+	StorageName       string `env:"STORAGE_ACCOUNT"`
+	StorageKey        string `env:"STORAGE_KEY"`
+	ContainerEndpoint string `env:"ENDPOINT"`
 } // .AzureStorageConfig
 
 func (azc *AzureStorageConfig) Check() error {
 	errs := []error{}
-	if azc.AzStorageName == "" {
+	if azc.StorageName == "" {
 		errs = append(errs, &MissingConfigError{
 			ConfigName: "AzStorageName",
 		})
 	}
-	if azc.AzStorageName == "" {
+	if azc.StorageKey == "" {
 		errs = append(errs, &MissingConfigError{
 			ConfigName: "AzStorageKey",
-		})
-	}
-	if azc.AzStorageName == "" {
-		errs = append(errs, &MissingConfigError{
-			ConfigName: "AzContainerName",
-		})
-	}
-	if azc.AzStorageName == "" {
-		errs = append(errs, &MissingConfigError{
-			ConfigName: "AzContainerEndpoint",
-		})
-	}
-	if azc.AzStorageName == "" {
-		errs = append(errs, &MissingConfigError{
-			ConfigName: "AzContainerAccessType",
 		})
 	}
 	return errors.Join(errs...)

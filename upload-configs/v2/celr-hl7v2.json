@@ -4,17 +4,26 @@
 		"fields": [
 			{
 				"field_name": "sender_id",
+				"allowed_values": [
+					"APHL-CELR"
+				],
 				"required": true,
 				"description": "This field is the identifier for the sender of the data.",
 				"compat_field_name": "meta_username"
 			},
 			{
 				"field_name": "data_producer_id",
+				"allowed_values": [
+					"DC-TEST"
+				],
 				"required": true,
 				"description": "This field is the identifier for the data producer."
 			},
 			{
 				"field_name": "jurisdiction",
+				"allowed_values": [
+					"DC"
+				],
 				"required": true,
 				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
 				"compat_field_name": "meta_organization"
@@ -27,12 +36,18 @@
 			},
 			{
 				"field_name": "data_stream_id",
+				"allowed_values": [
+					"celr"
+				],
 				"required": true,
 				"description": "This field is the identifier for the data stream.",
 				"compat_field_name": "meta_destination_id"
 			},
 			{
 				"field_name": "data_stream_route",
+				"allowed_values": [
+					"hl7v2"
+				],
 				"required": true,
 				"description": "This recieved is the route of the data stream.",
 				"compat_field_name": "meta_ext_event"
@@ -52,13 +67,6 @@
 				"compat_field_name": null
 			},
 			{
-				"field_name": "meta_username",
-				"required": true,
-				"allowed_values": null,
-				"description": "Username of user or system name who submitted the file.",
-				"compat_field_name": null
-			},
-			{
 				"field_name": "meta_ext_filestatus",
 				"required": true,
 				"allowed_values": null,
@@ -73,13 +81,6 @@
 				"compat_field_name": null
 			},
 			{
-				"field_name": "meta_program",
-				"required": false,
-				"allowed_values": null,
-				"description": "The program source.",
-				"compat_field_name": null
-			},
-			{
 				"field_name": "meta_ext_source",
 				"required": true,
 				"allowed_values": null,
@@ -89,7 +90,6 @@
 		]
 	},
 	"copy_config": {
-		"filename_suffix": "clock_ticks",
 		"folder_structure": "date_YYYY_MM_DD",
 		"targets": [
 			"routing"

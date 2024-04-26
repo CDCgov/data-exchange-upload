@@ -1,32 +1,36 @@
 {
-	"metadata_config": {
-		"version": "2.0",
-		"fields": [
+  "metadata_config": {
+    "version": "2.0",
+    "fields": [
       {
         "field_name": "data_stream_id",
         "required": true,
-        "allowed_values": ["ehdi"],
+        "allowed_values": [
+          "ehdi"
+        ],
         "description": "This field is the identifier for the data stream."
       },
       {
         "field_name": "data_stream_route",
         "required": true,
-        "allowed_values": ["csv"],
+        "allowed_values": [
+          "csv"
+        ],
         "description": "This recieved is the route of the data stream."
       },
       {
         "field_name": "sender_id",
         "required": true,
         "allowed_values": [
-          "RI-EHDI",
-          "IN-EHDI",
-          "UT-EHDI",
-          "IA-EHDI",
-          "LA-EHDI",
-          "NJ-EHDI",
-          "ND-EHDI",
-          "NE-EHDI", 
-          "MI-EHDI"
+          "RI-PHA",
+          "IN-PHA",
+          "UT-PHA",
+          "IA-PHA",
+          "LA-PHA",
+          "NJ-PHA",
+          "ND-PHA",
+          "NE-PHA",
+          "MI-PHA"
         ],
         "description": "This field is the identifier for the sender of the data."
       },
@@ -34,15 +38,15 @@
         "field_name": "data_producer_id",
         "required": true,
         "allowed_values": [
-          "RI-EHDI",
-          "IN-EHDI",
-          "UT-EHDI",
-          "IA-EHDI",
-          "LA-EHDI",
-          "NJ-EHDI",
-          "ND-EHDI",
-          "NE-EHDI", 
-          "MI-EHDI"
+          "RI-PHA",
+          "IN-PHA",
+          "UT-PHA",
+          "IA-PHA",
+          "LA-PHA",
+          "NJ-PHA",
+          "ND-PHA",
+          "NE-PHA",
+          "MI-PHA"
         ],
         "description": "This field is the identifier for the data producer."
       },
@@ -57,7 +61,7 @@
           "LA",
           "NJ",
           "ND",
-          "NE", 
+          "NE",
           "MI"
         ],
         "description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
@@ -67,13 +71,12 @@
         "required": true,
         "description": "This field is the name of the file when uploaded by the sender."
       }
-		]
-	},
-	"copy_config": {
-		"filename_suffix": "clock_ticks",
-		"folder_structure": "date_YYYY_MM_DD",
-		"targets": [
-			"routing"
-		]
-	}
+    ]
+  },
+  "copy_config": {
+    "folder_structure": "date_YYYY_MM_DD",
+    "targets": [
+      "routing"
+    ]
+  }
 }

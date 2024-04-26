@@ -33,20 +33,12 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobServiceClient _routingBlobServiceClient;
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
-        private readonly IBlobReaderFactory _blobReaderFactory;
         private readonly string _uploadConfigContainer; 
 
-        public UploadProcessingService(ILoggerFactory loggerFactory, IConfiguration configuration, IProcStatClient procStatClient,
+        public UploadProcessingService(ILoggerFactory loggerFactory, IProcStatClient procStatClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
         {
-            _logger = loggerFactory.CreateLogger<UploadProcessingService>();
-            _blobCopyHelper = new(_logger);
-            _blobReaderFactory = blobReaderFactory;
-            _blobReader = _blobReaderFactory.CreateInstance(_logger);
-            
-            _featureManagementExecutor = featureManagementExecutor;
-            _procStatClient = procStatClient;
-
+            // Get environment variables.
             _tusAzureObjectPrefix = Environment.GetEnvironmentVariable("TUS_AZURE_OBJECT_PREFIX", EnvironmentVariableTarget.Process) ?? "tus-prefix";
             _tusAzureStorageContainer = Environment.GetEnvironmentVariable("TUS_AZURE_STORAGE_CONTAINER", EnvironmentVariableTarget.Process) ?? "bulkuploads";
             _dexAzureStorageAccountName = Environment.GetEnvironmentVariable("DEX_AZURE_STORAGE_ACCOUNT_NAME", EnvironmentVariableTarget.Process) ?? "";
@@ -61,6 +53,7 @@ namespace BulkFileUploadFunctionApp.Services
             // Instantiate helper services.
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobCopyHelper = new(_logger);
+            _blobReader = blobReaderFactory.CreateInstance(_logger);
             _featureManagementExecutor = featureManagementExecutor;
             _procStatClient = procStatClient;
 
@@ -102,7 +95,7 @@ namespace BulkFileUploadFunctionApp.Services
                     trace = await _procStatClient.GetTraceByUploadId(uploadId);
                 });
 
-                HydrateMetadata(tusInfoFile, trace?.TraceId, trace?.SpanId);
+                HydrateMetadata(tusInfoFile);
 
                 // retrieve version from metadata or default to V1
                 version = tusInfoFile.GetMetadataVersion();
@@ -126,14 +119,12 @@ namespace BulkFileUploadFunctionApp.Services
                 // Get dex folder and filename 
                 var dateTimeNow = DateTime.UtcNow;
 
-                // Determine the folder path and filename suffix from the upload configuration.
+                // Determine the folder path from the upload configuration.
                 var folderPath = GetFolderPath(uploadConfig, dateTimeNow);
-                var filenameSuffix = GetFilenameSuffix(uploadConfig, dateTimeNow);
-
                 var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
                 var fileExtension = Path.GetExtension(filename);
             
-                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{filenameSuffix}{fileExtension}";
+                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}_{uploadId}{fileExtension}";
 
                 // Get copy targets
                 List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
@@ -467,32 +458,6 @@ namespace BulkFileUploadFunctionApp.Services
             return folderPath;
         }
 
-        /// <summary>
-        /// Determines the filename suffix from the upload configuration.
-        /// </summary>
-        /// <param name="uploadConfig"></param>
-        /// <param name="dateTimeNow"></param>
-        /// <returns></returns>
-        private string GetFilenameSuffix(UploadConfig uploadConfig, DateTime dateTimeNow)
-        {
-            string filenameSuffix;
-            switch (uploadConfig.CopyConfig.FilenameSuffix)
-            {
-                case "none":
-                    filenameSuffix = ""; // no suffix
-                    break;
-                case "clock_ticks":
-                    filenameSuffix = $"_{dateTimeNow.Ticks}";
-                    break;
-                default:
-                    _logger.LogWarning("No filename suffix scheme provided or one provided is unrecognized, using none");
-                    filenameSuffix = ""; // no suffix
-                    break;
-            }
-
-            return filenameSuffix;
-        }
-
         private Dictionary<string, string> TranslateMetadata(Dictionary<string, string> fromMetadata, UploadConfig toConfig)
         {
             Dictionary<string, string> toMetadata = new Dictionary<string, string>(fromMetadata);
@@ -536,13 +501,11 @@ namespace BulkFileUploadFunctionApp.Services
             return toMetadata;
         }
 
-        private void HydrateMetadata(TusInfoFile tusInfoFile, string? traceId, string? spanId)
+        private void HydrateMetadata(TusInfoFile tusInfoFile)
         {
             // Add common fields and their values.
             tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
             tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
-            tusInfoFile.MetaData["trace_id"] = traceId;
-            tusInfoFile.MetaData["parent_span_id"] = spanId;
         }
 
         public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs)
