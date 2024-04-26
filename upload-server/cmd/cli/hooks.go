@@ -15,7 +15,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -79,12 +78,13 @@ func (l *AzureConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte
 //
 //	       like preCreate?
 //		      Is currently a duplicate for  metadata.SenderManifestVerification
-type HookConfigLoader struct {
-	Loader validation.ConfigLoader
-}
+//type HookConfigLoader struct {
+//	Loader validation.ConfigLoader
+//}
 
 // TODO: Relocate in to maybe internal/hooks or internal/upload-status ?
-func (v *HookConfigLoader) PostReceive(event handler.HookEvent) (hooks.HookResponse, error) {
+// func (v *HookConfigLoader) PostReceive(event handler.HookEvent) (hooks.HookResponse, error) {
+func postReceive(event handler.HookEvent) (hooks.HookResponse, error) {
 	resp := hooks.HookResponse{}
 
 	// Get values from event
@@ -185,11 +185,11 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	postReceiveHook := HookConfigLoader{
-		Loader: &FileConfigLoader{
-			FileSystem: os.DirFS(appConfig.UploadConfigPath),
-		},
-	}
+	//postReceiveHook := HookConfigLoader{
+	//	Loader: &FileConfigLoader{
+	//		FileSystem: os.DirFS(appConfig.UploadConfigPath),
+	//	},
+	//}
 
 	if appConfig.DexAzUploadConfig != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.DexAzUploadConfig)
@@ -203,6 +203,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	}
 
 	handler.Register(tusHooks.HookPreCreate, preCreateHook.Verify)
-	handler.Register(tusHooks.HookPostReceive, postReceiveHook.PostReceive)
+	handler.Register(tusHooks.HookPostReceive, postReceive)
 	return handler, nil
 }
