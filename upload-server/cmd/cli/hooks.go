@@ -12,9 +12,11 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/handler"
+	"github.com/tus/tusd/v2/pkg/hooks"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
@@ -70,6 +72,40 @@ func (l *AzureConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte
 	return io.ReadAll(downloadResponse.Body)
 }
 
+// TODO: Combine somewhere for all hooks needing ConfigLoader
+//
+//	       like preCreate?
+//		      Is currently a duplicate for  metadata.SenderManifestVerification
+type HookConfigLoader struct {
+	Loader validation.ConfigLoader
+}
+
+// TODO: Relocate in to maybe internal/hooks or internal/upload-status ?
+func (v *HookConfigLoader) PostReceive(event handler.HookEvent) (hooks.HookResponse, error) {
+	resp := hooks.HookResponse{}
+
+	// Get values from event
+	uploadId := event.Upload.ID
+	uploadSize := event.Upload.Size
+	uploadOffset := event.Upload.Offset
+	manifest := event.Upload.MetaData
+
+	logger.Info(
+		"[PostReceive]: event.Upload values",
+		" manifest: ", manifest,
+		" uploadId: ", uploadId,
+		" uploadSize: ", uploadSize,
+		" uploadOffset: ", uploadOffset,
+	)
+
+	// TODO: Add shell script logic here.
+
+	// TODO: Covert Python post_receive_bin.py starting here...
+
+	return resp, nil
+
+}
+
 func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
@@ -79,7 +115,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	postReceiveHook := metadata.SenderManifestVerification{
+	postReceiveHook := HookConfigLoader{
 		Loader: &FileConfigLoader{
 			FileSystem: os.DirFS(appConfig.UploadConfigPath),
 		},
