@@ -59,9 +59,6 @@ func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/version":
 		hd.version(w, r)
 
-	case "/metadata":
-		hd.metadata(w, r)
-
 	// all other non-specified routes
 	default:
 		http.NotFound(w, r)

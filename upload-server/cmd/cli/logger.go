@@ -40,9 +40,6 @@ func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 
 	appLogger := logger.With(
 		slog.Group("app_info",
-			slog.String("System", appConfig.System),
-			slog.String("Product", appConfig.DexProduct),
-			slog.String("App", appConfig.DexApp),
 			slog.String("Env", appConfig.Environment),
 		)) // .appLogger
 
@@ -68,9 +65,9 @@ func ExpAppLogger(appConfig appconfig.AppConfig) *expslog.Logger {
 
 	appLogger := logger.With(
 		slog.Group("app_info",
-			slog.String("System", appConfig.System),
-			slog.String("Product", appConfig.DexProduct),
-			slog.String("App", appConfig.DexApp),
+			slog.String("System", "DEX"),
+			slog.String("Product", "UPLOAD API"),
+			slog.String("App", "UPLOAD SERVER"),
 			slog.String("Env", appConfig.Environment),
 		)) // .appLogger
 
