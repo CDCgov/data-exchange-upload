@@ -70,14 +70,6 @@ func (l *AzureConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte
 	return io.ReadAll(downloadResponse.Body)
 }
 
-func getFeatureFlag(client appconfigurationapi.BaseClientAPI, flagName string) (bool, error) {
-	flag, err := client.GetConfigurationSetting(nil, ".appconfig.featureflag/"+flagName, "")
-	if err != nil {
-		return false, fmt.Errorf("Error fetching feature flag %s: %v", flagName, err)
-	}
-	return *flag.Value.Value, nil
-}
-
 func getRequiredMetadata(metadata map[string]interface{}) ([]interface{}, error) {
 	metadataVersion := metadata["version"].(string)
 
