@@ -74,7 +74,7 @@ func getRequiredMetadata(metadata map[string]interface{}) ([]interface{}, error)
 	metadataVersion := metadata["version"].(string)
 
 	var requiredFields []string
-		switch metadataVersion {
+	switch metadataVersion {
 		case METADATA_VERSION_ONE:
 			requiredFields = REQUIRED_VERSION_ONE_FIELDS
 		case METADATA_VERSION_TWO:
@@ -155,21 +155,15 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 
 	postCreateHook := HookHandlerFunc(func(e handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error) {
 		if e.Type == tusHooks.HookPreCreate {
-			metadataJSON := map[string]interface{}{}
-			err := json.Unmarshal(e.Upload.Metadata, &metadataJSON)
+			useCase := metadata.Version 
+			useCaseCategory := metadata.Category 
+
+			useCaseValues, err := getRequiredMetadata(metadata)
 			if err != nil {
-				return handler.HTTPResponse{}, nil, err
+				return handler.HTTPResponse{}, nil, err 
 			}
 
-			useCaseValues, err := getRequiredMetadata(metadataJSON)
-			if err != nil {
-				return handler.HTTPResponse{}, nil, err
-			}
-
-			postCreate(useCaseValues[0].(string), useCaseValues[1].(string), metadataJSON, e.Upload.ID)
-		}
-
-		return handler.HTTPResponse{}, nil, nil
+			postCreate(useCase, useCaseCategory, metadata, e.Upload.ID)
 	})
 
 	handler.Register(tusHooks.HookPreCreate, preCreateHook.Verify)
