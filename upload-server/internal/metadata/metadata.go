@@ -131,3 +131,12 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 
 	return resp, nil
 }
+
+type HandlerFunc func(event handler.HookEvent) (hooks.HookResponse, error)
+
+func WithTimestamp(next HandlerFunc) HandlerFunc {
+	return func(event handler.HookEvent) (hooks.HookResponse, error) {
+		logger.Info("adding global timestamp...")
+		return next(event)
+	}
+}
