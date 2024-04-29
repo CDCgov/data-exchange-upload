@@ -78,6 +78,9 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		Loader: &FileConfigLoader{
 			FileSystem: os.DirFS(appConfig.UploadConfigPath),
 		},
+		Reporter: &metadata.FileReporter{
+			Dir: appConfig.LocalReportsFolder,
+		},
 	}
 
 	if appConfig.AzureConnection != nil {

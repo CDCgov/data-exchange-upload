@@ -59,6 +59,7 @@ func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
 		LocalFolderUploadsTus: "test/uploads",
+		LocalReportsFolder:    "test/reports",
 		TusdHandlerBasePath:   "/files/",
 	}
 

@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -89,7 +90,8 @@ func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, load
 }
 
 type SenderManifestVerification struct {
-	Loader validation.ConfigLoader
+	Loader   validation.ConfigLoader
+	Reporter Reporter
 }
 
 func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[string]string) error {
@@ -109,20 +111,30 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[st
 }
 
 type Report struct {
-	UploadID        string  `json:"upload_id"`
-	StageName       string  `json:"stage_name"`
-	DataStreamID    string  `json:"data_stream_id"`
-	DataStreamRoute string  `json:"data_stream_route"`
-	ContentType     string  `json:"content_type"`
-	Content         Content `json:"content"`
+	UploadID        string   `json:"upload_id"`
+	StageName       string   `json:"stage_name"`
+	DataStreamID    string   `json:"data_stream_id"`
+	DataStreamRoute string   `json:"data_stream_route"`
+	ContentType     string   `json:"content_type"`
+	Content         *Content `json:"content"`
 }
 
 type Content struct {
-	SchemaVersion string `json:"schema_version"`
-	SchemaName    string `json:"schema_name"`
-	Filename      string `json:"filename"`
-	Metadata      any    `json:"metadata"`
-	Issues        error  `json:"issues"`
+	SchemaVersion string   `json:"schema_version"`
+	SchemaName    string   `json:"schema_name"`
+	Filename      string   `json:"filename"`
+	Metadata      any      `json:"metadata"`
+	Issues        JSONErrs `json:"issues"`
+}
+
+type JSONErrs []error
+
+func (je JSONErrs) MarshalJSON() ([]byte, error) {
+	res := make([]any, len(je))
+	for i, e := range je {
+		res[i] = e.Error() // Fallback to the error string
+	}
+	return json.Marshal(res)
 }
 
 /*
@@ -198,6 +210,29 @@ func Uid() string {
 	return hex.EncodeToString(id)
 }
 
+type Reporter interface {
+	Publish(*Report) error
+}
+
+type FileReporter struct {
+	Dir string
+}
+
+func (fr *FileReporter) Publish(r *Report) error {
+	if fr.Dir != "" {
+		err := os.Mkdir(fr.Dir, 0750)
+		if err != nil && !os.IsExist(err) {
+			return err
+		}
+	}
+	f, err := os.CreateTemp(fr.Dir, r.UploadID)
+	if err != nil {
+		return err
+	}
+	encoder := json.NewEncoder(f)
+	return encoder.Encode(r)
+}
+
 func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.HookResponse, error) {
 	resp := hooks.HookResponse{}
 
@@ -207,25 +242,42 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
+	logger.Info("Generated UUID", "UUID", tuid)
+	report := &Report{
+		UploadID:        tuid,
+		DataStreamID:    getDataStreamID(manifest),
+		DataStreamRoute: getDataStreamRoute(manifest),
+		Content: &Content{
+			SchemaVersion: "0.0.1",
+			SchemaName:    "dex-metadata-verify",
+			Filename:      getFilename(manifest),
+			Metadata:      manifest,
+		},
+	}
+	defer func() {
+		if err := v.Reporter.Publish(report); err != nil {
+			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid)
+		}
+	}()
+
 	if err := v.verify(event.Context, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
 		//TODO report that something has gone wrong
 
-		report := &Report{
-			UploadID:        tuid,
-			DataStreamID:    getDataStreamID(manifest),
-			DataStreamRoute: getDataStreamRoute(manifest),
-			Content: Content{
-				SchemaVersion: "0.0.1",
-				SchemaName:    "dex-metadata-verify",
-				Filename:      getFilename(manifest),
-				Metadata:      manifest,
-				Issues:        err,
-			},
+		u, ok := err.(interface {
+			Unwrap() []error
+		})
+		if ok {
+			report.Content.Issues = JSONErrs(u.Unwrap())
+		} else {
+			report.Content.Issues = JSONErrs{err}
 		}
 
 		logger.Info("REPORT", "report", report)
+		if err := v.Reporter.Publish(report); err != nil {
+			logger.Info("Failed to send Report", "report", report, "reporter", v.Reporter)
+		}
 
 		if errors.Is(err, validation.ErrFailure) {
 			resp.RejectUpload = true
