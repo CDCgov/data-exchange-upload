@@ -86,7 +86,6 @@ func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, load
 	return loadConfig(ctx, configLoc.Path(), loader)
 }
 
-// TODO: Rename to something like: HookConfigLoader
 type SenderManifestVerification struct {
 	Loader validation.ConfigLoader
 }
