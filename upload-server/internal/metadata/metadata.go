@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
@@ -136,7 +137,16 @@ type HandlerFunc func(event handler.HookEvent) (hooks.HookResponse, error)
 
 func WithTimestamp(next HandlerFunc) HandlerFunc {
 	return func(event handler.HookEvent) (hooks.HookResponse, error) {
-		logger.Info("adding global timestamp...")
+		timestamp := time.Now().Format(time.RFC3339)
+		logger.Info("adding global timestamp", "timestamp", timestamp)
+
+		manifest := event.Upload.MetaData
+		manifest["global_timestamp"] = timestamp
+
+		// Tell tus to update the file metadata with the hydrated manifest.
+		resp := hooks.HookResponse{}
+		resp.ChangeFileInfo.MetaData = manifest
+
 		return next(event)
 	}
 }
