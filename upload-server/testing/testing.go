@@ -192,5 +192,11 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 		return fmt.Errorf("invalid info response: %s", infoJson)
 	}
 
+	// check hydrated manifest fields
+	_, ok = infoJson.Manifest["global_timestamp"]
+	if !ok {
+		return fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
+	}
+
 	return nil
 }
