@@ -13,10 +13,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 )
 
-var (
-	ErrNotFound = errors.New("expected file not found")
-)
-
 type AzureUploadInspector struct {
 	TusContainerClient *container.Client
 	TusPrefix          string
@@ -38,7 +34,7 @@ func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (
 	if err != nil {
 		azErr, ok := err.(*azcore.ResponseError)
 		if ok && azErr.StatusCode == http.StatusNotFound {
-			return nil, errors.Join(err, ErrNotFound)
+			return nil, errors.Join(err, info.ErrNotFound)
 		}
 		return nil, err
 	}
@@ -62,7 +58,7 @@ func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id strin
 	uploadBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 	propertiesResponse, err := uploadBlobClient.GetProperties(c, nil)
 	if err != nil {
-		return nil, errors.Join(err, ErrNotFound)
+		return nil, errors.Join(err, info.ErrNotFound)
 	}
 
 	uploadedFileInfo := map[string]any{

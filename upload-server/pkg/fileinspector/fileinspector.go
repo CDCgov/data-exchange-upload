@@ -10,10 +10,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 )
 
-var (
-	ErrNotFound = errors.New("expected file not found")
-)
-
 type FileSystemUploadInspector struct {
 	BaseDir   string
 	TusPrefix string
@@ -32,7 +28,7 @@ func (fsui *FileSystemUploadInspector) InspectInfoFile(c context.Context, id str
 	fileBytes, err := os.ReadFile(infoFilename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, errors.Join(err, ErrNotFound)
+			return nil, errors.Join(err, info.ErrNotFound)
 		}
 		return nil, err
 	}
@@ -50,7 +46,7 @@ func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id
 	filename := filepath.Join(fsui.BaseDir, fsui.TusPrefix, id)
 	fi, err := os.Stat(filename)
 	if err != nil {
-		return nil, errors.Join(err, ErrNotFound)
+		return nil, errors.Join(err, info.ErrNotFound)
 	}
 	uploadedFileInfo := map[string]any{
 		"updated_at": fi.ModTime(),
