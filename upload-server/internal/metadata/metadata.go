@@ -2,9 +2,12 @@ package metadata
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"reflect"
@@ -100,13 +103,21 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[st
 	var errs error
 	for _, field := range config.Fields {
 		err := field.Validate(manifest)
-		logger.Error("validation error", "error", err)
 		errs = errors.Join(errs, err)
 	}
 	return errs
 }
 
 type Report struct {
+	UploadID        string  `json:"upload_id"`
+	StageName       string  `json:"stage_name"`
+	DataStreamID    string  `json:"data_stream_id"`
+	DataStreamRoute string  `json:"data_stream_route"`
+	ContentType     string  `json:"content_type"`
+	Content         Content `json:"content"`
+}
+
+type Content struct {
 	SchemaVersion string `json:"schema_version"`
 	SchemaName    string `json:"schema_name"`
 	Filename      string `json:"filename"`
@@ -122,6 +133,22 @@ type Report struct {
        'metadata': meta_json,
        'issues': messages
    }
+            "upload_id": tguid,
+            "stage_name": "dex-upload",
+            "data_stream_id": metadata["data_stream_id"],
+            "data_stream_route": metadata["data_stream_route"],
+            "content_type": "json",
+            "content": {
+                        "schema_name": "upload",
+                        "schema_version": "1.0",
+                        "tguid": tguid,
+                        "offset": offset,
+                        "size": size,
+                        "filename": filename,
+                        "data_stream_id": metadata["data_stream_id"],
+                        "data_stream_route": metadata["data_stream_route"],
+                        "metadata": metadata
+            },
 */
 
 func getFilename(manifest map[string]string) string {
@@ -141,22 +168,61 @@ func getFilename(manifest map[string]string) string {
 	return ""
 }
 
+func getDataStreamID(manifest map[string]string) string {
+	switch manifest["version"] {
+	case "v2":
+		return manifest["data_stream_id"]
+	default:
+		return manifest["meta_destination_id"]
+	}
+}
+
+func getDataStreamRoute(manifest map[string]string) string {
+	switch manifest["version"] {
+	case "v2":
+		return manifest["data_stream_route"]
+	default:
+		return manifest["meta_ext_event"]
+	}
+
+}
+
+func Uid() string {
+	id := make([]byte, 16)
+	_, err := io.ReadFull(rand.Reader, id)
+	if err != nil {
+		// This is probably an appropriate way to handle errors from our source
+		// for random bits.
+		panic(err)
+	}
+	return hex.EncodeToString(id)
+}
+
 func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.HookResponse, error) {
 	resp := hooks.HookResponse{}
 
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
 
+	tuid := Uid()
+	resp.ChangeFileInfo.ID = tuid
+
 	if err := v.verify(event.Context, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
 		//TODO report that something has gone wrong
+
 		report := &Report{
-			SchemaVersion: "0.0.1",
-			SchemaName:    "dex-metadata-verify",
-			Filename:      getFilename(manifest),
-			Metadata:      manifest,
-			Issues:        err,
+			UploadID:        tuid,
+			DataStreamID:    getDataStreamID(manifest),
+			DataStreamRoute: getDataStreamRoute(manifest),
+			Content: Content{
+				SchemaVersion: "0.0.1",
+				SchemaName:    "dex-metadata-verify",
+				Filename:      getFilename(manifest),
+				Metadata:      manifest,
+				Issues:        err,
+			},
 		}
 
 		logger.Info("REPORT", "report", report)
