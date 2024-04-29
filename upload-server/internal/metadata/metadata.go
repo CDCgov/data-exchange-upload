@@ -106,6 +106,41 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[st
 	return errs
 }
 
+type Report struct {
+	SchemaVersion string `json:"schema_version"`
+	SchemaName    string `json:"schema_name"`
+	Filename      string `json:"filename"`
+	Metadata      any    `json:"metadata"`
+	Issues        error  `json:"issues"`
+}
+
+/*
+   payload = {
+       'schema_version': '0.0.1',
+       'schema_name': 'dex-metadata-verify',
+       'filename': filename,
+       'metadata': meta_json,
+       'issues': messages
+   }
+*/
+
+func getFilename(manifest map[string]string) string {
+
+	keys := []string{
+		"filename",
+		"original_filename",
+		"meta_ext_filename",
+		"received_filename",
+	}
+
+	for _, key := range keys {
+		if name, ok := manifest[key]; ok {
+			return name
+		}
+	}
+	return ""
+}
+
 func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.HookResponse, error) {
 	resp := hooks.HookResponse{}
 
@@ -116,6 +151,15 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 		logger.Error("validation errors and warnings", "errors", err)
 
 		//TODO report that something has gone wrong
+		report := &Report{
+			SchemaVersion: "0.0.1",
+			SchemaName:    "dex-metadata-verify",
+			Filename:      getFilename(manifest),
+			Metadata:      manifest,
+			Issues:        err,
+		}
+
+		logger.Info("REPORT", "report", report)
 
 		if errors.Is(err, validation.ErrFailure) {
 			resp.RejectUpload = true
