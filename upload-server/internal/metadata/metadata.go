@@ -120,18 +120,44 @@ type Report struct {
 }
 
 type Content struct {
-	SchemaVersion string   `json:"schema_version"`
-	SchemaName    string   `json:"schema_name"`
-	Filename      string   `json:"filename"`
-	Metadata      any      `json:"metadata"`
-	Issues        JSONErrs `json:"issues"`
+	SchemaVersion string `json:"schema_version"`
+	SchemaName    string `json:"schema_name"`
+	Filename      string `json:"filename"`
+	Metadata      any    `json:"metadata"`
+	Issues        error  `json:"issues"`
 }
 
-type JSONErrs []error
+type ValidationError struct {
+	Err error
+}
 
-func (je JSONErrs) MarshalJSON() ([]byte, error) {
-	res := make([]any, len(je))
-	for i, e := range je {
+func (v *ValidationError) Error() string {
+	return v.Err.Error()
+}
+
+func unwrap(e error) []error {
+	errs := []error{}
+	u, ok := e.(interface {
+		Unwrap() []error
+	})
+	if ok {
+		for _, err := range u.Unwrap() {
+			errs = append(errs, unwrap(err)...)
+		}
+	} else {
+		errs = append(errs, e)
+		err := errors.Unwrap(e)
+		if err != nil {
+			errs = append(errs, unwrap(err)...)
+		}
+	}
+	return errs
+}
+
+func (v *ValidationError) MarshalJSON() ([]byte, error) {
+	errs := unwrap(v.Err)
+	res := make([]any, len(errs))
+	for i, e := range errs {
 		res[i] = e.Error() // Fallback to the error string
 	}
 	return json.Marshal(res)
@@ -263,16 +289,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 	if err := v.verify(event.Context, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
-		//TODO report that something has gone wrong
-
-		u, ok := err.(interface {
-			Unwrap() []error
-		})
-		if ok {
-			report.Content.Issues = JSONErrs(u.Unwrap())
-		} else {
-			report.Content.Issues = JSONErrs{err}
-		}
+		report.Content.Issues = &ValidationError{err}
 
 		logger.Info("REPORT", "report", report)
 		if err := v.Reporter.Publish(report); err != nil {
