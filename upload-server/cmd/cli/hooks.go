@@ -12,6 +12,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -45,7 +46,7 @@ func (l *FileConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte,
 
 	file, err := l.FileSystem.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(err, validation.ErrNotFound)
 	}
 	return io.ReadAll(file)
 }
@@ -61,7 +62,7 @@ func (l *AzureConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte
 		var respErr *azcore.ResponseError
 		if errors.As(err, &respErr) {
 			if respErr.StatusCode == http.StatusNotFound {
-				return nil, os.ErrNotExist
+				return nil, errors.Join(err, validation.ErrNotFound)
 			}
 		}
 		return nil, err

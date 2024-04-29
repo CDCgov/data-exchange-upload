@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -90,43 +89,43 @@ type SenderManifestVerification struct {
 	Loader validation.ConfigLoader
 }
 
+func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[string]string) error {
+	config, err := getVersionFromManifest(ctx, manifest, v.Loader)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("checking config", "config", config)
+
+	var errs error
+	for _, field := range config.Fields {
+		err := field.Validate(manifest)
+		logger.Error("validation error", "error", err)
+		errs = errors.Join(errs, err)
+	}
+	return errs
+}
+
 func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.HookResponse, error) {
 	resp := hooks.HookResponse{}
 
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
 
-	config, err := getVersionFromManifest(event.Context, manifest, v.Loader)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) || errors.Is(err, validation.ErrFailure) {
+	if err := v.verify(event.Context, manifest); err != nil {
+		logger.Error("validation errors and warnings", "errors", err)
+
+		//TODO report that something has gone wrong
+
+		if errors.Is(err, validation.ErrFailure) {
+			resp.RejectUpload = true
 			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
 				Body:       err.Error(),
 			})
-			resp.RejectUpload = true
-
 			return resp, nil
 		}
 		return resp, err
-	}
-	logger.Info("checking config", "config", config)
-
-	var errs error
-	for _, field := range config.Fields {
-		err := field.Validate(manifest)
-		errs = errors.Join(errs, err)
-	}
-
-	if errs != nil {
-		logger.Error("validation errors and warnings", "errors", errs)
-	}
-
-	if errors.Is(errs, validation.ErrFailure) {
-		resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
-			StatusCode: http.StatusBadRequest,
-			Body:       errs.Error(),
-		})
-		resp.RejectUpload = true
 	}
 
 	return resp, nil

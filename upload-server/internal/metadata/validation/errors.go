@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	ErrFailure = errors.New("validation failure")
-	ErrWarning = errors.New("validation warning")
+	ErrFailure  = errors.New("validation failure")
+	ErrWarning  = errors.New("validation warning")
+	ErrNotFound = errors.Join(ErrFailure, errors.New("manifest validation config file not found"))
 )
 
 type ErrorMissing struct {
