@@ -89,14 +89,14 @@ func postReceiveHook(event handler.HookEvent) (hooks.HookResponse, error) {
 	uploadId := event.Upload.ID
 	uploadSize := event.Upload.Size
 	uploadOffset := event.Upload.Offset
-	manifest := event.Upload.MetaData
+	uploadMetadata := event.Upload.MetaData
 
 	logger.Info(
 		"[PostReceive]: event.Upload values",
-		" manifest: ", manifest,
-		" uploadId: ", uploadId,
-		" uploadSize: ", uploadSize,
-		" uploadOffset: ", uploadOffset,
+		"uploadMetadata", uploadMetadata,
+		"uploadId", uploadId,
+		"uploadSize", uploadSize,
+		"uploadOffset", uploadOffset,
 	)
 
 	// filePath := fmt.Sprintf("/tmp/testing1111.txt")
@@ -134,10 +134,10 @@ func postReceiveHook(event handler.HookEvent) (hooks.HookResponse, error) {
 
 		logger.Info("[post-receive]: Upload information.",
 			"uploadOffset", uploadOffset,
-			", latestOffset =", latestOffsetStr,
-			", nowEpoch =", nowEpoch,
-			", lastModifiedEpoch =", lastModifiedEpoch,
-			", elapsedSec =", elapsedSeconds)
+			"latestOffset", latestOffsetStr,
+			"nowEpoch", nowEpoch,
+			"lastModifiedEpoch", lastModifiedEpoch,
+			"elapsedSec", elapsedSeconds)
 	}
 
 	// Conditional Update Logic
@@ -162,8 +162,8 @@ func postReceiveHook(event handler.HookEvent) (hooks.HookResponse, error) {
 		// TODO: Replace post-receive-bin.py Python with Go HERE
 		//     ./post-receive-bin --id $id --offset $offset --size $size --metadata "$metadata"
 		// create processPostReceive function
-		//		- get metadata/manifest from event.Upload.MetaData
-		//		- get filename from metadata/manifest
+		//		- get metadata from event.Upload.MetaData
+		//		- get filename from metadata
 		//		- create JSON message
 		//		- send JSON message
 		// 		- Load Service Bus connection details from environment or config
