@@ -15,7 +15,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/filestore"
 )
 
-func CreateDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Checkable, error) {
+func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Checkable, error) {
 	// ------------------------------------------------------------------
 	// Load Az dependencies, needed for the DEX handler paths
 	// ------------------------------------------------------------------

@@ -1,9 +1,14 @@
 package testing
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 	"github.com/eventials/go-tus"
 )
 
@@ -127,7 +132,7 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 	defer f.Close()
 
 	// create the tus client.
-	client, err := tus.NewClient(url, nil)
+	client, err := tus.NewClient(url+"/files/", nil)
 	if err != nil {
 		return fmt.Errorf("failed to create test client %w", err)
 	}
@@ -163,5 +168,29 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 	if err := uploader.Upload(); err != nil {
 		return fmt.Errorf("failed to upload file %w", err)
 	}
+
+	// check the file
+	resp, err := http.Get(url + "/info/" + filepath.Base(uploader.Url()))
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to get upload info %s", resp.Status)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	infoJson := &info.InfoResponse{}
+	if err := json.Unmarshal(body, infoJson); err != nil {
+		return err
+	}
+
+	_, ok := infoJson.FileInfo["size_bytes"]
+	if !ok {
+		return fmt.Errorf("invalid info response: %s", infoJson)
+	}
+
 	return nil
 }

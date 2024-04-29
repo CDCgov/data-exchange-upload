@@ -26,12 +26,18 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	}
 
 	// create and register data store
-	store, storeHealthCheck, err := CreateDataStore(appConfig)
+	store, storeHealthCheck, err := GetDataStore(appConfig)
 	if err != nil {
 		logger.Error("error starting app, error configuring storage", "error", err)
 		return nil, err
 	}
 	health.Register(storeHealthCheck)
+
+	uploadInfoHandler, err := GetUploadInfoHandler(&appConfig)
+	if err != nil {
+		logger.Error("error configuring upload info handler: ", "error", err)
+		return nil, err
+	}
 
 	// initialize locker
 	var locker handlertusd.Locker = memorylocker.New()
@@ -75,6 +81,8 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	hooks.SetupHookMetrics()
 	http.Handle("/metrics", promhttp.Handler())
 	setupMetrics()
+
+	http.Handle("/info/{UploadID}", uploadInfoHandler)
 
 	return http.DefaultServeMux, nil
 }

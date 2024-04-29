@@ -53,14 +53,12 @@ type AppConfig struct {
 	ProcessingStatusServiceBusQueue     string `env:"PROCESSING_STATUS_SERVICE_BUS_QUEUE"`
 
 	AzureConnection *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
+
 	// Azure TUS Upload storage
-
-	TusRedisLockURI string `env:"TUS_REDIS_LOCK_URI"`
-
+	TusRedisLockURI              string `env:"TUS_REDIS_LOCK_URI"`
 	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
 	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
-
-	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus_prefix"`
+	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus_prefix"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {

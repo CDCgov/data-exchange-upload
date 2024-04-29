@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 ) // .import
 
@@ -25,6 +26,23 @@ func NewBlobClient(conf appconfig.AzureStorageConfig) (*azblob.Client, error) {
 		conf.StorageKey,
 		conf.ContainerEndpoint)
 } // .NewTusAzBlobClient
+
+func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string) (*container.Client, error) {
+	return newAzContainerClient(
+		conf.StorageName,
+		conf.StorageKey,
+		conf.ContainerEndpoint,
+		containerName)
+}
+
+func newAzContainerClient(azStorageName, azStorageKey, azContainerEndpoint, azContainerName string) (*container.Client, error) {
+	client, err := newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint)
+	if err != nil {
+		return nil, err
+	} // .if
+
+	return client.ServiceClient().NewContainerClient(azContainerName), nil
+}
 
 // newAzBlobClient, method for returning azure blob client for a storage needed
 func newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint string) (*azblob.Client, error) {

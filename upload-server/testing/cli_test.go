@@ -15,7 +15,7 @@ var (
 )
 
 func TestTus(t *testing.T) {
-	url := ts.URL + "/files/"
+	url := ts.URL
 	for name, c := range Cases {
 		if err := RunTusTestCase(url, "test/test.txt", c); err != nil {
 			t.Error(name, err)
@@ -40,6 +40,18 @@ func TestWellKnownEndpoints(t *testing.T) {
 		if resp.StatusCode != 200 {
 			t.Error("bad response for ", endpoint, resp.StatusCode)
 		}
+	}
+}
+
+func TestFileInfoNotFound(t *testing.T) {
+	client := ts.Client()
+	resp, err := client.Get(ts.URL + "/info/1234")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 404 {
+		t.Error("Expected 404 but got", resp.StatusCode)
 	}
 }
 
