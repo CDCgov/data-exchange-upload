@@ -2,7 +2,6 @@ package hooks
 
 import (
 	"github.com/tus/tusd/v2/pkg/handler"
-	"github.com/tus/tusd/v2/pkg/hooks"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
 )
 
@@ -10,7 +9,7 @@ type PrebuiltHook struct {
 	hookMapping map[tusHooks.HookType]HookHandlerFunc
 }
 
-type HookHandlerFunc func(event handler.HookEvent) (hooks.HookResponse, error)
+type HookHandlerFunc func(event handler.HookEvent) (tusHooks.HookResponse, error)
 
 func (ph *PrebuiltHook) Setup() error {
 	return nil
