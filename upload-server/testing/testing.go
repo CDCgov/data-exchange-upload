@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 	"github.com/eventials/go-tus"
 )
 
@@ -182,7 +182,7 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 		return err
 	}
 
-	infoJson := &cli.InfoResponse{}
+	infoJson := &info.InfoResponse{}
 	if err := json.Unmarshal(body, infoJson); err != nil {
 		return err
 	}

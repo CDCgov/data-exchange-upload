@@ -11,10 +11,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/azureinspector"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/fileinspector"
-)
-
-var (
-	ErrNotFound = errors.New("expected file not found")
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 )
 
 type UploadInspecter interface {
@@ -22,17 +19,8 @@ type UploadInspecter interface {
 	InspectUploadedFile(c context.Context, id string) (map[string]any, error)
 }
 
-type InfoResponse struct {
-	Manifest map[string]any `json:"manifest"`
-	FileInfo map[string]any `json:"file_info"`
-}
-
 type InfoHandler struct {
 	inspecter UploadInspecter
-}
-
-type InfoFileData struct {
-	MetaData map[string]any `json:"MetaData"`
 }
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -49,18 +37,17 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := &InfoResponse{
+	response := &info.InfoResponse{
 		Manifest: fileInfo,
 		FileInfo: uploadedFileInfo,
 	}
 
 	enc := json.NewEncoder(rw)
 	enc.Encode(response)
-
 }
 
 func getStatusFromError(err error) int {
-	if errors.Is(err, ErrNotFound) {
+	if errors.Is(err, info.ErrNotFound) {
 		return http.StatusNotFound
 	}
 
