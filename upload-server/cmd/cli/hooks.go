@@ -74,17 +74,15 @@ func (l *AzureConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte
 	return io.ReadAll(downloadResponse.Body)
 }
 
-// TODO: Combine somewhere for all hooks needing ConfigLoader
-//
-//	       like preCreate?
-//		      Is currently a duplicate for  metadata.SenderManifestVerification
-//type HookConfigLoader struct {
-//	Loader validation.ConfigLoader
+// Placeholder for Azure Service Bus interaction
+//func sendServiceBusMessage(message string) error {
+//	// ... Your Azure Service Bus code to send the message ...
+//	// TODO: Maybe just message to log stream for now for local dev?
+//	return nil
 //}
 
 // TODO: Relocate in to maybe internal/hooks or internal/upload-status ?
-// func (v *HookConfigLoader) PostReceive(event handler.HookEvent) (hooks.HookResponse, error) {
-func postReceive(event handler.HookEvent) (hooks.HookResponse, error) {
+func postReceiveHook(event handler.HookEvent) (hooks.HookResponse, error) {
 	resp := hooks.HookResponse{}
 
 	// Get values from event
@@ -101,8 +99,6 @@ func postReceive(event handler.HookEvent) (hooks.HookResponse, error) {
 		" uploadOffset: ", uploadOffset,
 	)
 
-	// TODO: Add shell script logic here.-------------------------------------
-
 	// filePath := fmt.Sprintf("/tmp/testing1111.txt")
 	filePath := fmt.Sprintf("/tmp/%s.txt", uploadId)
 	firstUpdate := true
@@ -118,18 +114,15 @@ func postReceive(event handler.HookEvent) (hooks.HookResponse, error) {
 		latestOffsetBytes, err := os.ReadFile(filePath)
 		if err != nil {
 			logger.Error("[post-receive]: ERROR: Failed to read offset:", "err", err)
-			// return // Should we return error here?
 		} else {
 			logger.Info("[post-receive]: GOOD: Calling postReceive()")
-			// ./post-receive-bin --id $id --offset $offset --size $size --metadata "$metadata"
 		}
 		latestOffsetStr := string(latestOffsetBytes)
 
 		// Get file modification time
 		fileInfo, err := os.Stat(filePath)
 		if err != nil {
-			logger.Info("[post-receive]: ERROR: Failed to stat offset file:", "err", err)
-			// return // Should we return error here?
+			logger.Error("[post-receive]: ERROR: Failed to stat offset file:", "err", err)
 		}
 		lastModifiedEpoch := fileInfo.ModTime().Unix()
 
@@ -185,12 +178,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	//postReceiveHook := HookConfigLoader{
-	//	Loader: &FileConfigLoader{
-	//		FileSystem: os.DirFS(appConfig.UploadConfigPath),
-	//	},
-	//}
-
 	if appConfig.DexAzUploadConfig != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.DexAzUploadConfig)
 		if err != nil {
@@ -203,6 +190,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	}
 
 	handler.Register(tusHooks.HookPreCreate, preCreateHook.Verify)
-	handler.Register(tusHooks.HookPostReceive, postReceive)
+	handler.Register(tusHooks.HookPostReceive, postReceiveHook)
 	return handler, nil
 }
