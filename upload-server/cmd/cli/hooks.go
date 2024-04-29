@@ -168,6 +168,15 @@ func postReceive(event handler.HookEvent) (hooks.HookResponse, error) {
 
 		// TODO: Replace post-receive-bin.py Python with Go HERE
 		//     ./post-receive-bin --id $id --offset $offset --size $size --metadata "$metadata"
+		// create processPostReceive function
+		//		- get metadata/manifest from event.Upload.MetaData
+		//		- get filename from metadata/manifest
+		//		- create JSON message
+		//		- send JSON message
+		// 		- Load Service Bus connection details from environment or config
+		// 			connectionString := os.Getenv("SERVICE_BUS_CONNECTION_STRING")
+		// 			queueName := os.Getenv("QUEUE_NAME")
+
 	} else {
 		logger.Info("[post-receive]: Skipping update")
 	}
