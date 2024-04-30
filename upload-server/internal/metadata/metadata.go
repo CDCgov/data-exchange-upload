@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
@@ -246,14 +247,14 @@ type Identifiable interface {
 }
 
 type Reporter interface {
-	Publish(Identifiable) error
+	Publish(context.Context, Identifiable) error
 }
 
 type FileReporter struct {
 	Dir string
 }
 
-func (fr *FileReporter) Publish(r Identifiable) error {
+func (fr *FileReporter) Publish(ctx context.Context, r Identifiable) error {
 	if fr.Dir != "" {
 		err := os.Mkdir(fr.Dir, 0750)
 		if err != nil && !os.IsExist(err) {
@@ -267,6 +268,33 @@ func (fr *FileReporter) Publish(r Identifiable) error {
 	defer f.Close()
 	encoder := json.NewEncoder(f)
 	return encoder.Encode(r)
+}
+
+type ServiceBusReporter struct {
+	Client    *azservicebus.Client
+	QueueName string
+}
+
+func (sb *ServiceBusReporter) Publish(ctx context.Context, r Identifiable) error {
+	if sb.Client == nil {
+		return errors.New("misconfigured Service Bus Reporter, missing client")
+	}
+	sender, err := sb.Client.NewSender(sb.QueueName, nil)
+	if err != nil {
+		return err
+	}
+	defer sender.Close(ctx)
+
+	b, err := json.Marshal(r)
+	if err != nil {
+		return nil
+	}
+
+	m := &azservicebus.Message{
+		Body: b,
+	}
+
+	return sender.SendMessage(ctx, m, nil)
 }
 
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
@@ -292,7 +320,8 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	}
 
 	defer func() {
-		if err := v.Reporter.Publish(report); err != nil {
+		logger.Info("REPORT", "report", report)
+		if err := v.Reporter.Publish(event.Context, report); err != nil {
 			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid)
 		}
 	}()
@@ -301,11 +330,6 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		logger.Error("validation errors and warnings", "errors", err)
 
 		content.Issues = &ValidationError{err}
-
-		logger.Info("REPORT", "report", report)
-		if err := v.Reporter.Publish(report); err != nil {
-			logger.Info("Failed to send Report", "report", report, "reporter", v.Reporter)
-		}
 
 		if errors.Is(err, validation.ErrFailure) {
 			resp.RejectUpload = true

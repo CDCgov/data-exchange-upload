@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
@@ -81,6 +82,18 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		preCreateHook.Loader = &AzureConfigLoader{
 			Client:        client,
 			ContainerName: appConfig.AzureManifestConfigContainer,
+		}
+
+		if appConfig.ServiceBusConnectionString != "" {
+
+			sbclient, err := azservicebus.NewClientFromConnectionString(appConfig.ServiceBusConnectionString, nil)
+			if err != nil {
+				return nil, err
+			}
+			preCreateHook.Reporter = &metadata.ServiceBusReporter{
+				Client:    sbclient,
+				QueueName: appConfig.ReportQueueName,
+			}
 		}
 	}
 
