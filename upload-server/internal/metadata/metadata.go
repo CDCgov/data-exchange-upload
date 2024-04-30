@@ -142,10 +142,6 @@ func WithTimestamp(next prebuilthooks.HookHandlerFunc) prebuilthooks.HookHandler
 		manifest := event.Upload.MetaData
 		manifest["dex_ingest_datetime"] = timestamp
 
-		// Tell tus to update the file metadata with the hydrated manifest.
-		resp := hooks.HookResponse{}
-		resp.ChangeFileInfo.MetaData = manifest
-
 		return next(event)
 	}
 }
