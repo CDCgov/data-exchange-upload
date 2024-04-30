@@ -136,7 +136,13 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 	logger.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
+
+	if resp.ChangeFileInfo.MetaData != nil {
+		manifest = resp.ChangeFileInfo.MetaData
+	}
+
 	manifest["dex_ingest_datetime"] = timestamp
+	resp.ChangeFileInfo.MetaData = manifest
 
 	return resp, nil
 }
