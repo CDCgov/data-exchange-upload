@@ -1,6 +1,8 @@
 package testing
 
 import (
+	"encoding/json"
+	"io"
 	"log"
 	"net/http/httptest"
 	"os"
@@ -8,6 +10,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 )
 
 var (
@@ -17,10 +20,35 @@ var (
 func TestTus(t *testing.T) {
 	url := ts.URL
 	for name, c := range Cases {
-		if err := RunTusTestCase(url, "test/test.txt", c); err != nil {
+		tuid, err := RunTusTestCase(url, "test/test.txt", c)
+		if err != nil {
 			t.Error(name, err)
 		} else {
-			t.Log("test case", name, "passed")
+
+			if tuid != "" {
+
+				f, err := os.Open("test/reports/" + tuid)
+				if err != nil {
+					t.Error(name, tuid, err)
+				}
+
+				r := &metadata.Report{}
+				b, err := io.ReadAll(f)
+				if err != nil {
+					t.Fatal(name, tuid, err)
+				}
+
+				if err := json.Unmarshal(b, r); err != nil {
+					t.Fatal(name, tuid, err)
+				}
+				if c.err != nil {
+					if r.Content.(metadata.Content).Issues == nil {
+						t.Error("expected reported issues but got none", name, tuid, r)
+					}
+				}
+			}
+
+			t.Log("test case", name, "passed", tuid)
 		}
 	}
 }

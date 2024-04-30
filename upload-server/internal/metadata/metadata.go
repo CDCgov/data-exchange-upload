@@ -260,10 +260,11 @@ func (fr *FileReporter) Publish(r Identifiable) error {
 			return err
 		}
 	}
-	f, err := os.CreateTemp(fr.Dir, r.Identifier())
+	f, err := os.Create(fr.Dir + "/" + r.Identifier())
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	encoder := json.NewEncoder(f)
 	return encoder.Encode(r)
 }
@@ -272,6 +273,9 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
 	tuid := resp.ChangeFileInfo.ID
+	if tuid == "" {
+		return resp, errors.New("no Upload ID defined")
+	}
 
 	content := &Content{
 		SchemaVersion: "0.0.1",
