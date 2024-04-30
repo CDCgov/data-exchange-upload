@@ -112,12 +112,16 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[st
 }
 
 type Report struct {
-	UploadID        string   `json:"upload_id"`
-	StageName       string   `json:"stage_name"`
-	DataStreamID    string   `json:"data_stream_id"`
-	DataStreamRoute string   `json:"data_stream_route"`
-	ContentType     string   `json:"content_type"`
-	Content         *Content `json:"content"`
+	UploadID        string `json:"upload_id"`
+	StageName       string `json:"stage_name"`
+	DataStreamID    string `json:"data_stream_id"`
+	DataStreamRoute string `json:"data_stream_route"`
+	ContentType     string `json:"content_type"`
+	Content         any    `json:"content"`
+}
+
+func (r *Report) Identifier() string {
+	return r.UploadID
 }
 
 type Content struct {
@@ -237,22 +241,26 @@ func Uid() string {
 	return hex.EncodeToString(id)
 }
 
+type Identifiable interface {
+	Identifier() string
+}
+
 type Reporter interface {
-	Publish(*Report) error
+	Publish(Identifiable) error
 }
 
 type FileReporter struct {
 	Dir string
 }
 
-func (fr *FileReporter) Publish(r *Report) error {
+func (fr *FileReporter) Publish(r Identifiable) error {
 	if fr.Dir != "" {
 		err := os.Mkdir(fr.Dir, 0750)
 		if err != nil && !os.IsExist(err) {
 			return err
 		}
 	}
-	f, err := os.CreateTemp(fr.Dir, r.UploadID)
+	f, err := os.CreateTemp(fr.Dir, r.Identifier())
 	if err != nil {
 		return err
 	}
@@ -263,22 +271,22 @@ func (fr *FileReporter) Publish(r *Report) error {
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
+	tuid := resp.ChangeFileInfo.ID
 
-	tuid := Uid()
-	resp.ChangeFileInfo.ID = tuid
+	content := &Content{
+		SchemaVersion: "0.0.1",
+		SchemaName:    "dex-metadata-verify",
+		Filename:      getFilename(manifest),
+		Metadata:      manifest,
+	}
 
-	logger.Info("Generated UUID", "UUID", tuid)
 	report := &Report{
 		UploadID:        tuid,
 		DataStreamID:    getDataStreamID(manifest),
 		DataStreamRoute: getDataStreamRoute(manifest),
-		Content: &Content{
-			SchemaVersion: "0.0.1",
-			SchemaName:    "dex-metadata-verify",
-			Filename:      getFilename(manifest),
-			Metadata:      manifest,
-		},
+		Content:         content,
 	}
+
 	defer func() {
 		if err := v.Reporter.Publish(report); err != nil {
 			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid)
@@ -288,7 +296,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	if err := v.verify(event.Context, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
-		report.Content.Issues = &ValidationError{err}
+		content.Issues = &ValidationError{err}
 
 		logger.Info("REPORT", "report", report)
 		if err := v.Reporter.Publish(report); err != nil {
@@ -307,6 +315,17 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	}
 
 	return resp, nil
+}
+
+func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+
+	tuid := Uid()
+	resp.ChangeFileInfo.ID = tuid
+
+	logger.Info("Generated UUID", "UUID", tuid)
+
+	return resp, nil
+
 }
 
 func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
