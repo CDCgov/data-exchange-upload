@@ -134,15 +134,13 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 	return resp, nil
 }
 
-// type HandlerFunc func(event handler.HookEvent) (hooks.HookResponse, error)
-
 func WithTimestamp(next prebuilthooks.HookHandlerFunc) prebuilthooks.HookHandlerFunc {
 	return func(event handler.HookEvent) (hooks.HookResponse, error) {
 		timestamp := time.Now().Format(time.RFC3339)
 		logger.Info("adding global timestamp", "timestamp", timestamp)
 
 		manifest := event.Upload.MetaData
-		manifest["global_timestamp"] = timestamp
+		manifest["dex_ingest_datetime"] = timestamp
 
 		// Tell tus to update the file metadata with the hydrated manifest.
 		resp := hooks.HookResponse{}
