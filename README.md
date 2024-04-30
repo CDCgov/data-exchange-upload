@@ -58,6 +58,15 @@ and reference implementation: [https://github.com/tus/tusd](https://github.com/t
 Example clients, for back-end or browser (front-end), to upload files:
 [https://github.com/CDCgov/data-exchange-api-examples](https://github.com/CDCgov/data-exchange-api-examples)
 
+## Future Improvements
+
+- Rework of the tus service to use Tus v2 as a library within a GoLang service
+- Simplification of Tus hooks
+- Simplification of PS API integration to only focus on reporting
+- Improved parallel upload experience with a distributed file lock
+- Implementation of Command/Event architecture
+- Deployment to Kubernetes instead of Azure App Service
+
 ## Public Domain Standard Notice
 
 This repository constitutes a work of the United States Government and is not
