@@ -31,6 +31,12 @@ go test -coverprofile=c.out ./...
 go tool cover -html=c.out
 ```
 
+### Running locally with Azurite
+
+This method of running locally let's you simulate a connection to an Azure data store.  It uses a tool called Azurite, which simulates a storage account on your local machine.
+
+To get started, follow [these docs](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=npm%2Cblob-storage) to get Azurite installed and running.  Next, you'll need to set up the upload configs whithin the simulator's blob storage.  You can do this with the Azure CLI, but probably the easiest way to do this is with the Azure Storage Explorer.  Get this tool installed on your machine.  Once installed, sign in to your Azure -SU account and connect to Azurite.  Next, create a new blob container called `upload-configs`.  Finally, upload the `v1` and `v2` folders within the `upload-configs` directory of this repo to this container.
+
 ## Configuration
 
 Configuration of the `upload-server` is managed through environment variables. As a convenience these can also be set in a file
@@ -38,7 +44,7 @@ and passed as a flag :`go run ./cmd/main.go -appconf <path to conf file>` or `up
 
 By default the `upload-server` is set to run locally using the filesystem and an in memory lock mechanism, so for most local development it is sufficient rely on the defaults.
 
-An example set of environment variables that could be exported to connect to a locally running azurite (such as the one in the docker-compose.yml file)
+An example set of environment variables that could be exported to connect to a locally running azurite (such as the one in the docker-compose.yml file).  You can find Azurite's default storage account name and key here: [https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=npm%2Cblob-storage#well-known-storage-account-and-key](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=npm%2Cblob-storage#well-known-storage-account-and-key).
 
 ```
 # ./.env

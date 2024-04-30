@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
@@ -259,9 +260,7 @@ func (fr *FileReporter) Publish(r *Report) error {
 	return encoder.Encode(r)
 }
 
-func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.HookResponse, error) {
-	resp := hooks.HookResponse{}
-
+func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
 
@@ -306,6 +305,22 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 		}
 		return resp, err
 	}
+
+	return resp, nil
+}
+
+func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	timestamp := time.Now().Format(time.RFC3339)
+	logger.Info("adding global timestamp", "timestamp", timestamp)
+
+	manifest := event.Upload.MetaData
+
+	if resp.ChangeFileInfo.MetaData != nil {
+		manifest = resp.ChangeFileInfo.MetaData
+	}
+
+	manifest["dex_ingest_datetime"] = timestamp
+	resp.ChangeFileInfo.MetaData = manifest
 
 	return resp, nil
 }

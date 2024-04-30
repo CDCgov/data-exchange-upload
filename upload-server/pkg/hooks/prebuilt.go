@@ -6,25 +6,42 @@ import (
 )
 
 type PrebuiltHook struct {
-	hookMapping map[tusHooks.HookType]func(handler.HookEvent) (tusHooks.HookResponse, error)
+	hookMapping map[tusHooks.HookType][]HookHandlerFunc
 }
+
+type HookHandlerFunc func(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error)
 
 func (ph *PrebuiltHook) Setup() error {
 	return nil
 }
 
 func (ph *PrebuiltHook) InvokeHook(req tusHooks.HookRequest) (res tusHooks.HookResponse, err error) {
-	hook, ok := ph.hookMapping[req.Type]
+	hookFuncs, ok := ph.hookMapping[req.Type]
 	if !ok {
 		// nothing registered
 		return res, nil
 	}
-	return hook(req.Event)
+
+	resp := tusHooks.HookResponse{}
+	for _, hf := range hookFuncs {
+		resp, err = hf(req.Event, resp)
+		// Return early if we got an error.
+		if err != nil {
+			return resp, err
+		}
+
+		// Return early if a middleware function set a response.
+		if resp.HTTPResponse.StatusCode != 0 {
+			return resp, nil
+		}
+	}
+
+	return resp, nil
 }
 
-func (ph *PrebuiltHook) Register(t tusHooks.HookType, hook func(handler.HookEvent) (tusHooks.HookResponse, error)) {
+func (ph *PrebuiltHook) Register(t tusHooks.HookType, hookFuncs ...HookHandlerFunc) {
 	if ph.hookMapping == nil {
-		ph.hookMapping = map[tusHooks.HookType]func(handler.HookEvent) (tusHooks.HookResponse, error){}
+		ph.hookMapping = map[tusHooks.HookType][]HookHandlerFunc{}
 	}
-	ph.hookMapping[t] = hook
+	ph.hookMapping[t] = hookFuncs
 }

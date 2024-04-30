@@ -15,7 +15,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
-	"github.com/tus/tusd/v2/pkg/handler"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
@@ -27,15 +26,6 @@ func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error)
 		}, nil
 	}
 	return PrebuiltHooks(appConfig)
-}
-
-func HookHandlerFunc(f func(handler.HookEvent) (handler.HTTPResponse, handler.FileInfoChanges, error)) func(handler.HookEvent) (tusHooks.HookResponse, error) {
-	return func(e handler.HookEvent) (res tusHooks.HookResponse, err error) {
-		resp, changes, err := f(e)
-		res.HTTPResponse = resp
-		res.ChangeFileInfo = changes
-		return res, err
-	}
 }
 
 type FileConfigLoader struct {
@@ -94,6 +84,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		}
 	}
 
-	handler.Register(tusHooks.HookPreCreate, preCreateHook.Verify)
+	handler.Register(tusHooks.HookPreCreate, metadata.WithTimestamp, preCreateHook.Verify)
 	return handler, nil
 }
