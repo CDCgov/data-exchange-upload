@@ -193,7 +193,7 @@ func RunTusTestCase(url string, testFile string, c testCase) error {
 	}
 
 	// check hydrated manifest fields
-	_, ok = infoJson.Manifest["global_timestamp"]
+	_, ok = infoJson.Manifest["dex_ingest_datetime"]
 	if !ok {
 		return fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
 	}
