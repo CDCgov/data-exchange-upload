@@ -287,7 +287,7 @@ func (sb *ServiceBusReporter) Publish(ctx context.Context, r Identifiable) error
 
 	b, err := json.Marshal(r)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	m := &azservicebus.Message{
@@ -316,6 +316,8 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		UploadID:        tuid,
 		DataStreamID:    getDataStreamID(manifest),
 		DataStreamRoute: getDataStreamRoute(manifest),
+		StageName:       "dex-metadata-verify",
+		ContentType:     "json",
 		Content:         content,
 	}
 
