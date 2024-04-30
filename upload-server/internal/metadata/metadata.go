@@ -16,7 +16,6 @@ import (
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
-	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -92,9 +91,7 @@ type SenderManifestVerification struct {
 	Loader validation.ConfigLoader
 }
 
-func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.HookResponse, error) {
-	resp := hooks.HookResponse{}
-
+func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
 
@@ -134,14 +131,12 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent) (hooks.Hook
 	return resp, nil
 }
 
-func WithTimestamp(next prebuilthooks.HookHandlerFunc) prebuilthooks.HookHandlerFunc {
-	return func(event handler.HookEvent) (hooks.HookResponse, error) {
-		timestamp := time.Now().Format(time.RFC3339)
-		logger.Info("adding global timestamp", "timestamp", timestamp)
+func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	timestamp := time.Now().Format(time.RFC3339)
+	logger.Info("adding global timestamp", "timestamp", timestamp)
 
-		manifest := event.Upload.MetaData
-		manifest["dex_ingest_datetime"] = timestamp
+	manifest := event.Upload.MetaData
+	manifest["dex_ingest_datetime"] = timestamp
 
-		return next(event)
-	}
+	return resp, nil
 }

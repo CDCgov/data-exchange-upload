@@ -80,6 +80,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		}
 	}
 
-	handler.Register(tusHooks.HookPreCreate, metadata.WithTimestamp(preCreateHook.Verify))
+	handler.Register(tusHooks.HookPreCreate, metadata.WithTimestamp, preCreateHook.Verify)
 	return handler, nil
 }
