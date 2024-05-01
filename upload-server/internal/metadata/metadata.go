@@ -195,7 +195,7 @@ func (v *ValidationError) MarshalJSON() ([]byte, error) {
             },
 */
 
-func getFilename(manifest map[string]string) string {
+func GetFilename(manifest map[string]string) string {
 
 	keys := []string{
 		"filename",
@@ -308,7 +308,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	content := &Content{
 		SchemaVersion: "0.0.1",
 		SchemaName:    "dex-metadata-verify",
-		Filename:      getFilename(manifest),
+		Filename:      GetFilename(manifest),
 		Metadata:      manifest,
 	}
 
