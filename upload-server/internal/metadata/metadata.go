@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -195,7 +196,7 @@ func (v *ValidationError) MarshalJSON() ([]byte, error) {
             },
 */
 
-func GetFilename(manifest map[string]string) string {
+func getFilename(manifest map[string]string) string {
 
 	keys := []string{
 		"filename",
@@ -311,7 +312,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	content := &Content{
 		SchemaVersion: "0.0.1",
 		SchemaName:    "dex-metadata-verify",
-		Filename:      GetFilename(manifest),
+		Filename:      getFilename(manifest),
 		Metadata:      manifest,
 	}
 
@@ -375,4 +376,77 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 	resp.ChangeFileInfo.MetaData = manifest
 
 	return resp, nil
+}
+
+type HookEventHandler struct {
+	Reporter Reporter
+}
+
+func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, manifest map[string]string) error {
+
+	logger.Info("go version", "version", runtime.Version())
+	logger.Info("metadata values", "manifest", manifest)
+
+	filename := getFilename(manifest)
+
+	logger.Info("file info", "filename", filename)
+
+	//	"event_type": metadata["meta_ext_event"],
+	//"data_stream_route": metadata["data_stream_route"],
+
+	//    logger.info('filename = {0}, metadata_version = {1}'.format(filename, metadata_version))
+
+	//    logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
+
+	//    json_string = json.dumps(json_data)
+
+	//    logger.info('JSON MESSAGE: %s', json_string)
+
+	//    await send_message(json_string)
+
+	//except Exception as e:
+	//    logger.error("POST RECEIVE HOOK - exiting post_receive with error: %s", str(e), exc_info=True)
+	//    sys.exit(1)
+	return nil
+}
+
+// TODO: Relocate in to maybe internal/hooks or internal/upload-status ?
+func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+
+	logger.Info("------resp-------", "resp", resp)
+
+	// Get values from event
+	uploadId := event.Upload.ID
+	uploadOffset := event.Upload.Offset
+	uploadSize := event.Upload.Size
+	uploadMetadata := event.Upload.MetaData
+
+	logger.Info(
+		"[PostReceive]: event.Upload values",
+		"uploadMetadata", uploadMetadata,
+		"uploadId", uploadId,
+		"uploadSize", uploadSize,
+		"uploadOffset", uploadOffset,
+	)
+
+	if err := v.postReceive(uploadId, uploadOffset, uploadSize, uploadMetadata); err != nil {
+		//logger.Error("postReceive errors and warnings", "errors", err)
+		logger.Error("postReceive errors and warnings", "err", err)
+
+		//		content.Issues = &ValidationError{err}
+
+		//		if errors.Is(err, validation.ErrFailure) {
+		//			resp.RejectUpload = true
+		//			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
+		//				StatusCode: http.StatusBadRequest,
+		//				Body:       err.Error(),
+		//			})
+		//			return resp, nil
+		//		}
+		//		return resp, err
+
+	}
+
+	return resp, nil
+
 }
