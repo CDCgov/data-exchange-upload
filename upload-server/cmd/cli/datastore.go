@@ -27,9 +27,6 @@ func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Chec
 		accountName := appConfig.AzureConnection.StorageName
 
 		azureEndpoint := appConfig.AzureConnection.ContainerEndpoint
-		if azureEndpoint == "" {
-			azureEndpoint = fmt.Sprintf("https://%s.blob.core.windows.net", accountName)
-		}
 		logger.Info("Using Azure endpoint", "endpoint", azureEndpoint)
 
 		azConfig := &azurestore.AzConfig{
