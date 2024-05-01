@@ -13,6 +13,7 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -131,7 +132,12 @@ type Content struct {
 	SchemaName    string `json:"schema_name"`
 	Filename      string `json:"filename"`
 	Metadata      any    `json:"metadata"`
-	Issues        error  `json:"issues"`
+	// Additional postReceive values:
+	Tguid  string `json:"tguid"`
+	Offset string `json:"offset"`
+	Size   string `json:"size"`
+
+	Issues error `json:"issues"`
 }
 
 type ValidationError struct {
@@ -391,22 +397,51 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 
 	logger.Info("file info", "filename", filename)
 
-	//	"event_type": metadata["meta_ext_event"],
-	//"data_stream_route": metadata["data_stream_route"],
+	content := &Content{
+		SchemaVersion: "0.0.1",
+		SchemaName:    "dex-metadata-verify",
+		Filename:      getFilename(manifest),
+		Metadata:      manifest,
+		Tguid:         tguid,
+		Offset:        strconv.FormatInt(offset, 10),
+		Size:          strconv.FormatInt(size, 10),
+	}
 
-	//    logger.info('filename = {0}, metadata_version = {1}'.format(filename, metadata_version))
+	report := &Report{
+		UploadID:        tguid,
+		DataStreamID:    getDataStreamID(manifest),
+		DataStreamRoute: getDataStreamRoute(manifest),
+		StageName:       "dex-metadata-verify",
+		ContentType:     "json",
+		Content:         content,
+	}
+	// HERE
 
-	//    logger.info('post_receive_bin: {0}, offset = {1}'.format(datetime.datetime.now(), offset))
+	logger.Info("report", "report", report)
 
-	//    json_string = json.dumps(json_data)
+	//	defer func() {
+	//		logger.Info("REPORT", "report", report)
+	//		if err := v.Reporter.Publish(event.Context, report); err != nil {
+	//			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid, "err", err)
+	//		}
+	//	}()
+	//
+	//	if err := v.verify(event.Context, manifest); err != nil {
+	//		logger.Error("validation errors and warnings", "errors", err)
+	//
+	//		content.Issues = &ValidationError{err}
+	//
+	//		if errors.Is(err, validation.ErrFailure) {
+	//			resp.RejectUpload = true
+	//			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
+	//				StatusCode: http.StatusBadRequest,
+	//				Body:       err.Error(),
+	//			})
+	//			return resp, nil
+	//		}
+	//		return resp, err
+	//	}
 
-	//    logger.info('JSON MESSAGE: %s', json_string)
-
-	//    await send_message(json_string)
-
-	//except Exception as e:
-	//    logger.error("POST RECEIVE HOOK - exiting post_receive with error: %s", str(e), exc_info=True)
-	//    sys.exit(1)
 	return nil
 }
 
