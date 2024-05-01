@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"os"
 
@@ -18,6 +19,7 @@ import (
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/hooks/file"
+	"nhooyr.io/websocket"
 )
 
 func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
@@ -85,11 +87,23 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		}
 
 		if appConfig.ServiceBusConnectionString != "" {
+			// Standard boilerplate for a websocket handler.
+			newWebSocketConnFn := func(ctx context.Context, args azservicebus.NewWebSocketConnArgs) (net.Conn, error) {
+				opts := &websocket.DialOptions{Subprotocols: []string{"amqp"}}
+				wssConn, _, err := websocket.Dial(ctx, args.Host, opts)
+				if err != nil {
+					return nil, err
+				}
 
-			sbclient, err := azservicebus.NewClientFromConnectionString(appConfig.ServiceBusConnectionString, nil)
+				return websocket.NetConn(ctx, wssConn, websocket.MessageBinary), nil
+			}
+			sbclient, err := azservicebus.NewClientFromConnectionString(appConfig.ServiceBusConnectionString, &azservicebus.ClientOptions{
+				NewWebSocketConn: newWebSocketConnFn, // Setting this option so messages are sent to port 443.
+			})
 			if err != nil {
 				return nil, err
 			}
+
 			preCreateHook.Reporter = &metadata.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,

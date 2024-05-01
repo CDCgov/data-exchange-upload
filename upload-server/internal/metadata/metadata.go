@@ -324,7 +324,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	defer func() {
 		logger.Info("REPORT", "report", report)
 		if err := v.Reporter.Publish(event.Context, report); err != nil {
-			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid)
+			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid, "err", err)
 		}
 	}()
 
