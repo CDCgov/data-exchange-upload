@@ -300,7 +300,10 @@ func (sb *ServiceBusReporter) Publish(ctx context.Context, r Identifiable) error
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
-	tuid := resp.ChangeFileInfo.ID
+	tuid := event.Upload.ID
+	if resp.ChangeFileInfo.ID != "" {
+		tuid = resp.ChangeFileInfo.ID
+	}
 	if tuid == "" {
 		return resp, errors.New("no Upload ID defined")
 	}
