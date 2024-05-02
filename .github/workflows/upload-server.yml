@@ -12,6 +12,6 @@ jobs:
   remote-trigger:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
-      WORKFLOW: upload-v2.yml
+      WORKFLOW: upload-server.yml
     secrets: inherit
 

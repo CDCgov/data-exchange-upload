@@ -2,6 +2,7 @@ package cli
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
@@ -69,7 +70,10 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	// --------------------------------------------------------------
 	// Route for TUSD to start listening on and accept http request
 	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)
-	http.Handle(appConfig.TusdHandlerBasePath, http.StripPrefix(appConfig.TusdHandlerBasePath, handlerTusd))
+	pathWithoutSlash := strings.TrimSuffix(appConfig.TusdHandlerBasePath, "/")
+	pathWithSlash := pathWithoutSlash + "/"
+	http.Handle(pathWithoutSlash, http.StripPrefix(pathWithoutSlash, handlerTusd))
+	http.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
 
 	// initialize and route handler for DEX
 	handlerDex := handlerdex.New(appConfig, psSender)
