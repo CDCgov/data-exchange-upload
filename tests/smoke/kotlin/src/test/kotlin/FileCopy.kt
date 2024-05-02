@@ -54,7 +54,7 @@ class FileCopy {
 
         uploadConfigBlobClient = dexBlobClient
             .getBlobContainerClient(Constants.UPLOAD_CONFIG_CONTAINER_NAME)
-            .getBlobClient("${USE_CASE}.json")
+            .getBlobClient("v1/${USE_CASE}.json")
         uploadConfig = ObjectMapper().readValue(uploadConfigBlobClient.downloadContent().toString())
 
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
