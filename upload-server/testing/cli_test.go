@@ -42,7 +42,7 @@ func TestTus(t *testing.T) {
 					t.Fatal(name, tuid, err)
 				}
 				if c.err != nil {
-					if r.Content.(metadata.Content).Issues == nil {
+					if r.Content.(metadata.MetaDataVerifyContent).Issues == nil {
 						t.Error("expected reported issues but got none", name, tuid, r)
 					}
 				}
