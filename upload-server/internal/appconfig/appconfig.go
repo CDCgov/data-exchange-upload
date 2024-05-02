@@ -59,7 +59,7 @@ type AppConfig struct {
 	TusRedisLockURI              string `env:"REDIS_CONNECTION_STRING"`
 	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
 	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
-	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus_prefix"`
+	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
