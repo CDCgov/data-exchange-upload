@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"reflect"
@@ -117,6 +118,11 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 	if err := envconfig.Process(ctx, &ac); err != nil {
 		return AppConfig{}, err
 	} // .if
+	if ac.AzureConnection != nil {
+		if ac.AzureConnection.ContainerEndpoint == "" {
+			ac.AzureConnection.ContainerEndpoint = fmt.Sprintf("https://%s.blob.core.windows.net", ac.AzureConnection.StorageName)
+		}
+	}
 	LoadedConfig = &ac
 	return ac, nil
 } // .ParseConfig
