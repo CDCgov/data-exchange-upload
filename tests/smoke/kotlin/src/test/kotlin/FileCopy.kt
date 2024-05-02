@@ -2,8 +2,6 @@ import auth.AuthClient
 import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobContainerClient
-import com.azure.storage.blob.models.BlobListDetails
-import com.azure.storage.blob.models.ListBlobsOptions
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import model.UploadConfig
@@ -14,8 +12,6 @@ import org.testng.TestNGException
 import org.testng.annotations.*
 import tus.UploadClient
 import util.*
-import java.time.Duration
-import kotlin.math.exp
 
 @Listeners(UploadIdTestListener::class)
 @Test()
