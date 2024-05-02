@@ -54,7 +54,7 @@ class MetadataVerify {
     @Test(
         groups = [Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
-        expectedExceptionsMessageRegExp = ".*Missing one or more required metadata fields.*")
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*")
     fun shouldReturnErrorWhenDestinationIDNotProvided() {
         uploadClient.uploadFile(testFile, metadataNoDestId)
     }
@@ -62,7 +62,7 @@ class MetadataVerify {
     @Test(
         groups = [Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
-        expectedExceptionsMessageRegExp = ".*Missing one or more required metadata fields.*"
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*"
     )
     fun shouldReturnErrorWhenEventNotProvided() {
         uploadClient.uploadFile(testFile, metadataNoEvent)
@@ -71,7 +71,7 @@ class MetadataVerify {
     @Test(groups = [
         Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
-        expectedExceptionsMessageRegExp = ".*Missing required metadata .*filename.*"
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*field filename was missing"
     )
     fun shouldReturnErrorWhenFilenameNotProvided() {
         val metadata = hashMapOf(
@@ -86,7 +86,7 @@ class MetadataVerify {
     @Test(groups = [
         Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
-        expectedExceptionsMessageRegExp = ".*Filename .* contains invalid characters.*"
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*invalid character found.*"
     )
     fun shouldReturnErrorWhenFilenameContainsInvalidChars() {
         uploadClient.uploadFile(testFile, metadataInvalidFilename)
