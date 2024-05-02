@@ -2,7 +2,7 @@ import auth.AuthClient
 import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobContainerClient
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import model.UploadConfig
 import org.joda.time.DateTime
@@ -55,7 +55,7 @@ class FileCopy {
         uploadConfigBlobClient = dexBlobClient
             .getBlobContainerClient(Constants.UPLOAD_CONFIG_CONTAINER_NAME)
             .getBlobClient("v1/${USE_CASE}.json")
-        uploadConfig = ObjectMapper().readValue(uploadConfigBlobClient.downloadContent().toString())
+        uploadConfig = jacksonObjectMapper().readValue(uploadConfigBlobClient.downloadContent().toString())
 
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
         routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
@@ -90,11 +90,16 @@ class FileCopy {
 
         if (uploadConfig.copyConfig.targets.contains("edav")) {
             expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
-        } else if (uploadConfig.copyConfig.targets.contains("routing")) {
-            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
+
+            Assert.assertNotNull(expectedBlobClient)
+            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
         }
 
-        Assert.assertNotNull(expectedBlobClient)
-        Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
+        if (uploadConfig.copyConfig.targets.contains("routing")) {
+            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
+
+            Assert.assertNotNull(expectedBlobClient)
+            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
+        }
     }
 }
