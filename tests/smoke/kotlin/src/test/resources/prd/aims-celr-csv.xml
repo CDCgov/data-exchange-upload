@@ -7,11 +7,7 @@
         <parameter name="SENDER_MANIFEST_NO_EVENT" value="no-event.properties" />
         <parameter name="SENDER_MANIFEST_INVALID_FILENAME" value="invalid-filename.properties" />
         <classes>
-            <class name="FileCopy">
-                <methods>
-                    <exclude name="shouldCopyToEdavContainer" />
-                </methods>
-            </class>
+            <class name="FileCopy" />
         </classes>
     </test>
     <test name="Metadata Verify">
