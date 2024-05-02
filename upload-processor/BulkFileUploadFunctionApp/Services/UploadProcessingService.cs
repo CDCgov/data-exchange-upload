@@ -88,6 +88,10 @@ namespace BulkFileUploadFunctionApp.Services
                 // Get metadata
                 TusInfoFile tusInfoFile = await GetTusInfoFile(tusPayloadFilename);
                 uploadId = tusInfoFile.ID;
+                if (uploadId == null)
+                {
+                    throw new TusInfoFileException("received info file without an upload ID");
+                }
 
                 // Get trace
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
@@ -121,10 +125,11 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Determine the folder path from the upload configuration.
                 var folderPath = GetFolderPath(uploadConfig, dateTimeNow);
+                var fileNameSuffix = GetFilenameSuffix(uploadConfig, uploadId);
                 var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
                 var fileExtension = Path.GetExtension(filename);
             
-                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}_{uploadId}{fileExtension}";
+                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{fileNameSuffix}{fileExtension}";
 
                 // Get copy targets
                 List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
@@ -377,6 +382,18 @@ namespace BulkFileUploadFunctionApp.Services
 
                 throw ex;
             }
+        }
+
+        private string GetFilenameSuffix(UploadConfig uploadConfig, string uploadId)
+        {
+            string suffix = string.Empty; // Default to no suffix.
+
+            if (uploadConfig.CopyConfig?.FilenameSuffix == CopyConfig.FILENAME_SIFFIX_UID)
+            {
+                suffix = uploadId;
+            }
+
+            return suffix;
         }
 
         private async Task<TusInfoFile> GetTusInfoFile(string tusPayloadFilename)

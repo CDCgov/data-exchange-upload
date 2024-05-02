@@ -1,8 +1,10 @@
 import auth.AuthClient
 import com.azure.identity.ClientSecretCredentialBuilder
+import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobContainerClient
-import com.azure.storage.blob.models.BlobListDetails
-import com.azure.storage.blob.models.ListBlobsOptions
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import model.UploadConfig
 import org.joda.time.DateTime
 import org.testng.Assert
 import org.testng.ITestContext
@@ -10,7 +12,6 @@ import org.testng.TestNGException
 import org.testng.annotations.*
 import tus.UploadClient
 import util.*
-import java.time.Duration
 
 @Listeners(UploadIdTestListener::class)
 @Test()
@@ -26,6 +27,8 @@ class FileCopy {
             .build())
     private val routingBlobClient = Azure.getBlobServiceClient(EnvConfig.ROUTING_STORAGE_CONNECTION_STRING)
     private lateinit var bulkUploadsContainerClient: BlobContainerClient
+    private lateinit var uploadConfigBlobClient: BlobClient
+    private lateinit var uploadConfig: UploadConfig
     private lateinit var edavContainerClient: BlobContainerClient
     private lateinit var routingContainerClient: BlobContainerClient
     private lateinit var uploadClient: UploadClient
@@ -48,6 +51,12 @@ class FileCopy {
         val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
+
+        uploadConfigBlobClient = dexBlobClient
+            .getBlobContainerClient(Constants.UPLOAD_CONFIG_CONTAINER_NAME)
+            .getBlobClient("${USE_CASE}.json")
+        uploadConfig = ObjectMapper().readValue(uploadConfigBlobClient.downloadContent().toString())
+
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
         routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
         uploadId = uploadClient.uploadFile(testFile, metadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
@@ -74,20 +83,18 @@ class FileCopy {
     }
 
     @Test(groups = [Constants.Groups.FILE_COPY])
-    fun shouldCopyToEdavContainer() {
-        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime.now(), useCase)}/${testFile.nameWithoutExtension}_${uploadId}${testFile.extension}"
-        val edavUploadBlob = edavContainerClient.getBlobClient(expectedFilename)
+    fun shouldCopyToDestinationContainers() {
+        val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
+        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime.now(), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
+        var expectedBlobClient: BlobClient? = null
 
-        Assert.assertNotNull(edavUploadBlob)
-        Assert.assertEquals(edavUploadBlob.properties.blobSize, testFile.length())
-    }
+        if (uploadConfig.copyConfig.targets.contains("edav")) {
+            expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
+        } else if (uploadConfig.copyConfig.targets.contains("routing")) {
+            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
+        }
 
-    @Test(groups = [Constants.Groups.FILE_COPY])
-    fun shouldCopyToRoutingContainer() {
-        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime.now(), useCase)}/${testFile.nameWithoutExtension}_${uploadId}${testFile.extension}"
-        val routingUploadBlob = edavContainerClient.getBlobClient(expectedFilename)
-
-        Assert.assertNotNull(routingUploadBlob)
-        Assert.assertEquals(routingUploadBlob.properties.blobSize, testFile.length())
+        Assert.assertNotNull(expectedBlobClient)
+        Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
     }
 }

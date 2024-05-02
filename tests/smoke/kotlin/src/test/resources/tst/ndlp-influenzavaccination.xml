@@ -13,11 +13,7 @@
     <test name="File Copy">
         <parameter name="SENDER_MANIFEST" value="ndlp-influenzavaccination.properties"/>
         <classes>
-            <class name="FileCopy">
-                <methods>
-                    <exclude name="shouldCopyToRoutingContainer" />
-                </methods>
-            </class>
+            <class name="FileCopy" />
         </classes>
     </test>
     <test name="Proc Stat">

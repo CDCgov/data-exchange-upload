@@ -5,7 +5,7 @@
 			{
 				"field_name": "sender_id",
 				"required": true,
-                "allowed_values": [
+				"allowed_values": [
 					"APHL"
 				],
 				"description": "This field is the identifier for the sender of the data."
@@ -13,13 +13,13 @@
 			{
 				"field_name": "data_producer_id",
 				"required": false,
-                "allowed_values": null,
+				"allowed_values": null,
 				"description": "This field is the identifier for the data producer."
 			},
 			{
 				"field_name": "jurisdiction",
 				"required": false,
-                "allowed_values": null,
+				"allowed_values": null,
 				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
 			},
 			{
@@ -30,7 +30,7 @@
 			{
 				"field_name": "data_stream_id",
 				"required": true,
-                "allowed_values": [
+				"allowed_values": [
 					"eicr"
 				],
 				"description": "This field is the identifier for the data stream."
@@ -38,9 +38,9 @@
 			{
 				"field_name": "data_stream_route",
 				"required": true,
-                "allowed_values": [
+				"allowed_values": [
 					"fhir"
-				],				
+				],
 				"description": "This recieved is the route of the data stream."
 			},
 			{
@@ -76,10 +76,11 @@
 		]
 	},
 	"copy_config": {
+		"filename_suffix": "upload_id",
 		"folder_structure": "date_YYYY_MM_DD",
 		"targets": [
 			"routing",
-            "edav"
+			"edav"
 		]
 	}
 }

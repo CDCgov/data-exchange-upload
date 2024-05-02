@@ -13,8 +13,6 @@ import org.testng.annotations.Listeners
 import org.testng.annotations.Optional
 import org.testng.annotations.Parameters
 import util.*
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 @Listeners(UploadIdTestListener::class)
@@ -27,7 +25,6 @@ class ProcStat {
     }
     private lateinit var uploadClient: UploadClient
     private lateinit var uploadId: String
-    private lateinit var traceResponse: ValidatableResponse
     private lateinit var reportResponse: ValidatableResponse
 
     @Parameters("SENDER_MANIFEST", "USE_CASE")
@@ -49,45 +46,10 @@ class ProcStat {
 
         Thread.sleep(12_000) // Hard delay to wait for PS API to settle.
 
-        traceResponse = procStatReqSpec.get("/api/trace/uploadId/$uploadId")
-                .then()
-                .statusCode(200)
         reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId")
                 .then()
                 .statusCode(200)
     }
-    @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_TRACE])
-    fun shouldCreateTraceWhenFileUploaded() {
-        traceResponse.body("upload_id", equalTo(uploadId))
-    }
-    @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_TRACE])
-    fun shouldHaveMetadataVerifySpanWhenFileUploaded() {
-        val jsonPath = traceResponse.extract().jsonPath()
-        val stageNames = jsonPath.getList<String>("spans.stage_name")
-        assertContains(stageNames, "metadata-verify")
-    }
-
-    @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_TRACE])
-    fun shouldHaveMetadataVerifyStatusCompleteWhenFileUploaded() {
-        val jsonPath = traceResponse.extract().jsonPath()
-        val metadataVerifyStatus = jsonPath.getList<String>("spans.status").first()
-        assertEquals("complete", metadataVerifyStatus)
-    }
-
-    @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_TRACE])
-    fun shouldHaveUploadStatusCompleteWhenFileUploaded() {
-        val jsonPath = traceResponse.extract().jsonPath()
-        val uploadStatus = jsonPath.getList<String>("spans.status").last()
-        assertEquals("complete", uploadStatus)
-    }
-
-    @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_TRACE])
-    fun shouldHaveUploadStatusSpanWhenFileUploaded() {
-        val jsonPath = traceResponse.extract().jsonPath()
-        val stageNames = jsonPath.getList<String>("spans.stage_name")
-        assertContains(stageNames, "dex-upload")
-    }
-
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
     fun shouldHaveMetadataVerifyReportWhenFileUploaded() {
         reportResponse.

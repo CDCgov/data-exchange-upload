@@ -4,11 +4,7 @@
     <test name="File Copy">
         <parameter name="SENDER_MANIFEST" value="aims-celr-csv.properties"/>
         <classes>
-            <class name="FileCopy">
-                <methods>
-                    <exclude name="shouldCopyToEdavContainer" />
-                </methods>
-            </class>
+            <class name="FileCopy" />
         </classes>
     </test>
     <test name="Metadata Verify">

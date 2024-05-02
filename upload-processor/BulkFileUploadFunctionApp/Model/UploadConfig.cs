@@ -13,6 +13,7 @@ namespace BulkFileUploadFunctionApp.Model
             MetadataConfig = null,
             CopyConfig = new CopyConfig()
             {
+                FilenameSuffix = CopyConfig.FILENAME_SUFFIX_NONE,
                 FolderStructure = "date_YYYY_MM_DD",
                 TargetEnums = new List<CopyTargetsEnum> { CopyTargetsEnum.edav, CopyTargetsEnum.routing }
             },
