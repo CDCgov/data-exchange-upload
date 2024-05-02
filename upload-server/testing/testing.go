@@ -123,6 +123,7 @@ var Cases = map[string]testCase{
 }
 
 func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
+	var tuid string
 	f, err := os.Open(testFile)
 
 	if err != nil {
@@ -130,73 +131,76 @@ func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
 	}
 
 	defer f.Close()
+	paths := []string{"/files/", "/files"}
 
-	// create the tus client.
-	client, err := tus.NewClient(url+"/files/", nil)
-	if err != nil {
-		return "", fmt.Errorf("failed to create test client %w", err)
-	}
-
-	fi, err := f.Stat()
-	if err != nil {
-		return "", fmt.Errorf("failed to stat test file %w", err)
-	}
-
-	fingerprint := fmt.Sprintf("%s-%d-%s", fi.Name(), fi.Size(), fi.ModTime())
-	c.metadata["filename"] = fi.Name()
-
-	// create an upload from a file.
-	upload := tus.NewUpload(f, fi.Size(), c.metadata, fingerprint)
-
-	// create the uploader.
-	uploader, err := client.CreateUpload(upload)
-	if c.err != nil {
-		if err == nil || c.err.Error() != err.Error() {
-			return "", fmt.Errorf("error missmatch; got: %w wanted: %w", err, c.err)
+	for _, path := range paths {
+		// create the tus client.
+		client, err := tus.NewClient(url+path, nil)
+		if err != nil {
+			return "", fmt.Errorf("failed to create test client %w", err)
 		}
-		return "", nil
-	}
 
-	if err != nil || uploader == nil {
-		tErr, ok := err.(tus.ClientError)
-		if ok {
-			return "", fmt.Errorf("got a nil uploader or unexpected error %w, %s", err, string(tErr.Body))
+		fi, err := f.Stat()
+		if err != nil {
+			return "", fmt.Errorf("failed to stat test file %w", err)
 		}
-		return "", fmt.Errorf("got a nil uploader or unexpected error %w", err)
-	}
 
-	if err := uploader.Upload(); err != nil {
-		return "", fmt.Errorf("failed to upload file %w", err)
-	}
-	tuid := filepath.Base(uploader.Url())
+		fingerprint := fmt.Sprintf("%s-%d-%s", fi.Name(), fi.Size(), fi.ModTime())
+		c.metadata["filename"] = fi.Name()
 
-	// check the file
-	resp, err := http.Get(url + "/info/" + tuid)
-	if err != nil {
-		return "", err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("failed to get upload info %s", resp.Status)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
+		// create an upload from a file.
+		upload := tus.NewUpload(f, fi.Size(), c.metadata, fingerprint)
 
-	infoJson := &info.InfoResponse{}
-	if err := json.Unmarshal(body, infoJson); err != nil {
-		return "", err
-	}
+		// create the uploader.
+		uploader, err := client.CreateUpload(upload)
+		if c.err != nil {
+			if err == nil || c.err.Error() != err.Error() {
+				return "", fmt.Errorf("error missmatch; got: %w wanted: %w", err, c.err)
+			}
+			return "", nil
+		}
 
-	_, ok := infoJson.FileInfo["size_bytes"]
-	if !ok {
-		return "", fmt.Errorf("invalid info response: %s", infoJson)
-	}
+		if err != nil || uploader == nil {
+			tErr, ok := err.(tus.ClientError)
+			if ok {
+				return "", fmt.Errorf("got a nil uploader or unexpected error %w, %s", err, string(tErr.Body))
+			}
+			return "", fmt.Errorf("got a nil uploader or unexpected error %w", err)
+		}
 
-	// check hydrated manifest fields
-	_, ok = infoJson.Manifest["dex_ingest_datetime"]
-	if !ok {
-		return "", fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
+		if err := uploader.Upload(); err != nil {
+			return "", fmt.Errorf("failed to upload file %w", err)
+		}
+		tuid := filepath.Base(uploader.Url())
+
+		// check the file
+		resp, err := http.Get(url + "/info/" + tuid)
+		if err != nil {
+			return "", err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return "", fmt.Errorf("failed to get upload info %s", resp.Status)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+
+		infoJson := &info.InfoResponse{}
+		if err := json.Unmarshal(body, infoJson); err != nil {
+			return "", err
+		}
+
+		_, ok := infoJson.FileInfo["size_bytes"]
+		if !ok {
+			return "", fmt.Errorf("invalid info response: %s", infoJson)
+		}
+
+		// check hydrated manifest fields
+		_, ok = infoJson.Manifest["dex_ingest_datetime"]
+		if !ok {
+			return "", fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
+		}
 	}
 
 	return tuid, nil
