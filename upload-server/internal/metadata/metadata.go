@@ -119,6 +119,7 @@ type Report struct {
 	DataStreamID    string `json:"data_stream_id"`
 	DataStreamRoute string `json:"data_stream_route"`
 	ContentType     string `json:"content_type"`
+	DispositionType string `json:"disposition_type"`
 	Content         any    `json:"content"` // TODO: Can we limit this to a specific type (i.e. ReportContent or UploadStatusTYpe type?
 }
 
@@ -216,6 +217,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		DataStreamRoute: getDataStreamRoute(manifest),
 		StageName:       "dex-metadata-verify",
 		ContentType:     "json",
+		DispositionType: "add",
 		Content:         content,
 	}
 
@@ -301,6 +303,7 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 		DataStreamRoute: getDataStreamRoute(manifest),
 		StageName:       "dex-upload-status",
 		ContentType:     "json",
+		DispositionType: "replace",
 		Content:         content,
 	}
 
