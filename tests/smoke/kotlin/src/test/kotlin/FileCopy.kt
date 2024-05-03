@@ -6,6 +6,7 @@ import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import model.UploadConfig
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.TestNGException
@@ -85,8 +86,8 @@ class FileCopy {
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToDestinationContainers() {
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
-        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime.now(), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
-        var expectedBlobClient: BlobClient? = null
+        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
+        var expectedBlobClient: BlobClient?
 
         if (uploadConfig.copyConfig.targets.contains("edav")) {
             expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
