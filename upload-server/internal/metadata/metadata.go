@@ -273,13 +273,21 @@ func (fr *FileReporter) Publish(ctx context.Context, r Identifiable) error {
 			return err
 		}
 	}
-	f, err := os.Create(fr.Dir + "/" + r.Identifier())
+	filename := fr.Dir + "/" + r.Identifier()
+	// If the file doesn't exist, create it, or append to the file
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
 	}
+
 	defer f.Close()
 	encoder := json.NewEncoder(f)
-	return encoder.Encode(r)
+	err = encoder.Encode(r)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type ServiceBusReporter struct {
