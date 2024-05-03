@@ -2,10 +2,11 @@ import auth.AuthClient
 import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobContainerClient
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import model.UploadConfig
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.TestNGException
@@ -54,8 +55,8 @@ class FileCopy {
 
         uploadConfigBlobClient = dexBlobClient
             .getBlobContainerClient(Constants.UPLOAD_CONFIG_CONTAINER_NAME)
-            .getBlobClient("${USE_CASE}.json")
-        uploadConfig = ObjectMapper().readValue(uploadConfigBlobClient.downloadContent().toString())
+            .getBlobClient("v1/${USE_CASE}.json")
+        uploadConfig = jacksonObjectMapper().readValue(uploadConfigBlobClient.downloadContent().toString())
 
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
         routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
@@ -85,16 +86,21 @@ class FileCopy {
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToDestinationContainers() {
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
-        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime.now(), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
-        var expectedBlobClient: BlobClient? = null
+        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
+        var expectedBlobClient: BlobClient?
 
         if (uploadConfig.copyConfig.targets.contains("edav")) {
             expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
-        } else if (uploadConfig.copyConfig.targets.contains("routing")) {
-            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
+
+            Assert.assertNotNull(expectedBlobClient)
+            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
         }
 
-        Assert.assertNotNull(expectedBlobClient)
-        Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
+        if (uploadConfig.copyConfig.targets.contains("routing")) {
+            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
+
+            Assert.assertNotNull(expectedBlobClient)
+            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
+        }
     }
 }
