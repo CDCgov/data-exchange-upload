@@ -129,7 +129,7 @@ namespace BulkFileUploadFunctionApp.Services
                 var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
                 var fileExtension = Path.GetExtension(filename);
             
-                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}_{fileNameSuffix}{fileExtension}";
+                string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{fileNameSuffix}{fileExtension}";
 
                 // Get copy targets
                 List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
@@ -390,7 +390,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             if (uploadConfig.CopyConfig?.FilenameSuffix == CopyConfig.FILENAME_SIFFIX_UID)
             {
-                suffix = uploadId;
+                suffix = $"_{uploadId}";
             }
 
             return suffix;
