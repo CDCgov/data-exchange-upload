@@ -22,30 +22,20 @@
         "field_name": "sender_id",
         "required": true,
         "allowed_values": [
-          "APHL-NRSS"
+          "APHL"
         ],
         "description": "This field is the identifier for the sender of the data."
       },
       {
         "field_name": "data_producer_id",
         "required": true,
-        "allowed_values": [
-          "IN-TEST",
-          "DC-TEST",
-          "IA-TEST",
-          "CA-TEST"
-        ],
+        "allowed_values": null,
         "description": "This field is the identifier for the data producer."
       },
       {
         "field_name": "jurisdiction",
         "required": true,
-        "allowed_values": [
-          "DC",
-          "IN",
-          "CA",
-          "IA"
-        ],
+        "allowed_values": null,
         "description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
       },
       {
