@@ -54,24 +54,6 @@
 				"required": true,
 				"allowed_values": null,
 				"description": "The timestamp on the source for file last modified."
-			},
-			{
-				"field_name": "meta_ext_filestatus",
-				"required": true,
-				"allowed_values": null,
-				"description": "The file status in the source system."
-			},
-			{
-				"field_name": "meta_ext_uploadid",
-				"required": true,
-				"allowed_values": null,
-				"description": "The uploadid in the system source."
-			},
-			{
-				"field_name": "meta_ext_source",
-				"required": true,
-				"allowed_values": null,
-				"description": "The source system."
 			}
 		]
 	},
