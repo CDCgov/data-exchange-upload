@@ -45,34 +45,42 @@ fun main() {
     var successCount = 0
     var failCount = 0
     for (reupload: Reupload in reuploads) {
-        // Check storage account
-        val srcBlobClient = when(reupload.srcAccountId) {
-            "edav" -> edavBlobServiceClient
-                .getBlobContainerClient(EnvConfig.EDAV_UPLOAD_CONTAINER_NAME)
-                .getBlobClient(reupload.src)
-            "routing" -> routingBlobServiceClient
-                .getBlobContainerClient(EnvConfig.ROUTING_UPLOAD_CONTAINER_NAME)
-                .getBlobClient(reupload.src)
-            else -> {
-                println("unsupported source storage account: ${reupload.srcAccountId}")
-                failCount++
-                continue
+        try {
+
+            // Check storage account
+            val srcBlobClient = when (reupload.srcAccountId) {
+                "edav" -> edavBlobServiceClient
+                    .getBlobContainerClient(EnvConfig.EDAV_UPLOAD_CONTAINER_NAME)
+                    .getBlobClient(reupload.src)
+
+                "routing" -> routingBlobServiceClient
+                    .getBlobContainerClient(EnvConfig.ROUTING_UPLOAD_CONTAINER_NAME)
+                    .getBlobClient(reupload.src)
+
+                else -> {
+                    println("unsupported source storage account: ${reupload.srcAccountId}")
+                    failCount++
+                    continue
+                }
             }
+
+            // Download the file
+            val srcFilename = srcBlobClient.blobName.split("/").last()
+            println("downloading ${srcBlobClient.blobName} of size ${srcBlobClient.properties.blobSize}")
+            srcBlobClient.downloadToFile("downloads/$srcFilename")
+
+            // Overwrite filename in metadata with new filename
+            val updatedMetadata = updateFilename(reupload.dest, srcBlobClient.properties.metadata)
+
+            // Upload file.
+            val fileToUpload = File("downloads/$srcFilename")
+            println("uploading $fileToUpload")
+            uploadClient.uploadFile(fileToUpload, updatedMetadata)
+            successCount++
+        } catch (e: Exception) {
+            println("reupload failed")
+            failCount++
         }
-
-        // Download the file
-        val srcFilename = srcBlobClient.blobName.split("/").last()
-        println("downloading ${srcBlobClient.blobName} of size ${srcBlobClient.properties.blobSize}")
-        srcBlobClient.downloadToFile("downloads/$srcFilename")
-
-        // Overwrite filename in metadata with new filename
-        val updatedMetadata = updateFilename(reupload.dest, srcBlobClient.properties.metadata)
-
-        // Upload file.
-        val fileToUpload = File("downloads/$srcFilename")
-        println("uploading $fileToUpload")
-        uploadClient.uploadFile(fileToUpload, updatedMetadata)
-        successCount++
     }
 
     cleanupDownloads(File("downloads"))
