@@ -9,7 +9,7 @@ class EnvConfig {
         private val properties = if (propFile.exists()) Properties().apply {
             load(File("local.properties").inputStream())
         } else null
-        val ENV: String = properties?.getProperty("dex.env") ?: System.getenv("DEX_ENV")
+        val DEX_ENV: String = properties?.getProperty("dex.env") ?: System.getenv("DEX_ENV")
         val SAMS_USERNAME: String = properties?.getProperty("sams.username") ?: System.getenv("SAMS_USERNAME")
         val SAMS_PASSWORD: String = properties?.getProperty("sams.password") ?: System.getenv("SAMS_PASSWORD")
         val EDAV_STORAGE_ACCOUNT_NAME: String = properties?.getProperty("edav.storage.account.name") ?: System.getenv("EDAV_STORAGE_ACCOUNT_NAME")

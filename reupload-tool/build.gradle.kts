@@ -15,7 +15,12 @@ dependencies {
     implementation("com.azure:azure-storage-blob")
     implementation("io.tus.java.client:tus-java-client:0.5.0")
     implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.9.3")
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.fasterxml.jackson.core:jackson-core:2.9.9")
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.9.9")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.14.0-rc1")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9")
+    implementation("org.jetbrains.kotlin:kotlin-test")
 }
 
 tasks.test {
