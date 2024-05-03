@@ -5,7 +5,7 @@
 			{
 				"field_name": "sender_id",
 				"allowed_values": [
-					"APHL-CELR"
+					"APHL"
 				],
 				"required": true,
 				"description": "This field is the identifier for the sender of the data.",
@@ -13,17 +13,13 @@
 			},
 			{
 				"field_name": "data_producer_id",
-				"allowed_values": [
-					"DC-TEST"
-				],
+				"allowed_values": null,
 				"required": true,
 				"description": "This field is the identifier for the data producer."
 			},
 			{
 				"field_name": "jurisdiction",
-				"allowed_values": [
-					"DC"
-				],
+				"allowed_values": null,
 				"required": true,
 				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
 				"compat_field_name": "meta_organization"
