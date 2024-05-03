@@ -43,3 +43,4 @@ bin/
 
 local.properties
 src/main/resources/input.csv
+downloads/
