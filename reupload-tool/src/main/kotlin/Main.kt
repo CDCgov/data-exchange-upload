@@ -62,6 +62,7 @@ fun main() {
 
         // Download the file
         val srcFilename = srcBlobClient.blobName.split("/").last()
+        println("downloading ${srcBlobClient.blobName} of size ${srcBlobClient.properties.blobSize}")
         srcBlobClient.downloadToFile("downloads/$srcFilename")
 
         // Overwrite filename in metadata with new filename
@@ -69,10 +70,12 @@ fun main() {
 
         // Upload file.
         val fileToUpload = File("downloads/$srcFilename")
+        println("uploading $fileToUpload")
         uploadClient.uploadFile(fileToUpload, updatedMetadata)
         successCount++
     }
 
+    cleanupDownloads(File("downloads"))
     println("Reuploaded ${reuploads.size} files.  $successCount success. $failCount failed")
 }
 
@@ -115,4 +118,16 @@ fun updateFilename(filename: String, src: MutableMap<String, String>): MutableMa
     }
 
     return res
+}
+
+fun cleanupDownloads(directory: File) {
+    if (directory.exists() && directory.isDirectory) {
+        directory.listFiles()?.forEach { file ->
+            if (file.isDirectory) {
+                cleanupDownloads(file)
+            } else {
+                file.delete()
+            }
+        }
+    }
 }

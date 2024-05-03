@@ -39,7 +39,7 @@ class UploadClient(url: String, private val authToken: String) {
                         val totalBytes = uploadHandle.size
                         val bytesUploaded = uploader.offset
                         val progress = bytesUploaded.toDouble() / totalBytes * 100
-                        println(String.format("Upload at %06.2f%%.", progress))
+//                        println(String.format("Upload at %06.2f%%.", progress))
                     } while (uploader.uploadChunk() > -1)
 
                     uploader.finish()
