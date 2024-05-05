@@ -31,7 +31,7 @@ func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error)
 func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
-	preCreateHook := metadata.SenderManifestVerification{
+	manifestValidator := metadata.SenderManifestVerification{
 		Loader: &fileloader.FileConfigLoader{
 			FileSystem: os.DirFS(appConfig.UploadConfigPath),
 		},
@@ -54,7 +54,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		if err != nil {
 			return nil, err
 		}
-		preCreateHook.Loader = &azureloader.AzureConfigLoader{
+		manifestValidator.Loader = &azureloader.AzureConfigLoader{
 			Client:        client,
 			ContainerName: appConfig.AzureManifestConfigContainer,
 		}
@@ -77,7 +77,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				return nil, err
 			}
 
-			preCreateHook.Reporter = &azurereporters.ServiceBusReporter{
+			manifestValidator.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
@@ -88,7 +88,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		}
 	}
 
-	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, preCreateHook.Verify)
+	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
 	handler.Register(tusHooks.HookPostReceive, postReceiveHook.PostReceive)
 
 	return handler, nil
