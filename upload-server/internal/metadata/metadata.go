@@ -144,67 +144,6 @@ type UploadStatusContent struct {
 	Offset string `json:"offset"`
 	Size   string `json:"size"`
 }
-type ValidationError struct {
-	Err error
-}
-
-func (v *ValidationError) Error() string {
-	return v.Err.Error()
-}
-
-func unwrap(e error) []error {
-	errs := []error{}
-	u, ok := e.(interface {
-		Unwrap() []error
-	})
-	if ok {
-		for _, err := range u.Unwrap() {
-			errs = append(errs, unwrap(err)...)
-		}
-	} else {
-		errs = append(errs, e)
-		err := errors.Unwrap(e)
-		if err != nil {
-			errs = append(errs, unwrap(err)...)
-		}
-	}
-	return errs
-}
-
-func (v *ValidationError) MarshalJSON() ([]byte, error) {
-	errs := unwrap(v.Err)
-	res := make([]any, len(errs))
-	for i, e := range errs {
-		res[i] = e.Error() // Fallback to the error string
-	}
-	return json.Marshal(res)
-}
-
-/*
-   payload = {
-       'schema_version': '0.0.1',
-       'schema_name': 'dex-metadata-verify',
-       'filename': filename,
-       'metadata': meta_json,
-       'issues': messages
-   }
-            "upload_id": tguid,
-            "stage_name": "dex-upload",
-            "data_stream_id": metadata["data_stream_id"],
-            "data_stream_route": metadata["data_stream_route"],
-            "content_type": "json",
-            "content": {
-                        "schema_name": "upload",
-                        "schema_version": "1.0",
-                        "tguid": tguid,
-                        "offset": offset,
-                        "size": size,
-                        "filename": filename,
-                        "data_stream_id": metadata["data_stream_id"],
-                        "data_stream_route": metadata["data_stream_route"],
-                        "metadata": metadata
-            },
-*/
 
 func getFilename(manifest map[string]string) string {
 
@@ -290,7 +229,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	if err := v.verify(event.Context, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
-		content.Issues = &ValidationError{err}
+		content.Issues = &validation.ValidationError{Err: err}
 
 		if errors.Is(err, validation.ErrFailure) {
 			resp.RejectUpload = true
@@ -396,18 +335,6 @@ func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookR
 	if err := v.postReceive(uploadId, uploadOffset, uploadSize, uploadMetadata, event.Context); err != nil {
 		//logger.Error("postReceive errors and warnings", "errors", err)
 		logger.Error("postReceive errors and warnings", "err", err)
-
-		//		content.Issues = &ValidationError{err}
-
-		//		if errors.Is(err, validation.ErrFailure) {
-		//			resp.RejectUpload = true
-		//			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
-		//				StatusCode: http.StatusBadRequest,
-		//				Body:       err.Error(),
-		//			})
-		//			return resp, nil
-		//		}
-		//		return resp, err
 
 	}
 
