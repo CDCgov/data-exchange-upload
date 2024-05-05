@@ -10,7 +10,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -18,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -95,7 +94,7 @@ func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, load
 
 type SenderManifestVerification struct {
 	Loader   validation.ConfigLoader
-	Reporter Reporter
+	Reporter reporters.Reporter
 }
 
 func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[string]string) error {
@@ -254,69 +253,6 @@ func Uid() string {
 	return hex.EncodeToString(id)
 }
 
-type Identifiable interface {
-	Identifier() string
-}
-
-type Reporter interface {
-	Publish(context.Context, Identifiable) error
-}
-
-type FileReporter struct {
-	Dir string
-}
-
-func (fr *FileReporter) Publish(ctx context.Context, r Identifiable) error {
-	if fr.Dir != "" {
-		err := os.Mkdir(fr.Dir, 0750)
-		if err != nil && !os.IsExist(err) {
-			return err
-		}
-	}
-	filename := fr.Dir + "/" + r.Identifier()
-	// If the file doesn't exist, create it, or append to the file
-	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-
-	defer f.Close()
-	encoder := json.NewEncoder(f)
-	err = encoder.Encode(r)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-type ServiceBusReporter struct {
-	Client    *azservicebus.Client
-	QueueName string
-}
-
-func (sb *ServiceBusReporter) Publish(ctx context.Context, r Identifiable) error {
-	if sb.Client == nil {
-		return errors.New("misconfigured Service Bus Reporter, missing client")
-	}
-	sender, err := sb.Client.NewSender(sb.QueueName, nil)
-	if err != nil {
-		return err
-	}
-	defer sender.Close(ctx)
-
-	b, err := json.Marshal(r)
-	if err != nil {
-		return err
-	}
-
-	m := &azservicebus.Message{
-		Body: b,
-	}
-
-	return sender.SendMessage(ctx, m, nil)
-}
-
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
@@ -398,7 +334,7 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 }
 
 type HookEventHandler struct {
-	Reporter Reporter
+	Reporter reporters.Reporter
 }
 
 func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, manifest map[string]string, ctx context.Context) error {
@@ -428,9 +364,6 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 		ContentType:     "json",
 		Content:         content,
 	}
-	// HERE
-
-	logger.Info("report", "report", report)
 
 	defer func() {
 		logger.Info("REPORT", "report", report)
@@ -438,28 +371,10 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
 		}
 	}()
-	/*
-		if err := v.verify(event.Context, manifest); err != nil {
-			logger.Error("validation errors and warnings", "errors", err)
-
-			content.Issues = &ValidationError{err}
-
-			if errors.Is(err, validation.ErrFailure) {
-				resp.RejectUpload = true
-				resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
-					StatusCode: http.StatusBadRequest,
-					Body:       err.Error(),
-				})
-				return resp, nil
-			}
-			return resp, err
-		}
-	*/
 
 	return nil
 }
 
-// TODO: Relocate in to maybe internal/hooks or internal/upload-status ?
 func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 
 	logger.Info("------resp-------", "resp", resp)

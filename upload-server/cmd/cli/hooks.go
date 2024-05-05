@@ -10,6 +10,8 @@ import (
 	azureloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/azure"
 	fileloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/file"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	azurereporters "github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters/azure"
+	filereporters "github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters/file"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
@@ -33,7 +35,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		Loader: &fileloader.FileConfigLoader{
 			FileSystem: os.DirFS(appConfig.UploadConfigPath),
 		},
-		Reporter: &metadata.FileReporter{
+		Reporter: &filereporters.FileReporter{
 			Dir: appConfig.LocalReportsFolder,
 		},
 	}
@@ -42,7 +44,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		//Loader: &FileConfigLoader{
 		//	FileSystem: os.DirFS(appConfig.UploadConfigPath),
 		//},
-		Reporter: &metadata.FileReporter{
+		Reporter: &filereporters.FileReporter{
 			Dir: appConfig.LocalReportsFolder,
 		},
 	}
@@ -75,11 +77,11 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				return nil, err
 			}
 
-			preCreateHook.Reporter = &metadata.ServiceBusReporter{
+			preCreateHook.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
-			postReceiveHook.Reporter = &metadata.ServiceBusReporter{
+			postReceiveHook.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
