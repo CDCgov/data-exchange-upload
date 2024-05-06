@@ -2,6 +2,9 @@ import auth.AuthClient
 import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobContainerClient
+import com.azure.storage.blob.models.BlobItem
+import com.azure.storage.blob.models.BlobListDetails
+import com.azure.storage.blob.models.ListBlobsOptions
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import model.UploadConfig
@@ -13,6 +16,7 @@ import org.testng.TestNGException
 import org.testng.annotations.*
 import tus.UploadClient
 import util.*
+import java.time.Duration
 
 @Listeners(UploadIdTestListener::class)
 @Test()
@@ -102,5 +106,33 @@ class FileCopy {
             Assert.assertNotNull(expectedBlobClient)
             Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
         }
+    }
+
+    @Test(groups = [Constants.Groups.FILE_COPY])
+    fun verifyMetadataTranslation(){
+        val options = ListBlobsOptions()
+            .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(),useCase))
+            .setDetails(BlobListDetails().setRetrieveMetadata(true))
+        val routingUploadBlob =routingContainerClient.listBlobs(options, Duration.ofMillis(EnvConfig.AZURE_BLOB_SEARCH_DURATION_MILLIS))
+            .first{blob ->blob.metadata?.containsValue(uploadId) == true }
+
+        Assert.assertNotNull(routingUploadBlob)
+        Assert.assertEquals(routingUploadBlob.properties.contentLength, testFile.length())
+
+        val metaDataKeys = getAllMetadataKeys(routingUploadBlob)
+            for (key in metaDataKeys) {
+            assert(routingUploadBlob.metadata?.containsKey(key) == true) {"Metadata key '$key' not found"}
+        }
+
+     }
+
+    fun getAllMetadataKeys(blob:BlobItem):Set<String> {
+        blob.metadata?.let { metadata ->
+            metadata.entries.forEach {entry ->
+                println ("Key: ${entry.key}, Value: ${entry.value}")
+            }
+            return metadata.keys
+        }
+        return emptySet()
     }
 }
