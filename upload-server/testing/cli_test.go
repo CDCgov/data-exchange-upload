@@ -1,13 +1,18 @@
 package testing
 
 import (
+	"bufio"
+	"encoding/json"
+	"io"
 	"log"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 )
 
 var (
@@ -17,10 +22,72 @@ var (
 func TestTus(t *testing.T) {
 	url := ts.URL
 	for name, c := range Cases {
-		if err := RunTusTestCase(url, "test/test.txt", c); err != nil {
+		tuid, err := RunTusTestCase(url, "test/test.txt", c)
+		if err != nil {
 			t.Error(name, err)
 		} else {
-			t.Log("test case", name, "passed")
+
+			if tuid != "" {
+
+				f, err := os.Open("test/reports/" + tuid)
+				if err != nil {
+					t.Error(name, tuid, err)
+				}
+
+				// TODO: Expand test to check both metadata verify and upload status reports.
+				metadataReportCount, uploadStatusReportCount := 0, 0
+				rMetadata, rUploadStatus := &metadata.Report{}, &metadata.Report{}
+				b, err := io.ReadAll(f)
+				if err != nil {
+					t.Fatal(name, tuid, err)
+				}
+
+				rScanner := bufio.NewScanner(strings.NewReader(string(b)))
+				for rScanner.Scan() {
+					rLine := rScanner.Text()
+					rLineBytes := []byte(rLine)
+					if strings.Contains(rLine, "dex-metadata-verify") {
+						// Processing a metadata verify report
+						metadataReportCount++
+
+						if err := json.Unmarshal(rLineBytes, rMetadata); err != nil {
+							t.Fatal(name, tuid, err)
+						}
+
+						continue
+					}
+
+					if strings.Contains(rLine, "dex-upload-status") {
+						uploadStatusReportCount++
+
+						if err := json.Unmarshal(rLineBytes, rUploadStatus); err != nil {
+							t.Fatal(name, tuid, err)
+						}
+
+						continue
+					}
+				}
+
+				if metadataReportCount != 1 {
+					t.Error("expected one metadata verify report but got", metadataReportCount)
+				}
+
+				if uploadStatusReportCount == 0 {
+					t.Error("expected at least one upload status report count but got none")
+				}
+
+				if c.err != nil {
+					if rMetadata.Content.(metadata.MetaDataVerifyContent).Issues == nil {
+						t.Error("expected reported issues but got none", name, tuid, rMetadata)
+					}
+
+					if rUploadStatus.Content.(metadata.UploadStatusContent).Offset != rUploadStatus.Content.(metadata.UploadStatusContent).Size {
+						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, rUploadStatus)
+					}
+				}
+			}
+
+			t.Log("test case", name, "passed", tuid)
 		}
 	}
 }
@@ -59,6 +126,7 @@ func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
 		LocalFolderUploadsTus: "test/uploads",
+		LocalReportsFolder:    "test/reports",
 		TusdHandlerBasePath:   "/files/",
 	}
 

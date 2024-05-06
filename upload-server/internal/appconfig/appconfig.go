@@ -44,6 +44,7 @@ type AppConfig struct {
 	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
 
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
+	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
@@ -53,7 +54,9 @@ type AppConfig struct {
 	ProcessingStatusServiceBusNamespace string `env:"PROCESSING_STATUS_SERVICE_BUS_NAMESPACE"`
 	ProcessingStatusServiceBusQueue     string `env:"PROCESSING_STATUS_SERVICE_BUS_QUEUE"`
 
-	AzureConnection *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
+	AzureConnection            *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
+	ServiceBusConnectionString string              `env:"SERVICE_BUS_CONNECTION_STR"`
+	ReportQueueName            string              `env:"REPORT_QUEUE_NAME, default=processing-status-cosmos-db-queue"`
 
 	// Azure TUS Upload storage
 	TusRedisLockURI              string `env:"REDIS_CONNECTION_STRING"`
