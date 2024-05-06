@@ -9,6 +9,11 @@ class Constants {
         const val EDAV_UPLOAD_CONTAINER_NAME = "upload"
         const val ROUTING_UPLOAD_CONTAINER_NAME = "routeingress"
         const val TUS_PREFIX_DIRECTORY_NAME = "tus-prefix"
+        const val DATA_STREAM_ID = "dextesting"
+        const val DATA_STREAM_ROUTE = "testevent1"
+        const val SENDER_ID= "SID"
+        const val DATA_PRODUCER_ID = "DP"
+        const val JURISDICTION = "Atlanta"
     }
 
     class Groups {
