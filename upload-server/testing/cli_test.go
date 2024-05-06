@@ -1,11 +1,13 @@
 package testing
 
 import (
+	"bufio"
 	"encoding/json"
 	"io"
 	"log"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
@@ -32,18 +34,55 @@ func TestTus(t *testing.T) {
 					t.Error(name, tuid, err)
 				}
 
-				r := &metadata.Report{}
+				// TODO: Expand test to check both metadata verify and upload status reports.
+				metadataReportCount, uploadStatusReportCount := 0, 0
+				rMetadata, rUploadStatus := &metadata.Report{}, &metadata.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
 					t.Fatal(name, tuid, err)
 				}
 
-				if err := json.Unmarshal(b, r); err != nil {
-					t.Fatal(name, tuid, err)
+				rScanner := bufio.NewScanner(strings.NewReader(string(b)))
+				for rScanner.Scan() {
+					rLine := rScanner.Text()
+					rLineBytes := []byte(rLine)
+					if strings.Contains(rLine, "dex-metadata-verify") {
+						// Processing a metadata verify report
+						metadataReportCount++
+
+						if err := json.Unmarshal(rLineBytes, rMetadata); err != nil {
+							t.Fatal(name, tuid, err)
+						}
+
+						continue
+					}
+
+					if strings.Contains(rLine, "dex-upload-status") {
+						uploadStatusReportCount++
+
+						if err := json.Unmarshal(rLineBytes, rUploadStatus); err != nil {
+							t.Fatal(name, tuid, err)
+						}
+
+						continue
+					}
 				}
+
+				if metadataReportCount != 1 {
+					t.Error("expected one metadata verify report but got", metadataReportCount)
+				}
+
+				if uploadStatusReportCount == 0 {
+					t.Error("expected at least one upload status report count but got none")
+				}
+
 				if c.err != nil {
-					if r.Content.(metadata.MetaDataVerifyContent).Issues == nil {
-						t.Error("expected reported issues but got none", name, tuid, r)
+					if rMetadata.Content.(metadata.MetaDataVerifyContent).Issues == nil {
+						t.Error("expected reported issues but got none", name, tuid, rMetadata)
+					}
+
+					if rUploadStatus.Content.(metadata.UploadStatusContent).Offset != rUploadStatus.Content.(metadata.UploadStatusContent).Size {
+						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, rUploadStatus)
 					}
 				}
 			}

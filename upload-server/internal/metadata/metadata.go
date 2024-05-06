@@ -298,12 +298,10 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 		Content:         content,
 	}
 
-	defer func() {
-		logger.Info("REPORT", "report", report)
-		if err := v.Reporter.Publish(ctx, report); err != nil {
-			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
-		}
-	}()
+	logger.Info("REPORT", "report", report)
+	if err := v.Reporter.Publish(ctx, report); err != nil {
+		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
+	}
 
 	return nil
 }
