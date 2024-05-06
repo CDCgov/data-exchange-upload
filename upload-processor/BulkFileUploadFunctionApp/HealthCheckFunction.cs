@@ -85,6 +85,7 @@ namespace BulkFileUploadFunctionApp
             try
             {
                 await _featureManagementExecutor
+                // TODO: refactor to use service bus instead
                 .ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     HealthCheckResponse procStatHealthCheck = await _procStatClient.GetHealthCheck();

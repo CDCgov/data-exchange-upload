@@ -48,7 +48,8 @@ namespace BulkFileUploadFunctionAppTests
             _loggerFactoryMock = new Mock<ILoggerFactory>();
             _loggerMock = new Mock<ILogger<HealthCheckFunction>>();
             _procStatClientMock = new Mock<IProcStatClient>();
-
+            
+            // TODO: refactor to use service bus instead
             _testConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
             {
                 {$"FeatureManagement:{Constants.PROC_STAT_FEATURE_FLAG_NAME}", "true"}
