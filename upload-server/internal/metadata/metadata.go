@@ -11,7 +11,6 @@ import (
 	"log/slog"
 	"net/http"
 	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -279,14 +278,6 @@ type HookEventHandler struct {
 }
 
 func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, manifest map[string]string, ctx context.Context) error {
-
-	logger.Info("go version", "version", runtime.Version())
-	logger.Info("metadata values", "manifest", manifest)
-
-	filename := getFilename(manifest)
-
-	logger.Info("file info", "filename", filename)
-
 	content := &UploadStatusContent{
 		SchemaVersion: "1.0",
 		SchemaName:    "upload",
@@ -318,29 +309,15 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 }
 
 func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-
-	logger.Info("------resp-------", "resp", resp)
-
 	// Get values from event
 	uploadId := event.Upload.ID
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	logger.Info(
-		"[PostReceive]: event.Upload values",
-		"uploadMetadata", uploadMetadata,
-		"uploadId", uploadId,
-		"uploadSize", uploadSize,
-		"uploadOffset", uploadOffset,
-	)
-
 	if err := v.postReceive(uploadId, uploadOffset, uploadSize, uploadMetadata, event.Context); err != nil {
-		//logger.Error("postReceive errors and warnings", "errors", err)
 		logger.Error("postReceive errors and warnings", "err", err)
-
 	}
 
 	return resp, nil
-
 }
