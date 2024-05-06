@@ -6,7 +6,7 @@ namespace BulkFileUploadFunctionApp.Utils
     {
         public const string PROC_STAT_REPORT_STAGE_NAME = "dex-file-copy";
         public const string PROC_STAT_REPORT_METADATA_STAGE_NAME = "dex-file-metadata";
-        public const string PROC_STAT_FEATURE_FLAG_NAME = "PROCESSING_STATUS_TRACES";
+        public const string PROC_STAT_FEATURE_FLAG_NAME = "PROCESSING_STATUS_TRACES"; // disable this feature flag to stop sending processing status traces
         public const string ROUTING_FEATURE_FLAG_NAME = "ROUTING";
         public const string PROC_STAT_SERVICE_NAME = "Processing Status API";
         public const string METADATA_VERSION_ONE = "1.0";

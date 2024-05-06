@@ -94,6 +94,7 @@ namespace BulkFileUploadFunctionApp.Services
                 }
 
                 // Get trace
+                // TODO: refactor to use service bus instead
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     trace = await _procStatClient.GetTraceByUploadId(uploadId);
@@ -161,6 +162,7 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
+                // TODO: refactor to use service bus instead
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     copySpan = await _procStatClient.StartSpanForTrace(copyPrereqs.Trace.TraceId, copyPrereqs.Trace.SpanId, Constants.PROC_STAT_REPORT_STAGE_NAME);
@@ -218,6 +220,7 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogError("Failed to copy blob from TUS to Dex");
 
                 // Send copy failure report
+                // TODO: refactor to use service bus instead
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     SendFailureReport(copyPrereqs.UploadId, 
@@ -301,6 +304,7 @@ namespace BulkFileUploadFunctionApp.Services
                 await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
 
                 // Send copy success report
+                // TODO: refactor to use service bus instead
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     SendSuccessReport(copyPrereqs.UploadId, 
@@ -316,6 +320,7 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);               
 
                 // Send copy failure report
+                // TODO: refactor to use service bus instead
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     SendFailureReport(copyPrereqs.UploadId, 
@@ -355,6 +360,7 @@ namespace BulkFileUploadFunctionApp.Services
                 await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
 
                 // Send copy success report
+                // TODO: refactor to use service bus instead
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     SendSuccessReport(copyPrereqs.UploadId, 
@@ -370,6 +376,7 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);
 
                 // Send copy failure report
+                // TODO: refactor to use service bus instead
                 await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
                 {
                     SendFailureReport(copyPrereqs.UploadId, 
@@ -543,6 +550,7 @@ namespace BulkFileUploadFunctionApp.Services
         }
         private void SendSuccessReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destPath)
         {
+            // TODO: refactor to use service bus instead
             _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
             {
                 var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
@@ -552,6 +560,7 @@ namespace BulkFileUploadFunctionApp.Services
 
         private void SendFailureReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destinationContainerName, string error)
         {
+            // TODO: refactor to use service bus instead
             _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
             {
                 CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: error);
