@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
@@ -52,16 +53,41 @@ func (ih *InfoHandler) Hook(event handler.HookEvent, resp hooks.HookResponse) (h
 	id := event.Upload.ID
 	ctx := event.Context
 
-	fileInfo, err := ih.inspecter.InspectInfoFile(ctx, id)
-	if err != nil {
-		logger.Error("Failed to validate manifest file after upload", "id", id, "error", err, "manifest", fileInfo)
-		return resp, err
+	var fileInfo map[string]any
+	for i := 0; i < 5; i++ {
+		var err error
+		fileInfo, err = ih.inspecter.InspectInfoFile(ctx, id)
+		if err != nil {
+			logger.Info("Failed to validate manifest file after upload", "id", id, "error", err, "manifest", fileInfo)
+		}
+		if fileInfo != nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
 	}
-	uploadedFileInfo, err := ih.inspecter.InspectUploadedFile(ctx, id)
-	if err != nil {
-		logger.Error("Failed to validate upload file", "id", id, "error", err, "manifest", fileInfo, "upload", uploadedFileInfo)
-		return resp, err
+	var uploadedFileInfo map[string]any
+	for i := 0; i < 5; i++ {
+		var err error
+		uploadedFileInfo, err = ih.inspecter.InspectUploadedFile(ctx, id)
+		if err != nil {
+			logger.Info("Failed to validate upload file", "id", id, "error", err, "manifest", fileInfo, "upload", uploadedFileInfo)
+		}
+		if uploadedFileInfo != nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
 	}
+
+	if fileInfo == nil {
+		logger.Error("Failed to validate manifest file after upload", "id", id)
+		return resp, errors.New("failed to find manifest")
+	}
+
+	if uploadedFileInfo == nil {
+		logger.Error("Failed to validate upload file", "id", id, "manifest", fileInfo, "upload", uploadedFileInfo)
+		return resp, errors.New("failed to find the uploaded file")
+	}
+
 	logger.Info("Upload validated", "id", id, "manifest", fileInfo, "upload_info", uploadedFileInfo)
 	return resp, nil
 }
