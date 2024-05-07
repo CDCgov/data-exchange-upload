@@ -117,6 +117,7 @@ var Cases = map[string]testCase{
 			"message_type":      "ELR",
 			"route":             "DAART",
 			"jurisdiction":      "test",
+			"verify_upload":     "true",
 		},
 		nil,
 	},

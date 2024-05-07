@@ -50,6 +50,9 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (ih *InfoHandler) Hook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	if _, ok := event.Upload.MetaData["verify_upload"]; !ok {
+		return resp, nil
+	}
 	id := event.Upload.ID
 	ctx := event.Context
 
