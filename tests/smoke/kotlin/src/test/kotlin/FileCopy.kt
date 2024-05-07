@@ -119,20 +119,11 @@ class FileCopy {
         Assert.assertNotNull(routingUploadBlob)
         Assert.assertEquals(routingUploadBlob.properties.contentLength, testFile.length())
 
-        val metaDataKeys = getAllMetadataKeys(routingUploadBlob)
-            for (key in metaDataKeys) {
+        val metaDataKeys = uploadClient.getAllMetadataKeys(routingUploadBlob)
+        for (key in metaDataKeys) {
             assert(routingUploadBlob.metadata?.containsKey(key) == true) {"Metadata key '$key' not found"}
         }
 
-     }
-
-    fun getAllMetadataKeys(blob:BlobItem):Set<String> {
-        blob.metadata?.let { metadata ->
-            metadata.entries.forEach {entry ->
-                println ("Key: ${entry.key}, Value: ${entry.value}")
-            }
-            return metadata.keys
-        }
-        return emptySet()
     }
+
 }

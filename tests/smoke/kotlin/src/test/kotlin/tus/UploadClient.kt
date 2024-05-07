@@ -1,5 +1,6 @@
 package tus
 
+import com.azure.storage.blob.models.BlobItem
 import io.tus.java.client.*
 import java.io.File
 import java.io.IOException
@@ -64,5 +65,15 @@ class UploadClient(url: String, private val authToken: String) {
 
     private fun parseUploadIdFromUrl(uploadUrl: String): String {
         return uploadUrl.split("/").last().trim()
+    }
+
+    fun getAllMetadataKeys(blob: BlobItem):Set<String> {
+        blob.metadata?.let { metadata ->
+            metadata.entries.forEach {entry ->
+                println ("Key: ${entry.key}, Value: ${entry.value}")
+            }
+            return metadata.keys
+        }
+        return emptySet()
     }
 }
