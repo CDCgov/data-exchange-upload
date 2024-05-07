@@ -1,4 +1,4 @@
-package processingstatus
+package pshealth
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
-func (pss PsSender) Health(ctx context.Context) models.ServiceHealthResp {
+func (pss PsHealth) Health(ctx context.Context) models.ServiceHealthResp {
 
 	var shr models.ServiceHealthResp
 	shr.Service = models.PROCESSING_STATUS_APP

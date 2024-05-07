@@ -92,5 +92,8 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
 	handler.Register(tusHooks.HookPostReceive, postReceiveHook.PostReceive)
 
+	// TODO: -> handler.Register(tusHooks.HookPostFinish, copier.Merge, copier.Route)
+
+
 	return handler, nil
 }
