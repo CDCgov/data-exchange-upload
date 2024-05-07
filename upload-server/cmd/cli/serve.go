@@ -9,9 +9,11 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/pshealth"
+	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
+	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
@@ -56,6 +58,9 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
+	}
+	if h, ok := hookHandler.(*prebuilthooks.PrebuiltHook); ok {
+		h.Register(tusHooks.HookPreFinish, uploadInfoHandler.Hook)
 	}
 
 	// initialize tusd handler

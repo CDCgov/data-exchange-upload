@@ -12,6 +12,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/azureinspector"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/fileinspector"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
+	"github.com/tus/tusd/v2/pkg/handler"
+	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
 type UploadInspecter interface {
@@ -46,6 +48,24 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	enc.Encode(response)
 }
 
+func (ih *InfoHandler) Hook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	id := event.Upload.ID
+	ctx := event.Context
+
+	fileInfo, err := ih.inspecter.InspectInfoFile(ctx, id)
+	if err != nil {
+		logger.Error("Failed to validate manifest file after upload", "id", id, "error", err, "manifest", fileInfo)
+		return resp, err
+	}
+	uploadedFileInfo, err := ih.inspecter.InspectUploadedFile(ctx, id)
+	if err != nil {
+		logger.Error("Failed to validate upload file", "id", id, "error", err, "manifest", fileInfo, "upload", uploadedFileInfo)
+		return resp, err
+	}
+	logger.Info("Upload validated", "id", id, "manifest", fileInfo, "upload_info", uploadedFileInfo)
+	return resp, nil
+}
+
 func getStatusFromError(err error) int {
 	if errors.Is(err, info.ErrNotFound) {
 		return http.StatusNotFound
@@ -71,7 +91,7 @@ func createInspector(appConfig *appconfig.AppConfig) (UploadInspecter, error) {
 	return nil, errors.New("unable to create inspector given app configuration")
 }
 
-func GetUploadInfoHandler(appConfig *appconfig.AppConfig) (http.Handler, error) {
+func GetUploadInfoHandler(appConfig *appconfig.AppConfig) (*InfoHandler, error) {
 	inspector, err := createInspector(appConfig)
 	return &InfoHandler{
 		inspector,

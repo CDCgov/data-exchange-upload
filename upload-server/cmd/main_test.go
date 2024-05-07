@@ -14,16 +14,16 @@ import (
 )
 
 func TestTus(t *testing.T) {
-	url := "http://localhost:8080/files/"
+	url := "http://localhost:8080"
 	var wg sync.WaitGroup
 	for name, c := range dexTesting.Cases {
 		wg.Add(1)
 		go func(t *testing.T) {
 			defer wg.Done()
-			if err := dexTesting.RunTusTestCase(url, "../testing/test/test.txt", c); err != nil {
-				t.Error(name, err)
+			if id, err := dexTesting.RunTusTestCase(url, "../testing/test/test.txt", c); err != nil {
+				t.Error(name, err, id)
 			} else {
-				t.Log("test case", name, "passed")
+				t.Log("test case", name, "passed", id)
 			}
 		}(t)
 	}
