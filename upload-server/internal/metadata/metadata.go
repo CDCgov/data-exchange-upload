@@ -39,77 +39,53 @@ var registeredVersions = map[string]func(handler.MetaData) (validation.ConfigLoc
 	"2.0": v2.NewFromManifest,
 }
 
-var cachedConfigs = &configCache{}
-
-type configCache struct {
+type ConfigCache struct {
 	sync.Map
+	Loader validation.ConfigLoader
 }
 
-func (c *configCache) GetConfig(key any) (*validation.MetadataConfig, bool) {
-	config, ok := c.Load(key)
+func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.ManifestConfig, error) {
+	conf, ok := c.Load(key)
 	if !ok {
-		return nil, ok
-	}
-	metaConfig, ok := config.(*validation.MetadataConfig)
-	return metaConfig, ok
-}
-
-func (c *configCache) SetConfig(key any, config *validation.MetadataConfig) {
-	c.Store(key, config)
-}
-
-func loadConfig(ctx context.Context, path string, loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
-	config, ok := cachedConfigs.GetConfig(path)
-	if !ok {
-		b, err := loader.LoadConfig(ctx, path)
+		if c.Loader == nil {
+			return nil, errors.New("misconfigured config cache, set a loader")
+		}
+		b, err := c.Loader.LoadConfig(ctx, key)
 		if err != nil {
 			return nil, err
 		}
-		c := &validation.UploadConfig{}
-		if err := json.Unmarshal(b, c); err != nil {
+		mc := &validation.ManifestConfig{}
+		if err := json.Unmarshal(b, mc); err != nil {
 			return nil, err
 		}
-		config = &c.Metadata
-		cachedConfigs.SetConfig(path, config)
+		c.SetConfig(key, mc)
+		return mc, nil
+	}
+	config, ok := conf.(*validation.ManifestConfig)
+	if !ok {
+		return nil, errors.New("manifest not found")
 	}
 	return config, nil
 }
 
-func getVersionFromManifest(ctx context.Context, manifest handler.MetaData, loader validation.ConfigLoader) (*validation.MetadataConfig, error) {
-	version, ok := manifest["version"]
+func (c *ConfigCache) SetConfig(key any, config *validation.ManifestConfig) {
+	c.Store(key, config)
+}
+
+func GetConfigIdentifierByVersion(ctx context.Context, manifest handler.MetaData) (string, error) {
+	version := manifest["version"]
 	if version == "" {
 		version = "1.0"
 	}
 	configLocationBuilder, ok := registeredVersions[version]
 	if !ok {
-		return nil, fmt.Errorf("unsupported version %s %w", version, validation.ErrFailure)
+		return "", fmt.Errorf("unsupported version %s %w", version, validation.ErrFailure)
 	}
 	configLoc, err := configLocationBuilder(manifest)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return loadConfig(ctx, configLoc.Path(), loader)
-}
-
-type SenderManifestVerification struct {
-	Loader   validation.ConfigLoader
-	Reporter reporters.Reporter
-}
-
-func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[string]string) error {
-	config, err := getVersionFromManifest(ctx, manifest, v.Loader)
-	if err != nil {
-		return err
-	}
-
-	logger.Info("checking config", "config", config)
-
-	var errs error
-	for _, field := range config.Fields {
-		err := field.Validate(manifest)
-		errs = errors.Join(errs, err)
-	}
-	return errs
+	return configLoc.Path(), nil
 }
 
 type Report struct {
@@ -190,6 +166,32 @@ func Uid() string {
 		panic(err)
 	}
 	return hex.EncodeToString(id)
+}
+
+type SenderManifestVerification struct {
+	Configs  *ConfigCache
+	Reporter reporters.Reporter
+}
+
+func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[string]string) error {
+	path, err := GetConfigIdentifierByVersion(ctx, manifest)
+	if err != nil {
+		return err
+	}
+	c, err := v.Configs.GetConfig(ctx, path)
+	if err != nil {
+		return err
+	}
+	config := c.Metadata
+
+	logger.Info("checking config", "config", config)
+
+	var errs error
+	for _, field := range config.Fields {
+		err := field.Validate(manifest)
+		errs = errors.Join(errs, err)
+	}
+	return errs
 }
 
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
