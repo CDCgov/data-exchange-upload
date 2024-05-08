@@ -33,6 +33,9 @@ func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
 		return nil, err
 	}
 	client := redis.NewClient(connection)
+	if res := client.Ping(context.Background()); res.Err() != nil {
+		return nil, res.Err()
+	}
 	rs := redsync.New(goredis.NewPool(client))
 
 	locker := &RedisLocker{
