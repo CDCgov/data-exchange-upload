@@ -38,7 +38,7 @@ jobs:
                   owner: 'cdcent',
                   repo: 'data-exchange-upload-devops',
                   workflow_id: '${{ inputs.WORKFLOW }}',
-                  ref: 'main',
+                  ref: 'fix-rc-pipeline',
                   inputs: {
                     REF: '${{ inputs.REF }}'
                   }
