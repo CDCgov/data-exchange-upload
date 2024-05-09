@@ -1,5 +1,6 @@
 using Azure;
-using Azure.Storage.Blobs;
+using Azure.Storage.Blobs; 
+using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using Azure.Identity;
@@ -33,9 +34,16 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobServiceClient _routingBlobServiceClient;
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
+        private readonly IBulkUploadSvcBusClient _bulkUploadSvcBusClient;
+        private readonly ServiceBusSender _serviceBusSender;
         private readonly string _uploadConfigContainer; 
+        private readonly string _ServiceBusConnectionString;
+        private readonly string _ServiceBusQueueName;
+        
 
-        public UploadProcessingService(ILoggerFactory loggerFactory, IProcStatClient procStatClient,
+
+        //TODO: Replace ProcStatClient with BulkUploadSvcBusClient
+        public UploadProcessingService(ILoggerFactory loggerFactory, IBulkUploadSvcBusClient bulkUploadSvcBusClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
         {
             // Get environment variables.
@@ -49,13 +57,14 @@ namespace BulkFileUploadFunctionApp.Services
             _edavUploadRootContainerName = Environment.GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME", EnvironmentVariableTarget.Process) ?? "upload";
             _routingUploadRootContainerName = Environment.GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME", EnvironmentVariableTarget.Process) ?? "routeingress";
             _uploadConfigContainer =  Environment.GetEnvironmentVariable("UPLOAD_CONFIGS", EnvironmentVariableTarget.Process) ?? "upload-configs";
-            
+            _ServiceBusConnectionString = Environment.GetEnvironmentVariable("SERVICE_BUS_CONNECTION_STR", EnvironmentVariableTarget.Process) ?? "";
+            _ServiceBusQueueName = Environment.GetEnvironmentVariable("REPORT_QUEUE_NAME", EnvironmentVariableTarget.Process) ?? "";
+
             // Instantiate helper services.
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobCopyHelper = new(_logger);
             _blobReader = blobReaderFactory.CreateInstance(_logger);
             _featureManagementExecutor = featureManagementExecutor;
-            _procStatClient = procStatClient;
 
             _uploadEventHubService = uploadEventHubService;
             _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
@@ -69,6 +78,8 @@ namespace BulkFileUploadFunctionApp.Services
                 new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
                 new DefaultAzureCredential() // using Service Principal
             );
+
+            _bulkUploadSvcBusClient = bulkUploadSvcBusClient;           
         }
 
         public async Task<CopyPrereqs> GetCopyPrereqs(string blobCreatedUrl)
@@ -93,12 +104,6 @@ namespace BulkFileUploadFunctionApp.Services
                     throw new TusInfoFileException("received info file without an upload ID");
                 }
 
-                // Get trace
-                // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    trace = await _procStatClient.GetTraceByUploadId(uploadId);
-                });
 
                 HydrateMetadata(tusInfoFile);
 
@@ -162,11 +167,6 @@ namespace BulkFileUploadFunctionApp.Services
 
             try
             {
-                // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    copySpan = await _procStatClient.StartSpanForTrace(copyPrereqs.Trace.TraceId, copyPrereqs.Trace.SpanId, Constants.PROC_STAT_REPORT_STAGE_NAME);
-                });
 
                 copyPrereqs.DexBlobUrl = await CopyFromTusToDex(copyPrereqs);
 
@@ -221,7 +221,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Send copy failure report
                 // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
                 {
                     SendFailureReport(copyPrereqs.UploadId, 
                                       copyPrereqs.UseCase, 
@@ -305,7 +305,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Send copy success report
                 // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
                 {
                     SendSuccessReport(copyPrereqs.UploadId, 
                                       copyPrereqs.UseCase, 
@@ -321,7 +321,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Send copy failure report
                 // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
                 {
                     SendFailureReport(copyPrereqs.UploadId, 
                                       copyPrereqs.UseCase, 
@@ -361,7 +361,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Send copy success report
                 // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
                 {
                     SendSuccessReport(copyPrereqs.UploadId, 
                                       copyPrereqs.UseCase, 
@@ -377,7 +377,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Send copy failure report
                 // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
+                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
                 {
                     SendFailureReport(copyPrereqs.UploadId, 
                                       copyPrereqs.UseCase, 
@@ -551,20 +551,20 @@ namespace BulkFileUploadFunctionApp.Services
         private void SendSuccessReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destPath)
         {
             // TODO: refactor to use service bus instead
-            _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
+            _featureManagementExecutor.ExecuteIfEnabled(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, () =>
             {
                 var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-                _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+                _bulkUploadSvcBusClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
             });
         }
 
         private void SendFailureReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destinationContainerName, string error)
         {
             // TODO: refactor to use service bus instead
-            _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
+            _featureManagementExecutor.ExecuteIfEnabled(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, () =>
             {
                 CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: error);
-                _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+                _bulkUploadSvcBusClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
             });
         }
     }

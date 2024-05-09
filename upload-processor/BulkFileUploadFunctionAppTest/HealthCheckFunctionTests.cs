@@ -12,6 +12,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using BulkFileUploadFunctionApp.Utils;
+using Azure.Messaging.ServiceBus;
 
 namespace BulkFileUploadFunctionAppTests
 {
@@ -28,7 +29,9 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<ILogger<HealthCheckFunction>> _loggerMock;
         private Mock<ILoggerFactory> _loggerFactoryMock;
         private Mock<IProcStatClient> _procStatClientMock;
-
+        private Mock<ServiceBusClient> _mockClient;
+        private Mock<ServiceBusSender> _mockSender;
+        private Mock<IBulkUploadSvcBusClient> _mockBulkUploadSvcClient;
         private IConfiguration _testConfiguration;
         private IFeatureManagementExecutor _testFeatureManagementExecutor;
 
@@ -52,10 +55,15 @@ namespace BulkFileUploadFunctionAppTests
             // TODO: refactor to use service bus instead
             _testConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
             {
-                {$"FeatureManagement:{Constants.PROC_STAT_FEATURE_FLAG_NAME}", "true"}
+                {$"FeatureManagement:{Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME}", "true"}
             }).Build();
             _configurationRefresherProviderMock.Setup(m => m.Refreshers).Returns(new List<IConfigurationRefresher> { _configurationRefresherMock.Object });
             _testFeatureManagementExecutor = new FeatureManagementExecutor(_configurationRefresherProviderMock.Object, _testConfiguration);
+
+
+            _mockClient = new Mock<ServiceBusClient>();
+            _mockSender = new Mock<ServiceBusSender>();
+            _mockBulkUploadSvcClient = new Mock<IBulkUploadSvcBusClient>();
 
             // Setup mocks.
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
@@ -73,6 +81,8 @@ namespace BulkFileUploadFunctionAppTests
                 .Returns(_testFeatureManagementExecutor);
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(IProcStatClient)))
                 .Returns(_procStatClientMock.Object);
+
+
         }
 
         private HealthCheckFunction CreateHealthCheckFunction()
@@ -82,8 +92,50 @@ namespace BulkFileUploadFunctionAppTests
                 _mockEnvironmentVariableProvider.Object,
                 _loggerFactoryMock.Object,
                 _testFeatureManagementExecutor,
-                _procStatClientMock.Object);
+                _mockBulkUploadSvcClient.Object);
         }
+
+        [TestMethod]
+        public async Task GivenMessage()
+        {
+
+            // This sets up the mock ServiceBusClient to return the mock of the ServiceBusSender.
+
+            _mockClient
+                .Setup(client => client.CreateSender(It.IsAny<string>()))
+                .Returns(_mockSender.Object);
+
+            // This sets up the mock sender to successfully return a completed task when any message is passed to
+            // SendMessageAsync.
+
+            _mockSender
+                .Setup(sender => sender.SendMessageAsync(
+                    It.IsAny<ServiceBusMessage>(),
+                    It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
+            ServiceBusClient client = _mockClient.Object;
+
+            // The rest of this snippet illustrates how to send a service bus message using the mocked
+            // service bus client above, this would be where application methods sending a message would be
+            // called.
+
+            string mockQueueName = "MockQueueName";
+            ServiceBusSender sender = client.CreateSender(mockQueueName);
+            ServiceBusMessage message = new("Hello World!");
+
+            await sender.SendMessageAsync(message);
+
+            // This illustrates how to verify that SendMessageAsync was called the correct number of times
+            // with the expected message.
+
+            _mockSender
+                .Verify(sender => sender.SendMessageAsync(
+                    It.Is<ServiceBusMessage>(m => (m.MessageId == message.MessageId)),
+                    It.IsAny<CancellationToken>()));
+
+        }
+
 
         [TestMethod]
         public async Task HealthCheckFunction_ReturnsHealthyResponse()
