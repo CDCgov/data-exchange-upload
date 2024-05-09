@@ -63,6 +63,7 @@ namespace BulkFileUploadFunctionApp.Services
             return true;
         }
 
+        // deprecated
         public async Task<Trace?> GetTraceByUploadId(string uploadId)
         {
             try
@@ -85,7 +86,7 @@ namespace BulkFileUploadFunctionApp.Services
                 return null;
             }
         }
-
+        // deprecated
         public async Task<Span?> StartSpanForTrace(string traceId, string parentSpanId, string stageName)
         {
             try
@@ -108,7 +109,7 @@ namespace BulkFileUploadFunctionApp.Services
                 return null;
             }
         }
-
+        // deprecated
         public async Task<string?> StopSpanForTrace(string traceId, string childSpanId)
         {
             try

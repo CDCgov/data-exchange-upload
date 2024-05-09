@@ -4,9 +4,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Azure.Messaging.ServiceBus;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
 using Microsoft.FeatureManagement;
+using Microsoft.Extensions.Azure;
 
 var host = new HostBuilder()
     .ConfigureLogging(builder =>
@@ -37,10 +39,13 @@ var host = new HostBuilder()
         services.AddFeatureManagement();
 
         // Register Proc Stat Http Service.
-        services.AddHttpClient<IProcStatClient, ProcStatClient>(client =>
-        {
-            client.BaseAddress = new Uri(Environment.GetEnvironmentVariable("PS_API_URL") ?? "");
-        });
+        //services.AddHttpClient<IProcStatClient, ProcStatClient>(client =>
+        //{
+         //   client.BaseAddress = new Uri(Environment.GetEnvironmentVariable("PS_API_URL") ?? "");
+        //});
+
+        // TODO: Register the ServiceBusClient as a singleton.
+        services.AddSingleton<IBulkUploadSvcBusClient, BulkUploadSvcBusClient>();
 
         services.AddSingleton<IUploadEventHubService, UploadEventHubService>();
 
