@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replay functionality
 - Upload configurations for the DAART data stream
 - Remove file copy EDAV target from the CELR data stream
+- Influenza v1 sender manifest configuration file to correct target routing destination
+- Correcting the lower casing of container subfolders created
 
 ## [1.4.1] - 2024-03-22
 - Renaming of Upload Processor function app
