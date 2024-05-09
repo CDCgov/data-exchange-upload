@@ -29,7 +29,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _serviceBusQueueName;
         private readonly ServiceBusSender _svcBusSender;
         private readonly ServiceBusReceiver _svcBusReceiver;
-        private readonly HttpClient _httpClient;
 
         public BulkUploadSvcBusClient(string serviceBusConnectionString, string serviceBusQueueName, ILogger<BulkUploadSvcBusClient> logger)
         {
@@ -37,7 +36,6 @@ namespace BulkFileUploadFunctionApp.Services
                 _serviceBusQueueName = serviceBusQueueName;
                 _logger = logger;
                 _svcBusClient = new ServiceBusClient(_serviceBusConnectionString);
-                _httpClient = new HttpClient();
                 _svcBusSender = _svcBusClient.CreateSender(_serviceBusQueueName);
                 _svcBusReceiver = _svcBusClient.CreateReceiver(_serviceBusQueueName);
 

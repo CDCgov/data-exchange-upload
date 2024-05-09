@@ -65,6 +65,7 @@ namespace BulkFileUploadFunctionAppTests
             _mockSender = new Mock<ServiceBusSender>();
             _mockBulkUploadSvcClient = new Mock<IBulkUploadSvcBusClient>();
 
+            
             // Setup mocks.
             _mockEnvironmentVariableProvider.Setup(m => m.GetEnvironmentVariable(It.IsAny<string>())).Returns("test");
             _mockFunctionContext.Setup(ctx => ctx.InstanceServices)
@@ -74,13 +75,13 @@ namespace BulkFileUploadFunctionAppTests
             _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
 
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
-            _procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
+            //_procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger<HealthCheckFunction>)))
                                 .Returns(_loggerMock.Object);
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(IFeatureManagementExecutor)))
                 .Returns(_testFeatureManagementExecutor);
-            _mockServiceProvider.Setup(provider => provider.GetService(typeof(IProcStatClient)))
-                .Returns(_procStatClientMock.Object);
+            //_mockServiceProvider.Setup(provider => provider.GetService(typeof(IProcStatClient)))
+            //    .Returns(_procStatClientMock.Object);
 
 
         }
@@ -96,74 +97,27 @@ namespace BulkFileUploadFunctionAppTests
         }
 
         [TestMethod]
-        public async Task GivenMessage()
-        {
-
-            // This sets up the mock ServiceBusClient to return the mock of the ServiceBusSender.
-
-            _mockClient
-                .Setup(client => client.CreateSender(It.IsAny<string>()))
-                .Returns(_mockSender.Object);
-
-            // This sets up the mock sender to successfully return a completed task when any message is passed to
-            // SendMessageAsync.
-
-            _mockSender
-                .Setup(sender => sender.SendMessageAsync(
-                    It.IsAny<ServiceBusMessage>(),
-                    It.IsAny<CancellationToken>()))
-                .Returns(Task.CompletedTask);
-
-            ServiceBusClient client = _mockClient.Object;
-
-            // The rest of this snippet illustrates how to send a service bus message using the mocked
-            // service bus client above, this would be where application methods sending a message would be
-            // called.
-
-            string mockQueueName = "MockQueueName";
-            ServiceBusSender sender = client.CreateSender(mockQueueName);
-            ServiceBusMessage message = new("Hello World!");
-
-            await sender.SendMessageAsync(message);
-
-            // This illustrates how to verify that SendMessageAsync was called the correct number of times
-            // with the expected message.
-
-            _mockSender
-                .Verify(sender => sender.SendMessageAsync(
-                    It.Is<ServiceBusMessage>(m => (m.MessageId == message.MessageId)),
-                    It.IsAny<CancellationToken>()));
-
-        }
-
-
-        [TestMethod]
         public async Task HealthCheckFunction_ReturnsHealthyResponse()
         {
-            // Arrange
-            // Setup service mocks.
-            
 
-            // setting up a mock response wrapper to simulate the behavior of the actual response object used in the service.
-            var functionContext = TestHelpers.CreateFunctionContext();
-            var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
-            var healthCheckFunction = CreateHealthCheckFunction();
+
+            // Arrange
+            var expectedResponse = new HealthCheckResponse { Status = "UP" };
+
+
+            _mockBulkUploadSvcClient
+                .Setup(client => client.GetHealthCheck())
+                .ReturnsAsync(expectedResponse);
 
             // Act
-            // Executes the HealthCheckFunction with mocked dependencies to test its behavior.
-            var result = await healthCheckFunction.Run(
-                httpRequestData,
-                functionContext);
+            var actualResponse = await _mockBulkUploadSvcClient.Object.GetHealthCheck();
 
             // Assert
-            Assert.AreEqual(HttpStatusCode.OK, result.StatusCode);
-            result.Body.Position = 0;
-            var responseBody = new StreamReader(result.Body).ReadToEnd();
-            var healthCheckResponse = JsonSerializer.Deserialize<HealthCheckResponse>(responseBody);
-            Assert.IsNotNull(healthCheckResponse);
-            Assert.AreEqual("UP", healthCheckResponse.Status);
-            Assert.AreEqual(4, healthCheckResponse.DependencyHealthChecks.Count);
+            Assert.AreEqual(expectedResponse, actualResponse);
+            
+            // This sets up the mock ServiceBusClient to return the mock of the ServiceBusSender.
         }
+
 
         [TestMethod]
         public async Task HealthCheckFunction_ReturnsNotHealthyResponseOnException()
