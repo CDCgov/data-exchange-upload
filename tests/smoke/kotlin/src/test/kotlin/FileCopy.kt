@@ -11,8 +11,12 @@ import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.TestNGException
 import org.testng.annotations.*
+import org.testng.annotations.Optional
 import tus.UploadClient
 import util.*
+import java.io.FileInputStream
+import java.util.*
+import kotlin.collections.HashMap
 import kotlin.math.exp
 
 @Listeners(UploadIdTestListener::class)
@@ -31,19 +35,22 @@ class FileCopy {
     private lateinit var bulkUploadsContainerClient: BlobContainerClient
     private lateinit var uploadConfigBlobClient: BlobClient
     private lateinit var uploadConfig: UploadConfig
+    private lateinit var dexContainerClient:BlobContainerClient
     private lateinit var edavContainerClient: BlobContainerClient
     private lateinit var routingContainerClient: BlobContainerClient
     private lateinit var uploadClient: UploadClient
     private lateinit var uploadId: String
     private lateinit var useCase: String
     private lateinit var metadata: HashMap<String, String>
+    private lateinit var metadataMapping: HashMap<String, String>
 
-    @Parameters("SENDER_MANIFEST", "USE_CASE")
+    @Parameters("SENDER_MANIFEST", "USE_CASE", "SENDER_MANIFEST_MAPPING")
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
     fun beforeTest(
         context: ITestContext,
         @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
-        @Optional("dextesting-testevent1") USE_CASE: String
+        @Optional("dextesting-testevent1") USE_CASE: String,
+        @Optional("dextesting-testevent1-mapping.properties") SENDER_MANIFEST_MAPPING: String
     ) {
         useCase = USE_CASE
 
@@ -51,20 +58,25 @@ class FileCopy {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
         val propertiesFilePath= "properties/$USE_CASE/$SENDER_MANIFEST"
+        val propertiesFilePathMapping= "properties/$USE_CASE/$SENDER_MANIFEST_MAPPING"
         println("Storing Metadata")
         metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
+        metadataMapping = Metadata.convertPropertiesToMetadataMap(propertiesFilePathMapping)
         println(metadata)
         println(metadata.keys)
+        println(metadataMapping)
+        println(metadataMapping.keys)
         println("After Metadata")
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
-        println( dexBlobClient.properties )
+        println("dexBlobClient: $dexBlobClient.properties" )
         uploadConfigBlobClient = dexBlobClient
             .getBlobContainerClient(Constants.UPLOAD_CONFIG_CONTAINER_NAME)
             .getBlobClient("v1/${USE_CASE}.json")
 
         uploadConfig = jacksonObjectMapper().readValue(uploadConfigBlobClient.downloadContent().toString())
 
+        dexContainerClient = dexBlobClient.getBlobContainerClient(USE_CASE)
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
         routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
         uploadId = uploadClient.uploadFile(testFile, metadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
@@ -111,63 +123,30 @@ class FileCopy {
         }
     }
 
-
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldTranslateMetadataGivenV1SenderManifest() {
+
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
-        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}.${testFile.extension}"
+        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)}/${testFile.nameWithoutExtension}$filenameSuffix.${testFile.extension}"
+        val modifiedFilename = expectedFilename.removePrefix("$useCase/")
 
-        println("expectedFilename: $expectedFilename")
-        var expectedBlobClient: BlobClient?
+        val expectedBlobClient = dexContainerClient.getBlobClient(modifiedFilename)
 
-        if (uploadConfig.copyConfig.targets.contains("edav")) {
-            expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
-            println("edav - expectedBlobClient: $expectedBlobClient")
-            Assert.assertNotNull(expectedBlobClient)
+        val blobProperties = expectedBlobClient?.properties
+            ?: throw AssertionError("Blob client has no properties.")
 
-            val blobProperties = expectedBlobClient!!.getProperties()
-            Assert.assertEquals(blobProperties.blobSize, testFile.length())
+        val blobMetadata = blobProperties.metadata
 
-            println("Getting Blob Metadata Properties")
-            val blobMetadata = blobProperties.metadata
-
-            blobMetadata.forEach { (key, value) ->
-                println("Blob Metadata - $key: $value")
-            }
-
-            metadata.forEach { (key, value) ->
-                println("Property Metadata - $key: $value")
-                val expectedValue = blobMetadata[key]
-                println("Expected Key-Value : ($key:$value); Actual Key-Value: ($key:$expectedValue);")
-                Assert.assertEquals(value, expectedValue,  "Mismatch for key: $key")
-            }
-
+        //Metadata Value Validation
+        metadata.forEach { (v1Key, v1Value) ->
+            val expectedFieldInV2 = metadataMapping[v1Key]
+            val actualValueInV2 = blobMetadata[expectedFieldInV2]
+            Assert.assertEquals(v1Value, actualValueInV2, "Expected V1 key value: $v1Value does not match with actual V2 key value: $actualValueInV2")
         }
 
-        if (uploadConfig.copyConfig.targets.contains("routing")) {
-            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
-            println("routing - expectedBlobClient: ${expectedBlobClient}")
-            Assert.assertNotNull(expectedBlobClient)
-
-            val blobProperties = expectedBlobClient!!.getProperties()
-            Assert.assertEquals(blobProperties.blobSize, testFile.length(), "blobProperty File Size not matching with testfile Length")
-
-
-            println("Getting Blob Metadata Properties")
-            val blobMetadata = blobProperties.metadata
-
-            blobMetadata.forEach { (key, value) ->
-                println("Blob Metadata - $key: $value")
-            }
-
-            metadata.forEach { (key, value) ->
-                println("Property Metadata - $key: $value")
-                val expectedValue = blobMetadata[key]
-                println("Expected Key-Value : ($key:$value); Actual Key-Value: ($key:$expectedValue);")
-                Assert.assertEquals(value, expectedValue,  "Mismatch for key: $key")
-            }
-
+        //Metadata Key Validation
+        metadataMapping.forEach { (v1Key, v2Key) ->
+            Assert.assertTrue(blobMetadata.containsKey(v2Key), "Mismatch:Blob metadata does not contain expected V2 key: $v2Key which should map from V1 key: $v1Key")
         }
-
     }
 }

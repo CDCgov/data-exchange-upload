@@ -7,13 +7,9 @@ class Constants {
         const val BULK_UPLOAD_CONTAINER_NAME = "bulkuploads"
         const val UPLOAD_CONFIG_CONTAINER_NAME = "upload-configs"
         const val EDAV_UPLOAD_CONTAINER_NAME = "upload"
+        const val DEX_UPLOAD_CONTAINER_NAME = "dextesting-testevent1"
         const val ROUTING_UPLOAD_CONTAINER_NAME = "routeingress"
         const val TUS_PREFIX_DIRECTORY_NAME = "tus-prefix"
-        const val DATA_STREAM_ID = "dextesting"
-        const val DATA_STREAM_ROUTE = "testevent1"
-        const val SENDER_ID= "SID"
-        const val DATA_PRODUCER_ID = "DP"
-        const val JURISDICTION = "Atlanta"
     }
 
     class Groups {
