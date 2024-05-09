@@ -2,9 +2,6 @@ import auth.AuthClient
 import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobContainerClient
-import com.azure.storage.blob.models.BlobItem
-import com.azure.storage.blob.models.BlobListDetails
-import com.azure.storage.blob.models.ListBlobsOptions
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import model.UploadConfig
@@ -16,7 +13,7 @@ import org.testng.TestNGException
 import org.testng.annotations.*
 import tus.UploadClient
 import util.*
-import java.time.Duration
+import kotlin.math.exp
 
 @Listeners(UploadIdTestListener::class)
 @Test()
@@ -39,6 +36,7 @@ class FileCopy {
     private lateinit var uploadClient: UploadClient
     private lateinit var uploadId: String
     private lateinit var useCase: String
+    private lateinit var metadata: HashMap<String, String>
 
     @Parameters("SENDER_MANIFEST", "USE_CASE")
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
@@ -53,13 +51,18 @@ class FileCopy {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
         val propertiesFilePath= "properties/$USE_CASE/$SENDER_MANIFEST"
-        val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
+        println("Storing Metadata")
+        metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
+        println(metadata)
+        println(metadata.keys)
+        println("After Metadata")
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
-
+        println( dexBlobClient.properties )
         uploadConfigBlobClient = dexBlobClient
             .getBlobContainerClient(Constants.UPLOAD_CONFIG_CONTAINER_NAME)
             .getBlobClient("v1/${USE_CASE}.json")
+
         uploadConfig = jacksonObjectMapper().readValue(uploadConfigBlobClient.downloadContent().toString())
 
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
@@ -108,22 +111,63 @@ class FileCopy {
         }
     }
 
+
     @Test(groups = [Constants.Groups.FILE_COPY])
-    fun verifyMetadataTranslation(){
-        val options = ListBlobsOptions()
-            .setPrefix(Metadata.getFilePrefixByDate(DateTime.now(),useCase))
-            .setDetails(BlobListDetails().setRetrieveMetadata(true))
-        val routingUploadBlob =routingContainerClient.listBlobs(options, Duration.ofMillis(EnvConfig.AZURE_BLOB_SEARCH_DURATION_MILLIS))
-            .first{blob ->blob.metadata?.containsValue(uploadId) == true }
+    fun shouldTranslateMetadataGivenV1SenderManifest() {
+        val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
+        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}.${testFile.extension}"
 
-        Assert.assertNotNull(routingUploadBlob)
-        Assert.assertEquals(routingUploadBlob.properties.contentLength, testFile.length())
+        println("expectedFilename: $expectedFilename")
+        var expectedBlobClient: BlobClient?
 
-        val metaDataKeys = uploadClient.getAllMetadataKeys(routingUploadBlob)
-        for (key in metaDataKeys) {
-            assert(routingUploadBlob.metadata?.containsKey(key) == true) {"Metadata key '$key' not found"}
+        if (uploadConfig.copyConfig.targets.contains("edav")) {
+            expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
+            println("edav - expectedBlobClient: $expectedBlobClient")
+            Assert.assertNotNull(expectedBlobClient)
+
+            val blobProperties = expectedBlobClient!!.getProperties()
+            Assert.assertEquals(blobProperties.blobSize, testFile.length())
+
+            println("Getting Blob Metadata Properties")
+            val blobMetadata = blobProperties.metadata
+
+            blobMetadata.forEach { (key, value) ->
+                println("Blob Metadata - $key: $value")
+            }
+
+            metadata.forEach { (key, value) ->
+                println("Property Metadata - $key: $value")
+                val expectedValue = blobMetadata[key]
+                println("Expected Key-Value : ($key:$value); Actual Key-Value: ($key:$expectedValue);")
+                Assert.assertEquals(value, expectedValue,  "Mismatch for key: $key")
+            }
+
+        }
+
+        if (uploadConfig.copyConfig.targets.contains("routing")) {
+            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
+            println("routing - expectedBlobClient: ${expectedBlobClient}")
+            Assert.assertNotNull(expectedBlobClient)
+
+            val blobProperties = expectedBlobClient!!.getProperties()
+            Assert.assertEquals(blobProperties.blobSize, testFile.length(), "blobProperty File Size not matching with testfile Length")
+
+
+            println("Getting Blob Metadata Properties")
+            val blobMetadata = blobProperties.metadata
+
+            blobMetadata.forEach { (key, value) ->
+                println("Blob Metadata - $key: $value")
+            }
+
+            metadata.forEach { (key, value) ->
+                println("Property Metadata - $key: $value")
+                val expectedValue = blobMetadata[key]
+                println("Expected Key-Value : ($key:$value); Actual Key-Value: ($key:$expectedValue);")
+                Assert.assertEquals(value, expectedValue,  "Mismatch for key: $key")
+            }
+
         }
 
     }
-
 }
