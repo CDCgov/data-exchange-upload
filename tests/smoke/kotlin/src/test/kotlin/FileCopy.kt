@@ -1,9 +1,9 @@
-import auth.AuthClient
 import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobContainerClient
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import dex.DexUploadClient
 import model.UploadConfig
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -18,7 +18,7 @@ import util.*
 @Test()
 class FileCopy {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
-    private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
+    private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
     private val edavBlobClient = Azure.getBlobServiceClient(EnvConfig.EDAV_STORAGE_ACCOUNT_NAME,
         ClientSecretCredentialBuilder()
@@ -40,7 +40,7 @@ class FileCopy {
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
     fun beforeTest(
         context: ITestContext,
-        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
+        @Optional SENDER_MANIFEST: String?,
         @Optional("dextesting-testevent1") USE_CASE: String
     ) {
         useCase = USE_CASE
@@ -48,8 +48,9 @@ class FileCopy {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
-        val propertiesFilePath= "properties/$USE_CASE/$SENDER_MANIFEST"
-        val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
+        val senderManifestDataFile = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
+        val propertiesFilePath = "properties/$USE_CASE/$senderManifestDataFile"
+        val senderManifest = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
 
@@ -60,7 +61,7 @@ class FileCopy {
 
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
         routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
-        uploadId = uploadClient.uploadFile(testFile, metadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
+        uploadId = uploadClient.uploadFile(testFile, senderManifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
         context.setAttribute("uploadId", uploadId)
         Thread.sleep(500) // Hard delay to wait for file to copy.
 

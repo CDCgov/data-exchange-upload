@@ -11,13 +11,11 @@
         </classes>
     </test>
     <test name="File Copy">
-        <parameter name="SENDER_MANIFEST" value="pulsenet-localsequencefile.properties"/>
         <classes>
             <class name="FileCopy" />
         </classes>
     </test>
     <test name="Proc Stat">
-        <parameter name="SENDER_MANIFEST" value="pulsenet-localsequencefile.properties"/>
         <!-- Define parameters for expected URLs as comma-separated lists -->
         <parameter name="EXPECTED_SOURCE_URL_PREFIXES" value="https://ocioededataexchangedev.blob.core.windows.net/pulsenet-localsequencefile"/>
         <parameter name="EXPECTED_DESTINATION_URL_PREFIXES" value="https://edavdevdatalakedex.blob.core.windows.net/upload/pulsenet-localsequencefile"/>
@@ -28,6 +26,11 @@
         </groups>
         <classes>
             <class name="ProcStat" />
+        </classes>
+    </test>
+    <test name="File Info">
+        <classes>
+            <class name="Info" />
         </classes>
     </test>
 </suite>

@@ -18,6 +18,7 @@ class Constants {
             const val PROC_STAT = "proc-stat"
             const val PROC_STAT_REPORT = "proc-stat-report"
             const val FILE_COPY = "file-copy"
+            const val FILE_INFO = "file-info"
         }
     }
 }
