@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.3] 2024-05-02
+- Remove appended tguid values from filenames routed to EDAV storage accounts.
+
+## [1.6.2] 2024-04-23
+- Update upload filename character restrictions to only disallow forward slashes (/)
+- Update Routine Immunization v1 sender manifest configuration file to remove incorrect metadata fields
+- Add v2 sender manifest configuration files for NRSS and EHDI data streams
+- Replace the filename suffix clock tick value with file upload id (tus guid) value
+
+## [1.5.0] - 2024-04-23
+- Version 2 sender manifest configuration folder structure
+- Version 1 sender manifest metadata values to version 2 metadata fields
+- File copy functionality to routing storage accounts
+- Processing Status API integration
+- Retry functionality
+- Replay functionality
+- Upload configurations for the DAART data stream
+- Remove file copy EDAV target from the CELR data stream
+
+## [1.4.1] - 2024-03-22
+- Renaming of Upload Processor function app
+- Infrastructure to support retry/replay functionality
+- Application settings to support connection to Processing Status API
+- Deployment of blue/green slots to the Upload Processor function app
+
 ## [1.2.3] - 2023-01-31
 - Added descriptions for the functions in the repo
 - Routing Integration: copy to routing changes
