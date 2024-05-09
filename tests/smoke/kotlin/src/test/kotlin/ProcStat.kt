@@ -70,13 +70,13 @@ class ProcStat {
 
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
     fun shouldHaveUploadStatusReportWhenFileUploaded() {
-        reportResponse.body("upload_id", equalTo(uploadId)).body("reports.stage_name", hasItem("dex-upload")).body("reports.content.schema_name", hasItem("upload"))
+        reportResponse.body("upload_id", equalTo(uploadId)).body("reports.stage_name", hasItem(Constants.UPLOAD_STATUS_REPORT_STAGE_NAME)).body("reports.content.schema_name", hasItem("upload"))
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
     fun shouldHaveEqualOffsetAndSizeWhenFileUploaded() {
         val jsonPath = reportResponse.extract().jsonPath()
-        val uploadReport = jsonPath.getList("reports", Report::class.java).find { it.stageName == "dex-upload" }
+        val uploadReport = jsonPath.getList("reports", Report::class.java).find { it.stageName == Constants.UPLOAD_STATUS_REPORT_STAGE_NAME }
 
         assertNotNull(uploadReport)
     }
