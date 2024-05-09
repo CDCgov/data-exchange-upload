@@ -88,6 +88,7 @@ class FileCopy {
     fun shouldCopyToDestinationContainers() {
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
         val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
+        println(expectedFilename)
         var expectedBlobClient: BlobClient?
 
         if (uploadConfig.copyConfig.targets.contains("edav")) {
