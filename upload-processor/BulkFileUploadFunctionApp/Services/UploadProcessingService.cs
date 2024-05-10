@@ -554,7 +554,7 @@ namespace BulkFileUploadFunctionApp.Services
             _featureManagementExecutor.ExecuteIfEnabled(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, () =>
             {
                 var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-                _bulkUploadSvcBusClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+                _bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
             });
         }
 
@@ -564,7 +564,7 @@ namespace BulkFileUploadFunctionApp.Services
             _featureManagementExecutor.ExecuteIfEnabled(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, () =>
             {
                 CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: error);
-                _bulkUploadSvcBusClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+                _bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
             });
         }
     }

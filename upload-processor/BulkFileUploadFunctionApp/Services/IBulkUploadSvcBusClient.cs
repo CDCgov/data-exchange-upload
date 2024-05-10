@@ -18,7 +18,7 @@ namespace BulkFileUploadFunctionApp.Services
     public interface IBulkUploadSvcBusClient
     {
         Task<HealthCheckResponse?> GetHealthCheck();
-        Task<bool> CreateReport<TReport>(string uploadId, string destinationId, string eventType, string stageName, TReport payload);
+        Task<bool> PublishReport<TReport>(string uploadId, string destinationId, string eventType, string stageName, TReport payload);
     }
 
     public class BulkUploadSvcBusClient : IBulkUploadSvcBusClient
@@ -45,32 +45,29 @@ namespace BulkFileUploadFunctionApp.Services
         {
             try
             {
-                try
-                {
-                   var responseBody = await DoesQueueExistAsync(_serviceBusQueueName);
+                var responseBody = await DoesQueueExistAsync(_serviceBusQueueName);
 
-                    // If the creation of the ServiceBusSender is successful, then the Service Bus is healthy
+                // If the queue exists, then the Service Bus is healthy
+                if (responseBody)
+                {
                     return new HealthCheckResponse()
                     {
                         Status = "UP"
                     };
                 }
-                catch (Exception ex)
+                else
                 {
-                    // If an exception is thrown, then the Service Bus is not healthy
-                    _logger.LogError("Error when checking the health of the Service Bus.");
-                    ExceptionUtils.LogErrorDetails(ex, _logger);
+                    _logger.LogWarning("The queue does not exist in the Service Bus.");
                     return new HealthCheckResponse()
                     {
                         Status = "DOWN"
                     };
                 }
-
-                
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error when calling PS API.");
+                // If an exception is thrown, then the Service Bus is not healthy
+                _logger.LogError("Error when checking the health of the Service Bus.");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
                 return new HealthCheckResponse()
                 {
@@ -85,13 +82,12 @@ namespace BulkFileUploadFunctionApp.Services
             return await serviceBusAdministrationClient.QueueExistsAsync(queueName);
         }
 
-        public Task<bool> CreateReport<TReport>(string uploadId, string destinationId, string eventType, string stageName, TReport payload)
+        public Task<bool> PublishReport<TReport>(string uploadId, string destinationId, string eventType, string stageName, TReport payload)
         {
             try
             {
                 // build the report json
                 var content = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload));
-                //var response = await _httpClient.PostAsync($"/api/report/json/uploadId/{uploadId}?destinationId={destinationId}&eventType={eventType}&stageName={stageName}", content);
 
                 // add it to a BusMessage object 
                 var svcBusMessage = new ServiceBusMessage(uploadId) { Subject=stageName, ContentType="application/json", Body = new BinaryData(content) };
