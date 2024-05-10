@@ -15,7 +15,6 @@ namespace BulkFileUploadFunctionApp.Utils
         public const string USE_CASE_CATEGORY_FIELDNAME_V1 = "meta_ext_event";
         public const string USE_CASE_FIELDNAME_V2 = "data_stream_id";
         public const string USE_CASE_CATEGORY_FIELDNAME_V2 = "data_stream_route";
-        public const string SERVICE_BUS_CONNECTION_STR = "";
         public const string REPORT_QUEUE_NAME = "processing-status-cosmos-db-queue";
     }
 }
