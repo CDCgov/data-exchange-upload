@@ -220,16 +220,13 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogError("Failed to copy blob from TUS to Dex");
 
                 // Send copy failure report
-                // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
-                {
-                    SendFailureReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.SourceBlobUrl, 
-                                      copyPrereqs.DexBlobFolderName, 
-                                      $"Failed to copy blob from TUS to DEX. {ex.Message}");
-                });
+
+                SendFailureReport(copyPrereqs.UploadId, 
+                                    copyPrereqs.UseCase, 
+                                    copyPrereqs.UseCaseCategory, 
+                                    copyPrereqs.SourceBlobUrl, 
+                                    copyPrereqs.DexBlobFolderName, 
+                                    $"Failed to copy blob from TUS to DEX. {ex.Message}");
 
                 throw ex;
             }
@@ -304,15 +301,11 @@ namespace BulkFileUploadFunctionApp.Services
                 await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
 
                 // Send copy success report
-                // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
-                {
-                    SendSuccessReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.DexBlobUrl, 
-                                      destBlobClient.Uri.ToString());
-                });
+                SendSuccessReport(copyPrereqs.UploadId, 
+                                    copyPrereqs.UseCase, 
+                                    copyPrereqs.UseCaseCategory, 
+                                    copyPrereqs.DexBlobUrl, 
+                                    destBlobClient.Uri.ToString());
             }
             catch (Exception ex)
             {
@@ -320,16 +313,12 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);               
 
                 // Send copy failure report
-                // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
-                {
-                    SendFailureReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.DexBlobUrl, 
-                                      destinationContainerName, 
-                                      $"Failed to copy blob from DEX to EDAV. {ex.Message}");
-                });
+                SendFailureReport(copyPrereqs.UploadId, 
+                                    copyPrereqs.UseCase, 
+                                    copyPrereqs.UseCaseCategory, 
+                                    copyPrereqs.DexBlobUrl, 
+                                    destinationContainerName, 
+                                    $"Failed to copy blob from DEX to EDAV. {ex.Message}");
 
                 throw ex;
             }
@@ -360,15 +349,11 @@ namespace BulkFileUploadFunctionApp.Services
                 await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
 
                 // Send copy success report
-                // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
-                {
-                    SendSuccessReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.DexBlobUrl, 
-                                      destBlobClient.Uri.ToString());
-                });
+                SendSuccessReport(copyPrereqs.UploadId, 
+                                    copyPrereqs.UseCase, 
+                                    copyPrereqs.UseCaseCategory, 
+                                    copyPrereqs.DexBlobUrl, 
+                                    destBlobClient.Uri.ToString());
             }
             catch (Exception ex)
             {
@@ -376,16 +361,12 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);
 
                 // Send copy failure report
-                // TODO: refactor to use service bus instead
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
-                {
-                    SendFailureReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.DexBlobUrl, 
-                                      destinationContainerName, 
-                                      $"Failed to copy blob from DEX to ROUTING. {ex.Message}");
-                });
+                SendFailureReport(copyPrereqs.UploadId, 
+                                    copyPrereqs.UseCase, 
+                                    copyPrereqs.UseCaseCategory, 
+                                    copyPrereqs.DexBlobUrl, 
+                                    destinationContainerName, 
+                                    $"Failed to copy blob from DEX to ROUTING. {ex.Message}");
 
                 throw ex;
             }
