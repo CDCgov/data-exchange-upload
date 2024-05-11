@@ -52,7 +52,6 @@ namespace BulkFileUploadFunctionAppTests
             _loggerMock = new Mock<ILogger<HealthCheckFunction>>();
             _procStatClientMock = new Mock<IProcStatClient>();
             
-            // TODO: refactor to use service bus instead
             _testConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
             {
                 {$"FeatureManagement:{Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME}", "true"}
@@ -75,15 +74,10 @@ namespace BulkFileUploadFunctionAppTests
             _mockBlobServiceClientFactory.Setup(m => m.CreateBlobServiceClient(It.IsAny<string>())).Returns(mockBlobServiceClient.Object);
 
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
-            //_procStatClientMock.Setup(mock => mock.GetHealthCheck()).Returns(Task.FromResult(TestHelpers.CreateUpResponse()));
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(ILogger<HealthCheckFunction>)))
                                 .Returns(_loggerMock.Object);
             _mockServiceProvider.Setup(provider => provider.GetService(typeof(IFeatureManagementExecutor)))
                 .Returns(_testFeatureManagementExecutor);
-            //_mockServiceProvider.Setup(provider => provider.GetService(typeof(IProcStatClient)))
-            //    .Returns(_procStatClientMock.Object);
-
-
         }
 
         private HealthCheckFunction CreateHealthCheckFunction()
