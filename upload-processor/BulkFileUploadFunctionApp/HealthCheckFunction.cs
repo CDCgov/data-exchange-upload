@@ -84,7 +84,7 @@ namespace BulkFileUploadFunctionApp
 
             // Perform health check for Processing Status.
             try
-            {               // TODO: remove
+            {             
                 await _featureManagementExecutor
                 .ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
                 {
