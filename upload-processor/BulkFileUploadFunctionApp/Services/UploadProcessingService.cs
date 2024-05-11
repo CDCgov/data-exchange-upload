@@ -395,7 +395,7 @@ namespace BulkFileUploadFunctionApp.Services
         {
             string suffix = string.Empty; // Default to no suffix.
 
-            if (uploadConfig.CopyConfig?.FilenameSuffix == CopyConfig.FILENAME_SIFFIX_UID)
+            if (uploadConfig.CopyConfig?.FilenameSuffix == CopyConfig.FILENAME_SUFFIX_UID)
             {
                 suffix = $"_{uploadId}";
             }
