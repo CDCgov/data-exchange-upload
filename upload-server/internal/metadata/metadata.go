@@ -139,6 +139,7 @@ func getFilename(manifest map[string]string) string {
 }
 
 func getDataStreamID(manifest map[string]string) string {
+	logger.Info("getDataStreamID===================================:", "data_stream_id", manifest["version"])
 	switch manifest["version"] {
 	case "2.0":
 		return manifest["data_stream_id"]
@@ -197,6 +198,8 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[st
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
+	logger.Info("getDataStreamID:=========================", "DataStreamID", getDataStreamID(manifest))
+	logger.Info("getDataStreamRoute:======================", "DataStreamRoute", getDataStreamRoute(manifest))
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
