@@ -79,7 +79,7 @@ namespace BulkFileUploadFunctionApp.Services
                 new DefaultAzureCredential() // using Service Principal
             );
 
-            _bulkUploadSvcBusClient = bulkUploadSvcBusClient;           
+            _bulkUploadSvcBusClient = new BulkUploadSvcBusClient(_ServiceBusConnectionString, _ServiceBusQueueName, loggerFactory.CreateLogger<BulkUploadSvcBusClient>());
         }
 
         public async Task<CopyPrereqs> GetCopyPrereqs(string blobCreatedUrl)

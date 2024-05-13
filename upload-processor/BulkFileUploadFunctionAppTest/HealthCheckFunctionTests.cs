@@ -141,8 +141,8 @@ namespace BulkFileUploadFunctionAppTests
             var functionContext = TestHelpers.CreateFunctionContext();
             var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);
 
-            _procStatClientMock.Setup(mock => mock.GetHealthCheck())
-                .Throws(new RequestFailedException("Error connecting to PS API"));
+            _mockBulkUploadSvcClient.Setup(mock => mock.GetHealthCheck())
+                .Throws(new RequestFailedException("Error connecting to Service Bus"));
 
             var healthCheckFunction = CreateHealthCheckFunction();
 
