@@ -34,7 +34,6 @@ func TestTus(t *testing.T) {
 					t.Error(name, tuid, err)
 				}
 
-				// TODO: Expand test to check both metadata verify and upload status reports.
 				metadataReportCount, uploadStatusReportCount := 0, 0
 				rMetadata, rUploadStatus := &metadata.Report{}, &metadata.Report{}
 				b, err := io.ReadAll(f)
