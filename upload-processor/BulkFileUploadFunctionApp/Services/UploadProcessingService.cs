@@ -8,6 +8,7 @@ using System.Text.Json;
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
 using System.Text.Json.Serialization;
+using System.Runtime.Intrinsics.X86;
 
 namespace BulkFileUploadFunctionApp.Services
 {
@@ -35,14 +36,11 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
         private readonly IBulkUploadSvcBusClient _bulkUploadSvcBusClient;
-        private readonly ServiceBusSender _serviceBusSender;
         private readonly string _uploadConfigContainer; 
         private readonly string _ServiceBusConnectionString;
         private readonly string _ServiceBusQueueName;
         
 
-
-        //TODO: Replace ProcStatClient with BulkUploadSvcBusClient
         public UploadProcessingService(ILoggerFactory loggerFactory, IBulkUploadSvcBusClient bulkUploadSvcBusClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
         {
@@ -531,17 +529,31 @@ namespace BulkFileUploadFunctionApp.Services
         }
         private void SendSuccessReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destPath)
         {
-            // TODO: refactor to use service bus instead
             _featureManagementExecutor.ExecuteIfEnabled(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, () =>
             {
                 var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-                _bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+                try
+                {
+                    _bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
+                }
+                catch(System.Runtime.Serialization.SerializationException se)
+                {
+                    _logger.LogError($"Failed to send success report to service bus: {se.Message}");
+                }
+                catch(ServiceBusException sbe)
+                {
+                    _logger.LogError($"Failed to send success report to service bus: {sbe.Reason.ToString()}");
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send success report");
+                }
+
             });
         }
 
         private void SendFailureReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destinationContainerName, string error)
         {
-            // TODO: refactor to use service bus instead
             _featureManagementExecutor.ExecuteIfEnabled(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, () =>
             {
                 CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: error);

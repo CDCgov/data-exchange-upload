@@ -1,9 +1,12 @@
+using Azure.Messaging.ServiceBus.Administration;
 using BulkFileUploadFunctionApp;
 using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using Moq;
+using Azure.Messaging.ServiceBus;
 
 namespace BulkFileUploadFunctionAppTests
 {
@@ -15,6 +18,7 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<ILoggerFactory>? _loggerFactoryBUFMock;
         private BulkFileUploadFunction? _function;
         private Mock<IUploadProcessingService>? _mockUploadProcessingService;
+        private Mock<ServiceBusAdministrationClient>? _mockServiceBusAdministrationClient;
 
         [TestInitialize]
         public void Initialize()
@@ -28,7 +32,7 @@ namespace BulkFileUploadFunctionAppTests
             _loggerFactoryBUFMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             
             _mockUploadProcessingService = new Mock<IUploadProcessingService>();
-
+            _mockServiceBusAdministrationClient = new Mock<ServiceBusAdministrationClient>();
 
             // Initialize your function with mocked dependencies
             _function = new BulkFileUploadFunction(
@@ -36,7 +40,8 @@ namespace BulkFileUploadFunctionAppTests
                 _mockUploadProcessingService.Object
                 );
 
-        }    
+        }
+
 
         [TestMethod]
         public async Task GivenValidUri_WhenRunIsCalled_ThenLogEventsCopyAllVerified()
