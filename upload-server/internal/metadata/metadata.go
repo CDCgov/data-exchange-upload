@@ -140,7 +140,7 @@ func getFilename(manifest map[string]string) string {
 
 func getDataStreamID(manifest map[string]string) string {
 	switch manifest["version"] {
-	case "v2":
+	case "2.0":
 		return manifest["data_stream_id"]
 	default:
 		return manifest["meta_destination_id"]
@@ -149,7 +149,7 @@ func getDataStreamID(manifest map[string]string) string {
 
 func getDataStreamRoute(manifest map[string]string) string {
 	switch manifest["version"] {
-	case "v2":
+	case "2.0":
 		return manifest["data_stream_route"]
 	default:
 		return manifest["meta_ext_event"]
