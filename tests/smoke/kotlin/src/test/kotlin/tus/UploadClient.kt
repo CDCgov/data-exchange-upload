@@ -67,13 +67,4 @@ class UploadClient(url: String, private val authToken: String) {
         return uploadUrl.split("/").last().trim()
     }
 
-    fun getAllMetadataKeys(blob: BlobItem):Set<String> {
-        blob.metadata?.let { metadata ->
-            metadata.entries.forEach {entry ->
-                println ("Key: ${entry.key}, Value: ${entry.value}")
-            }
-            return metadata.keys
-        }
-        return emptySet()
-    }
 }
