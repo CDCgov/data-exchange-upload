@@ -94,6 +94,5 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 
 	// TODO: -> handler.Register(tusHooks.HookPostFinish, copier.Merge, copier.Route)
 
-
 	return handler, nil
 }

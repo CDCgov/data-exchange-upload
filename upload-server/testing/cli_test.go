@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -23,18 +24,19 @@ func TestTus(t *testing.T) {
 	url := ts.URL
 	for name, c := range Cases {
 		tuid, err := RunTusTestCase(url, "test/test.txt", c)
+		time.Sleep(500 * time.Millisecond) // TODO: Find a better way to wait for all the hooks to finish.
+
 		if err != nil {
 			t.Error(name, err)
 		} else {
 
 			if tuid != "" {
-
 				f, err := os.Open("test/reports/" + tuid)
 				if err != nil {
 					t.Error(name, tuid, err)
 				}
 
-				metadataReportCount, uploadStatusReportCount := 0, 0
+				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount := 0, 0, 0, 0
 				rMetadata, rUploadStatus := &metadata.Report{}, &metadata.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
@@ -73,6 +75,16 @@ func TestTus(t *testing.T) {
 
 						continue
 					}
+
+					if strings.Contains(rLine, "dex-upload-started") {
+						uploadStartedReportCount++
+						continue
+					}
+
+					if strings.Contains(rLine, "dex-upload-complete") {
+						uploadCompleteReportCount++
+						continue
+					}
 				}
 
 				if metadataReportCount != 1 {
@@ -80,7 +92,15 @@ func TestTus(t *testing.T) {
 				}
 
 				if uploadStatusReportCount == 0 {
-					t.Error("expected at least one upload status report count but got none")
+					t.Error("expected at least one upload status report but got none")
+				}
+
+				if uploadStartedReportCount != 1 {
+					t.Error("expected one upload started report but got", uploadStartedReportCount)
+				}
+
+				if uploadCompleteReportCount != 1 {
+					t.Error("expected one upload complete report but got", uploadCompleteReportCount)
 				}
 
 				if c.err != nil {
