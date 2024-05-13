@@ -12,13 +12,15 @@ using System.Text.Json;
 using Azure.Messaging.ServiceBus.Administration;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using System.Text.Unicode;
+using System.Runtime.Serialization;
 
 namespace BulkFileUploadFunctionApp.Services
 {
     public interface IBulkUploadSvcBusClient
     {
         Task<HealthCheckResponse?> GetHealthCheck();
-        Task<bool> PublishReport<TReport>(string uploadId, string destinationId, string eventType, string stageName, TReport payload);
+        void PublishReport(string uploadId, string destinationId, string eventType, string stageName, Report payload);
+
     }
 
     public class BulkUploadSvcBusClient : IBulkUploadSvcBusClient
@@ -31,18 +33,18 @@ namespace BulkFileUploadFunctionApp.Services
 
         public BulkUploadSvcBusClient(string serviceBusConnectionString, string serviceBusQueueName, ILogger<BulkUploadSvcBusClient> logger)
         {
-                _serviceBusConnectionString = serviceBusConnectionString;
-                _serviceBusQueueName = serviceBusQueueName;
-                _logger = logger;
-                _svcBusClient = new ServiceBusClient(_serviceBusConnectionString);
-                _svcBusSender = _svcBusClient.CreateSender(_serviceBusQueueName);
+            _serviceBusConnectionString = serviceBusConnectionString;
+            _serviceBusQueueName = serviceBusQueueName;
+            _logger = logger;
+            _svcBusClient = new ServiceBusClient(_serviceBusConnectionString);
+            _svcBusSender = _svcBusClient.CreateSender(_serviceBusQueueName);
         }
 
         public async Task<HealthCheckResponse?> GetHealthCheck()
         {
             try
             {
-                var responseBody = await DoesQueueExistAsync(_serviceBusQueueName);
+                var responseBody = await DoesQueueExistAsync();
 
                 // If the queue exists, then the Service Bus is healthy
                 if (responseBody)
@@ -61,6 +63,17 @@ namespace BulkFileUploadFunctionApp.Services
                     };
                 }
             }
+            catch (ServiceBusException sbe)
+            {
+                _logger.LogError($"Error when checking the health of the Service Bus: {sbe.Reason.ToString()}");
+                ExceptionUtils.LogErrorDetails(sbe, _logger);
+                return new HealthCheckResponse()
+                {
+                    Status = "UNKNOWN"
+                };
+                // Delay before retrying (you can implement exponential backoff here)
+                await Task.Delay(1000); // 1 second delay before retrying
+            }
             catch (Exception ex)
             {
                 // If an exception is thrown, then the Service Bus is not healthy
@@ -73,34 +86,61 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
 
-        public async Task<bool> DoesQueueExistAsync(string queueName)
+
+        public async Task<bool> DoesQueueExistAsync()
         {
             var serviceBusAdministrationClient = new ServiceBusAdministrationClient(_serviceBusConnectionString);
-            return await serviceBusAdministrationClient.QueueExistsAsync(queueName);
+            return await serviceBusAdministrationClient.QueueExistsAsync(_serviceBusQueueName);
         }
 
-        public Task<bool> PublishReport<TReport>(string uploadId, string destinationId, string eventType, string stageName, TReport payload)
+        public void PublishReport(string uploadId, string destinationId, string eventType, string stageName, Report payload)
         {
-            try
+            const int maxRetryAttempts = 3;
+            int currentRetryAttempt = 0;
+
+
+            while (currentRetryAttempt < maxRetryAttempts)
             {
-                // build the report json
-                var content = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload));
+                try
+                {
+                    // build the report json
+                    var content = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload));
 
-                // add it to a BusMessage object 
-                var svcBusMessage = new ServiceBusMessage(uploadId) { Subject=stageName, ContentType="application/json", Body = new BinaryData(content) };
+                    // add it to a BusMessage object 
+                    var svcBusMessage = new ServiceBusMessage(uploadId) { Subject = stageName, ContentType = "application/json", Body = new BinaryData(content) };
 
-                // send the message
-                _svcBusSender.SendMessageAsync(svcBusMessage);
+                    // send the message
+                    _svcBusSender.SendMessageAsync(svcBusMessage);
 
+                    // Message sent successfully, break out of the retry loop
+                    break;
+                }
+                catch (SerializationException se)
+                {
+                    _logger.LogError($"Serialization error: Failed to send success report to service bus: {se.Message}");
+                    ExceptionUtils.LogErrorDetails(se, _logger);
+                    throw;
+                }
+                catch (ServiceBusException sbe)
+                {
+                    // Increment the retry attempt
+                    currentRetryAttempt++;
+
+                    if (currentRetryAttempt >= maxRetryAttempts)
+                    {
+                        _logger.LogError($"After 3 failed attempts, the system failed to send success report to service bus: {sbe.Reason.ToString()}");
+                        ExceptionUtils.LogErrorDetails(sbe, _logger);
+                        // Max retry attempts reached, throw the exception
+                        throw;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("Error when calling Service Bus.");
+                    ExceptionUtils.LogErrorDetails(ex, _logger);
+                    throw;
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.LogError("Error when calling PS API.");
-                ExceptionUtils.LogErrorDetails(ex, _logger);
-                return Task.FromResult(false);
-            }
-
-           return Task.FromResult(true);
         }
     }
 }
