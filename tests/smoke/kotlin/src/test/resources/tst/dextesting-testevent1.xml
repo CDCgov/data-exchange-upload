@@ -12,7 +12,6 @@
     </test>
     <test name="File Copy">
         <parameter name="SENDER_MANIFEST" value="dextesting-testevent1.properties"/>
-        <parameter name="SENDER_MANIFEST_MAPPING" value="dextesting-testevent1-mapping.properties"/>
         <classes>
             <class name="FileCopy" />
         </classes>

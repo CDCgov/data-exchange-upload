@@ -36,8 +36,6 @@ class FileCopy {
     )
     private val routingBlobClient = Azure.getBlobServiceClient(EnvConfig.ROUTING_STORAGE_CONNECTION_STRING)
     private lateinit var bulkUploadsContainerClient: BlobContainerClient
-    private lateinit var uploadConfigBlobClient: BlobClient
-    private lateinit var uploadConfig: UploadConfig
     private lateinit var dexContainerClient: BlobContainerClient
     private lateinit var edavContainerClient: BlobContainerClient
     private lateinit var routingContainerClient: BlobContainerClient
@@ -100,7 +98,8 @@ class FileCopy {
 
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToDestinationContainers() {
-        val filenameSuffix = if (uploadConfigV1.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
+        //val filenameSuffix = if (uploadConfigV1.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
+        val filenameSuffix = Filename.getFilenameSuffix(uploadConfigV1.copyConfig, uploadId)
         val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
         var expectedBlobClient: BlobClient?
 
@@ -124,13 +123,14 @@ class FileCopy {
         val metadataMapping = uploadConfigV2.metadataConfig.fields
             .associate { it.compatFieldName to it.fieldName }
 
-        val filenameSuffix = if (uploadConfigV1.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
-        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)}/${testFile.nameWithoutExtension}$filenameSuffix.${testFile.extension}"
-        val modifiedFilename = expectedFilename.removePrefix("$useCase/")
+        //val filenameSuffix = if (uploadConfigV1.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
+        val filenameSuffix = Filename.getFilenameSuffix(uploadConfigV1.copyConfig, uploadId)
 
-        val expectedBlobClient = dexContainerClient.getBlobClient(modifiedFilename)
+        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC))}/${testFile.nameWithoutExtension}$filenameSuffix.${testFile.extension}"
 
-        val blobProperties = expectedBlobClient?.properties ?: throw AssertionError("Blob client has no properties.")
+        val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
+
+        val blobProperties = expectedBlobClient.properties
         val blobMetadata = blobProperties.metadata
 
         // Metadata Key Validation
@@ -146,8 +146,6 @@ class FileCopy {
             Assert.assertEquals(v1Value, actualValueInV2, "Expected V1 key value: $v1Value does not match with actual V2 key value: $actualValueInV2"
             )
         }
-
-
     }
 }
 
