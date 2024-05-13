@@ -29,7 +29,7 @@ class Metadata {
             // Pad date numbers with 0.
             val month = if (date.monthOfYear < 10) "0${date.monthOfYear}" else "${date.monthOfYear}"
             val day = if (date.dayOfMonth < 10) "0${date.dayOfMonth}" else "${date.dayOfMonth}"
-            return "$useCaseDir/${date.year}/$month/$day"
+            return "${useCaseDir.lowercase()}/${date.year}/$month/$day"
         }
     }
 }

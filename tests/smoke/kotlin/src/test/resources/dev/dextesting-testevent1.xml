@@ -11,23 +11,21 @@
         </classes>
     </test>
     <test name="File Copy">
-        <parameter name="SENDER_MANIFEST" value="dextesting-testevent1.properties"/>
         <classes>
             <class name="FileCopy" />
         </classes>
     </test>
     <test name="Proc Stat">
-        <parameter name="SENDER_MANIFEST" value="dextesting-testevent1.properties"/>
         <!-- Define parameters for expected URLs as comma-separated lists -->
         <parameter name="EXPECTED_SOURCE_URL_PREFIXES" value="https://ocioededataexchangedev.blob.core.windows.net/dextesting-testevent1"/>
         <parameter name="EXPECTED_DESTINATION_URL_PREFIXES" value="https://ocioederoutingdatasadev.blob.core.windows.net/routeingress/dextesting-testevent1,https://edavdevdatalakedex.blob.core.windows.net/upload/dextesting-testevent1"/>
-        <groups>
-            <run>
-                <exclude name="proc-stat-trace" />
-            </run>
-        </groups>
         <classes>
             <class name="ProcStat" />
+        </classes>
+    </test>
+    <test name="File Info">
+        <classes>
+            <class name="Info" />
         </classes>
     </test>
 </suite>

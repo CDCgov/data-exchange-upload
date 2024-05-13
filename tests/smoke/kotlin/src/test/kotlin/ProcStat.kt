@@ -1,8 +1,8 @@
-import auth.AuthClient
 import org.testng.annotations.Test
 import tus.UploadClient
 import io.restassured.RestAssured.*
 import io.restassured.response.ValidatableResponse
+import dex.DexUploadClient
 import model.Report
 import org.hamcrest.Matchers.*
 import org.testng.Assert.assertNotNull
@@ -19,7 +19,7 @@ import kotlin.test.assertNull
 @Test()
 class ProcStat {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
-    private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
+    private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private val procStatReqSpec = given().apply {
         baseUri(EnvConfig.PROC_STAT_URL)
     }
@@ -31,16 +31,17 @@ class ProcStat {
     @BeforeTest(groups = [Constants.Groups.PROC_STAT])
     fun beforeTest(
         context: ITestContext,
-        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
+        @Optional SENDER_MANIFEST: String?,
         @Optional("dextesting-testevent1") USE_CASE: String
     ) {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
-        val propertiesFilePath= "properties/$USE_CASE/$SENDER_MANIFEST"
-        val metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
+        val senderManifestDataFile = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
+        val propertiesFilePath = "properties/$USE_CASE/$senderManifestDataFile"
+        val senderManifest = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
-        uploadId = uploadClient.uploadFile(testFile, metadata)
+        uploadId = uploadClient.uploadFile(testFile, senderManifest)
                 ?: throw TestNGException("Error uploading file ${testFile.name}")
         context.setAttribute("uploadId", uploadId)
 
@@ -70,13 +71,13 @@ class ProcStat {
 
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
     fun shouldHaveUploadStatusReportWhenFileUploaded() {
-        reportResponse.body("upload_id", equalTo(uploadId)).body("reports.stage_name", hasItem("dex-upload")).body("reports.content.schema_name", hasItem("upload"))
+        reportResponse.body("upload_id", equalTo(uploadId)).body("reports.stage_name", hasItem(Constants.UPLOAD_STATUS_REPORT_STAGE_NAME)).body("reports.content.schema_name", hasItem("upload"))
     }
 
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
     fun shouldHaveEqualOffsetAndSizeWhenFileUploaded() {
         val jsonPath = reportResponse.extract().jsonPath()
-        val uploadReport = jsonPath.getList("reports", Report::class.java).find { it.stageName == "dex-upload" }
+        val uploadReport = jsonPath.getList("reports", Report::class.java).find { it.stageName == Constants.UPLOAD_STATUS_REPORT_STAGE_NAME }
 
         assertNotNull(uploadReport)
     }
