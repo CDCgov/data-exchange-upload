@@ -28,7 +28,6 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _routingUploadRootContainerName;
         private readonly IUploadEventHubService _uploadEventHubService;
         private readonly IFeatureManagementExecutor _featureManagementExecutor;
-        private readonly IProcStatClient _procStatClient;
         private readonly string _dexStorageAccountConnectionString;
         private readonly string _routingStorageAccountConnectionString;
         private readonly BlobServiceClient _dexBlobServiceClient;
@@ -176,13 +175,7 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);
                 throw ex;
             }
-            finally
-            {
-                if(copySpan != null) 
-                {
-                    await _procStatClient.StopSpanForTrace(copyPrereqs.Trace.TraceId, copySpan.SpanId);
-                }
-            }
+
         }
                
         /// <summary>

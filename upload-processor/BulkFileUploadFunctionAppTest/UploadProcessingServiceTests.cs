@@ -13,7 +13,6 @@ namespace BulkFileUploadFunctionAppTests
     [TestClass]
     public class UploadProcessingServiceTests
     {
-        private Mock<IProcStatClient>? _mockProcStatClient;
         private Mock<ILogger<UploadProcessingService>>? _loggerMock;
         private Mock<ILoggerFactory>? _loggerFactoryMock;
         private StorageBlobCreatedEvent _storageBlobCreatedEvent;
@@ -32,7 +31,6 @@ namespace BulkFileUploadFunctionAppTests
             _loggerMock = new Mock<ILogger<UploadProcessingService>>();
             _loggerFactoryMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
 
-            _mockProcStatClient = new Mock<IProcStatClient>();
             _mockFeatureManagementExecutor = new Mock<IFeatureManagementExecutor>();
             _blobReaderFactory = new BlobReaderFactory();
             _mockBlobReader = new Mock<IBlobReader>();
