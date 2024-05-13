@@ -28,7 +28,6 @@ namespace BulkFileUploadFunctionAppTests
         private Mock<IServiceProvider> _mockServiceProvider;
         private Mock<ILogger<HealthCheckFunction>> _loggerMock;
         private Mock<ILoggerFactory> _loggerFactoryMock;
-        private Mock<IProcStatClient> _procStatClientMock;
         private Mock<ServiceBusClient> _mockClient;
         private Mock<ServiceBusSender> _mockSender;
         private Mock<IBulkUploadSvcBusClient> _mockBulkUploadSvcClient;
@@ -50,7 +49,6 @@ namespace BulkFileUploadFunctionAppTests
             _mockServiceProvider = new Mock<IServiceProvider>();
             _loggerFactoryMock = new Mock<ILoggerFactory>();
             _loggerMock = new Mock<ILogger<HealthCheckFunction>>();
-            _procStatClientMock = new Mock<IProcStatClient>();
             
             _testConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
             {
