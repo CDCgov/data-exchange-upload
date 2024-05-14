@@ -106,7 +106,9 @@ namespace BulkFileUploadFunctionApp.Services
                 try
                 {
                     // build the report json
-                    var content = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload));
+                    var payloadString = JsonSerializer.Serialize(payload);
+                    var content = Encoding.UTF8.GetBytes(payloadString);
+                    _logger.LogInformation($"Payload for Service Bus Report Message : {payloadString}");
 
                     // add it to a BusMessage object 
                     var svcBusMessage = new ServiceBusMessage(uploadId) { Subject = stageName, ContentType = "application/json", Body = new BinaryData(content) };
