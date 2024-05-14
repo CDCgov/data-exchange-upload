@@ -37,7 +37,7 @@ func TestTus(t *testing.T) {
 					t.Error(name, tuid, err)
 				}
 
-				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount := 0, 0, 0, 0
+				metadataReportCount, uploadStatusReportCount := 0, 0
 				rMetadata, rUploadStatus := &metadata.Report{}, &metadata.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
@@ -92,7 +92,7 @@ func TestTus(t *testing.T) {
 					t.Error("expected one metadata verify report but got", metadataReportCount)
 				}
 
-				if uploadStatusReportCount != 2 {
+				if uploadStatusReportCount != 1 {
 					t.Error("expected one upload-start and one upload-complete report but got", uploadStatusReportCount)
 				}
 

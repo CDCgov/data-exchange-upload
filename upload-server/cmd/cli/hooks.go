@@ -91,7 +91,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 			}
 
 			// TODO Can these reporters all be pointers to a single instance?
-			manifestValidator.Reporter = &azurereporters.ServiceBusReporter{
+			/* manifestValidator.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
@@ -106,7 +106,28 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 			postCreateHook.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
+			} */
+
+			var reporter reporters.Reporter
+			if appConfig.ServiceBusConnectionString != "" {
+				// Setup the Service Bus Reporter
+				reporter = &azurereporters.ServiceBusReporter{
+					Client:    sbclient,
+					QueueName: appConfig.ReportQueueName,
+				}
+			} else {
+				// Fallback to file reporter if no Service Bus is configured
+				reporter = &filereporters.FileReporter{
+					Dir: appConfig.LocalReportsFolder,
+				}
 			}
+
+			// Use the same reporter instance for all handlers
+			manifestValidator.Reporter = reporter
+			postReceiveHook.Reporter = reporter
+			postFinishHook.Reporter = reporter
+			postCreateHook.Reporter = reporter
+
 		}
 	}
 

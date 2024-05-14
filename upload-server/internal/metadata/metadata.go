@@ -323,6 +323,7 @@ func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookR
 }
 
 func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map[string]string, uploadId string) error {
+	logger.Info("Attempting to report upload started", "uploadId", uploadId)
     content := &UploadStatusContent{
         SchemaVersion: "1.0",
         SchemaName:    "upload-start",
@@ -345,6 +346,7 @@ func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map
 }
 
 func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest map[string]string, uploadId string) error {
+	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
     content := &UploadStatusContent{
         SchemaVersion: "1.0",
         SchemaName:    "upload-complete",
