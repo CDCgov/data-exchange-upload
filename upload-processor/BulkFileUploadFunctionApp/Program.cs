@@ -39,7 +39,7 @@ var host = new HostBuilder()
         services.AddFeatureManagement();
 
         // Register the ServiceBusClient as a singleton.
-        services.AddSingleton<IBulkUploadSvcBusClient, BulkUploadSvcBusClient>();
+        services.AddSingleton<IBulkUploadSvcBusClient, BulkUploadSvcBusClient>(); 
 
         services.AddSingleton<IUploadEventHubService, UploadEventHubService>();
 
