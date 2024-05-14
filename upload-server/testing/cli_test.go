@@ -37,7 +37,7 @@ func TestTus(t *testing.T) {
 					t.Error(name, tuid, err)
 				}
 
-				metadataReportCount, uploadStatusReportCount := 0, 0
+				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount := 0, 0, 0, 0
 				rMetadata, rUploadStatus := &metadata.Report{}, &metadata.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
