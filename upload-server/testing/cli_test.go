@@ -21,6 +21,7 @@ var (
 
 func TestTus(t *testing.T) {
 	url := ts.URL
+
 	for name, c := range Cases {
 		tuid, err := RunTusTestCase(url, "test/test.txt", c)
 		if err != nil {
@@ -79,8 +80,8 @@ func TestTus(t *testing.T) {
 					t.Error("expected one metadata verify report but got", metadataReportCount)
 				}
 
-				if uploadStatusReportCount == 0 {
-					t.Error("expected at least one upload status report count but got none")
+				if uploadStatusReportCount != 2 {
+					t.Error("expected one upload-start and one upload-complete report but got", uploadStatusReportCount)
 				}
 
 				if c.err != nil {
