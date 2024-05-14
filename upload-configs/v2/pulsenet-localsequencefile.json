@@ -5,25 +5,19 @@
          {
             "field_name": "sender_id",
             "required": true,
-            "allowed_values": [
-               "LAB-TEST"
-            ],
+            "allowed_values": null,
             "description": "This field is the identifier for the sender of the data."
          },
          {
             "field_name": "data_producer_id",
             "required": true,
-            "allowed_values": [
-               "DC-TEST"
-            ],
+            "allowed_values": null,
             "description": "This field is the identifier for the data producer."
          },
          {
             "field_name": "jurisdiction",
             "required": true,
-            "allowed_values": [
-               "DC"
-            ],
+            "allowed_values": null,
             "description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
          },
          {
@@ -45,7 +39,7 @@
             "field_name": "data_stream_route",
             "required": true,
             "allowed_values": [
-               "other"
+               "localsequencefile"
             ],
             "description": "This recieved is the route of the data stream.",
             "compat_field_name": "meta_ext_event"
@@ -53,9 +47,9 @@
       ]
    },
    "copy_config": {
-      "folder_structure": "date_YYYY_MM_DD",
+      "folder_structure": "root",
       "targets": [
-         "routing"
+         "edav"
       ]
    }
 }
