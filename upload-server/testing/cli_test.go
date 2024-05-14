@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -24,18 +25,19 @@ func TestTus(t *testing.T) {
 
 	for name, c := range Cases {
 		tuid, err := RunTusTestCase(url, "test/test.txt", c)
+		time.Sleep(2 * time.Second) // TODO: Find a better way to wait for all the hooks to finish.
+
 		if err != nil {
 			t.Error(name, err)
 		} else {
 
 			if tuid != "" {
-
 				f, err := os.Open("test/reports/" + tuid)
 				if err != nil {
 					t.Error(name, tuid, err)
 				}
 
-				metadataReportCount, uploadStatusReportCount := 0, 0
+				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount := 0, 0, 0, 0
 				rMetadata, rUploadStatus := &metadata.Report{}, &metadata.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
@@ -72,6 +74,16 @@ func TestTus(t *testing.T) {
 							t.Error("DataStreamID or DataStreamRoute is missing in upload status report", name, tuid)
 						}
 
+						continue
+					}
+
+					if strings.Contains(rLine, "dex-upload-started") {
+						uploadStartedReportCount++
+						continue
+					}
+
+					if strings.Contains(rLine, "dex-upload-complete") {
+						uploadCompleteReportCount++
 						continue
 					}
 				}
