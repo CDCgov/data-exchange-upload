@@ -321,3 +321,10 @@ func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookR
 
 	return resp, nil
 }
+
+// TODO does this function receiver type need to be a pointer?  It isn't being mutated.
+func (v *HookEventHandler) PostFinish(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	logger.Info("Executing post finish")
+
+	return resp, nil
+}
