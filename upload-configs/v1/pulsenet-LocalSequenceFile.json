@@ -11,7 +11,7 @@
 		]
 	},
 	"copy_config": {
-		"folder_structure": "date_YYYY_MM_DD",
+		"folder_structure": "root",
 		"targets": [
 			"edav"
 		]
