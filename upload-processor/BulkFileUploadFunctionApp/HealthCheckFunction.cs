@@ -84,10 +84,11 @@ namespace BulkFileUploadFunctionApp
 
             // Perform health check for Processing Status.
             try
-            {             
+            {
                 await _featureManagementExecutor
                 .ExecuteIfEnabledAsync(Constants.PROCESSING_STATUS_REPORTS_FLAG_NAME, async () =>
                 {
+                    _logger.LogInformation("Checking service bus connection...");
                     HealthCheckResponse procStatHealthCheck = await _bulkUploadSvcBusClient.GetHealthCheck();
                     healthCheckResponse.DependencyHealthChecks.Add(procStatHealthCheck.ToHealthCheckResult(Constants.PROC_STAT_SERVICE_NAME));
                 });
