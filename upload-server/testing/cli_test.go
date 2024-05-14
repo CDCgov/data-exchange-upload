@@ -92,8 +92,16 @@ func TestTus(t *testing.T) {
 					t.Error("expected one metadata verify report but got", metadataReportCount)
 				}
 
-				if uploadStatusReportCount != 1 {
-					t.Error("expected one upload-start and one upload-complete report but got", uploadStatusReportCount)
+				if uploadStatusReportCount == 0 {
+					t.Error("expected at least one upload status report count but got none")
+				}
+
+				if uploadStartedReportCount != 1 {
+					t.Error("at least one upload started report count but got none", uploadStartedReportCount)
+				}
+
+				if uploadCompleteReportCount != 1 {
+					t.Error("at least one upload complete report count but got none", uploadCompleteReportCount)
 				}
 
 				if c.err != nil {

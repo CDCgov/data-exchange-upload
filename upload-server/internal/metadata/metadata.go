@@ -324,65 +324,63 @@ func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookR
 
 func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map[string]string, uploadId string) error {
 	logger.Info("Attempting to report upload started", "uploadId", uploadId)
-    content := &UploadStatusContent{
-        SchemaVersion: "1.0",
-        SchemaName:    "upload-start",
-        Filename:      getFilename(manifest),
-        Metadata:      manifest,
-    }
+	content := &UploadStatusContent{
+		SchemaVersion: "1.0",
+		SchemaName:    "dex-upload-started",
+		Filename:      getFilename(manifest),
+		Metadata:      manifest,
+	}
 
-    report := &Report{
-        UploadID:        uploadId,
-        DataStreamID:    getDataStreamID(manifest),
-        DataStreamRoute: getDataStreamRoute(manifest),
-        StageName:       "upload-start",
-        ContentType:     "json",
-        DispositionType: "add",
-        Content:         content,
-    }
+	report := &Report{
+		UploadID:        uploadId,
+		DataStreamID:    getDataStreamID(manifest),
+		DataStreamRoute: getDataStreamRoute(manifest),
+		StageName:       "dex-upload-started",
+		ContentType:     "json",
+		DispositionType: "add",
+		Content:         content,
+	}
 
-    logger.Info("REPORT upload-started", "report", report)
-    return v.Reporter.Publish(ctx, report)
+	logger.Info("REPORT upload-started", "report", report)
+	return v.Reporter.Publish(ctx, report)
 }
 
 func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest map[string]string, uploadId string) error {
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
-    content := &UploadStatusContent{
-        SchemaVersion: "1.0",
-        SchemaName:    "upload-complete",
-        Filename:      getFilename(manifest),
-        Metadata:      manifest,
-    }
+	content := &UploadStatusContent{
+		SchemaVersion: "1.0",
+		SchemaName:    "dex-upload-complete",
+		Filename:      getFilename(manifest),
+		Metadata:      manifest,
+	}
 
-    report := &Report{
-        UploadID:        uploadId,
-        DataStreamID:    getDataStreamID(manifest),
-        DataStreamRoute: getDataStreamRoute(manifest),
-        StageName:       "upload-complete",
-        ContentType:     "json",
-        DispositionType: "replace",
-        Content:         content,
-    }
+	report := &Report{
+		UploadID:        uploadId,
+		DataStreamID:    getDataStreamID(manifest),
+		DataStreamRoute: getDataStreamRoute(manifest),
+		StageName:       "dex-upload-complete",
+		ContentType:     "json",
+		DispositionType: "replace",
+		Content:         content,
+	}
 
-    logger.Info("REPORT upload-completed", "report", report)
-    return v.Reporter.Publish(ctx, report)
+	logger.Info("REPORT upload-completed", "report", report)
+	return v.Reporter.Publish(ctx, report)
 }
 
-
 func (v *HookEventHandler) PostCreate(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-    uploadId := Uid() // Assuming each upload gets a unique ID generated
-    logger.Info("Generated UUID for new upload", "UUID", uploadId)
-    event.Upload.ID = uploadId // Set the new upload ID
-    if err := v.ReportUploadStarted(event.Context, event.Upload.MetaData, uploadId); err != nil {
-        logger.Error("Failed to report upload started", "UUID", uploadId, "err", err)
-    }
-    return resp, nil
+	uploadId := Uid() // Assuming each upload gets a unique ID generated
+	logger.Info("Generated UUID for new upload", "UUID", uploadId)
+	event.Upload.ID = uploadId // Set the new upload ID
+	if err := v.ReportUploadStarted(event.Context, event.Upload.MetaData, uploadId); err != nil {
+		logger.Error("Failed to report upload started", "UUID", uploadId, "err", err)
+	}
+	return resp, nil
 }
 
 func (v *HookEventHandler) PostFinish(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-    if err := v.ReportUploadCompleted(event.Context, event.Upload.MetaData, event.Upload.ID); err != nil {
-        logger.Error("Failed to report upload completed", "UUID", event.Upload.ID, "err", err)
-    }
-    return resp, nil
+	if err := v.ReportUploadCompleted(event.Context, event.Upload.MetaData, event.Upload.ID); err != nil {
+		logger.Error("Failed to report upload completed", "UUID", event.Upload.ID, "err", err)
+	}
+	return resp, nil
 }
-
