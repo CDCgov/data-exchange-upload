@@ -67,12 +67,13 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogError($"Error when checking the health of the Service Bus: {sbe.Reason.ToString()}");
                 ExceptionUtils.LogErrorDetails(sbe, _logger);
+                // Delay before retrying (you can implement exponential backoff here)
+                await Task.Delay(1000); // 1 second delay before retrying                
                 return new HealthCheckResponse()
                 {
                     Status = "UNKNOWN"
                 };
-                // Delay before retrying (you can implement exponential backoff here)
-                await Task.Delay(1000); // 1 second delay before retrying
+
             }
             catch (Exception ex)
             {
