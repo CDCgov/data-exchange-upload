@@ -24,7 +24,7 @@ func TestTus(t *testing.T) {
 	url := ts.URL
 	for name, c := range Cases {
 		tuid, err := RunTusTestCase(url, "test/test.txt", c)
-		time.Sleep(1 * time.Second) // TODO: Find a better way to wait for all the hooks to finish.
+		time.Sleep(2 * time.Second) // TODO: Find a better way to wait for all the hooks to finish.
 
 		if err != nil {
 			t.Error(name, err)

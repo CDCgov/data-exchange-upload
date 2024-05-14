@@ -324,7 +324,21 @@ func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookR
 
 // TODO does this function receiver type need to be a pointer?  It isn't being mutated.
 func (v *HookEventHandler) PostFinish(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	logger.Info("Executing post finish")
+	tguid := event.Upload.ID
+	report := &Report{
+		UploadID:        tguid,
+		DataStreamID:    getDataStreamID(event.Upload.MetaData),
+		DataStreamRoute: getDataStreamRoute(event.Upload.MetaData),
+		StageName:       "dex-upload-complete",
+		ContentType:     "json",
+		DispositionType: "add",
+		Content:         "",
+	}
+
+	logger.Info("REPORT", "report", report)
+	if err := v.Reporter.Publish(event.Context, report); err != nil {
+		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
+	}
 
 	return resp, nil
 }
