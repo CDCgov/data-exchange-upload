@@ -19,8 +19,14 @@ class MetadataVerify {
     private lateinit var metadataNoDestId: HashMap<String, String>
     private lateinit var metadataNoEvent: HashMap<String, String>
 
+    private lateinit var metadataHappyPathV2: HashMap<String, String>
+    private lateinit var metadataInvalidFilenameV2: HashMap<String, String>
+    private lateinit var metadataNoDestIdV2: HashMap<String, String>
+    private lateinit var metadataNoEventV2: HashMap<String, String>
+
     @Parameters(
         "USE_CASE",
+        "USE_CASEV2",
         "SENDER_MANIFEST",
         "SENDER_MANIFEST_INVALID_FILENAME",
         "SENDER_MANIFEST_NO_DEST_ID",
@@ -29,6 +35,7 @@ class MetadataVerify {
     @BeforeTest(groups = [Constants.Groups.METADATA_VERIFY])
     fun beforeTest(
         @Optional("dextesting-testevent1") USE_CASE: String,
+        @Optional("dextesting-testevent1") USE_CASEV2: String,
         @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
         @Optional("invalid-filename.properties") SENDER_MANIFEST_INVALID_FILENAME: String,
         @Optional("no-dest-id.properties") SENDER_MANIFEST_NO_DEST_ID: String,
@@ -41,6 +48,11 @@ class MetadataVerify {
         metadataInvalidFilename = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_INVALID_FILENAME")
         metadataNoDestId = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_DEST_ID")
         metadataNoEvent = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_EVENT")
+
+        metadataHappyPathV2 = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASEV2/$SENDER_MANIFEST")
+        metadataInvalidFilenameV2 = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASEV2/$SENDER_MANIFEST_INVALID_FILENAME")
+        metadataNoDestIdV2 = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASEV2/$SENDER_MANIFEST_NO_DEST_ID")
+        metadataNoEventV2 = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASEV2/$SENDER_MANIFEST_NO_EVENT")
     }
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY])
@@ -90,5 +102,40 @@ class MetadataVerify {
     )
     fun shouldReturnErrorWhenFilenameContainsInvalidChars() {
         uploadClient.uploadFile(testFile, metadataInvalidFilename)
+    }
+
+    @Test(groups = [Constants.Groups.METADATA_VERIFY])
+    fun shouldUploadFileGivenRequiredMetadataV2(context: ITestContext) {
+        val uploadId = uploadClient.uploadFile(testFile, metadataHappyPathV2)
+        context.setAttribute("uploadId", uploadId)
+
+        Assert.assertNotNull(uploadId)
+    }
+
+    @Test(
+        groups = [Constants.Groups.METADATA_VERIFY],
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*")
+    fun shouldReturnErrorWhenDestinationIDNotProvidedV2() {
+        uploadClient.uploadFile(testFile, metadataNoDestIdV2)
+    }
+
+    @Test(
+        groups = [Constants.Groups.METADATA_VERIFY],
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*"
+    )
+    fun shouldReturnErrorWhenEventNotProvidedV2() {
+        uploadClient.uploadFile(testFile, metadataNoEventV2)
+    }
+
+
+    @Test(groups = [
+        Constants.Groups.METADATA_VERIFY],
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*invalid character found.*"
+    )
+    fun shouldReturnErrorWhenFilenameContainsInvalidCharsV2() {
+        uploadClient.uploadFile(testFile, metadataInvalidFilenameV2)
     }
 }
