@@ -56,6 +56,12 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
+	postCreateHook := metadata.HookEventHandler{
+		Reporter: &filereporters.FileReporter{
+			Dir: appConfig.LocalReportsFolder,
+		},
+	}
+
 	if appConfig.AzureConnection != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
 		if err != nil {
@@ -97,13 +103,17 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
+			postCreateHook.Reporter = &azurereporters.ServiceBusReporter{
+				Client:    sbclient,
+				QueueName: appConfig.ReportQueueName,
+			}
 		}
 	}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
 	handler.Register(tusHooks.HookPostReceive, postReceiveHook.PostReceive)
 	handler.Register(tusHooks.HookPostFinish, postFinishHook.PostFinish)
-
+	handler.Register(tusHooks.HookPostCreate, postCreateHook.PostCreate)
 	// TODO: -> handler.Register(tusHooks.HookPostFinish, copier.Merge, copier.Route)
 
 	return handler, nil
