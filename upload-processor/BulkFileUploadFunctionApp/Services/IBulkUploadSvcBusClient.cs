@@ -71,7 +71,7 @@ namespace BulkFileUploadFunctionApp.Services
                 await Task.Delay(1000); // 1 second delay before retrying                
                 return new HealthCheckResponse()
                 {
-                    Status = "UNKNOWN"
+                    Status = "DOWN"
                 };
 
             }
@@ -82,7 +82,7 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);
                 return new HealthCheckResponse()
                 {
-                    Status = "DOWN"
+                    Status = "UNKNOWN"
                 };
             }
         }
