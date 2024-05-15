@@ -178,7 +178,7 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[st
 	if err != nil {
 		return err
 	}
-	c, err := v.Configs.GetConfig(ctx, path)
+	c, err := v.Configs.GetConfig(ctx, strings.ToLower(path))
 	if err != nil {
 		return err
 	}
