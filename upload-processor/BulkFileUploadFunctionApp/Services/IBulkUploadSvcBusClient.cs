@@ -10,9 +10,10 @@ using System.Threading.Tasks;
 using BulkFileUploadFunctionApp.Utils;
 using System.Text.Json;
 using Azure.Messaging.ServiceBus.Administration;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
+using Azure.Messaging.ServiceBus.Amqp;
 using System.Text.Unicode;
 using System.Runtime.Serialization;
+using System.Net;
 
 namespace BulkFileUploadFunctionApp.Services
 {
@@ -37,7 +38,17 @@ namespace BulkFileUploadFunctionApp.Services
             _serviceBusConnectionString = environmentVariableProvider.GetEnvironmentVariable("SERVICE_BUS_CONNECTION_STR");
             _serviceBusQueueName = environmentVariableProvider.GetEnvironmentVariable("REPORT_QUEUE_NAME");
             _logger = logger;
-            _svcBusClient = new ServiceBusClient(_serviceBusConnectionString);
+            _svcBusClient = new ServiceBusClient(_serviceBusConnectionString, new ServiceBusClientOptions
+            {
+                TransportType = ServiceBusTransportType.AmqpTcp,
+                RetryOptions = new ServiceBusRetryOptions
+                {
+                    TryTimeout = TimeSpan.FromSeconds(60),
+                    MaxRetries = 3,
+                    Delay = TimeSpan.FromSeconds(.8)
+                }
+            });
+
             _svcBusSender = _svcBusClient.CreateSender(_serviceBusQueueName);
         }
 
@@ -91,18 +102,43 @@ namespace BulkFileUploadFunctionApp.Services
 
         public async Task<bool> DoesQueueExistAsync()
         {
-            var serviceBusAdministrationClient = new ServiceBusAdministrationClient(_serviceBusConnectionString);
-            return await serviceBusAdministrationClient.QueueExistsAsync(_serviceBusQueueName);
+            try
+            {
+                _logger.LogInformation("Checking if queue {0} exists", _serviceBusQueueName);
+                var serviceBusAdministrationClient = new ServiceBusAdministrationClient(_serviceBusConnectionString);
+
+                if (await serviceBusAdministrationClient.QueueExistsAsync(_serviceBusQueueName).ConfigureAwait(false))
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch(UnauthorizedAccessException uae) {                 
+                _logger.LogError($"Unauthorized access error: {uae.Message}.Queue '{_serviceBusQueueName}' could not be checked / created, "+
+                    "likely due to missing the 'Manage' permission. \r\n You must either grant the 'Manage' permission, or set ServiceBusQueueOptions.CheckAndCreateQueues to false");
+                ExceptionUtils.LogErrorDetails(uae, _logger);
+                return false;
+                       }
+            catch (ServiceBusException sbe)
+            {
+                _logger.LogError($"Error when checking if the queue exists in the Service Bus: {sbe.Reason.ToString()}");
+                ExceptionUtils.LogErrorDetails(sbe, _logger);
+                return false;
+            }   
+            catch (Exception ex)
+            {
+                _logger.LogError("Error when checking if the queue exists in the Service Bus.");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+                return false;
+            }
+
         }
 
         public void PublishReport(string uploadId, string destinationId, string eventType, string stageName, Report payload)
         {
-            const int maxRetryAttempts = 3;
-            int currentRetryAttempt = 0;
-
-
-            while (currentRetryAttempt < maxRetryAttempts)
-            {
                 try
                 {
                     // build the report json
@@ -116,8 +152,6 @@ namespace BulkFileUploadFunctionApp.Services
                     // send the message
                     _svcBusSender.SendMessageAsync(svcBusMessage);
 
-                    // Message sent successfully, break out of the retry loop
-                    break;
                 }
                 catch (SerializationException se)
                 {
@@ -127,16 +161,10 @@ namespace BulkFileUploadFunctionApp.Services
                 }
                 catch (ServiceBusException sbe)
                 {
-                    // Increment the retry attempt
-                    currentRetryAttempt++;
-
-                    if (currentRetryAttempt >= maxRetryAttempts)
-                    {
-                        _logger.LogError($"After 3 failed attempts, the system failed to send success report to service bus: {sbe.Reason.ToString()}");
-                        ExceptionUtils.LogErrorDetails(sbe, _logger);
-                        // Max retry attempts reached, throw the exception
-                        throw;
-                    }
+                    _logger.LogError($"After 3 failed attempts, the system failed to send success report to service bus: {sbe.Reason.ToString()}");
+                    ExceptionUtils.LogErrorDetails(sbe, _logger);
+                    // Max retry attempts reached, throw the exception
+                    throw;
                 }
                 catch (Exception ex)
                 {
@@ -144,7 +172,6 @@ namespace BulkFileUploadFunctionApp.Services
                     ExceptionUtils.LogErrorDetails(ex, _logger);
                     throw;
                 }
-            }
         }
     }
 }

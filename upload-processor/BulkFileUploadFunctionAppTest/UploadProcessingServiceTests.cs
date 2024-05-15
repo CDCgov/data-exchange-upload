@@ -22,6 +22,10 @@ namespace BulkFileUploadFunctionAppTests
         private BlobReaderFactory _blobReaderFactory;
         private Mock<BlobReaderFactory>? _mockBlobReaderFactory;
         private string sourceContainerName;
+        private UploadProcessingService _function;
+        private Mock<IBulkUploadSvcBusClient> _mockBulkUploadSvcClient;
+        private Mock<IUploadEventHubService> _mockUploadEventHubService;
+        private Mock<IEnvironmentVariableProvider> _mockEnvironmentVariableProvider;
 
         [TestInitialize]
         public void Initialize()
@@ -39,6 +43,9 @@ namespace BulkFileUploadFunctionAppTests
                 .Setup(x => x.CreateInstance(It.IsAny<ILogger>()))
                 .Returns(_mockBlobReader.Object);
 
+            _mockUploadEventHubService = new Mock<IUploadEventHubService>();
+            _mockBulkUploadSvcClient = new Mock<IBulkUploadSvcBusClient>();
+
             _storageBlobCreatedEvent = new StorageBlobCreatedEvent
             {
                 Id = "12323",
@@ -53,8 +60,20 @@ namespace BulkFileUploadFunctionAppTests
 
             _mockUploadProcessingService = new Mock<IUploadProcessingService>();
 
+
             _mockUploadProcessingService.CallBase = true;
 
+            _function = new UploadProcessingService(
+                _loggerFactoryMock.Object, 
+                _mockBulkUploadSvcClient.Object, 
+                _mockFeatureManagementExecutor.Object, 
+                _mockUploadEventHubService.Object, 
+                _mockBlobReaderFactory.Object);
+
+
+
         }
+
     }
+
 }
