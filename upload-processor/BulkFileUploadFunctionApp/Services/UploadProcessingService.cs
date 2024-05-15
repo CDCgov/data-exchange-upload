@@ -106,7 +106,7 @@ namespace BulkFileUploadFunctionApp.Services
                 useCase = tusInfoFile.GetUseCase();
                 useCaseCategory = tusInfoFile.GetUseCaseCategory();
                 destinationContainerName = $"{useCase}-{useCaseCategory}";
-                string uploadConfigFilename = $"{useCase}-{useCaseCategory}.json";
+                string uploadConfigFilename = $"{useCase}-{useCaseCategory}.json".ToLower();
 
                 var uploadConfig = await GetUploadConfig(uploadConfigFilename, version);
                 _logger.LogInformation($"Got upload config for {version}: {JsonSerializer.Serialize(uploadConfig)}");
