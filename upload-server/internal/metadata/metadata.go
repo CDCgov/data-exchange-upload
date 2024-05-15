@@ -218,18 +218,52 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	return resp, nil
 }
 
-func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
 	logger.Info("Generated UUID", "UUID", tuid)
 
+	content := &models.MetaDataTransformContent{
+		ReportContent: models.ReportContent{
+			SchemaVersion: "1.0",
+			SchemaName:    "metadata-transform",
+		},
+		Action: "update",
+		Field:  "ID",
+		Value:  tuid,
+	}
+
+	manifest := event.Upload.MetaData
+	report := &models.Report{
+		UploadID:        tuid,
+		DataStreamID:    getDataStreamID(manifest),
+		DataStreamRoute: getDataStreamRoute(manifest),
+		StageName:       "dex-metadata-transform",
+		ContentType:     "json",
+		DispositionType: "add",
+		Content:         content,
+	}
+
+	logger.Info("METADATA TRANSFORM REPORT", "report", report)
+	if err := v.Reporter.Publish(event.Context, report); err != nil {
+		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid, "err", err)
+	}
+
 	return resp, nil
 
 }
 
-func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (v *HookEventHandler) WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	tguid := event.Upload.ID
+	if resp.ChangeFileInfo.ID != "" {
+		tguid = resp.ChangeFileInfo.ID
+	}
+	if tguid == "" {
+		return resp, errors.New("no Upload ID defined")
+	}
+
 	timestamp := time.Now().Format(time.RFC3339)
 	logger.Info("adding global timestamp", "timestamp", timestamp)
 
@@ -239,8 +273,34 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 		manifest = resp.ChangeFileInfo.MetaData
 	}
 
-	manifest["dex_ingest_datetime"] = timestamp
+	fieldname := "dex_ingest_datetime"
+	manifest[fieldname] = timestamp
 	resp.ChangeFileInfo.MetaData = manifest
+
+	content := &models.MetaDataTransformContent{
+		ReportContent: models.ReportContent{
+			SchemaVersion: "1.0",
+			SchemaName:    "metadata-transform",
+		},
+		Action: "append",
+		Field:  fieldname,
+		Value:  timestamp,
+	}
+
+	report := &models.Report{
+		UploadID:        tguid,
+		DataStreamID:    getDataStreamID(manifest),
+		DataStreamRoute: getDataStreamRoute(manifest),
+		StageName:       "dex-metadata-transform",
+		ContentType:     "json",
+		DispositionType: "add",
+		Content:         content,
+	}
+
+	logger.Info("METADATA TRANSFORM REPORT", "report", report)
+	if err := v.Reporter.Publish(event.Context, report); err != nil {
+		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
+	}
 
 	return resp, nil
 }

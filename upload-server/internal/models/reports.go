@@ -27,6 +27,13 @@ type MetaDataVerifyContent struct {
 	Issues   error  `json:"issues"`
 }
 
+type MetaDataTransformContent struct {
+	ReportContent
+	Action string `json:"action"` // append, update, remove
+	Field  string `json:"field"`  // Name of the field the action was performed on
+	Value  string `json:"value"`  // Optional; Value given to the appended or updated field.
+}
+
 type UploadStatusContent struct {
 	ReportContent
 	Filename string `json:"filename"`
