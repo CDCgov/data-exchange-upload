@@ -1,5 +1,6 @@
 package tus
 
+import dex.DexTusClient
 import io.tus.java.client.*
 import java.io.File
 import java.io.IOException

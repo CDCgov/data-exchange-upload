@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type UploadConfig struct {
+type ManifestConfig struct {
 	Metadata MetadataConfig `json:"metadata_config"`
 	Copy     CopyConfig     `json:"copy_config"`
 }

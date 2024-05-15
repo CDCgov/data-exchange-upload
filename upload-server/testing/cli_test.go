@@ -54,6 +54,10 @@ func TestTus(t *testing.T) {
 							t.Fatal(name, tuid, err)
 						}
 
+						if rMetadata.DataStreamID == "" || rMetadata.DataStreamRoute == "" {
+							t.Error("DataStreamID or DataStreamRoute is missing in metadata report", name, tuid)
+						}
+
 						continue
 					}
 
@@ -62,6 +66,10 @@ func TestTus(t *testing.T) {
 
 						if err := json.Unmarshal(rLineBytes, rUploadStatus); err != nil {
 							t.Fatal(name, tuid, err)
+						}
+
+						if rUploadStatus.DataStreamID == "" || rUploadStatus.DataStreamRoute == "" {
+							t.Error("DataStreamID or DataStreamRoute is missing in upload status report", name, tuid)
 						}
 
 						continue

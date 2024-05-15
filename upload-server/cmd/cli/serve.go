@@ -8,7 +8,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/processingstatus"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/pshealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -17,21 +17,21 @@ import (
 
 func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 
-	// initialize processing status sender
-	psSender, err := processingstatus.New(appConfig)
+	// initialize processing status health checker
+	psHealth, err := pshealth.New(appConfig)
 	if err != nil {
-		logger.Error("error initializing processing status not available", "error", err)
-	}
-	if psSender != nil {
-		health.Register(psSender)
-	}
+		logger.Error("error initialize processing status health check", "error", err)
+	} // .if
+	if psHealth != nil {
+		health.Register(psHealth)
+	} // .if
 
 	// create and register data store
 	store, storeHealthCheck, err := GetDataStore(appConfig)
 	if err != nil {
 		logger.Error("error starting app, error configuring storage", "error", err)
 		return nil, err
-	}
+	} // .if
 	health.Register(storeHealthCheck)
 
 	uploadInfoHandler, err := GetUploadInfoHandler(&appConfig)
@@ -76,7 +76,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	http.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
 
 	// initialize and route handler for DEX
-	handlerDex := handlerdex.New(appConfig, psSender)
+	handlerDex := handlerdex.New(appConfig, psHealth)
 	http.Handle("/", handlerDex)
 
 	// --------------------------------------------------------------

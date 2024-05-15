@@ -51,8 +51,6 @@ type AppConfig struct {
 
 	// Processing Status
 	ProcessingStatusHealthURI           string `env:"PROCESSING_STATUS_HEALTH_URI"`
-	ProcessingStatusServiceBusNamespace string `env:"PROCESSING_STATUS_SERVICE_BUS_NAMESPACE"`
-	ProcessingStatusServiceBusQueue     string `env:"PROCESSING_STATUS_SERVICE_BUS_QUEUE"`
 
 	AzureConnection            *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	ServiceBusConnectionString string              `env:"SERVICE_BUS_CONNECTION_STR"`

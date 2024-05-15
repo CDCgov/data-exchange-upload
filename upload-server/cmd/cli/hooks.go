@@ -31,19 +31,20 @@ func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error)
 func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
-	manifestValidator := metadata.SenderManifestVerification{
+	cache := &metadata.ConfigCache{
 		Loader: &fileloader.FileConfigLoader{
 			FileSystem: os.DirFS(appConfig.UploadConfigPath),
 		},
+	}
+
+	manifestValidator := metadata.SenderManifestVerification{
+		Configs: cache,
 		Reporter: &filereporters.FileReporter{
 			Dir: appConfig.LocalReportsFolder,
 		},
 	}
 
 	postReceiveHook := metadata.HookEventHandler{
-		//Loader: &FileConfigLoader{
-		//	FileSystem: os.DirFS(appConfig.UploadConfigPath),
-		//},
 		Reporter: &filereporters.FileReporter{
 			Dir: appConfig.LocalReportsFolder,
 		},
@@ -54,7 +55,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		if err != nil {
 			return nil, err
 		}
-		manifestValidator.Loader = &azureloader.AzureConfigLoader{
+		cache.Loader = &azureloader.AzureConfigLoader{
 			Client:        client,
 			ContainerName: appConfig.AzureManifestConfigContainer,
 		}
@@ -90,6 +91,9 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
 	handler.Register(tusHooks.HookPostReceive, postReceiveHook.PostReceive)
+
+	// TODO: -> handler.Register(tusHooks.HookPostFinish, copier.Merge, copier.Route)
+
 
 	return handler, nil
 }

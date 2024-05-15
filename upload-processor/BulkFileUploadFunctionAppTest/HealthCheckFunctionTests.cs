@@ -117,6 +117,8 @@ namespace BulkFileUploadFunctionAppTests
         [TestMethod]
         public async Task GivenMessage_WhenHealthCheckFunctionInvoked_ThenReturnHealthyResponse()
         {
+
+
             // Arrange
             var functionContext = TestHelpers.CreateFunctionContext();
             var httpRequestData = TestHelpers.CreateHttpRequestData(functionContext);

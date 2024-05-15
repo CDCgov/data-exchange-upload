@@ -9,15 +9,16 @@ class Constants {
         const val EDAV_UPLOAD_CONTAINER_NAME = "upload"
         const val ROUTING_UPLOAD_CONTAINER_NAME = "routeingress"
         const val TUS_PREFIX_DIRECTORY_NAME = "tus-prefix"
+        const val UPLOAD_STATUS_REPORT_STAGE_NAME = "dex-upload-status"
     }
 
     class Groups {
         companion object {
             const val METADATA_VERIFY = "metadata-verify"
             const val PROC_STAT = "proc-stat"
-            const val PROC_STAT_TRACE = "proc-stat-trace"
             const val PROC_STAT_REPORT = "proc-stat-report"
             const val FILE_COPY = "file-copy"
+            const val FILE_INFO = "file-info"
         }
     }
 }

@@ -1,4 +1,4 @@
-package tus
+package dex
 
 import io.tus.java.client.TusClient
 import java.net.HttpURLConnection

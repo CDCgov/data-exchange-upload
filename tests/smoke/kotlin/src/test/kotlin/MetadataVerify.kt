@@ -1,5 +1,5 @@
-import auth.AuthClient
 import io.tus.java.client.ProtocolException
+import dex.DexUploadClient
 import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.annotations.*
@@ -12,7 +12,7 @@ import util.Constants.Companion.TEST_EVENT
 @Test()
 class MetadataVerify {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
-    private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
+    private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private lateinit var uploadClient: UploadClient
     private lateinit var metadataHappyPath: HashMap<String, String>
     private lateinit var metadataInvalidFilename: HashMap<String, String>
