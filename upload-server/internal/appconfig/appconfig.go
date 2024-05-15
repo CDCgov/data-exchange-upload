@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -50,7 +51,7 @@ type AppConfig struct {
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
 
 	// Processing Status
-	ProcessingStatusHealthURI           string `env:"PROCESSING_STATUS_HEALTH_URI"`
+	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
 	AzureConnection            *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	ServiceBusConnectionString string              `env:"SERVICE_BUS_CONNECTION_STR"`
@@ -61,6 +62,9 @@ type AppConfig struct {
 	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
 	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
+
+	OcioEdeTstUpload string `env:"OCIO_EDE_TST_UPLOAD"`
+	OcioEdeDevUpload string `env:"OCIO_EDE_DEV_UPLOAD"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -116,6 +120,23 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 	if err := envconfig.Process(ctx, &ac); err != nil {
 		return AppConfig{}, err
 	} // .if
+
+	featureManagerConnectionString := os.Getenv("FEATURE_MANAGER_CONNECTION_STRING")
+	if featureManagerConnectionString != "" {
+		instances := strings.Split(featureManagerConnectionString, ":")
+		for _, instance := range instances {
+			parts := strings.Split(instance, "=")
+			if len(parts) == 2 {
+				switch parts[0] {
+				case "ocio-ede-tst-upload":
+					ac.OcioEdeTstUpload = parts[1]
+				case "ocio-ede-dev-upload":
+					ac.OcioEdeDevUpload = parts[1]
+				}
+			}
+		}
+	}
+
 	if ac.AzureConnection != nil {
 		if ac.AzureConnection.ContainerEndpoint == "" {
 			ac.AzureConnection.ContainerEndpoint = fmt.Sprintf("https://%s.blob.core.windows.net", ac.AzureConnection.StorageName)
