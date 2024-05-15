@@ -102,19 +102,27 @@ func (r *Report) Identifier() string {
 	return r.UploadID
 }
 
-type MetaDataVerifyContent struct {
+type ReportContent struct {
 	SchemaVersion string `json:"schema_version"`
 	SchemaName    string `json:"schema_name"`
-	Filename      string `json:"filename"`
-	Metadata      any    `json:"metadata"`
-	Issues        error  `json:"issues"`
+}
+
+type UploadLifecycleContent struct {
+	ReportContent
+	Status string `json:"status"`
+}
+
+type MetaDataVerifyContent struct {
+	ReportContent
+	Filename string `json:"filename"`
+	Metadata any    `json:"metadata"`
+	Issues   error  `json:"issues"`
 }
 
 type UploadStatusContent struct {
-	SchemaVersion string `json:"schema_version"`
-	SchemaName    string `json:"schema_name"`
-	Filename      string `json:"filename"`
-	Metadata      any    `json:"metadata"`
+	ReportContent
+	Filename string `json:"filename"`
+	Metadata any    `json:"metadata"`
 	// Additional postReceive values:
 	Tguid  string `json:"tguid"`
 	Offset string `json:"offset"`
@@ -206,10 +214,12 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	}
 
 	content := &MetaDataVerifyContent{
-		SchemaVersion: "0.0.1",
-		SchemaName:    "dex-metadata-verify",
-		Filename:      getFilename(manifest),
-		Metadata:      manifest,
+		ReportContent: ReportContent{
+			SchemaVersion: "0.0.1",
+			SchemaName:    "dex-metadata-verify",
+		},
+		Filename: getFilename(manifest),
+		Metadata: manifest,
 	}
 
 	report := &Report{
@@ -281,13 +291,15 @@ type HookEventHandler struct {
 
 func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, manifest map[string]string, ctx context.Context) error {
 	content := &UploadStatusContent{
-		SchemaVersion: "1.0",
-		SchemaName:    "upload",
-		Filename:      getFilename(manifest),
-		Metadata:      manifest,
-		Tguid:         tguid,
-		Offset:        strconv.FormatInt(offset, 10),
-		Size:          strconv.FormatInt(size, 10),
+		ReportContent: ReportContent{
+			SchemaVersion: "1.0",
+			SchemaName:    "upload",
+		},
+		Filename: getFilename(manifest),
+		Metadata: manifest,
+		Tguid:    tguid,
+		Offset:   strconv.FormatInt(offset, 10),
+		Size:     strconv.FormatInt(size, 10),
 	}
 
 	report := &Report{
@@ -324,11 +336,12 @@ func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookR
 
 func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map[string]string, uploadId string) error {
 	logger.Info("Attempting to report upload started", "uploadId", uploadId)
-	content := &UploadStatusContent{
-		SchemaVersion: "1.0",
-		SchemaName:    "dex-upload-started",
-		Filename:      getFilename(manifest),
-		Metadata:      manifest,
+	content := &UploadLifecycleContent{
+		ReportContent: ReportContent{
+			SchemaVersion: "1.0",
+			SchemaName:    "dex-upload-started",
+		},
+		Status: "success",
 	}
 
 	report := &Report{
@@ -347,11 +360,12 @@ func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map
 
 func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest map[string]string, uploadId string) error {
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
-	content := &UploadStatusContent{
-		SchemaVersion: "1.0",
-		SchemaName:    "dex-upload-complete",
-		Filename:      getFilename(manifest),
-		Metadata:      manifest,
+	content := &UploadLifecycleContent{
+		ReportContent: ReportContent{
+			SchemaVersion: "1.0",
+			SchemaName:    "dex-upload-complete",
+		},
+		Status: "success",
 	}
 
 	report := &Report{
@@ -360,7 +374,7 @@ func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest m
 		DataStreamRoute: getDataStreamRoute(manifest),
 		StageName:       "dex-upload-complete",
 		ContentType:     "json",
-		DispositionType: "replace",
+		DispositionType: "add",
 		Content:         content,
 	}
 
@@ -369,11 +383,8 @@ func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest m
 }
 
 func (v *HookEventHandler) PostCreate(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	uploadId := Uid() // Assuming each upload gets a unique ID generated
-	logger.Info("Generated UUID for new upload", "UUID", uploadId)
-	event.Upload.ID = uploadId // Set the new upload ID
-	if err := v.ReportUploadStarted(event.Context, event.Upload.MetaData, uploadId); err != nil {
-		logger.Error("Failed to report upload started", "UUID", uploadId, "err", err)
+	if err := v.ReportUploadStarted(event.Context, event.Upload.MetaData, event.Upload.ID); err != nil {
+		logger.Error("Failed to report upload started", "UUID", event.Upload.ID, "err", err)
 	}
 	return resp, nil
 }
