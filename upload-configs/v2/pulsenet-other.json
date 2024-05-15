@@ -39,7 +39,7 @@
             "field_name": "data_stream_route",
             "required": true,
             "allowed_values": [
-               "localsequencefile"
+               "other"
             ],
             "description": "This recieved is the route of the data stream.",
             "compat_field_name": "meta_ext_event"
