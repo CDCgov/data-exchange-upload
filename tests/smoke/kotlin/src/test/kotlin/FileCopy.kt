@@ -86,9 +86,9 @@ class FileCopy {
 
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldCopyToDestinationContainers() {
+        val filenamePrefix = if (uploadConfig.copyConfig.folderStructure == "root") useCase else Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
-        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC), useCase)}/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
-        println(expectedFilename)
+        val expectedFilename = "$filenamePrefix/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
         var expectedBlobClient: BlobClient?
 
         if (uploadConfig.copyConfig.targets.contains("edav")) {
