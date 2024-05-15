@@ -37,6 +37,8 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
+	// TODO: Add a manifest transformer to cover upload ID and global timestamp transformations.
+
 	manifestValidator := metadata.SenderManifestVerification{
 		Configs: cache,
 		Reporter: &filereporters.FileReporter{
@@ -45,6 +47,18 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	}
 
 	postReceiveHook := metadata.HookEventHandler{
+		Reporter: &filereporters.FileReporter{
+			Dir: appConfig.LocalReportsFolder,
+		},
+	}
+
+	postFinishHook := metadata.HookEventHandler{
+		Reporter: &filereporters.FileReporter{
+			Dir: appConfig.LocalReportsFolder,
+		},
+	}
+
+	postCreateHook := metadata.HookEventHandler{
 		Reporter: &filereporters.FileReporter{
 			Dir: appConfig.LocalReportsFolder,
 		},
@@ -78,6 +92,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				return nil, err
 			}
 
+			// TODO Can these reporters all be pointers to a single instance?
 			manifestValidator.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
@@ -86,14 +101,23 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
+			postFinishHook.Reporter = &azurereporters.ServiceBusReporter{
+				Client:    sbclient,
+				QueueName: appConfig.ReportQueueName,
+			}
+			postCreateHook.Reporter = &azurereporters.ServiceBusReporter{
+				Client:    sbclient,
+				QueueName: appConfig.ReportQueueName,
+			}
+
 		}
 	}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
 	handler.Register(tusHooks.HookPostReceive, postReceiveHook.PostReceive)
-
+	handler.Register(tusHooks.HookPostFinish, postFinishHook.PostFinish)
+	handler.Register(tusHooks.HookPostCreate, postCreateHook.PostCreate)
 	// TODO: -> handler.Register(tusHooks.HookPostFinish, copier.Merge, copier.Route)
-
 
 	return handler, nil
 }
