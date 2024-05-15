@@ -13,7 +13,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
 var (
@@ -38,7 +38,7 @@ func TestTus(t *testing.T) {
 				}
 
 				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount := 0, 0, 0, 0
-				rMetadata, rUploadStatus := &metadata.Report{}, &metadata.Report{}
+				rMetadata, rUploadStatus := &models.Report{}, &models.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
 					t.Fatal(name, tuid, err)
@@ -105,11 +105,11 @@ func TestTus(t *testing.T) {
 				}
 
 				if c.err != nil {
-					if rMetadata.Content.(metadata.MetaDataVerifyContent).Issues == nil {
+					if rMetadata.Content.(models.MetaDataVerifyContent).Issues == nil {
 						t.Error("expected reported issues but got none", name, tuid, rMetadata)
 					}
 
-					if rUploadStatus.Content.(metadata.UploadStatusContent).Offset != rUploadStatus.Content.(metadata.UploadStatusContent).Size {
+					if rUploadStatus.Content.(models.UploadStatusContent).Offset != rUploadStatus.Content.(models.UploadStatusContent).Size {
 						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, rUploadStatus)
 					}
 				}

@@ -19,6 +19,7 @@ import (
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -86,47 +87,6 @@ func GetConfigIdentifierByVersion(ctx context.Context, manifest handler.MetaData
 		return "", err
 	}
 	return configLoc.Path(), nil
-}
-
-type Report struct {
-	UploadID        string `json:"upload_id"`
-	StageName       string `json:"stage_name"`
-	DataStreamID    string `json:"data_stream_id"`
-	DataStreamRoute string `json:"data_stream_route"`
-	ContentType     string `json:"content_type"`
-	DispositionType string `json:"disposition_type"`
-	Content         any    `json:"content"` // TODO: Can we limit this to a specific type (i.e. ReportContent or UploadStatusTYpe type?
-}
-
-func (r *Report) Identifier() string {
-	return r.UploadID
-}
-
-type ReportContent struct {
-	SchemaVersion string `json:"schema_version"`
-	SchemaName    string `json:"schema_name"`
-}
-
-type UploadLifecycleContent struct {
-	ReportContent
-	Status string `json:"status"`
-}
-
-type MetaDataVerifyContent struct {
-	ReportContent
-	Filename string `json:"filename"`
-	Metadata any    `json:"metadata"`
-	Issues   error  `json:"issues"`
-}
-
-type UploadStatusContent struct {
-	ReportContent
-	Filename string `json:"filename"`
-	Metadata any    `json:"metadata"`
-	// Additional postReceive values:
-	Tguid  string `json:"tguid"`
-	Offset string `json:"offset"`
-	Size   string `json:"size"`
 }
 
 func getFilename(manifest map[string]string) string {
@@ -213,8 +173,8 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	content := &MetaDataVerifyContent{
-		ReportContent: ReportContent{
+	content := &models.MetaDataVerifyContent{
+		ReportContent: models.ReportContent{
 			SchemaVersion: "0.0.1",
 			SchemaName:    "dex-metadata-verify",
 		},
@@ -222,7 +182,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		Metadata: manifest,
 	}
 
-	report := &Report{
+	report := &models.Report{
 		UploadID:        tuid,
 		DataStreamID:    getDataStreamID(manifest),
 		DataStreamRoute: getDataStreamRoute(manifest),
@@ -290,8 +250,8 @@ type HookEventHandler struct {
 }
 
 func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, manifest map[string]string, ctx context.Context) error {
-	content := &UploadStatusContent{
-		ReportContent: ReportContent{
+	content := &models.UploadStatusContent{
+		ReportContent: models.ReportContent{
 			SchemaVersion: "1.0",
 			SchemaName:    "upload",
 		},
@@ -302,7 +262,7 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 		Size:     strconv.FormatInt(size, 10),
 	}
 
-	report := &Report{
+	report := &models.Report{
 		UploadID:        tguid,
 		DataStreamID:    getDataStreamID(manifest),
 		DataStreamRoute: getDataStreamRoute(manifest),
@@ -336,15 +296,15 @@ func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookR
 
 func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map[string]string, uploadId string) error {
 	logger.Info("Attempting to report upload started", "uploadId", uploadId)
-	content := &UploadLifecycleContent{
-		ReportContent: ReportContent{
+	content := &models.UploadLifecycleContent{
+		ReportContent: models.ReportContent{
 			SchemaVersion: "1.0",
 			SchemaName:    "dex-upload-started",
 		},
 		Status: "success",
 	}
 
-	report := &Report{
+	report := &models.Report{
 		UploadID:        uploadId,
 		DataStreamID:    getDataStreamID(manifest),
 		DataStreamRoute: getDataStreamRoute(manifest),
@@ -360,15 +320,15 @@ func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map
 
 func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest map[string]string, uploadId string) error {
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
-	content := &UploadLifecycleContent{
-		ReportContent: ReportContent{
+	content := &models.UploadLifecycleContent{
+		ReportContent: models.ReportContent{
 			SchemaVersion: "1.0",
 			SchemaName:    "dex-upload-complete",
 		},
 		Status: "success",
 	}
 
-	report := &Report{
+	report := &models.Report{
 		UploadID:        uploadId,
 		DataStreamID:    getDataStreamID(manifest),
 		DataStreamRoute: getDataStreamRoute(manifest),

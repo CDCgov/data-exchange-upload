@@ -37,6 +37,8 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
+	// TODO: Add a manifest transformer to cover upload ID and global timestamp transformations.
+
 	manifestValidator := metadata.SenderManifestVerification{
 		Configs: cache,
 		Reporter: &filereporters.FileReporter{
@@ -91,7 +93,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 			}
 
 			// TODO Can these reporters all be pointers to a single instance?
-			 manifestValidator.Reporter = &azurereporters.ServiceBusReporter{
+			manifestValidator.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
@@ -106,7 +108,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 			postCreateHook.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
-			} 			
+			}
 
 		}
 	}
