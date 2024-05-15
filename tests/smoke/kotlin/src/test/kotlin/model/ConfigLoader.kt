@@ -27,3 +27,5 @@ class ConfigLoader {
         return jacksonObjectMapper().readValue(preprocessedJson, UploadConfig::class.java)
     }
 }
+
+

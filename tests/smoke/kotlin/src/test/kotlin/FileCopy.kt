@@ -66,7 +66,7 @@ class FileCopy {
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
         println("dexBlobClient: $dexBlobClient.properties")
 
-        configLoader = ConfigLoader()
+        configLoader = ConfigLoader
         uploadConfigV1 = configLoader.loadUploadConfig(dexBlobClient, USE_CASE, "v1")
         uploadConfigV2 = configLoader.loadUploadConfig(dexBlobClient, USE_CASE, "v2")
 
