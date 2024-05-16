@@ -1,19 +1,12 @@
 ﻿using BulkFileUploadFunctionApp.Model;
 using Microsoft.Extensions.Logging;
 using Azure.Messaging.ServiceBus;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
-using System.Threading.Tasks;
 using BulkFileUploadFunctionApp.Utils;
 using System.Text.Json;
 using Azure.Messaging.ServiceBus.Administration;
-using Azure.Messaging.ServiceBus.Amqp;
-using System.Text.Unicode;
 using System.Runtime.Serialization;
-using System.Net;
+
 
 namespace BulkFileUploadFunctionApp.Services
 {

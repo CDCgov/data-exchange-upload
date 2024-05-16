@@ -2,13 +2,11 @@ using Azure;
 using Azure.Storage.Blobs;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using Azure.Identity;
 using System.Text.Json;
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
-using System.Text.Json.Serialization;
-using System.Runtime.Intrinsics.X86;
+
 
 namespace BulkFileUploadFunctionApp.Services
 {

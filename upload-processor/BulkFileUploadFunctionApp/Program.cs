@@ -4,11 +4,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Azure.Messaging.ServiceBus;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Utils;
 using Microsoft.FeatureManagement;
-using Microsoft.Extensions.Azure;
 
 var host = new HostBuilder()
     .ConfigureLogging(builder =>
