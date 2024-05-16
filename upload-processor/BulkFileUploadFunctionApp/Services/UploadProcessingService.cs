@@ -150,9 +150,9 @@ namespace BulkFileUploadFunctionApp.Services
 
                 // Send copy failure report
                 await SendFailureReport(
-                    uploadId, 
-                    useCase, 
-                    useCaseCategory, 
+                    uploadId,
+                    useCase,
+                    useCaseCategory,
                     "DEX",
                     $"Failed to get copy preqs: {ex.Message}");
 
@@ -160,25 +160,25 @@ namespace BulkFileUploadFunctionApp.Services
             }
         }
 
-    public async Task CopyAll(CopyPrereqs copyPrereqs)
-    {
-        Span? copySpan = null;
-
-        try
+        public async Task CopyAll(CopyPrereqs copyPrereqs)
         {
+            Span? copySpan = null;
 
-            copyPrereqs.DexBlobUrl = await CopyFromTusToDex(copyPrereqs);
+            try
+            {
+
+                copyPrereqs.DexBlobUrl = await CopyFromTusToDex(copyPrereqs);
 
                 // copy to targets
                 await CopyFromDexToTarget(copyPrereqs);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ExceptionUtils.LogErrorDetails(ex, _logger);
                 throw ex;
             }
         }
-               
+
         /// <summary>
         /// Copies a blob from the tus upload folder to the DEX storage account
         /// </summary>
@@ -190,334 +190,334 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 _logger.LogInformation($"Creating destination container client, container name: {copyPrereqs.DexBlobFolderName}");
 
-            var destinationContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, copyPrereqs.DexBlobFolderName);
+                var destinationContainerClient = new BlobContainerClient(_dexStorageAccountConnectionString, copyPrereqs.DexBlobFolderName);
 
-            // Create the destination container if not exists
-            await destinationContainerClient.CreateIfNotExistsAsync();
+                // Create the destination container if not exists
+                await destinationContainerClient.CreateIfNotExistsAsync();
 
-            _logger.LogInformation("Creating source blob client");
+                _logger.LogInformation("Creating source blob client");
 
-            // Create a BlobClient representing the source blob to copy.
-            BlobClient sourceBlob = _tusContainerClient.GetBlobClient(copyPrereqs.TusPayloadFilename);
+                // Create a BlobClient representing the source blob to copy.
+                BlobClient sourceBlob = _tusContainerClient.GetBlobClient(copyPrereqs.TusPayloadFilename);
 
-            // Get a BlobClient representing the destination blob with a unique name.
-            BlobClient destBlob = destinationContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
+                // Get a BlobClient representing the destination blob with a unique name.
+                BlobClient destBlob = destinationContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
 
-            await _blobCopyHelper.CopyBlobLeaseAsync(sourceBlob, destBlob, copyPrereqs.Metadata);
+                await _blobCopyHelper.CopyBlobLeaseAsync(sourceBlob, destBlob, copyPrereqs.Metadata);
 
-            return destBlob.Uri.ToString();
-        }
-        catch (RequestFailedException ex)
-        {
-            _logger.LogError("Failed to copy blob from TUS to Dex");
-
-            // Send copy failure report
-
-            await SendFailureReport(copyPrereqs.UploadId,
-                                copyPrereqs.UseCase,
-                                copyPrereqs.UseCaseCategory,
-                                "DEX",
-                                $"Failed to copy blob from TUS to DEX. {ex.Message}");
-
-            throw;
-        }
-    }
-
-    private async Task CopyFromDexToTarget(CopyPrereqs copyPrereqs)
-    {
-        foreach (CopyTargetsEnum copyTarget in copyPrereqs.Targets)
-        {
-            _logger.LogInformation("Copy Target: " + copyTarget);
-
-            if (copyTarget == CopyTargetsEnum.edav)
-            {
-                try
-                {
-                    await CopyFromDexToEdav(copyPrereqs);
-                }
-                catch (Exception ex)
-                {
-                    // publish retry event
-                    await PublishRetryEvent(BlobCopyStage.CopyToEdav,
-                                            copyPrereqs);
-                }
+                return destBlob.Uri.ToString();
             }
-            else if (copyTarget == CopyTargetsEnum.routing)
+            catch (RequestFailedException ex)
             {
-                try
+                _logger.LogError("Failed to copy blob from TUS to Dex");
+
+                // Send copy failure report
+
+                await SendFailureReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "DEX",
+                                    $"Failed to copy blob from TUS to DEX. {ex.Message}");
+
+                throw;
+            }
+        }
+
+        private async Task CopyFromDexToTarget(CopyPrereqs copyPrereqs)
+        {
+            foreach (CopyTargetsEnum copyTarget in copyPrereqs.Targets)
+            {
+                _logger.LogInformation("Copy Target: " + copyTarget);
+
+                if (copyTarget == CopyTargetsEnum.edav)
                 {
-                    await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.ROUTING_FEATURE_FLAG_NAME, async () =>
+                    try
                     {
-                        await CopyFromDexToRouting(copyPrereqs);
-                    });
-
-                    _featureManagementExecutor.ExecuteIfDisabled(Constants.ROUTING_FEATURE_FLAG_NAME, () =>
+                        await CopyFromDexToEdav(copyPrereqs);
+                    }
+                    catch (Exception ex)
                     {
-                        _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
-                    });
+                        // publish retry event
+                        await PublishRetryEvent(BlobCopyStage.CopyToEdav,
+                                                copyPrereqs);
+                    }
                 }
-                catch (Exception ex)
+                else if (copyTarget == CopyTargetsEnum.routing)
                 {
-                    // publish retry event
-                    await PublishRetryEvent(BlobCopyStage.CopyToRouting,
-                                            copyPrereqs);
+                    try
+                    {
+                        await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.ROUTING_FEATURE_FLAG_NAME, async () =>
+                        {
+                            await CopyFromDexToRouting(copyPrereqs);
+                        });
+
+                        _featureManagementExecutor.ExecuteIfDisabled(Constants.ROUTING_FEATURE_FLAG_NAME, () =>
+                        {
+                            _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        // publish retry event
+                        await PublishRetryEvent(BlobCopyStage.CopyToRouting,
+                                                copyPrereqs);
+                    }
+
+                }
+            }
+        }
+
+        /// <summary>
+        /// Copies a blob file from DEX to EDAV asynchronously.
+        /// </summary>
+        /// <param name="sourceContainerName">Source container name</param>
+        /// <param name="sourceBlobFilename">Source blob filename</param>
+        /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
+        /// <returns></returns>
+        /// 
+        public async Task CopyFromDexToEdav(CopyPrereqs copyPrereqs)
+        {
+            string destinationContainerName = _edavUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
+            string destinationFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
+
+            try
+            {
+                BlobContainerClient sourceContainerClient = _dexBlobServiceClient.GetBlobContainerClient(copyPrereqs.DexBlobFolderName);
+                BlobClient sourceBlobClient = sourceContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
+
+                BlobContainerClient destContainerClient = _edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
+                await destContainerClient.CreateIfNotExistsAsync();
+
+                BlobClient destBlobClient = destContainerClient.GetBlobClient(destinationFilename);
+
+                await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
+
+                // Send copy success report
+                await SendSuccessReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "edav");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to copy from Dex to Edav");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+
+                // Send copy failure report
+                await SendFailureReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "edav",
+                                    $"Failed to copy blob from DEX to EDAV. {ex.Message}");
+
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Copies a blob file from DEX to ROUTING asynchronously.
+        /// </summary>
+        /// <param name="sourceContainerName">Source container name</param>
+        /// <param name="sourceBlobFilename">Source blob filename</param>
+        /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
+        /// <returns></returns>
+        public async Task CopyFromDexToRouting(CopyPrereqs copyPrereqs)
+        {
+            string destinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
+            string destinationFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
+
+            try
+            {
+                BlobContainerClient sourceContainerClient = _dexBlobServiceClient.GetBlobContainerClient(copyPrereqs.DexBlobFolderName);
+                BlobClient sourceBlobClient = sourceContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
+
+                BlobContainerClient destContainerClient = _routingBlobServiceClient.GetBlobContainerClient(destinationContainerName);
+                await destContainerClient.CreateIfNotExistsAsync();
+
+                BlobClient destBlobClient = destContainerClient.GetBlobClient(destinationFilename);
+
+                await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
+
+                // Send copy success report
+                await SendSuccessReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "routing");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Failed to copy from Dex to ROUTING");
+                ExceptionUtils.LogErrorDetails(ex, _logger);
+
+                // Send copy failure report
+                await SendFailureReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "routing",
+                                    $"Failed to copy blob from DEX to ROUTING. {ex.Message}");
+
+                throw;
+            }
+        }
+
+        private string GetFilenameSuffix(UploadConfig uploadConfig, string uploadId)
+        {
+            string suffix = string.Empty; // Default to no suffix.
+
+            if (uploadConfig.CopyConfig?.FilenameSuffix == CopyConfig.FILENAME_SUFFIX_UID)
+            {
+                suffix = $"_{uploadId}";
+            }
+
+            return suffix;
+        }
+
+        private async Task<TusInfoFile> GetTusInfoFile(string tusPayloadFilename)
+        {
+            // GET FILE METADATA
+            string tusInfoFilename = $"{tusPayloadFilename}.info";
+            _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
+
+            TusInfoFile tusInfoFile = await _blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
+
+            if (tusInfoFile.ID == null)
+                throw new Exception("Malformed tus info file. No ID provided.");
+
+            if (tusInfoFile.MetaData == null)
+                throw new TusInfoFileException("tus info file required metadata is missing");
+
+            return tusInfoFile;
+        }
+
+        private async Task<UploadConfig> GetUploadConfig(string filename, MetadataVersion versionNum)
+        {
+            var uploadConfig = UploadConfig.Default;
+            var configFilename = $"{versionNum.ToString().ToLower()}/{filename}";
+
+            try
+            {
+                // Determine the filename and subfolder creation schemes for this destination/event.
+                uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, _uploadConfigContainer, configFilename);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"No upload config found for {configFilename}.  Using default config. Exception = {e.Message}");
+            }
+
+            if (uploadConfig == null)
+            {
+                throw new UploadConfigException($"Unable to parse JSON for upload config {configFilename}");
+            }
+
+            // Convert copy target strings to enums.
+            List<CopyTargetsEnum> targetEnums = uploadConfig.CopyConfig.Targets.ConvertAll(targetStr =>
+            {
+                Enum.TryParse(targetStr, out CopyTargetsEnum targetEnum);
+                return targetEnum;
+            }).ToList();
+            uploadConfig.CopyConfig.TargetEnums = targetEnums;
+
+            return uploadConfig;
+        }
+
+        /// <summary>
+        /// Determines the folder path from the upload configuration.
+        /// </summary>
+        /// <param name="uploadConfig"></param>
+        /// <param name="dateTimeNow"></param>
+        /// <returns></returns>
+        private string GetFolderPath(UploadConfig uploadConfig, DateTime dateTimeNow)
+        {
+            string folderPath;
+            switch (uploadConfig.CopyConfig.FolderStructure)
+            {
+                case "root":
+                    // Don't partition uploads into any subfolders - all uploads will reside in the root folder
+                    folderPath = "";
+                    break;
+                case "path":
+                    folderPath = uploadConfig.CopyConfig.FolderStructure ?? "";
+                    break;
+                case "date_YYYY_MM_DD":
+                    // Partitioning is part of the filename where slashes will create subfolders.
+                    // Path inside of that is year / month / day / filename
+                    folderPath = $"{dateTimeNow.Year}/{dateTimeNow.Month.ToString().PadLeft(2, '0')}/{dateTimeNow.Day.ToString().PadLeft(2, '0')}";
+                    break;
+                default:
+                    _logger.LogWarning("No upload folder structure scheme provided or one provided is unrecognized, using root");
+                    folderPath = "";
+                    break;
+            }
+
+            return folderPath;
+        }
+
+        private Dictionary<string, string> TranslateMetadata(Dictionary<string, string> fromMetadata, UploadConfig toConfig)
+        {
+            Dictionary<string, string> toMetadata = new Dictionary<string, string>(fromMetadata);
+
+            if (toConfig.MetadataConfig == null || toConfig.MetadataConfig.Fields == null || toConfig.MetadataConfig.Version == null)
+            {
+                throw new ArgumentNullException("UploadConfig Metadata fields cannot be null.");
+            }
+
+            // Add use-case specific fields and their values.
+            foreach (MetadataField field in toConfig.MetadataConfig.Fields)
+            {
+                if (field.FieldName == null)
+                {
+                    _logger.LogError("Cannot parse field with null field name.");
+                    continue;
                 }
 
+                // Skip if field already provided.
+                if (toMetadata.ContainsKey(field.FieldName))
+                {
+                    continue;
+                }
+
+                if (field.DefaultValue != null)
+                {
+                    toMetadata[field.FieldName] = field.DefaultValue;
+                    continue;
+                }
+
+                if (field.CompatFieldName != null)
+                {
+                    toMetadata[field.FieldName] = toMetadata.GetValueOrDefault(field.CompatFieldName, "");
+                    continue;
+                }
+
+                toMetadata.Add(field.FieldName, "");
             }
-        }
-    }
+            toMetadata["version"] = toConfig.MetadataConfig.Version;
 
-    /// <summary>
-    /// Copies a blob file from DEX to EDAV asynchronously.
-    /// </summary>
-    /// <param name="sourceContainerName">Source container name</param>
-    /// <param name="sourceBlobFilename">Source blob filename</param>
-    /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
-    /// <returns></returns>
-    /// 
-    public async Task CopyFromDexToEdav(CopyPrereqs copyPrereqs)
-    {
-        string destinationContainerName = _edavUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
-        string destinationFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
-
-        try
-        {
-            BlobContainerClient sourceContainerClient = _dexBlobServiceClient.GetBlobContainerClient(copyPrereqs.DexBlobFolderName);
-            BlobClient sourceBlobClient = sourceContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
-
-            BlobContainerClient destContainerClient = _edavBlobServiceClient.GetBlobContainerClient(destinationContainerName);
-            await destContainerClient.CreateIfNotExistsAsync();
-
-            BlobClient destBlobClient = destContainerClient.GetBlobClient(destinationFilename);
-
-            await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
-
-            // Send copy success report
-            await SendSuccessReport(copyPrereqs.UploadId,
-                                copyPrereqs.UseCase,
-                                copyPrereqs.UseCaseCategory,
-                                "edav");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("Failed to copy from Dex to Edav");
-            ExceptionUtils.LogErrorDetails(ex, _logger);
-
-            // Send copy failure report
-            await SendFailureReport(copyPrereqs.UploadId,
-                                copyPrereqs.UseCase,
-                                copyPrereqs.UseCaseCategory,
-                                "edav",
-                                $"Failed to copy blob from DEX to EDAV. {ex.Message}");
-
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Copies a blob file from DEX to ROUTING asynchronously.
-    /// </summary>
-    /// <param name="sourceContainerName">Source container name</param>
-    /// <param name="sourceBlobFilename">Source blob filename</param>
-    /// <param name="destinationMetadata">Destination metadata to be associated with the blob file</param>
-    /// <returns></returns>
-     public async Task CopyFromDexToRouting(CopyPrereqs copyPrereqs)
-    {
-        string destinationContainerName = _routingUploadRootContainerName ?? copyPrereqs.DexBlobFolderName;
-        string destinationFilename = $"{copyPrereqs.DexBlobFolderName}/{copyPrereqs.DexBlobFileName}" ?? copyPrereqs.DexBlobFileName;
-
-        try
-        {
-            BlobContainerClient sourceContainerClient = _dexBlobServiceClient.GetBlobContainerClient(copyPrereqs.DexBlobFolderName);
-            BlobClient sourceBlobClient = sourceContainerClient.GetBlobClient(copyPrereqs.DexBlobFileName);
-
-            BlobContainerClient destContainerClient = _routingBlobServiceClient.GetBlobContainerClient(destinationContainerName);
-            await destContainerClient.CreateIfNotExistsAsync();
-
-            BlobClient destBlobClient = destContainerClient.GetBlobClient(destinationFilename);
-
-            await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
-
-            // Send copy success report
-            await SendSuccessReport(copyPrereqs.UploadId,
-                                copyPrereqs.UseCase,
-                                copyPrereqs.UseCaseCategory, 
-                                "routing");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError("Failed to copy from Dex to ROUTING");
-            ExceptionUtils.LogErrorDetails(ex, _logger);
-
-            // Send copy failure report
-            await SendFailureReport(copyPrereqs.UploadId,
-                                copyPrereqs.UseCase,
-                                copyPrereqs.UseCaseCategory,
-                                "routing",
-                                $"Failed to copy blob from DEX to ROUTING. {ex.Message}");
-
-            throw;
-        }
-    }
-
-    private string GetFilenameSuffix(UploadConfig uploadConfig, string uploadId)
-    {
-        string suffix = string.Empty; // Default to no suffix.
-
-        if (uploadConfig.CopyConfig?.FilenameSuffix == CopyConfig.FILENAME_SUFFIX_UID)
-        {
-            suffix = $"_{uploadId}";
+            return toMetadata;
         }
 
-        return suffix;
-    }
-
-    private async Task<TusInfoFile> GetTusInfoFile(string tusPayloadFilename)
-    {
-        // GET FILE METADATA
-        string tusInfoFilename = $"{tusPayloadFilename}.info";
-        _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
-
-        TusInfoFile tusInfoFile = await _blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
-
-        if (tusInfoFile.ID == null)
-            throw new Exception("Malformed tus info file. No ID provided.");
-
-        if (tusInfoFile.MetaData == null)
-            throw new TusInfoFileException("tus info file required metadata is missing");
-
-        return tusInfoFile;
-    }
-
-    private async Task<UploadConfig> GetUploadConfig(string filename, MetadataVersion versionNum)
-    {
-        var uploadConfig = UploadConfig.Default;
-        var configFilename = $"{versionNum.ToString().ToLower()}/{filename}";
-
-        try
+        private void HydrateMetadata(TusInfoFile tusInfoFile)
         {
-            // Determine the filename and subfolder creation schemes for this destination/event.
-            uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, _uploadConfigContainer, configFilename);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError($"No upload config found for {configFilename}.  Using default config. Exception = {e.Message}");
+            // Add common fields and their values.
+            tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
+            tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
         }
 
-        if (uploadConfig == null)
+        public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs)
         {
-            throw new UploadConfigException($"Unable to parse JSON for upload config {configFilename}");
-        }
-
-        // Convert copy target strings to enums.
-        List<CopyTargetsEnum> targetEnums = uploadConfig.CopyConfig.Targets.ConvertAll(targetStr =>
-        {
-            Enum.TryParse(targetStr, out CopyTargetsEnum targetEnum);
-            return targetEnum;
-        }).ToList();
-        uploadConfig.CopyConfig.TargetEnums = targetEnums;
-
-        return uploadConfig;
-    }
-
-    /// <summary>
-    /// Determines the folder path from the upload configuration.
-    /// </summary>
-    /// <param name="uploadConfig"></param>
-    /// <param name="dateTimeNow"></param>
-    /// <returns></returns>
-    private string GetFolderPath(UploadConfig uploadConfig, DateTime dateTimeNow)
-    {
-        string folderPath;
-        switch (uploadConfig.CopyConfig.FolderStructure)
-        {
-            case "root":
-                // Don't partition uploads into any subfolders - all uploads will reside in the root folder
-                folderPath = "";
-                break;
-            case "path":
-                folderPath = uploadConfig.CopyConfig.FolderStructure ?? "";
-                break;
-            case "date_YYYY_MM_DD":
-                // Partitioning is part of the filename where slashes will create subfolders.
-                // Path inside of that is year / month / day / filename
-                folderPath = $"{dateTimeNow.Year}/{dateTimeNow.Month.ToString().PadLeft(2, '0')}/{dateTimeNow.Day.ToString().PadLeft(2, '0')}";
-                break;
-            default:
-                _logger.LogWarning("No upload folder structure scheme provided or one provided is unrecognized, using root");
-                folderPath = "";
-                break;
-        }
-
-        return folderPath;
-    }
-
-    private Dictionary<string, string> TranslateMetadata(Dictionary<string, string> fromMetadata, UploadConfig toConfig)
-    {
-        Dictionary<string, string> toMetadata = new Dictionary<string, string>(fromMetadata);
-
-        if (toConfig.MetadataConfig == null || toConfig.MetadataConfig.Fields == null || toConfig.MetadataConfig.Version == null)
-        {
-            throw new ArgumentNullException("UploadConfig Metadata fields cannot be null.");
-        }
-
-        // Add use-case specific fields and their values.
-        foreach (MetadataField field in toConfig.MetadataConfig.Fields)
-        {
-            if (field.FieldName == null)
+            try
             {
-                _logger.LogError("Cannot parse field with null field name.");
-                continue;
-            }
+                BlobCopyRetryEvent blobCopyRetryEvent = new BlobCopyRetryEvent();
+                blobCopyRetryEvent.CopyRetryStage = copyStage;
+                blobCopyRetryEvent.RetryAttempt = 1;
+                blobCopyRetryEvent.CopyPrereqs = copyPrereqs;
 
-            // Skip if field already provided.
-            if (toMetadata.ContainsKey(field.FieldName))
+                await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
+            }
+            catch (Exception ex)
             {
-                continue;
+                ExceptionUtils.LogErrorDetails(ex, _logger);
             }
-
-            if (field.DefaultValue != null)
-            {
-                toMetadata[field.FieldName] = field.DefaultValue;
-                continue;
-            }
-
-            if (field.CompatFieldName != null)
-            {
-                toMetadata[field.FieldName] = toMetadata.GetValueOrDefault(field.CompatFieldName, "");
-                continue;
-            }
-
-            toMetadata.Add(field.FieldName, "");
         }
-        toMetadata["version"] = toConfig.MetadataConfig.Version;
-
-        return toMetadata;
-    }
-
-    private void HydrateMetadata(TusInfoFile tusInfoFile)
-    {
-        // Add common fields and their values.
-        tusInfoFile.MetaData["tus_tguid"] = tusInfoFile.ID; // TODO: verify this field can be replaced with upload_id only.
-        tusInfoFile.MetaData["upload_id"] = tusInfoFile.ID;
-    }
-
-    public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs)
-    {
-        try
-        {
-            BlobCopyRetryEvent blobCopyRetryEvent = new BlobCopyRetryEvent();
-            blobCopyRetryEvent.CopyRetryStage = copyStage;
-            blobCopyRetryEvent.RetryAttempt = 1;
-            blobCopyRetryEvent.CopyPrereqs = copyPrereqs;
-
-            await _uploadEventHubService.PublishRetryEvent(blobCopyRetryEvent);
-        }
-        catch (Exception ex)
-        {
-            ExceptionUtils.LogErrorDetails(ex, _logger);
-        }
-    }
         private async Task SendSuccessReport(string uploadId, string destinationId, string eventType, string destStorageId)
         {
             var successReport = new Report

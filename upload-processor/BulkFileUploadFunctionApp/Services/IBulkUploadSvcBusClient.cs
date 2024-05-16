@@ -30,7 +30,7 @@ namespace BulkFileUploadFunctionApp.Services
         public BulkUploadSvcBusClient(IEnvironmentVariableProvider environmentVariableProvider, ILogger<BulkUploadSvcBusClient> logger)
         {
             _serviceBusConnectionString = environmentVariableProvider.GetEnvironmentVariable("SERVICE_BUS_CONNECTION_STR");
-            _serviceBusQueueName = environmentVariableProvider.GetEnvironmentVariable("REPORT_QUEUE_NAME");
+            _serviceBusQueueName = Constants.REPORT_QUEUE_NAME;
             _logger = logger;
             _svcBusClient = new ServiceBusClient(_serviceBusConnectionString, new ServiceBusClientOptions
             {
@@ -39,7 +39,7 @@ namespace BulkFileUploadFunctionApp.Services
                 {
                     TryTimeout = TimeSpan.FromSeconds(60),
                     MaxRetries = 3,
-                    Delay = TimeSpan.FromSeconds(.8)
+                    Delay = TimeSpan.FromSeconds(1)
                 }
             });
 
@@ -73,9 +73,7 @@ namespace BulkFileUploadFunctionApp.Services
             catch (ServiceBusException sbe)
             {
                 _logger.LogError($"Error when checking the health of the Service Bus: {sbe.Reason.ToString()}");
-                ExceptionUtils.LogErrorDetails(sbe, _logger);
-                // Delay before retrying (you can implement exponential backoff here)
-                await Task.Delay(1000); // 1 second delay before retrying                
+                ExceptionUtils.LogErrorDetails(sbe, _logger);             
                 return new HealthCheckResponse()
                 {
                     Status = "DOWN"
