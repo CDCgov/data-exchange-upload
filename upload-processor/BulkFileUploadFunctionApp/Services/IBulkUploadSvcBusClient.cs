@@ -20,7 +20,7 @@ namespace BulkFileUploadFunctionApp.Services
     public interface IBulkUploadSvcBusClient
     {
         Task<HealthCheckResponse?> GetHealthCheck();
-        void PublishReport(string uploadId, string destinationId, string eventType, string stageName, Report payload);
+        Task PublishReport(string uploadId, string destinationId, string eventType, string stageName, Report payload);
 
     }
 
@@ -137,7 +137,7 @@ namespace BulkFileUploadFunctionApp.Services
 
         }
 
-        public void PublishReport(string uploadId, string destinationId, string eventType, string stageName, Report payload)
+        public async Task PublishReport(string uploadId, string destinationId, string eventType, string stageName, Report payload)
         {
                 try
                 {
@@ -150,7 +150,7 @@ namespace BulkFileUploadFunctionApp.Services
                     var svcBusMessage = new ServiceBusMessage(uploadId) { Subject = stageName, ContentType = "application/json", Body = new BinaryData(content) };
 
                     // send the message
-                    _svcBusSender.SendMessageAsync(svcBusMessage);
+                    await _svcBusSender.SendMessageAsync(svcBusMessage);
 
                 }
                 catch (SerializationException se)

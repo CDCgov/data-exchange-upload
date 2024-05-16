@@ -525,7 +525,7 @@ namespace BulkFileUploadFunctionApp.Services
         var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
         try
         {
-            await Task.Run(() =>_bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport));
+            await _bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
         }
         catch (System.Runtime.Serialization.SerializationException se)
         {
@@ -544,7 +544,7 @@ namespace BulkFileUploadFunctionApp.Services
     private async Task SendFailureReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destinationContainerName, string error)
     {
         CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: error);
-        await Task.Run(() =>_bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport));
+        await _bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
     }
 }
 }
