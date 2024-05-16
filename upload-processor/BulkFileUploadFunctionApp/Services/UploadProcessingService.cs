@@ -535,14 +535,6 @@ namespace BulkFileUploadFunctionApp.Services
             {
                 await _bulkUploadSvcBusClient.PublishReport(successReport);
             }
-            catch (System.Runtime.Serialization.SerializationException se)
-            {
-                _logger.LogError($"Failed to send success report to service bus: {se.Message}");
-            }
-            catch (ServiceBusException sbe)
-            {
-                _logger.LogError($"Failed to send success report to service bus: {sbe.Reason.ToString()}");
-            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to send success report");
@@ -561,7 +553,15 @@ namespace BulkFileUploadFunctionApp.Services
                 DispositionType = "add",
                 Content = new CopyContent("fail", destStorageId, error)
             };
-            await _bulkUploadSvcBusClient.PublishReport(failReport);
+            try
+            {
+                await _bulkUploadSvcBusClient.PublishReport(failReport);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send failure report");
+            }
+
         }
     }
 }
