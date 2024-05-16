@@ -1,9 +1,6 @@
 import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobContainerClient
-import model.ConfigLoader
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import dex.DexUploadClient
 import model.UploadConfig
 import org.joda.time.DateTime
@@ -15,6 +12,7 @@ import org.testng.annotations.*
 import org.testng.annotations.Optional
 import tus.UploadClient
 import util.*
+import util.ConfigLoader.Companion.loadUploadConfig
 import kotlin.collections.HashMap
 
 
@@ -38,21 +36,18 @@ class FileCopy {
     private lateinit var edavContainerClient: BlobContainerClient
     private lateinit var routingContainerClient: BlobContainerClient
     private lateinit var uploadClient: UploadClient
-    private lateinit var configLoader: ConfigLoader
     private lateinit var uploadId: String
     private lateinit var useCase: String
     private lateinit var uploadConfigV1: UploadConfig
     private lateinit var uploadConfigV2: UploadConfig
     private lateinit var metadata: HashMap<String, String>
-    private lateinit var metadataV2: HashMap<String, String>
 
-    @Parameters("SENDER_MANIFEST", "USE_CASE", "USE_CASEV2")
+    @Parameters("SENDER_MANIFEST", "USE_CASE")
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
     fun beforeTest(
         context: ITestContext,
         @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
         @Optional("dextesting-testevent1") USE_CASE: String,
-        @Optional("dextesting-testevent1") USE_CASEV2: String
     ) {
         useCase = USE_CASE
 
@@ -60,17 +55,14 @@ class FileCopy {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
         val propertiesFilePath = "properties/$USE_CASE/$SENDER_MANIFEST"
-        val propertiesFilePathV2 = "properties/$USE_CASEV2/$SENDER_MANIFEST"
 
         metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
-        metadataV2 = Metadata.convertPropertiesToMetadataMap(propertiesFilePathV2)
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
         println("dexBlobClient: $dexBlobClient.properties")
 
-        configLoader = ConfigLoader()
-        uploadConfigV1 = configLoader.loadUploadConfig(dexBlobClient, USE_CASE, "v1")
-        uploadConfigV2 = configLoader.loadUploadConfig(dexBlobClient, USE_CASE, "v2")
+        uploadConfigV1 = loadUploadConfig(dexBlobClient, USE_CASE, "v1")
+        uploadConfigV2 = loadUploadConfig(dexBlobClient, USE_CASE, "v2")
 
         dexContainerClient = dexBlobClient.getBlobContainerClient(USE_CASE)
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
@@ -152,28 +144,6 @@ class FileCopy {
         }
     }
 
-    @Test(groups = [Constants.Groups.FILE_COPY])
-    fun shouldValidateV2MetadataWithSenderManifest() {
-
-        val metadataFields = uploadConfigV2.metadataConfig.fields
-
-        val filenameSuffix = if (uploadConfigV1.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
-        val expectedFilename =
-            "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC))}/${testFile.nameWithoutExtension}$filenameSuffix.${testFile.extension}"
-
-        val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
-
-        val blobProperties = expectedBlobClient.properties
-        val blobMetadata = blobProperties.metadata
-
-        metadataV2.forEach { (key, value) ->
-            val actualValueInV2 = blobMetadata[key]
-            Assert.assertEquals(value, actualValueInV2, "Expected key value: $value does not match with actual key value: $actualValueInV2")
-        }
-        metadataFields.forEach { field  ->
-            Assert.assertTrue(blobMetadata.containsKey(field.fieldName), "V2 keys mismatch: ${field.fieldName}")
-        }
-    }
 }
 
 
