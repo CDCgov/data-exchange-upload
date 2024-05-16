@@ -32,7 +32,7 @@ namespace BulkFileUploadFunctionAppTests
             _loggerFactoryBUFMock.Setup(x => x.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
             
             _mockUploadProcessingService = new Mock<IUploadProcessingService>();
-            _mockServiceBusAdministrationClient = new Mock<ServiceBusAdministrationClient>();
+
 
             // Initialize your function with mocked dependencies
             _function = new BulkFileUploadFunction(
