@@ -28,6 +28,7 @@ namespace BulkFileUploadFunctionApp.Services
     {
         private readonly ILogger<BulkUploadSvcBusClient> _logger;
         private readonly ServiceBusClient _svcBusClient;
+        private readonly ServiceBusAdministrationClient _serviceBusAdministrationClient;
         private readonly string _serviceBusConnectionString;
         private readonly string _serviceBusQueueName;
         private readonly ServiceBusSender _svcBusSender;
@@ -50,6 +51,7 @@ namespace BulkFileUploadFunctionApp.Services
             });
 
             _svcBusSender = _svcBusClient.CreateSender(_serviceBusQueueName);
+            _serviceBusAdministrationClient = new ServiceBusAdministrationClient(_serviceBusConnectionString);
         }
 
         public async Task<HealthCheckResponse?> GetHealthCheck()
@@ -105,9 +107,9 @@ namespace BulkFileUploadFunctionApp.Services
             try
             {
                 _logger.LogInformation("Checking if queue {0} exists", _serviceBusQueueName);
-                var serviceBusAdministrationClient = new ServiceBusAdministrationClient(_serviceBusConnectionString);
+                
 
-                if (await serviceBusAdministrationClient.QueueExistsAsync(_serviceBusQueueName).ConfigureAwait(false))
+                if (await _serviceBusAdministrationClient.QueueExistsAsync(_serviceBusQueueName).ConfigureAwait(false))
                 {
                     return true;
                 }
