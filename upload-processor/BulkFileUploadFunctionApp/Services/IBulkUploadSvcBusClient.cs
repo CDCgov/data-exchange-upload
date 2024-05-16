@@ -30,7 +30,7 @@ namespace BulkFileUploadFunctionApp.Services
         public BulkUploadSvcBusClient(IEnvironmentVariableProvider environmentVariableProvider, ILogger<BulkUploadSvcBusClient> logger)
         {
             _serviceBusConnectionString = environmentVariableProvider.GetEnvironmentVariable("SERVICE_BUS_CONNECTION_STR");
-            _serviceBusQueueName = Constants.REPORT_QUEUE_NAME;
+            _serviceBusQueueName = environmentVariableProvider.GetEnvironmentVariable("REPORT_QUEUE_NAME");
             _logger = logger;
             _svcBusClient = new ServiceBusClient(_serviceBusConnectionString, new ServiceBusClientOptions
             {
