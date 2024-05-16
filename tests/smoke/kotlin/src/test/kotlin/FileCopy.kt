@@ -46,7 +46,7 @@ class FileCopy {
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
     fun beforeTest(
         context: ITestContext,
-        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
+        @Optional SENDER_MANIFEST: String?,
         @Optional("dextesting-testevent1") USE_CASE: String,
     ) {
         useCase = USE_CASE
@@ -54,12 +54,11 @@ class FileCopy {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
-        val propertiesFilePath = "properties/$USE_CASE/$SENDER_MANIFEST"
-
+        val senderManifestDataFile = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
+        val propertiesFilePath = "properties/$USE_CASE/$senderManifestDataFile"
         metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
-        println("dexBlobClient: $dexBlobClient.properties")
 
         uploadConfigV1 = loadUploadConfig(dexBlobClient, USE_CASE, "v1")
         uploadConfigV2 = loadUploadConfig(dexBlobClient, USE_CASE, "v2")
@@ -130,13 +129,13 @@ class FileCopy {
 
         val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
 
-        val blobProperties = expectedBlobClient.properties
-        val blobMetadata = blobProperties.metadata
+        val blobMetadata = expectedBlobClient.properties.metadata
 
         metadataMapping.forEach { (v1Key, v2Key) ->
             Assert.assertTrue(blobMetadata.containsKey(v2Key), "Mismatch: Blob metadata does not contain expected V2 key: $v2Key which should map from V1 key: $v1Key")
         }
 
+        // TODO: Fix this failing test.
         metadata.forEach { (v1Key, v1Value) ->
             val expectedFieldInV2 = metadataMapping[v1Key]
             val actualValueInV2 = blobMetadata[expectedFieldInV2]
