@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-type UploadConfig struct {
+type ManifestConfig struct {
 	Metadata MetadataConfig `json:"metadata_config"`
 	Copy     CopyConfig     `json:"copy_config"`
 }
@@ -46,11 +46,8 @@ var BuiltIns = map[string][]func(string) error{
 
 func (fc *FieldConfig) Validate(manifest map[string]string) error {
 	value, ok := manifest[fc.FieldName]
-	if !ok {
-		if fc.Required {
-			return errors.Join(ErrFailure, &ErrorMissing{Field: fc.FieldName})
-		}
-		return &ErrorMissing{Field: fc.FieldName}
+	if !ok && fc.Required {
+		return errors.Join(ErrFailure, &ErrorMissing{Field: fc.FieldName})
 	}
 	if len(fc.AllowedValues) > 0 {
 		for _, allowed := range fc.AllowedValues {

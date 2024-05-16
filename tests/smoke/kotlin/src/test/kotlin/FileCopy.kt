@@ -1,8 +1,10 @@
-import auth.AuthClient
 import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobContainerClient
 import model.ConfigLoader
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import dex.DexUploadClient
 import model.UploadConfig
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -20,7 +22,7 @@ import kotlin.collections.HashMap
 @Test()
 class FileCopy {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
-    private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
+    private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
     private val edavBlobClient = Azure.getBlobServiceClient(
         EnvConfig.EDAV_STORAGE_ACCOUNT_NAME,

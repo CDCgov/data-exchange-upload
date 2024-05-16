@@ -1,6 +1,7 @@
 package tus
 
 import com.azure.storage.blob.models.BlobItem
+import dex.DexTusClient
 import io.tus.java.client.*
 import java.io.File
 import java.io.IOException
