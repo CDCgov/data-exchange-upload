@@ -13,7 +13,7 @@ namespace BulkFileUploadFunctionApp.Services
     public interface IBulkUploadSvcBusClient
     {
         Task<HealthCheckResponse?> GetHealthCheck();
-        Task PublishReport(string uploadId, string destinationId, string eventType, string stageName, Report payload);
+        Task PublishReport(Report payload);
 
     }
 
@@ -132,7 +132,7 @@ namespace BulkFileUploadFunctionApp.Services
 
         }
 
-        public async Task PublishReport(string uploadId, string destinationId, string eventType, string stageName, Report payload)
+        public async Task PublishReport(Report payload)
         {
                 try
                 {
@@ -142,7 +142,7 @@ namespace BulkFileUploadFunctionApp.Services
                     _logger.LogInformation($"Payload for Service Bus Report Message : {payloadString}");
 
                     // add it to a BusMessage object 
-                    var svcBusMessage = new ServiceBusMessage(uploadId) { Subject = stageName, ContentType = "application/json", Body = new BinaryData(content) };
+                    var svcBusMessage = new ServiceBusMessage(new BinaryData(content));
 
                     // send the message
                     await _svcBusSender.SendMessageAsync(svcBusMessage);

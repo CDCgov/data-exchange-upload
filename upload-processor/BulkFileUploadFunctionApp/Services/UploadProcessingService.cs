@@ -149,7 +149,12 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);
 
                 // Send copy failure report
-                await SendFailureReport(uploadId, useCase, useCaseCategory, blobCreatedUrl, destinationContainerName, $"Failed to get copy preqs: {ex.Message}");
+                await SendFailureReport(
+                    uploadId, 
+                    useCase, 
+                    useCaseCategory, 
+                    "DEX",
+                    $"Failed to get copy preqs: {ex.Message}");
 
                 throw;
             }
@@ -211,8 +216,7 @@ namespace BulkFileUploadFunctionApp.Services
             await SendFailureReport(copyPrereqs.UploadId,
                                 copyPrereqs.UseCase,
                                 copyPrereqs.UseCaseCategory,
-                                copyPrereqs.SourceBlobUrl,
-                                copyPrereqs.DexBlobFolderName,
+                                "DEX",
                                 $"Failed to copy blob from TUS to DEX. {ex.Message}");
 
             throw;
@@ -292,8 +296,7 @@ namespace BulkFileUploadFunctionApp.Services
             await SendSuccessReport(copyPrereqs.UploadId,
                                 copyPrereqs.UseCase,
                                 copyPrereqs.UseCaseCategory,
-                                copyPrereqs.DexBlobUrl,
-                                destBlobClient.Uri.ToString());
+                                "edav");
         }
         catch (Exception ex)
         {
@@ -304,8 +307,7 @@ namespace BulkFileUploadFunctionApp.Services
             await SendFailureReport(copyPrereqs.UploadId,
                                 copyPrereqs.UseCase,
                                 copyPrereqs.UseCaseCategory,
-                                copyPrereqs.DexBlobUrl,
-                                destinationContainerName,
+                                "edav",
                                 $"Failed to copy blob from DEX to EDAV. {ex.Message}");
 
             throw;
@@ -339,9 +341,8 @@ namespace BulkFileUploadFunctionApp.Services
             // Send copy success report
             await SendSuccessReport(copyPrereqs.UploadId,
                                 copyPrereqs.UseCase,
-                                copyPrereqs.UseCaseCategory,
-                                copyPrereqs.DexBlobUrl,
-                                destBlobClient.Uri.ToString());
+                                copyPrereqs.UseCaseCategory, 
+                                "routing");
         }
         catch (Exception ex)
         {
@@ -352,8 +353,7 @@ namespace BulkFileUploadFunctionApp.Services
             await SendFailureReport(copyPrereqs.UploadId,
                                 copyPrereqs.UseCase,
                                 copyPrereqs.UseCaseCategory,
-                                copyPrereqs.DexBlobUrl,
-                                destinationContainerName,
+                                "routing",
                                 $"Failed to copy blob from DEX to ROUTING. {ex.Message}");
 
             throw;
@@ -518,31 +518,50 @@ namespace BulkFileUploadFunctionApp.Services
             ExceptionUtils.LogErrorDetails(ex, _logger);
         }
     }
-    private async Task SendSuccessReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destPath)
-    {
-        var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-        try
+        private async Task SendSuccessReport(string uploadId, string destinationId, string eventType, string destStorageId)
         {
-            await _bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
-        }
-        catch (System.Runtime.Serialization.SerializationException se)
-        {
-            _logger.LogError($"Failed to send success report to service bus: {se.Message}");
-        }
-        catch (ServiceBusException sbe)
-        {
-            _logger.LogError($"Failed to send success report to service bus: {sbe.Reason.ToString()}");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send success report");
-        }
-    }
+            var successReport = new Report
+            {
+                UploadId = uploadId,
+                DataStreamId = destinationId,
+                DataStreamRoute = eventType,
+                StageName = Constants.PROC_STAT_REPORT_STAGE_NAME,
+                ContentType = "json",
+                DispositionType = "add",
+                Content = new CopyContent("success", destStorageId)
+            };
 
-    private async Task SendFailureReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destinationContainerName, string error)
-    {
-        CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: error);
-        await _bulkUploadSvcBusClient.PublishReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
+            try
+            {
+                await _bulkUploadSvcBusClient.PublishReport(successReport);
+            }
+            catch (System.Runtime.Serialization.SerializationException se)
+            {
+                _logger.LogError($"Failed to send success report to service bus: {se.Message}");
+            }
+            catch (ServiceBusException sbe)
+            {
+                _logger.LogError($"Failed to send success report to service bus: {sbe.Reason.ToString()}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send success report");
+            }
+        }
+
+        private async Task SendFailureReport(string uploadId, string destinationId, string eventType, string destStorageId, string error)
+        {
+            Report failReport = new Report
+            {
+                UploadId = uploadId,
+                DataStreamId = destinationId,
+                DataStreamRoute = eventType,
+                StageName = Constants.PROC_STAT_REPORT_STAGE_NAME,
+                ContentType = "json",
+                DispositionType = "add",
+                Content = new CopyContent("fail", destStorageId, error)
+            };
+            await _bulkUploadSvcBusClient.PublishReport(failReport);
+        }
     }
-}
 }

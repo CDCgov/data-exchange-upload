@@ -5,7 +5,6 @@ namespace BulkFileUploadFunctionApp.Utils
     public static class Constants
     {
         public const string PROC_STAT_REPORT_STAGE_NAME = "dex-file-copy";
-        public const string PROC_STAT_REPORT_METADATA_STAGE_NAME = "dex-file-metadata";
         public const string ROUTING_FEATURE_FLAG_NAME = "ROUTING";
         public const string PROC_STAT_SERVICE_NAME = "Processing Status API";
         public const string PROCESSING_STATUS_REPORTS_FLAG_NAME = "PROCESSING_STATUS_REPORTS";
