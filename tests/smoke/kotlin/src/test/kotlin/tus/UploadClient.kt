@@ -1,5 +1,6 @@
 package tus
 
+import com.azure.storage.blob.models.BlobItem
 import dex.DexTusClient
 import io.tus.java.client.*
 import java.io.File
@@ -66,4 +67,5 @@ class UploadClient(url: String, private val authToken: String) {
     private fun parseUploadIdFromUrl(uploadUrl: String): String {
         return uploadUrl.split("/").last().trim()
     }
+
 }
