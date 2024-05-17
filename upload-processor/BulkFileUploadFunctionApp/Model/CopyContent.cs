@@ -3,12 +3,10 @@ using BulkFileUploadFunctionApp.Utils;
 
 namespace BulkFileUploadFunctionApp.Model
 {
-    public record CopyContent
+    public record CopyContent : Content
     {
         public static readonly String DEFAULT_SCHEMA_VERSION = "0.0.1";
 
-        [JsonPropertyName("schema_name")] public string SchemaName { get; init; }
-        [JsonPropertyName("schema_version")] public string SchemaVersion { get; init; }
         [JsonPropertyName("result")] public string Result { get; set; }
         [JsonPropertyName("destination")] public string Destination { get; set; }
         [JsonPropertyName("error_description")] public string? ErrorDescription { get; set; }
