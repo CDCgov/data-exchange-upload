@@ -112,7 +112,16 @@ namespace BulkFileUploadFunctionApp.Services
                 // translate V1 metadata 
                 if (version == MetadataVersion.V1)
                 {
-                    var uploadConfigV2 = await GetUploadConfig(uploadConfigFilename, MetadataVersion.V2);
+                    // Get metadata v2 config filename.
+                    // Default to v1 filename.
+                    string uploadConfigV2Filename = uploadConfigFilename;
+
+                    if (!String.IsNullOrEmpty(uploadConfig.CompatComfigFilename))
+                    {
+                        uploadConfigV2Filename = uploadConfig.CompatComfigFilename;
+                    }
+
+                    var uploadConfigV2 = await GetUploadConfig(uploadConfigV2Filename, MetadataVersion.V2);
                     _logger.LogInformation($"Translating to {JsonSerializer.Serialize(uploadConfigV2)}");
                     tusInfoFile.MetaData = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
                 }
@@ -393,6 +402,7 @@ namespace BulkFileUploadFunctionApp.Services
         {
             var uploadConfig = UploadConfig.Default;
             var configFilename = $"{versionNum.ToString().ToLower()}/{filename}";
+            _logger.LogInformation($"Getting upload config file {configFilename}");
 
             try
             {
