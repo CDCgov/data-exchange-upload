@@ -3,42 +3,41 @@ using BulkFileUploadFunctionApp.Utils;
 
 namespace BulkFileUploadFunctionApp.Model
 {
-    public record CopyReport : Report
+    public record CopyContent
     {
-        [JsonPropertyName("file_source_blob_url")] public string FileSourceBlobUrl { get; set; }
-        [JsonPropertyName("file_destination_blob_url")] public string FileDestinationBlobUrl { get; set; }
+        public static readonly String DEFAULT_SCHEMA_VERSION = "0.0.1";
+
+        [JsonPropertyName("schema_name")] public string SchemaName { get; init; }
+        [JsonPropertyName("schema_version")] public string SchemaVersion { get; init; }
         [JsonPropertyName("result")] public string Result { get; set; }
+        [JsonPropertyName("destination")] public string Destination { get; set; }
         [JsonPropertyName("error_description")] public string? ErrorDescription { get; set; }
 
-        public CopyReport(string sourceUrl, string destUrl, string result, string? errorDesc, string? schemaVersion)
+        public CopyContent(string result, string destination, string? errorDesc, string? schemaVersion)
         {
             this.SchemaName = Constants.PROC_STAT_REPORT_STAGE_NAME;
-            this.FileSourceBlobUrl = sourceUrl;
-            this.FileDestinationBlobUrl = destUrl;
             this.Result = result;
+            Destination = destination;
             this.ErrorDescription = errorDesc;
 
             if (schemaVersion == null)
             {
-                this.SchemaVersion = Report.DEFAULT_SCHEMA_VERSION;
+                this.SchemaVersion = DEFAULT_SCHEMA_VERSION;
             }
         }
 
-        // TODO: add success fail enum and verification.
-        public CopyReport(string sourceUrl, string destUrl, string result)
+        public CopyContent(string result, string destination)
         {
             this.SchemaName = Constants.PROC_STAT_REPORT_STAGE_NAME;
-            this.FileSourceBlobUrl = sourceUrl;
-            this.FileDestinationBlobUrl = destUrl;
             this.Result = result;
+            Destination = destination;
             this.SchemaVersion = DEFAULT_SCHEMA_VERSION;
         }
-        public CopyReport(string sourceUrl, string destUrl, string result, string? errorDesc)
+        public CopyContent(string result, string destination, string? errorDesc)
         {
             this.SchemaName = Constants.PROC_STAT_REPORT_STAGE_NAME;
-            this.FileSourceBlobUrl = sourceUrl;
-            this.FileDestinationBlobUrl = destUrl;
             this.Result = result;
+            Destination = destination;
             this.ErrorDescription = errorDesc;
             this.SchemaVersion = DEFAULT_SCHEMA_VERSION;
         }

@@ -9,3 +9,4 @@ data class CopyConfig(
     @get:JsonProperty("targets") val targets: List<String>,
     @get:JsonProperty("folder_structure") val folderStructure: String
 )
+

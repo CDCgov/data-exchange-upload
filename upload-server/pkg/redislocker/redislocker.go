@@ -33,6 +33,9 @@ func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
 		return nil, err
 	}
 	client := redis.NewClient(connection)
+	if res := client.Ping(context.Background()); res.Err() != nil {
+		return nil, res.Err()
+	}
 	rs := redsync.New(goredis.NewPool(client))
 
 	locker := &RedisLocker{
@@ -52,13 +55,13 @@ func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
 
 type LockExchange interface {
 	Listen(ctx context.Context, id string, callback func())
-	Request(ctx context.Context, id string)
+	Request(ctx context.Context, id string) error
 }
 
 type BidirectionalLockExchange interface {
 	LockExchange
 	ReleaseChannel(ctx context.Context, id string) <-chan *redis.Message
-	Release(ctx context.Context, id string)
+	Release(ctx context.Context, id string) error
 }
 
 type RedisLockExchange struct {
@@ -94,12 +97,14 @@ func (e *RedisLockExchange) ReleaseChannel(ctx context.Context, id string) <-cha
 	return releaseMessages
 }
 
-func (e *RedisLockExchange) Request(ctx context.Context, id string) {
-	e.client.Publish(ctx, LockExchangeChannel, id)
+func (e *RedisLockExchange) Request(ctx context.Context, id string) error {
+	res := e.client.Publish(ctx, LockExchangeChannel, id)
+	return res.Err()
 }
 
-func (e *RedisLockExchange) Release(ctx context.Context, id string) {
-	e.client.Publish(ctx, LockReleaseChannel, id)
+func (e *RedisLockExchange) Release(ctx context.Context, id string) error {
+	res := e.client.Publish(ctx, LockReleaseChannel, id)
+	return res.Err()
 }
 
 type RedisLocker struct {
@@ -134,6 +139,7 @@ type redisLock struct {
 }
 
 func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
+	l.logger.Info("locking upload", "id", l.id)
 	if err := l.requestLock(ctx); err != nil {
 		return err
 	}
@@ -146,6 +152,7 @@ func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
 			}
 		}
 	}()
+	l.logger.Info("locked upload", "id", l.id)
 	return nil
 }
 
@@ -175,7 +182,10 @@ func (l *redisLock) requestLock(ctx context.Context) error {
 		if !errors.Is(errs, handler.ErrFileLocked) {
 			return errs
 		}
-		l.exchange.Request(ctx, l.id)
+		if err := l.exchange.Request(ctx, l.id); err != nil {
+			errs = errors.Join(errs, err)
+			return errs
+		}
 		select {
 		case <-c:
 			continue
@@ -207,10 +217,13 @@ func (l *redisLock) keepAlive(ctx context.Context) error {
 }
 
 func (l *redisLock) Unlock() error {
+	l.logger.Info("unlocking upload", "id", l.id)
 	if l.cancel != nil {
 		defer l.cancel()
 	}
 	_, err := l.mutex.Unlock()
-	l.exchange.Release(l.ctx, l.id)
+	if e := l.exchange.Release(l.ctx, l.id); e != nil {
+		err = errors.Join(err, e)
+	}
 	return err
 }

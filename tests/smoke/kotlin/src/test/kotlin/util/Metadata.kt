@@ -24,12 +24,20 @@ class Metadata {
             return metadata
         }
 
+       fun getFilePrefixByDate(date: DateTime, useCaseDir: String): String {
+            // Pad date numbers with 0.
+           val month = if (date.monthOfYear < 10) "0${date.monthOfYear}" else "${date.monthOfYear}"
+           val day = if (date.dayOfMonth < 10) "0${date.dayOfMonth}" else "${date.dayOfMonth}"
+            return "$useCaseDir/${date.year}/$month/$day"
+        }
+
+
         // Using Calendar due to deprecation of Date.
-        fun getFilePrefixByDate(date: DateTime, useCaseDir: String): String {
+        fun getFilePrefixByDate(date: DateTime): String {
             // Pad date numbers with 0.
             val month = if (date.monthOfYear < 10) "0${date.monthOfYear}" else "${date.monthOfYear}"
             val day = if (date.dayOfMonth < 10) "0${date.dayOfMonth}" else "${date.dayOfMonth}"
-            return "${useCaseDir.lowercase()}/${date.year}/$month/$day"
+            return "${date.year}/$month/$day"
         }
     }
 }
