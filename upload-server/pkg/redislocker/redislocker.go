@@ -3,6 +3,7 @@ package redislocker
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -13,8 +14,8 @@ import (
 )
 
 var (
-	LockExchangeChannel = "tusd_lock_release_request"
-	LockReleaseChannel  = "tusd_lock_released"
+	LockExchangeChannel = "tusd_lock_release_request_%s"
+	LockReleaseChannel  = "tusd_lock_released_%s"
 	RetryInterval       = 1 * time.Second
 	LockExpiry          = 8 * time.Second
 )
@@ -69,41 +70,36 @@ type RedisLockExchange struct {
 }
 
 func (e *RedisLockExchange) Listen(ctx context.Context, id string, callback func()) {
-	psub := e.client.PSubscribe(ctx, LockExchangeChannel)
+	psub := e.client.PSubscribe(ctx, fmt.Sprintf(LockExchangeChannel, id))
+	defer psub.Close()
 	c := psub.Channel()
-	for {
-		select {
-		case m := <-c:
-			if m.Payload == id {
-				callback()
-			}
-		case <-ctx.Done():
-			return
-		}
+	select {
+	case <-c:
+		callback()
+	case <-ctx.Done():
+		return
 	}
 }
 
 func (e *RedisLockExchange) ReleaseChannel(ctx context.Context, id string) <-chan *redis.Message {
-	psub := e.client.PSubscribe(ctx, LockReleaseChannel)
+	psub := e.client.PSubscribe(ctx, fmt.Sprintf(LockReleaseChannel, id))
 	releaseMessages := make(chan *redis.Message)
 	c := psub.Channel()
 	go func() {
-		for m := range c {
-			if m.Payload == id {
-				releaseMessages <- m
-			}
-		}
+		defer psub.Close()
+		<-c
+		close(releaseMessages)
 	}()
 	return releaseMessages
 }
 
 func (e *RedisLockExchange) Request(ctx context.Context, id string) error {
-	res := e.client.Publish(ctx, LockExchangeChannel, id)
+	res := e.client.Publish(ctx, fmt.Sprintf(LockExchangeChannel, id), id)
 	return res.Err()
 }
 
 func (e *RedisLockExchange) Release(ctx context.Context, id string) error {
-	res := e.client.Publish(ctx, LockReleaseChannel, id)
+	res := e.client.Publish(ctx, fmt.Sprintf(LockReleaseChannel, id), id)
 	return res.Err()
 }
 
@@ -173,26 +169,23 @@ func (l *redisLock) aquireLock(ctx context.Context) error {
 func (l *redisLock) requestLock(ctx context.Context) error {
 	var errs error
 	c := l.exchange.ReleaseChannel(ctx, l.id)
+	if err := l.exchange.Request(ctx, l.id); err != nil {
+		return err
+	}
 	for {
 		err := l.aquireLock(ctx)
 		if err == nil {
 			return nil
 		}
+		if !errors.Is(err, handler.ErrFileLocked) {
+			return err
+		}
 		errs = errors.Join(errs, err)
-		if !errors.Is(errs, handler.ErrFileLocked) {
-			return errs
-		}
-		if err := l.exchange.Request(ctx, l.id); err != nil {
-			errs = errors.Join(errs, err)
-			return errs
-		}
 		select {
-		case <-c:
-			continue
-		case <-time.After(RetryInterval):
-			continue
 		case <-ctx.Done():
 			return errors.Join(errs, handler.ErrLockTimeout)
+		case <-c:
+		case <-time.After(RetryInterval):
 		}
 	}
 }
