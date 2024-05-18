@@ -16,7 +16,6 @@ import (
 var (
 	LockExchangeChannel = "tusd_lock_release_request_%s"
 	LockReleaseChannel  = "tusd_lock_released_%s"
-	RetryInterval       = 1 * time.Second
 	LockExpiry          = 8 * time.Second
 )
 
@@ -76,6 +75,7 @@ func (e *RedisLockExchange) Listen(ctx context.Context, id string, callback func
 	select {
 	case <-c:
 		callback()
+		return
 	case <-ctx.Done():
 		return
 	}
@@ -167,12 +167,22 @@ func (l *redisLock) aquireLock(ctx context.Context) error {
 }
 
 func (l *redisLock) requestLock(ctx context.Context) error {
+	err := l.aquireLock(ctx)
+	if err == nil {
+		return nil
+	}
 	var errs error
 	c := l.exchange.ReleaseChannel(ctx, l.id)
 	if err := l.exchange.Request(ctx, l.id); err != nil {
 		return err
 	}
-	for {
+	if !errors.Is(err, handler.ErrFileLocked) {
+		return err
+	}
+	errs = errors.Join(errs, err)
+	select {
+	case <-c:
+		l.logger.Info("notified of lock release", "id", l.id)
 		err := l.aquireLock(ctx)
 		if err == nil {
 			return nil
@@ -180,14 +190,10 @@ func (l *redisLock) requestLock(ctx context.Context) error {
 		if !errors.Is(err, handler.ErrFileLocked) {
 			return err
 		}
-		errs = errors.Join(errs, err)
-		select {
-		case <-ctx.Done():
-			return errors.Join(errs, handler.ErrLockTimeout)
-		case <-c:
-		case <-time.After(RetryInterval):
-		}
+	case <-ctx.Done():
+		return errors.Join(errs, handler.ErrLockTimeout)
 	}
+	return nil
 }
 
 func (l *redisLock) keepAlive(ctx context.Context) error {
@@ -214,8 +220,12 @@ func (l *redisLock) Unlock() error {
 	if l.cancel != nil {
 		defer l.cancel()
 	}
-	_, err := l.mutex.Unlock()
-	if e := l.exchange.Release(l.ctx, l.id); e != nil {
+	b, err := l.mutex.UnlockContext(l.ctx)
+	l.logger.Info("lock released", "err", err, "released", b)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	l.logger.Info("notifying of lock release", "id", l.id)
+	if e := l.exchange.Release(ctx, l.id); e != nil {
 		err = errors.Join(err, e)
 	}
 	return err
