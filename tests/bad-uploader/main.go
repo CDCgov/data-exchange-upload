@@ -104,8 +104,6 @@ func worker(c <-chan struct{}, conf *config) {
 func asPallelBenchmark(c chan struct{}) func(*testing.B) {
 	return func(b *testing.B) {
 		log.Println("N is ", b.N)
-		//b.SetParallelism(parallelism)
-		//log.Println("with parallelism ", parallelism, " or default ", runtime.NumCPU())
 		for i := 0; i < b.N; i++ {
 			wg.Add(1)
 			c <- struct{}{}
