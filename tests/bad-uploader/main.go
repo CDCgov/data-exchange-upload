@@ -17,6 +17,7 @@ var (
 	size        int
 	parallelism int
 	load        int
+	chunk       int64
 )
 
 func init() {
@@ -24,13 +25,17 @@ func init() {
 	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
 	flag.IntVar(&parallelism, "parallelism", 0, "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", 0, "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
+	flag.Int64Var(&chunk, "chunk", 2, "set the chunk size to use when uploading files in MB")
 	flag.Parse()
+	chunk = chunk * 1024 * 1024
 }
 
 func buildConfig() (*config, error) {
+	tconf := tus.DefaultConfig()
+	tconf.ChunkSize = chunk
 	return &config{
 		url: url,
-		tus: tus.DefaultConfig(),
+		tus: tconf,
 	}, nil
 }
 
