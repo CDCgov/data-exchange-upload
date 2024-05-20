@@ -127,7 +127,6 @@ namespace BulkFileUploadFunctionApp.Services
                         });
                     });
 
-                    // TODO: Catch this error here.
                     // Publish report for transformed metadata.
                     var report = new Report
                     {
@@ -192,6 +191,10 @@ namespace BulkFileUploadFunctionApp.Services
                     $"Failed to get copy preqs: {ex.Message}");
 
                 throw;
+            }
+            finally
+            {
+                // Send report for bulk metadata transform.
             }
         }
 

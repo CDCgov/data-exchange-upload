@@ -148,22 +148,19 @@ namespace BulkFileUploadFunctionApp.Services
                 }
                 catch (SerializationException se)
                 {
-                    _logger.LogError($"Serialization error: Failed to send success report to service bus: {se.Message}");
+                    _logger.LogError($"Serialization error: Failed to send report to service bus: {se.Message}");
                     ExceptionUtils.LogErrorDetails(se, _logger);
-                    throw;
                 }
                 catch (ServiceBusException sbe)
                 {
-                    _logger.LogError($"After 3 failed attempts, the system failed to send success report to service bus: {sbe.Reason.ToString()}");
+                    _logger.LogError($"After 3 failed attempts, the system failed to send report to service bus: {sbe.Reason.ToString()}");
                     ExceptionUtils.LogErrorDetails(sbe, _logger);
                     // Max retry attempts reached, throw the exception
-                    throw;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError("Error when calling Service Bus.");
                     ExceptionUtils.LogErrorDetails(ex, _logger);
-                    throw;
                 }
         }
     }

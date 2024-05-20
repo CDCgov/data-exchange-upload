@@ -37,7 +37,6 @@ type MetaDataTransformContent struct {
 type UploadStatusContent struct {
 	ReportContent
 	Filename string `json:"filename"`
-	Metadata any    `json:"metadata"`
 	// Additional postReceive values:
 	Tguid  string `json:"tguid"`
 	Offset string `json:"offset"`

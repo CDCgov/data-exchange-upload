@@ -316,7 +316,6 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 			SchemaName:    "upload",
 		},
 		Filename: getFilename(manifest),
-		Metadata: manifest,
 		Tguid:    tguid,
 		Offset:   strconv.FormatInt(offset, 10),
 		Size:     strconv.FormatInt(size, 10),
