@@ -5,7 +5,9 @@ import (
 	"flag"
 	"io"
 	"log"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/eventials/go-tus"
 )
@@ -51,26 +53,10 @@ func main() {
 
 	conf := resultOrFatal(buildConfig())
 
+	tStart := time.Now()
 	result := testing.Benchmark(asPallelBenchmark(conf))
 	log.Println(result.String())
-
-	/*
-		var wg sync.WaitGroup
-		for i := 0; i < 100; i++ {
-			//todo use fuzz or bench or whatever
-			// TODO needs all the logging for proving it out
-			wg.Add(1)
-			go func(f *BadHL7, conf *config, i int) {
-				defer wg.Done()
-				log.Println("starting run", i)
-				if err := runTest(f, conf); err != nil {
-					log.Println("ERROR: failed to upload", i, err)
-				}
-				log.Println("finished upload", i)
-			}(f, conf, i)
-		}
-		wg.Wait()
-	*/
+	log.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
 }
 
 type config struct {
@@ -81,6 +67,7 @@ type config struct {
 func asPallelBenchmark(conf *config) func(*testing.B) {
 	return func(b *testing.B) {
 		b.SetParallelism(parallelism)
+		log.Println("with parallelism ", parallelism, " or default ", runtime.NumCPU())
 		if load > 0 {
 			b.N = load
 		}
