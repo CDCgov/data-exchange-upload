@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,7 +24,7 @@ var (
 func init() {
 	flag.IntVar(&size, "size", 250*10000, "the size of the file to upload, in bytes")
 	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
-	flag.IntVar(&parallelism, "parallelism", 0, "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
+	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", 0, "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
 	flag.Int64Var(&chunk, "chunk", 2, "set the chunk size to use when uploading files in MB")
 	flag.Parse()
@@ -46,6 +47,8 @@ func resultOrFatal[T any](v T, err error) T {
 	return v
 }
 
+var wg sync.WaitGroup
+
 /*
 so we need to be able to create an arbirary number of test uploads
 should have a context on them
@@ -58,9 +61,24 @@ func main() {
 
 	conf := resultOrFatal(buildConfig())
 
+	c := make(chan struct{}, parallelism)
+	log.Printf("Starting %d threads\n", parallelism)
+	for i := 0; i < parallelism; i++ {
+		go worker(c, conf)
+	}
+
 	tStart := time.Now()
-	result := testing.Benchmark(asPallelBenchmark(conf))
-	log.Println(result.String())
+	if load > 0 {
+		log.Printf("Running load test of %d files\n", load)
+		for i := 0; i < load; i++ {
+			c <- struct{}{}
+		}
+	} else {
+		log.Println("Running benchmark")
+		result := testing.Benchmark(asPallelBenchmark(c))
+		log.Println(result.String())
+	}
+	wg.Wait()
 	log.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
 }
 
@@ -69,24 +87,28 @@ type config struct {
 	url string
 }
 
-func asPallelBenchmark(conf *config) func(*testing.B) {
-	return func(b *testing.B) {
-		b.SetParallelism(parallelism)
-		log.Println("with parallelism ", parallelism, " or default ", runtime.NumCPU())
-		if load > 0 {
-			b.N = load
+func worker(c <-chan struct{}, conf *config) {
+	for range c {
+		wg.Add(1)
+		f := &BadHL7{
+			Size:           size,
+			DummyGenerator: &RandomBytesReader{},
 		}
-		b.RunParallel(func(pb *testing.PB) {
-			for pb.Next() {
-				f := &BadHL7{
-					Size:           size,
-					DummyGenerator: &RandomBytesReader{},
-				}
-				if err := runTest(f, conf); err != nil {
-					log.Println("ERROR: ", err)
-				}
-			}
-		})
+		if err := runTest(f, conf); err != nil {
+			log.Println("ERROR: ", err)
+		}
+		wg.Done()
+	}
+}
+
+func asPallelBenchmark(c chan struct{}) func(*testing.B) {
+	return func(b *testing.B) {
+		log.Println("N is ", b.N)
+		//b.SetParallelism(parallelism)
+		//log.Println("with parallelism ", parallelism, " or default ", runtime.NumCPU())
+		for i := 0; i < b.N; i++ {
+			c <- struct{}{}
+		}
 	}
 }
 
