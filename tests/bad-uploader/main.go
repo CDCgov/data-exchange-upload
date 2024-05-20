@@ -71,6 +71,7 @@ func main() {
 	if load > 0 {
 		log.Printf("Running load test of %d files\n", load)
 		for i := 0; i < load; i++ {
+			wg.Add(1)
 			c <- struct{}{}
 		}
 	} else {
@@ -89,7 +90,6 @@ type config struct {
 
 func worker(c <-chan struct{}, conf *config) {
 	for range c {
-		wg.Add(1)
 		f := &BadHL7{
 			Size:           size,
 			DummyGenerator: &RandomBytesReader{},
@@ -107,6 +107,7 @@ func asPallelBenchmark(c chan struct{}) func(*testing.B) {
 		//b.SetParallelism(parallelism)
 		//log.Println("with parallelism ", parallelism, " or default ", runtime.NumCPU())
 		for i := 0; i < b.N; i++ {
+			wg.Add(1)
 			c <- struct{}{}
 		}
 	}
