@@ -1,9 +1,17 @@
 package util
 
+import com.azure.storage.blob.BlobContainerClient
+import com.azure.storage.blob.BlobServiceClient
+import model.UploadConfig
 import org.joda.time.DateTime
+import org.testng.TestNGException
+import org.testng.annotations.DataProvider
+import util.ConfigLoader.Companion.loadUploadConfig
 import java.io.FileNotFoundException
 import java.util.*
 import kotlin.collections.HashMap
+import tus.UploadClient
+import java.io.File
 
 class Metadata {
     companion object {
@@ -29,7 +37,7 @@ class Metadata {
            val month = if (date.monthOfYear < 10) "0${date.monthOfYear}" else "${date.monthOfYear}"
            val day = if (date.dayOfMonth < 10) "0${date.dayOfMonth}" else "${date.dayOfMonth}"
             return "$useCaseDir/${date.year}/$month/$day"
-        }
+       }
 
 
         // Using Calendar due to deprecation of Date.
@@ -39,7 +47,32 @@ class Metadata {
             val day = if (date.dayOfMonth < 10) "0${date.dayOfMonth}" else "${date.dayOfMonth}"
             return "${date.year}/$month/$day"
         }
+
+        @JvmStatic
+        @DataProvider(name = "versionProvider")
+        fun versionProvider(): Array<Array<String>> {
+                return arrayOf(
+                    arrayOf("V1"),
+                    arrayOf("V2")
+                )
+       }
+
+       private fun getMetadataPath(version: String, useCase: String, manifest: String): String {
+                return if (version == "V1") {
+                    "properties/$useCase/$manifest"
+                } else {
+                    "properties/$version/$useCase/$manifest"
+                }
+            }
+
+       fun getMetadataMap(version: String, useCase: String, manifest: String): HashMap<String, String> {
+        val path = getMetadataPath(version, useCase, manifest)
+        return convertPropertiesToMetadataMap(path)
+       }
+
     }
 }
+
+
 
 

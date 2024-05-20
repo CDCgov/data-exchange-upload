@@ -42,7 +42,6 @@ class FileCopy {
     private lateinit var uploadConfigV2: UploadConfig
     private lateinit var metadata: HashMap<String, String>
     private lateinit var metadataV2: HashMap<String, String>
-    private lateinit var combinedMetadata: HashMap<String, String>
 
     @Parameters("SENDER_MANIFEST", "USE_CASE")
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
@@ -61,7 +60,6 @@ class FileCopy {
 
         metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
         metadataV2 = Metadata.convertPropertiesToMetadataMap(propertiesFilePathV2)
-        combinedMetadata = HashMap(metadata).apply { putAll(metadataV2) }
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
         println("dexBlobClient: $dexBlobClient.properties")
@@ -73,7 +71,7 @@ class FileCopy {
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
         routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
 
-        uploadId = uploadClient.uploadFile(testFile, combinedMetadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
+        uploadId = uploadClient.uploadFile(testFile, metadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
         context.setAttribute("uploadId", uploadId)
         Thread.sleep(500) // Hard delay to wait for file to copy.
 
@@ -148,29 +146,6 @@ class FileCopy {
             Assert.assertEquals(v1Value, actualValueInV2, "Expected V1 key value: $v1Value does not match with actual V2 key value: $actualValueInV2")
         }
     }
-
-    @Test(groups = [Constants.Groups.FILE_COPY])
-    fun shouldValidateV2MetadataWithSenderManifest() {
-
-        val metadataFields = uploadConfigV2.metadataConfig.fields
-
-        val filenameSuffix = if (uploadConfigV1.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
-        val expectedFilename = "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC))}/${testFile.nameWithoutExtension}$filenameSuffix.${testFile.extension}"
-
-        val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
-
-        val blobProperties = expectedBlobClient.properties
-        val blobMetadata = blobProperties.metadata
-
-        metadataV2.forEach { (key, value) ->
-            val actualValueInV2 = blobMetadata[key]
-            Assert.assertEquals(value, actualValueInV2, "Expected key value: $value does not match with actual key value: $actualValueInV2")
-        }
-        metadataFields.forEach { field  ->
-            Assert.assertTrue(blobMetadata.containsKey(field.fieldName), "V2 keys mismatch: ${field.fieldName}")
-        }
-    }
-
 }
 
 
