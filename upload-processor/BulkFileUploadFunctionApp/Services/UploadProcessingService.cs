@@ -117,8 +117,17 @@ namespace BulkFileUploadFunctionApp.Services
                     var transformedMetadata = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
 
                     // Combine v1 and v2 metadata
-                    transformedMetadata.ToList().ForEach(x => tusInfoFile.MetaData[x.Key] = x.Value);
+                    var transformItems = new List<MetadataItem>();
+                    transformedMetadata.ToList().ForEach(x => {
+                        tusInfoFile.MetaData[x.Key] = x.Value;
+                        transformItems.Add(new MetadataItem
+                        {
+                            Field = x.Key,
+                            Value = x.Value
+                        });
+                    });
 
+                    // TODO: Catch this error here.
                     // Publish report for transformed metadata.
                     var report = new Report
                     {
@@ -135,11 +144,7 @@ namespace BulkFileUploadFunctionApp.Services
                             Transforms = new BulkMetadataTransform
                             {
                                 Action = "add",
-                                Items = (List<MetadataItem>)transformedMetadata.ToList().Select(x => new MetadataItem
-                                {
-                                    Field = x.Key,
-                                    Value = x.Value
-                                })
+                                Items = transformItems
                             }
                         }
                     };
