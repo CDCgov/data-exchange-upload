@@ -21,6 +21,8 @@ go build ./cmd/main.go -o <binary name>
 ```
 
 ### Unit Testing
+Before running unit tests, make sure to clean the file system with the `clean.sh` script.  This removes any temparary upload and report files that the tests generated.
+
 ```go
 go test ./...
 ```
