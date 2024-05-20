@@ -134,13 +134,6 @@ namespace BulkFileUploadFunctionApp.Services
         {
                 try
                 {
-                    // convert content type based on schema.
-                    switch (payload.Content.SchemaName)
-                    {
-                    case "dex-file-copy":
-                        payload.Content = (CopyContent)payload.Content;
-                        break;
-                    }
                     // build the report json
                     var payloadString = JsonSerializer.Serialize(payload);
                     var content = Encoding.UTF8.GetBytes(payloadString);
