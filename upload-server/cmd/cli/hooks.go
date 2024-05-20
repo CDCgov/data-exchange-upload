@@ -37,8 +37,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	// TODO: Add a manifest transformer to cover upload ID and global timestamp transformations.
-
 	manifestValidator := metadata.SenderManifestVerification{
 		Configs: cache,
 		Reporter: &filereporters.FileReporter{
@@ -51,24 +49,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 			Dir: appConfig.LocalReportsFolder,
 		},
 	}
-
-	// postReceiveHook := metadata.HookEventHandler{
-	// 	Reporter: &filereporters.FileReporter{
-	// 		Dir: appConfig.LocalReportsFolder,
-	// 	},
-	// }
-
-	// postFinishHook := metadata.HookEventHandler{
-	// 	Reporter: &filereporters.FileReporter{
-	// 		Dir: appConfig.LocalReportsFolder,
-	// 	},
-	// }
-
-	// postCreateHook := metadata.HookEventHandler{
-	// 	Reporter: &filereporters.FileReporter{
-	// 		Dir: appConfig.LocalReportsFolder,
-	// 	},
-	// }
 
 	if appConfig.AzureConnection != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
@@ -98,7 +78,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				return nil, err
 			}
 
-			// TODO Can these reporters all be pointers to a single instance?
 			manifestValidator.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
@@ -107,18 +86,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
-			// postReceiveHook.Reporter = &azurereporters.ServiceBusReporter{
-			// 	Client:    sbclient,
-			// 	QueueName: appConfig.ReportQueueName,
-			// }
-			// postFinishHook.Reporter = &azurereporters.ServiceBusReporter{
-			// 	Client:    sbclient,
-			// 	QueueName: appConfig.ReportQueueName,
-			// }
-			// postCreateHook.Reporter = &azurereporters.ServiceBusReporter{
-			// 	Client:    sbclient,
-			// 	QueueName: appConfig.ReportQueueName,
-			// }
 		}
 	}
 
