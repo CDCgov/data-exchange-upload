@@ -183,17 +183,10 @@ func (l *redisLock) requestLock(ctx context.Context) error {
 	select {
 	case <-c:
 		l.logger.Info("notified of lock release", "id", l.id)
-		err := l.aquireLock(ctx)
-		if err == nil {
-			return nil
-		}
-		if !errors.Is(err, handler.ErrFileLocked) {
-			return err
-		}
+		return l.aquireLock(ctx)
 	case <-ctx.Done():
 		return errors.Join(errs, handler.ErrLockTimeout)
 	}
-	return nil
 }
 
 func (l *redisLock) keepAlive(ctx context.Context) error {
@@ -216,17 +209,22 @@ func (l *redisLock) keepAlive(ctx context.Context) error {
 }
 
 func (l *redisLock) Unlock() error {
-	l.logger.Info("unlocking upload", "id", l.id)
+	l.logger.Info("unlocking upload")
 	if l.cancel != nil {
 		defer l.cancel()
 	}
 	b, err := l.mutex.UnlockContext(l.ctx)
-	l.logger.Info("lock released", "err", err, "released", b)
+	if !b {
+		l.logger.Error("failed to release lock", "err", err)
+	}
+	l.logger.Info("notifying of lock release")
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	l.logger.Info("notifying of lock release", "id", l.id)
 	if e := l.exchange.Release(ctx, l.id); e != nil {
 		err = errors.Join(err, e)
+	}
+	if err != nil {
+		l.logger.Error("errors while unlocking", "err", err)
 	}
 	return err
 }
