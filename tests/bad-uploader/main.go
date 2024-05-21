@@ -107,7 +107,7 @@ func main() {
 	} else {
 		slog.Info("Running benchmark")
 		result := testing.Benchmark(asPallelBenchmark(c))
-		defer fmt.Println(result.String())
+		defer fmt.Printf("Benchmarking results: %f seconds/op\n", float64(result.NsPerOp())/float64(time.Second))
 	}
 	wg.Wait()
 	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
