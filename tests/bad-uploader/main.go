@@ -7,16 +7,16 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	neturl "net/url"
+	"os"
 	"runtime"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/eventials/go-tus"
-	"github.com/schollz/progressbar/v3"
 	"golang.org/x/oauth2"
 )
 
@@ -29,6 +29,7 @@ var (
 	username    string
 	password    string
 	samsURL     string
+	verbose     bool
 )
 
 func init() {
@@ -40,8 +41,15 @@ func init() {
 	flag.StringVar(&samsURL, "sams-url", "", "use sams to authenticate to the upload server")
 	flag.StringVar(&username, "username", "", "username for sams")
 	flag.StringVar(&password, "password", "", "password for sams")
+	flag.BoolVar(&verbose, "v", false, "turn on debug logs")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
+	programLevel := new(slog.LevelVar) // Info by default
+	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
+	slog.SetDefault(slog.New(h))
+	if verbose {
+		programLevel.Set(slog.LevelDebug)
+	}
 }
 
 func buildConfig() (*config, error) {
@@ -64,7 +72,7 @@ func buildConfig() (*config, error) {
 
 func resultOrFatal[T any](v T, err error) T {
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	return v
 }
@@ -79,29 +87,25 @@ and get some meaningful output that we can go through after the fact maybe in a 
 this will cover a use case for a single bad sender, so only one cred needed
 */
 
-var bar = progressbar.Default(0)
-
 func main() {
 
 	conf := resultOrFatal(buildConfig())
 
 	c := make(chan struct{}, parallelism)
-	log.Printf("Starting %d threads\n", parallelism)
+	slog.Info("Starting threads", "parallelism", parallelism)
 	for i := 0; i < parallelism; i++ {
 		go worker(c, conf)
 	}
 
 	tStart := time.Now()
 	if load > 0 {
-		log.Printf("Running load test of %d files\n", load)
-		bar.Reset()
-		bar.ChangeMax(load)
+		slog.Info("Running load test", "uploads", load)
 		for i := 0; i < load; i++ {
 			wg.Add(1)
 			c <- struct{}{}
 		}
 	} else {
-		log.Println("Running benchmark")
+		slog.Info("Running benchmark")
 		result := testing.Benchmark(asPallelBenchmark(c))
 		defer fmt.Println(result.String())
 	}
@@ -121,17 +125,15 @@ func worker(c <-chan struct{}, conf *config) {
 			DummyGenerator: &RandomBytesReader{},
 		}
 		if err := runTest(f, conf); err != nil {
-			log.Println("ERROR: ", err)
+			slog.Error("ERROR: ", "error", err)
 		}
-		bar.Add(1)
 		wg.Done()
 	}
 }
 
 func asPallelBenchmark(c chan struct{}) func(*testing.B) {
 	return func(b *testing.B) {
-		bar.Reset()
-		bar.ChangeMax(b.N)
+		slog.Info("benchmarking", "runs", b.N)
 		for i := 0; i < b.N; i++ {
 			wg.Add(1)
 			c <- struct{}{}
@@ -162,8 +164,16 @@ func runTest(f *BadHL7, conf *config) error {
 		return fmt.Errorf("failed to create upload: %w", err)
 	}
 
-	// start the uploading process.
-	return uploader.Upload()
+	for uploader.Offset() < upload.Size() && !uploader.IsAborted() {
+		err := uploader.UploadChunck()
+
+		if err != nil {
+			return err
+		}
+		slog.Debug("uploaded", "offset", uploader.Offset(), "size", upload.Size())
+	}
+
+	return nil
 }
 
 type Generator interface {
