@@ -25,7 +25,7 @@ var (
 	size        int
 	parallelism int
 	load        int
-	chunk       int64
+	chunk       float64
 	username    string
 	password    string
 	samsURL     string
@@ -37,7 +37,7 @@ func init() {
 	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", 0, "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
-	flag.Int64Var(&chunk, "chunk", 2, "set the chunk size to use when uploading files in MB")
+	flag.Float64Var(&chunk, "chunk", 2, "set the chunk size to use when uploading files in MB")
 	flag.StringVar(&samsURL, "sams-url", "", "use sams to authenticate to the upload server")
 	flag.StringVar(&username, "username", "", "username for sams")
 	flag.StringVar(&password, "password", "", "password for sams")
@@ -146,7 +146,7 @@ func runTest(f *BadHL7, conf *config) error {
 	defer f.Close()
 	// create the tus client.
 	tusConf := tus.DefaultConfig()
-	tusConf.ChunkSize = chunk
+	tusConf.ChunkSize = int64(chunk)
 	if conf.tokenSource != nil {
 		tusConf.HttpClient = oauth2.NewClient(context.TODO(), conf.tokenSource)
 	}
