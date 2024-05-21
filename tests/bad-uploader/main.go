@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/eventials/go-tus"
+	"github.com/schollz/progressbar/v3"
 	"golang.org/x/oauth2"
 )
 
@@ -78,6 +79,8 @@ and get some meaningful output that we can go through after the fact maybe in a 
 this will cover a use case for a single bad sender, so only one cred needed
 */
 
+var bar = progressbar.Default(0)
+
 func main() {
 
 	conf := resultOrFatal(buildConfig())
@@ -91,6 +94,8 @@ func main() {
 	tStart := time.Now()
 	if load > 0 {
 		log.Printf("Running load test of %d files\n", load)
+		bar.Reset()
+		bar.ChangeMax(load)
 		for i := 0; i < load; i++ {
 			wg.Add(1)
 			c <- struct{}{}
@@ -98,10 +103,10 @@ func main() {
 	} else {
 		log.Println("Running benchmark")
 		result := testing.Benchmark(asPallelBenchmark(c))
-		log.Println(result.String())
+		defer fmt.Println(result.String())
 	}
 	wg.Wait()
-	log.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
+	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
 }
 
 type config struct {
@@ -118,13 +123,15 @@ func worker(c <-chan struct{}, conf *config) {
 		if err := runTest(f, conf); err != nil {
 			log.Println("ERROR: ", err)
 		}
+		bar.Add(1)
 		wg.Done()
 	}
 }
 
 func asPallelBenchmark(c chan struct{}) func(*testing.B) {
 	return func(b *testing.B) {
-		log.Println("N is ", b.N)
+		bar.Reset()
+		bar.ChangeMax(b.N)
 		for i := 0; i < b.N; i++ {
 			wg.Add(1)
 			c <- struct{}{}
@@ -236,7 +243,7 @@ func (sts *SAMSTokenSource) Token() (*oauth2.Token, error) {
 	}
 
 	tStart := time.Now()
-	defer func(tStart time.Time) { log.Println("Auth took ", time.Since(tStart).Seconds(), " seconds") }(tStart)
+	defer func(tStart time.Time) { fmt.Println("Auth took ", time.Since(tStart).Seconds(), " seconds") }(tStart)
 
 	body := neturl.Values{
 		"username": []string{sts.username},
