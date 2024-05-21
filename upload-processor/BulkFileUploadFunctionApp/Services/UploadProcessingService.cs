@@ -192,10 +192,6 @@ namespace BulkFileUploadFunctionApp.Services
 
                 throw;
             }
-            finally
-            {
-                // Send report for bulk metadata transform.
-            }
         }
 
         public async Task CopyAll(CopyPrereqs copyPrereqs)
