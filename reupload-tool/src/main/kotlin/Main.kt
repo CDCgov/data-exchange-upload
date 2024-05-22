@@ -10,11 +10,12 @@ import org.example.model.Reupload
 import org.example.util.EnvConfig
 import tus.UploadClient
 import java.io.File
-import kotlin.collections.HashMap
 
 fun main() {
+    val input = System.getProperty("csv")
+
     // First, read in input.csv.
-    val inputCsv = getFileFromResources("input.csv")
+    val inputCsv = input?.let { File(it) } ?: getFileFromResources("input.csv")
     val reuploads = readInputCsv(inputCsv)
     println("Reuploading ${reuploads.size} file(s)")
 
