@@ -8,6 +8,8 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using Azure.Messaging.ServiceBus;
 
 namespace BulkFileUploadFunctionApp.Utils
 {
@@ -34,6 +36,7 @@ namespace BulkFileUploadFunctionApp.Utils
             string connectionString = string.Empty;
             string edavAzureStorageAccountName = string.Empty;
             string containerName = string.Empty;
+            string serviceBusName = string.Empty;
 
             BlobServiceClient blobServiceClient = null;
             HealthCheckResult checkResult = null;
@@ -52,7 +55,7 @@ namespace BulkFileUploadFunctionApp.Utils
                 serviceBusName= "PS API Service Bus";
                 string keyVaultUrl = "https://ocio-dev-upload-vault.vault.azure.net";
                 string secretName = "ps-service-bus-connection-str";
-                string connectionString = await GetServiceBusConnectionString(keyVaultUrl, secretName);    
+                connectionString = await GetServiceBusConnectionString(keyVaultUrl, secretName);    
                 bool isServiceBusHealthy = await IsServiceBusHealthy(connectionString);
                 checkResult = await CheckServiceBusHealthAsync(storage, serviceBusName, isServiceBusHealthy);
 
@@ -112,7 +115,7 @@ namespace BulkFileUploadFunctionApp.Utils
                  }
                 else
                  {
-                     _logger.LogError(ex, $"Error occurred while checking {serviceBusName} Service Bus health.");
+                     _logger.LogInformation($"Error occurred while checking {serviceBusName} Service Bus health.");
                      return new HealthCheckResult(destination, "DOWN", "Unhealthy");
                  }
           
@@ -120,19 +123,24 @@ namespace BulkFileUploadFunctionApp.Utils
 
         private static async Task<bool> IsServiceBusHealthy(string connectionString)
         {
-         try
+        try
         {
         await using (var client = new ServiceBusClient(connectionString))
-        {            
-            await sender.SendMessageAsync(new ServiceBusMessage("Health check"));
+        {              
             return true;
         }
         }
         catch (Exception ex)
-        {
-        _logger.LogError($"Failed to connect to the service bus: {ex.Message}");
-        return false;
+        {        
+            return false;
         }
-       }
-       }
+        }
+
+       public static async Task<string> GetServiceBusConnectionString(string keyVaultUrl, string secretName)
+        {
+            var client = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+            KeyVaultSecret secret = await client.GetSecretAsync(secretName);
+             return secret.Value;
+        }
+    }
 }
