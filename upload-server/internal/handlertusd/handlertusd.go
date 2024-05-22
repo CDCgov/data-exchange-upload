@@ -20,6 +20,8 @@ func init() {
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
 	// add package name to app logger
+	// TODO: replace logger with slog.logger?
+	// Why are we using slogerxexp instead of sloger?
 	logger = slogerxexp.With("pkg", pkgParts[len(pkgParts)-1])
 }
 

@@ -259,6 +259,11 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 
 }
 
+func WithTGUID(tguid string) *slog.Logger {
+	logger.Info("appending global tguid", "tguid", tguid)
+	return logger.With("tguid", tguid)
+}
+
 func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	timestamp := time.Now().Format(time.RFC3339)
 	logger.Info("adding global timestamp", "timestamp", timestamp)
@@ -280,6 +285,7 @@ type HookEventHandler struct {
 }
 
 func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, manifest map[string]string, ctx context.Context) error {
+	log := WithTGUID(tguid)
 	content := &UploadStatusContent{
 		SchemaVersion: "1.0",
 		SchemaName:    "upload",
@@ -300,9 +306,9 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 		Content:         content,
 	}
 
-	logger.Info("REPORT", "report", report)
+	log.Info("REPORT", "report", report)
 	if err := v.Reporter.Publish(ctx, report); err != nil {
-		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
+		log.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
 	}
 
 	return nil

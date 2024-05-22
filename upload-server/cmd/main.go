@@ -69,7 +69,6 @@ func init() {
 	logger = cli.AppLogger(appConfig).With(logInfo...)
 	sloger.SetDefaultLogger(logger)
 
-	// TODO/CONFIRM: replace this with the custom application logger ?
 	explogger := cli.ExpAppLogger(appConfig).With(logInfo...)
 	slogerxexp.SetDefaultLogger(explogger)
 
