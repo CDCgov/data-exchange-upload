@@ -14,7 +14,7 @@ namespace BulkFileUploadFunctionApp
 {
     public class HealthCheckFunction
     {
-        private readonly string[] StorageNames = { "DEX Blob Container", "EDAV Blob Container", "Routing Blob Container" };
+        private readonly string[] StorageNames = { "DEX Blob Container", "EDAV Blob Container", "Routing Blob Container","PS API Service Bus" };
         private readonly IBlobServiceClientFactory _blobServiceClientFactory;
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
         private readonly ILogger _logger;
