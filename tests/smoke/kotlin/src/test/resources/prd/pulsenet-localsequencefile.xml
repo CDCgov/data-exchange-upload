@@ -2,7 +2,6 @@
 <suite name="PULSENET LOCALSEQUENCEFILE PRD" parallel="tests" thread-count="3">
     <parameter name="USE_CASE" value="pulsenet-localsequencefile" />
     <test name="Metadata Verify">
-        <parameter name="SENDER_MANIFEST" value="pulsenet-localsequencefile.properties"/>
         <parameter name="SENDER_MANIFEST_NO_DEST_ID" value="no-dest-id.properties" />
         <parameter name="SENDER_MANIFEST_NO_EVENT" value="no-event.properties" />
         <parameter name="SENDER_MANIFEST_INVALID_FILENAME" value="invalid-filename.properties" />
