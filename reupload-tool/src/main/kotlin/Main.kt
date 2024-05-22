@@ -70,11 +70,18 @@ fun main() {
 
             // Upload file.
             val fileToUpload = File("downloads/$srcFilename")
-            println("uploading $fileToUpload")
-            uploadClient.uploadFile(fileToUpload, updatedMetadata)
-            successCount++
+
+            val uploadResult = reUpload(fileToUpload, updatedMetadata, uploadClient)
+
+            if (uploadResult.isSuccess) {
+                println("Successfully re-uploaded $srcFilename under filename ${reupload.dest} and ID ${uploadResult.getOrNull()}")
+                successCount++
+            } else {
+                println("reupload failed")
+                failCount++
+            }
         } catch (e: Exception) {
-            println("reupload failed")
+            println("Reupload of ${reupload.src} failed during setup.  Error: ${e.message}")
             failCount++
         }
     }
@@ -122,6 +129,13 @@ fun updateFilename(filename: String, src: MutableMap<String, String>): MutableMa
     }
 
     return res
+}
+
+fun reUpload(file: File, metadata: MutableMap<String, String>, client: UploadClient): Result<String?> {
+    return runCatching {
+        println("uploading ${file.name}")
+        client.uploadFile(file, metadata)
+    }
 }
 
 fun cleanupDownloads(directory: File) {
