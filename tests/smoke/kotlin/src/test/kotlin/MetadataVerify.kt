@@ -129,7 +129,7 @@ class MetadataVerify {
         groups = [Constants.Groups.METADATA_VERIFY],
         dataProvider = "versionProvider", dataProviderClass = DataProvider::class
     )
-    fun shouldValidateV2MetadataWithSenderManifest(version: String) {
+    fun shouldValidateMetadataWithSenderManifest(version: String) {
 
         metadata = Metadata.getMetadataMap(version, useCase, senderManifest)
         val uploadId = uploadClient.uploadFile(testFile, metadata)
