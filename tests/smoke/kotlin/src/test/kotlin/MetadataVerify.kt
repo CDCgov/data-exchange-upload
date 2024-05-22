@@ -1,6 +1,4 @@
-
 import com.azure.storage.blob.BlobContainerClient
-import com.azure.storage.blob.models.BlobStorageException
 import io.tus.java.client.ProtocolException
 import dex.DexUploadClient
 import model.UploadConfig
@@ -14,13 +12,14 @@ import util.*
 import util.ConfigLoader.Companion.loadUploadConfig
 import util.Constants.Companion.TEST_DESTINATION
 import util.Constants.Companion.TEST_EVENT
+import util.DataProvider
 
 @Listeners(UploadIdTestListener::class)
 @Test()
 class MetadataVerify {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
-    private val testFileV2 = TestFile.getTestFileFromResources("100KB-test-file")
     private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
+    private lateinit var authToken: String
     private lateinit var uploadClient: UploadClient
     private lateinit var metadata: HashMap<String, String>
     private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
@@ -48,64 +47,61 @@ class MetadataVerify {
         @Optional("no-dest-id.properties") SENDER_MANIFEST_NO_DEST_ID: String,
         @Optional("no-event.properties") SENDER_MANIFEST_NO_EVENT: String
     ) {
-        val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
-        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
+        authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
 
-        this.useCase = USE_CASE
-        this.senderManifest = SENDER_MANIFEST
-        this.senderManifestInvalidFilename = SENDER_MANIFEST_INVALID_FILENAME
-        this.senderManifestNoDestId = SENDER_MANIFEST_NO_DEST_ID
-        this.senderManifestNoEvent = SENDER_MANIFEST_NO_EVENT
+        useCase = USE_CASE
+        senderManifest = SENDER_MANIFEST
+        senderManifestInvalidFilename = SENDER_MANIFEST_INVALID_FILENAME
+        senderManifestNoDestId = SENDER_MANIFEST_NO_DEST_ID
+        senderManifestNoEvent = SENDER_MANIFEST_NO_EVENT
 
         uploadConfigV1 = loadUploadConfig(dexBlobClient, USE_CASE, "v1")
         uploadConfigV2 = loadUploadConfig(dexBlobClient, USE_CASE, "v2")
-        dexContainerClient = dexBlobClient.getBlobContainerClient(USE_CASE)
+        dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
 
     }
 
-    @Test(groups = [Constants.Groups.METADATA_VERIFY], dataProvider = "versionProvider", dataProviderClass = Metadata::class)
+    @BeforeMethod
+    fun beforeMethod() {
+        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
+    }
+
+    @Test(
+        groups = [Constants.Groups.METADATA_VERIFY],
+        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
+    )
     fun shouldUploadFileGivenRequiredMetadata(context: ITestContext, version: String) {
         metadata = Metadata.getMetadataMap(version, useCase, senderManifest)
-        val uploadId: String? = if (version == "V1") {
-            uploadClient.uploadFile(testFile, metadata)
-        } else  {
-            uploadClient.uploadFile(testFileV2, metadata)
-        }
+        val uploadId = uploadClient.uploadFile(testFile, metadata)
         context.setAttribute("uploadId_$version", uploadId)
         Assert.assertNotNull(uploadId)
     }
+
     @Test(
         groups = [Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*",
-        dataProvider = "versionProvider", dataProviderClass = Metadata::class
+        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
     )
     fun shouldReturnErrorWhenDestinationIDNotProvided(version: String) {
         metadata = Metadata.getMetadataMap(version, useCase, senderManifestNoDestId)
-        if (version == "V1") {
-            uploadClient.uploadFile(testFile, metadata)
-        } else  {
-            uploadClient.uploadFile(testFileV2, metadata)
-        }
+        uploadClient.uploadFile(testFile, metadata)
     }
 
     @Test(
         groups = [Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*",
-        dataProvider = "versionProvider", dataProviderClass = Metadata::class
+        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
     )
     fun shouldReturnErrorWhenEventNotProvided(version: String) {
         metadata = Metadata.getMetadataMap(version, useCase, senderManifestNoEvent)
-        if (version == "V1") {
-            uploadClient.uploadFile(testFile, metadata)
-        } else  {
-            uploadClient.uploadFile(testFileV2, metadata)
-        }
+        uploadClient.uploadFile(testFile, metadata)
     }
 
-    @Test(groups = [
-        Constants.Groups.METADATA_VERIFY],
+    @Test(
+        groups = [
+            Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*field filename was missing"
     )
@@ -115,7 +111,6 @@ class MetadataVerify {
             "meta_ext_event" to TEST_EVENT,
             "meta_ext_source" to "INTEGRATION-TEST"
         )
-
         uploadClient.uploadFile(testFile, metadata)
     }
 
@@ -123,35 +118,32 @@ class MetadataVerify {
         groups = [Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*",
-        dataProvider = "versionProvider", dataProviderClass = Metadata::class
+        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
     )
     fun shouldReturnErrorWhenFilenameContainsInvalidChars(version: String) {
         metadata = Metadata.getMetadataMap(version, useCase, senderManifestInvalidFilename)
-        if (version == "V1") {
-            uploadClient.uploadFile(testFile, metadata)
-        } else  {
-            uploadClient.uploadFile(testFileV2, metadata)
-        }
+        uploadClient.uploadFile(testFile, metadata)
     }
 
-    @Test(groups = [Constants.Groups.METADATA_VERIFY], dataProvider = "versionProvider", dataProviderClass = Metadata::class)
+    @Test(
+        groups = [Constants.Groups.METADATA_VERIFY],
+        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
+    )
     fun shouldValidateV2MetadataWithSenderManifest(version: String) {
-        metadata = Metadata.getMetadataMap(version, useCase, senderManifest)
 
-          val uploadId: String? = if (version == "V1") {
-            uploadClient.uploadFile(testFile, metadata)
-        } else  {
-            uploadClient.uploadFile(testFileV2, metadata)
-        }
+        metadata = Metadata.getMetadataMap(version, useCase, senderManifest)
+        val uploadId = uploadClient.uploadFile(testFile, metadata)
 
         val uploadConfig = if (version == "V1") uploadConfigV1 else uploadConfigV2
         val metadataFields = uploadConfig.metadataConfig.fields
 
+
+        Thread.sleep(500)
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
-        val expectedFilename = if (version=="V1")
+
+        val expectedFilename =
             "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC))}/${testFile.nameWithoutExtension}$filenameSuffix.${testFile.extension}"
-        else
-            "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC))}/${testFileV2.nameWithoutExtension}$filenameSuffix.${testFileV2.extension}"
+
         val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
 
         val blobProperties = expectedBlobClient.properties
@@ -159,7 +151,8 @@ class MetadataVerify {
 
         metadata.forEach { (key, value) ->
             val actualValue = blobMetadata[key]
-            Assert.assertEquals(value, actualValue, "Expected key value: $value does not match with actual key value: $actualValue"
+            Assert.assertEquals(
+                value, actualValue, "Expected key value: $value does not match with actual key value: $actualValue"
             )
         }
         metadataFields.forEach { field ->

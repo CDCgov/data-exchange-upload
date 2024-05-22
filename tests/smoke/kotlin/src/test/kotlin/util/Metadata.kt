@@ -1,17 +1,10 @@
 package util
 
-import com.azure.storage.blob.BlobContainerClient
-import com.azure.storage.blob.BlobServiceClient
-import model.UploadConfig
 import org.joda.time.DateTime
-import org.testng.TestNGException
 import org.testng.annotations.DataProvider
-import util.ConfigLoader.Companion.loadUploadConfig
 import java.io.FileNotFoundException
 import java.util.*
 import kotlin.collections.HashMap
-import tus.UploadClient
-import java.io.File
 
 class Metadata {
     companion object {
@@ -19,7 +12,7 @@ class Metadata {
             val metadata = HashMap<String, String>()
             val properties = Properties()
             val inputStream = this::class.java.classLoader.getResourceAsStream(propertiesFilePath)
-                    ?: throw FileNotFoundException("Property file '$propertiesFilePath' not found in the classpath")
+                ?: throw FileNotFoundException("Property file '$propertiesFilePath' not found in the classpath")
 
             inputStream.use { stream ->
                 properties.load(stream)
@@ -32,12 +25,12 @@ class Metadata {
             return metadata
         }
 
-       fun getFilePrefixByDate(date: DateTime, useCaseDir: String): String {
+        fun getFilePrefixByDate(date: DateTime, useCaseDir: String): String {
             // Pad date numbers with 0.
-           val month = if (date.monthOfYear < 10) "0${date.monthOfYear}" else "${date.monthOfYear}"
-           val day = if (date.dayOfMonth < 10) "0${date.dayOfMonth}" else "${date.dayOfMonth}"
+            val month = if (date.monthOfYear < 10) "0${date.monthOfYear}" else "${date.monthOfYear}"
+            val day = if (date.dayOfMonth < 10) "0${date.dayOfMonth}" else "${date.dayOfMonth}"
             return "$useCaseDir/${date.year}/$month/$day"
-       }
+        }
 
 
         // Using Calendar due to deprecation of Date.
@@ -51,25 +44,20 @@ class Metadata {
         @JvmStatic
         @DataProvider(name = "versionProvider")
         fun versionProvider(): Array<Array<String>> {
-                return arrayOf(
-                    arrayOf("V1"),
-                    arrayOf("V2")
-                )
-       }
+            return arrayOf(
+                arrayOf("V1"),
+                arrayOf("V2")
+            )
+        }
 
-       private fun getMetadataPath(version: String, useCase: String, manifest: String): String {
-                return if (version == "V1") {
-                    "properties/$useCase/$manifest"
-                } else {
-                    "properties/$version/$useCase/$manifest"
-                }
-            }
+        fun getMetadataMap(version: String, useCase: String, manifest: String): HashMap<String, String> {
+            val path = getMetadataPath(version, useCase, manifest)
+            return convertPropertiesToMetadataMap(path)
+        }
 
-       fun getMetadataMap(version: String, useCase: String, manifest: String): HashMap<String, String> {
-        val path = getMetadataPath(version, useCase, manifest)
-        return convertPropertiesToMetadataMap(path)
-       }
-
+        private fun getMetadataPath(version: String, useCase: String, manifest: String): String {
+            return "properties/$version/$useCase/$manifest"
+        }
     }
 }
 

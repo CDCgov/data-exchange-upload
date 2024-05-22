@@ -38,7 +38,7 @@ class ProcStat {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
         val senderManifestDataFile = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
-        val propertiesFilePath = "properties/$USE_CASE/$senderManifestDataFile"
+        val propertiesFilePath = "properties/V1/$USE_CASE/$senderManifestDataFile"
         val senderManifest = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         uploadId = uploadClient.uploadFile(testFile, senderManifest)

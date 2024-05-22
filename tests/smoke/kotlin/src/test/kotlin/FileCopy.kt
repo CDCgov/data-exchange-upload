@@ -41,7 +41,6 @@ class FileCopy {
     private lateinit var uploadConfigV1: UploadConfig
     private lateinit var uploadConfigV2: UploadConfig
     private lateinit var metadata: HashMap<String, String>
-    private lateinit var metadataV2: HashMap<String, String>
 
     @Parameters("SENDER_MANIFEST", "USE_CASE")
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
@@ -55,11 +54,9 @@ class FileCopy {
         val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
-        val propertiesFilePath = "properties/$USE_CASE/$SENDER_MANIFEST"
-        val propertiesFilePathV2 = "properties/V2/$USE_CASE/$SENDER_MANIFEST"
+        val propertiesFilePath = "properties/V1/$USE_CASE/$SENDER_MANIFEST"
 
         metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
-        metadataV2 = Metadata.convertPropertiesToMetadataMap(propertiesFilePathV2)
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
         println("dexBlobClient: $dexBlobClient.properties")
@@ -147,6 +144,3 @@ class FileCopy {
         }
     }
 }
-
-
-
