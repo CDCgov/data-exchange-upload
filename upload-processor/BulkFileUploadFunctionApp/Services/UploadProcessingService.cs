@@ -123,7 +123,41 @@ namespace BulkFileUploadFunctionApp.Services
 
                     var uploadConfigV2 = await GetUploadConfig(uploadConfigV2Filename, MetadataVersion.V2);
                     _logger.LogInformation($"Translating to {JsonSerializer.Serialize(uploadConfigV2)}");
-                    tusInfoFile.MetaData = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
+                    var transformedMetadata = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
+
+                    // Combine v1 and v2 metadata
+                    var transformItems = new List<MetadataItem>();
+                    transformedMetadata.ToList().ForEach(x => {
+                        tusInfoFile.MetaData[x.Key] = x.Value;
+                        transformItems.Add(new MetadataItem
+                        {
+                            Field = x.Key,
+                            Value = x.Value
+                        });
+                    });
+
+                    // Publish report for transformed metadata.
+                    var report = new Report
+                    {
+                        UploadId = uploadId,
+                        DataStreamId = useCase,
+                        DataStreamRoute = useCaseCategory,
+                        StageName = "dex-metadata-transform",
+                        DispositionType = "add",
+                        ContentType = "json",
+                        Content = new BulkMetadataTransformContent
+                        {
+                            SchemaName = "dex-metadata-transform",
+                            SchemaVersion = "1.0",
+                            Transforms = new BulkMetadataTransform
+                            {
+                                Action = "add",
+                                Items = transformItems
+                            }
+                        }
+                    };
+
+                    await _bulkUploadSvcBusClient.PublishReport(report);
                 }
 
                 string? filename = tusInfoFile.MetaData!.GetValueOrDefault("received_filename", null);
@@ -464,7 +498,7 @@ namespace BulkFileUploadFunctionApp.Services
 
         private Dictionary<string, string> TranslateMetadata(Dictionary<string, string> fromMetadata, UploadConfig toConfig)
         {
-            Dictionary<string, string> toMetadata = new Dictionary<string, string>(fromMetadata);
+            Dictionary<string, string> toMetadata = new Dictionary<string, string>();
 
             if (toConfig.MetadataConfig == null || toConfig.MetadataConfig.Fields == null || toConfig.MetadataConfig.Version == null)
             {
@@ -481,7 +515,7 @@ namespace BulkFileUploadFunctionApp.Services
                 }
 
                 // Skip if field already provided.
-                if (toMetadata.ContainsKey(field.FieldName))
+                if (fromMetadata.ContainsKey(field.FieldName))
                 {
                     continue;
                 }
@@ -494,7 +528,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 if (field.CompatFieldName != null)
                 {
-                    toMetadata[field.FieldName] = toMetadata.GetValueOrDefault(field.CompatFieldName, "");
+                    toMetadata[field.FieldName] = fromMetadata.GetValueOrDefault(field.CompatFieldName, "");
                     continue;
                 }
 

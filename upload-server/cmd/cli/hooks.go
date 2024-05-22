@@ -37,8 +37,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	// TODO: Add a manifest transformer to cover upload ID and global timestamp transformations.
-
 	manifestValidator := metadata.SenderManifestVerification{
 		Configs: cache,
 		Reporter: &filereporters.FileReporter{
@@ -46,19 +44,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	postReceiveHook := metadata.HookEventHandler{
-		Reporter: &filereporters.FileReporter{
-			Dir: appConfig.LocalReportsFolder,
-		},
-	}
-
-	postFinishHook := metadata.HookEventHandler{
-		Reporter: &filereporters.FileReporter{
-			Dir: appConfig.LocalReportsFolder,
-		},
-	}
-
-	postCreateHook := metadata.HookEventHandler{
+	hookHandler := metadata.HookEventHandler{
 		Reporter: &filereporters.FileReporter{
 			Dir: appConfig.LocalReportsFolder,
 		},
@@ -92,31 +78,21 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				return nil, err
 			}
 
-			// TODO Can these reporters all be pointers to a single instance?
 			manifestValidator.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
-			postReceiveHook.Reporter = &azurereporters.ServiceBusReporter{
+			hookHandler.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
-			postFinishHook.Reporter = &azurereporters.ServiceBusReporter{
-				Client:    sbclient,
-				QueueName: appConfig.ReportQueueName,
-			}
-			postCreateHook.Reporter = &azurereporters.ServiceBusReporter{
-				Client:    sbclient,
-				QueueName: appConfig.ReportQueueName,
-			}
-
 		}
 	}
 
-	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
-	handler.Register(tusHooks.HookPostReceive, postReceiveHook.PostReceive)
-	handler.Register(tusHooks.HookPostFinish, postFinishHook.PostFinish)
-	handler.Register(tusHooks.HookPostCreate, postCreateHook.PostCreate)
+	handler.Register(tusHooks.HookPreCreate, hookHandler.WithUploadID, hookHandler.WithTimestamp, manifestValidator.Verify)
+	handler.Register(tusHooks.HookPostReceive, hookHandler.PostReceive)
+	handler.Register(tusHooks.HookPostFinish, hookHandler.PostFinish)
+	handler.Register(tusHooks.HookPostCreate, hookHandler.PostCreate)
 	// TODO: -> handler.Register(tusHooks.HookPostFinish, copier.Merge, copier.Route)
 
 	return handler, nil
