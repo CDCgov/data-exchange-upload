@@ -117,7 +117,7 @@ class FileCopy {
 
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldTranslateMetadataGivenV1SenderManifest() {
-        val v2ConfigFilename = uploadConfigV1.compatConfigFilename ?: useCase
+        val v2ConfigFilename = uploadConfigV1.compatConfigFilename ?: "$useCase.json"
         val uploadConfigV2 = loadUploadConfig(dexBlobClient, v2ConfigFilename, "v2")
 
         val metadataMapping = uploadConfigV2.metadataConfig.fields.filter { it.compatFieldName != null }
@@ -137,8 +137,8 @@ class FileCopy {
         }
 
         metadataMapping.forEach{ (v1Key, v2Key) ->
-            val v1Val = metadata[v1Key]
-            val v2Val = blobMetadata[v2Key]
+            val v1Val = metadata[v1Key] ?: ""
+            val v2Val = blobMetadata[v2Key] ?: ""
             Assert.assertEquals(v1Val, v2Val, "Expected V1 value: $v1Val does not match with actual V2 value: $v2Val")
         }
     }
