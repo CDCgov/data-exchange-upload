@@ -9,7 +9,8 @@ class EnvConfig {
         private val properties = if (propFile.exists()) Properties().apply {
             load(File("local.properties").inputStream())
         } else null
-        val DEX_ENV: String = properties?.getProperty("dex.env") ?: System.getenv("DEX_ENV")
+        val DEX_URL: String = properties?.getProperty("dex.url") ?: System.getenv("DEX_URL")
+        val SKIP_AUTH: Boolean = properties?.getProperty("skip.auth")?.let { it.toBoolean() } ?: System.getenv("SKIP_AUTH")?.let { it.toBoolean() } ?: false
         val SAMS_USERNAME: String = properties?.getProperty("sams.username") ?: System.getenv("SAMS_USERNAME")
         val SAMS_PASSWORD: String = properties?.getProperty("sams.password") ?: System.getenv("SAMS_PASSWORD")
         val EDAV_STORAGE_ACCOUNT_NAME: String = properties?.getProperty("edav.storage.account.name") ?: System.getenv("EDAV_STORAGE_ACCOUNT_NAME")

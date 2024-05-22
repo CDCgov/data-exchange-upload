@@ -21,6 +21,26 @@ To specify one or more files to be re-uploaded, generate a CSV file with the fol
 - dest - The name of the file to be re-uploaded under.  Can be the same name as `src` without the path prefixes.
 - srcaccountid - The unique label or identifier of the storage account where the `src` file is located.  Available options are `edav` and `routing`.
 
+### Environment Variables
+
+The following environment variables need to be set.  
+
+- DEX_URL - The FQDN of the Upload API endpoint.  For example, `https://apidev.cdc.gov`.
+- SKIP_AUTH - True or false to use SAMS to get an auth token before uploading files.  Must be false if `DEX_URL` is set
+to a public URL.  Defaults to `false`.
+- SAMS_USERNAME - Username of a SAMS SYS account that has access to the Upload API.
+- SAMS_PASSWORD - Password of a SAMS SYS account that has access to the Upload API.
+- EDAV_STORAGE_ACCOUNT_NAME - The name of the EDAV storage account where files are located.  Must match the storage account
+used by the specified DEX environment.
+- ROUTING_STORAGE_CONNECTION_STRING - Fully qualified Azure connection string to the routing storage account.  Must match
+the same environment where files will be uploaded to.
+- AZURE_CLIENT_ID - Client ID of the Azure service principle used for the specified DEX environment.
+- AZURE_CLIENT_SECRET - Client Secret of the Azure service principle used for the specified DEX environment.
+- AZURE_TENANT_ID - Tenant ID of the Azure service principle used for the specified DEX environment.
+
+This can be done by setting via JVM system properties with the `-D`
+flag on the command line, or by creating a `local.properties` in this directory.
+
 ### Build and Run
 
 This program uses Gradle to build and run a jar file.  You can do this with the following command:

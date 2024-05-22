@@ -19,15 +19,11 @@ fun main() {
     println("Reuploading ${reuploads.size} file(s)")
 
     // Initialize auth client
-    val dexUrl = when(EnvConfig.DEX_ENV) {
-        "dev" -> "https://apidev.cdc.gov"
-        "tst" -> "https://apitst.cdc.gov"
-        "stg" -> "https://apistg.cdc.gov"
-        "prd" -> "https://api.cdc.gov"
-        else -> "https://apidev.cdc.gov"
+    val dexUrl = EnvConfig.DEX_URL
+    val authToken = if (EnvConfig.SKIP_AUTH) "" else {
+        val authClient = AuthClient(dexUrl)
+        authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
     }
-    val authClient = AuthClient(dexUrl)
-    val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
 
     // Initialize upload client
     val uploadClient = UploadClient(dexUrl, authToken)
