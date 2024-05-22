@@ -50,7 +50,7 @@ class ProcStat {
                 ?: throw TestNGException("Error uploading file ${testFile.name}")
         context.setAttribute("uploadId", uploadId)
 
-        Thread.sleep(12_000) // Hard delay to wait for PS API to settle.
+        Thread.sleep(1_000) // Hard delay to wait for PS API to settle.
 
         reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId")
                 .then()
