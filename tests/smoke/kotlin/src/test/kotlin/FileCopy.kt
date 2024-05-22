@@ -39,7 +39,6 @@ class FileCopy {
     private lateinit var uploadId: String
     private lateinit var useCase: String
     private lateinit var uploadConfigV1: UploadConfig
-    private lateinit var uploadConfigV2: UploadConfig
     private lateinit var metadata: HashMap<String, String>
 
     @Parameters("SENDER_MANIFEST", "USE_CASE")
@@ -60,8 +59,7 @@ class FileCopy {
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
 
-        uploadConfigV1 = loadUploadConfig(dexBlobClient, USE_CASE, "v1")
-        uploadConfigV2 = loadUploadConfig(dexBlobClient, USE_CASE, "v2")
+        uploadConfigV1 = loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v1")
 
         dexContainerClient = dexBlobClient.getBlobContainerClient(USE_CASE)
         edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
@@ -119,7 +117,10 @@ class FileCopy {
 
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldTranslateMetadataGivenV1SenderManifest() {
-        val metadataMapping = uploadConfigV2.metadataConfig.fields
+        val v2ConfigFilename = uploadConfigV1.compatConfigFilename ?: useCase
+        val uploadConfigV2 = loadUploadConfig(dexBlobClient, v2ConfigFilename, "v2")
+
+        val metadataMapping = uploadConfigV2.metadataConfig.fields.filter { it.compatFieldName != null }
             .associate { it.compatFieldName to it.fieldName }
 
         val filenameSuffix = Filename.getFilenameSuffix(uploadConfigV1.copyConfig, uploadId)
@@ -135,11 +136,10 @@ class FileCopy {
             Assert.assertTrue(blobMetadata.containsKey(v2Key), "Mismatch: Blob metadata does not contain expected V2 key: $v2Key which should map from V1 key: $v1Key")
         }
 
-        // TODO: Fix this failing test.
-        metadata.forEach { (v1Key, v1Value) ->
-            val expectedFieldInV2 = metadataMapping[v1Key]
-            val actualValueInV2 = blobMetadata[expectedFieldInV2]
-            Assert.assertEquals(v1Value, actualValueInV2, "Expected V1 key value: $v1Value does not match with actual V2 key value: $actualValueInV2")
+        metadataMapping.forEach{ (v1Key, v2Key) ->
+            val v1Val = metadata[v1Key]
+            val v2Val = blobMetadata[v2Key]
+            Assert.assertEquals(v1Val, v2Val, "Expected V1 value: $v1Val does not match with actual V2 value: $v2Val")
         }
     }
 }

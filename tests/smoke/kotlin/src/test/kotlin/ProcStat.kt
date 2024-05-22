@@ -44,7 +44,7 @@ class ProcStat {
         val propertiesFilePath = "properties/$USE_CASE/$senderManifestDataFile"
         val senderManifest = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
-        uploadConfig = ConfigLoader.loadUploadConfig(dexBlobClient, USE_CASE, "v1")
+        uploadConfig = ConfigLoader.loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v1")
 
         uploadId = uploadClient.uploadFile(testFile, senderManifest)
                 ?: throw TestNGException("Error uploading file ${testFile.name}")
