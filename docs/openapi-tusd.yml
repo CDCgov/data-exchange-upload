@@ -65,6 +65,17 @@ paths:
         '200':
           description: Success
 
+  "/health":
+    get:
+      summary: tus storage health status
+      tags:
+        - TUSD
+      description: Get the tusd health status
+      operationId: health
+      responses:
+        '200':
+          description: Success
+
   "/{tguid}":
     get:
       summary: Download File
