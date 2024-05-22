@@ -44,9 +44,10 @@ namespace BulkFileUploadFunctionApp.Utils
                 edavAzureStorageAccountName = _environmentVariableProvider.GetEnvironmentVariable("EDAV_AZURE_STORAGE_ACCOUNT_NAME") ?? "";
                 blobServiceClient = new BlobServiceClient(
                  new Uri($"https://{edavAzureStorageAccountName}.blob.core.windows.net"),
-                 new DefaultAzureCredential() // using Service Principal
-                 checkResult = await CheckBlobStorageHealthAsync(storage, containerName, blobServiceClient);
+                 new DefaultAzureCredential() // using Service Principal                 
              );
+
+             checkResult = await CheckBlobStorageHealthAsync(storage, containerName, blobServiceClient);
             } else if (storage == "PS API Service Bus"){
                 serviceBusName= "PS API Service Bus";
                 string keyVaultUrl = "https://ocio-dev-upload-vault.vault.azure.net";
@@ -76,9 +77,7 @@ namespace BulkFileUploadFunctionApp.Utils
                 checkResult = await CheckBlobStorageHealthAsync(storage, containerName, blobServiceClient);
             }
 
-            _logger.LogInformation($"Checking health for destination: {storage}");
-
-           // checkResult = await CheckBlobStorageHealthAsync(storage, containerName, blobServiceClient);
+            _logger.LogInformation($"Checking health for destination: {storage}");           
 
             return checkResult;
 
