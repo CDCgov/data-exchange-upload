@@ -25,4 +25,5 @@ To specify one or more files to be re-uploaded, generate a CSV file with the fol
 
 This program uses Gradle to build and run a jar file.  You can do this with the following command:
 
-`gradle run -Dcsv=input.csv` where `input.csv` is your CSV file generated above.
+`gradle run -Dcsv=input.csv` where `input.csv` is your CSV file generated above.  If the `csv` argument is not specified, 
+it will default to `input.csv`.

@@ -12,11 +12,10 @@ import tus.UploadClient
 import java.io.File
 
 fun main() {
-    val input = System.getProperty("csv")
+    val input = if (System.getProperty("csv").isNullOrEmpty()) File("input.csv") else File(System.getProperty("csv"))
 
-    // First, read in input.csv.
-    val inputCsv = input?.let { File(it) } ?: getFileFromResources("input.csv")
-    val reuploads = readInputCsv(inputCsv)
+    // First, read in input csv.
+    val reuploads = readInputCsv(input)
     println("Reuploading ${reuploads.size} file(s)")
 
     // Initialize auth client
