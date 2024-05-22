@@ -1,6 +1,5 @@
 using System.Net;
 using Azure;
-using Azure.Storage.Blobs;
 using BulkFileUploadFunctionApp.Services;
 using BulkFileUploadFunctionApp.Model;
 using BulkFileUploadFunctionApp.Utils;
@@ -8,9 +7,7 @@ using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using Azure.Identity;
-using Microsoft.Extensions.Configuration.AzureAppConfiguration;
-using Microsoft.Extensions.Configuration;
+
 
 
 namespace BulkFileUploadFunctionApp
@@ -22,21 +19,21 @@ namespace BulkFileUploadFunctionApp
         private readonly IEnvironmentVariableProvider _environmentVariableProvider;
         private readonly ILogger _logger;
         private readonly IFeatureManagementExecutor _featureManagementExecutor;
-        private readonly IProcStatClient _procStatClient;
+        private readonly IBulkUploadSvcBusClient _bulkUploadSvcBusClient;
 
         // Constructor
         public HealthCheckFunction(IBlobServiceClientFactory blobServiceClientFactory,
                                     IEnvironmentVariableProvider environmentVariableProvider,
                                     ILoggerFactory loggerFactory,
                                     IFeatureManagementExecutor featureManagementExecutor,
-                                    IProcStatClient procStatClient)
+                                    IBulkUploadSvcBusClient bulkUploadSvcBusClient)
         {
             _blobServiceClientFactory = blobServiceClientFactory;
             _environmentVariableProvider = environmentVariableProvider;
             _logger = loggerFactory.CreateLogger<HealthCheckFunction>();
 
             _featureManagementExecutor = featureManagementExecutor;
-            _procStatClient = procStatClient;
+            _bulkUploadSvcBusClient = bulkUploadSvcBusClient;
         }
 
         [Function("HealthCheckFunction")]
@@ -84,12 +81,9 @@ namespace BulkFileUploadFunctionApp
             // Perform health check for Processing Status.
             try
             {
-                await _featureManagementExecutor
-                .ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    HealthCheckResponse procStatHealthCheck = await _procStatClient.GetHealthCheck();
-                    healthCheckResponse.DependencyHealthChecks.Add(procStatHealthCheck.ToHealthCheckResult(Constants.PROC_STAT_SERVICE_NAME));
-                });
+                _logger.LogInformation("Checking service bus connection...");
+                HealthCheckResponse procStatHealthCheck = await _bulkUploadSvcBusClient.GetHealthCheck();
+                healthCheckResponse.DependencyHealthChecks.Add(procStatHealthCheck.ToHealthCheckResult(Constants.PROC_STAT_SERVICE_NAME));
             } catch (Exception ex)
             {
                 _logger.LogError("Error occured while getting PS API health.");

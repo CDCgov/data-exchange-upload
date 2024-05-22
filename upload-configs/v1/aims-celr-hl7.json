@@ -73,5 +73,6 @@
 		"targets": [
 			"routing"
 		]
-	}
+	},
+	"compat_config_filename": "celr-hl7v2.json"
 }

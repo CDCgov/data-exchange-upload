@@ -7,6 +7,7 @@ namespace BulkFileUploadFunctionApp.Model
     {
         [JsonPropertyName("metadata_config")] public MetadataConfig? MetadataConfig { get; init; }
         [JsonPropertyName("copy_config")] public CopyConfig? CopyConfig { get; init; }
+        [JsonPropertyName("compat_config_filename")] public string? CompatComfigFilename {  get; init; }
 
         public static readonly UploadConfig Default = new UploadConfig()
         {

@@ -6,5 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CopyConfig(
     @get:JsonProperty("filename_suffix") val filenameSuffix: String? = "none",
-    @get:JsonProperty("targets") val targets: List<String>
+    @get:JsonProperty("targets") val targets: List<String>,
+    @get:JsonProperty("folder_structure") val folderStructure: String
 )
+

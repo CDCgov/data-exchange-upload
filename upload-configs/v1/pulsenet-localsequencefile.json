@@ -6,7 +6,7 @@
 				"field_name": "filename",
 				"allowed_values": null,
 				"required": true,
-				"description": "The name of the file submitted."
+				"description": "The name of the file submitted"
 			}
 		]
 	},

@@ -1,12 +1,12 @@
 using Azure;
 using Azure.Storage.Blobs;
+using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Configuration;
 using Azure.Identity;
 using System.Text.Json;
 using BulkFileUploadFunctionApp.Utils;
 using BulkFileUploadFunctionApp.Model;
-using System.Text.Json.Serialization;
+
 
 namespace BulkFileUploadFunctionApp.Services
 {
@@ -26,16 +26,18 @@ namespace BulkFileUploadFunctionApp.Services
         private readonly string _routingUploadRootContainerName;
         private readonly IUploadEventHubService _uploadEventHubService;
         private readonly IFeatureManagementExecutor _featureManagementExecutor;
-        private readonly IProcStatClient _procStatClient;
         private readonly string _dexStorageAccountConnectionString;
         private readonly string _routingStorageAccountConnectionString;
         private readonly BlobServiceClient _dexBlobServiceClient;
         private readonly BlobServiceClient _routingBlobServiceClient;
         private readonly BlobContainerClient _tusContainerClient;
         private readonly BlobServiceClient _edavBlobServiceClient;
-        private readonly string _uploadConfigContainer; 
+        private readonly IBulkUploadSvcBusClient _bulkUploadSvcBusClient;
+        private readonly string _uploadConfigContainer;
 
-        public UploadProcessingService(ILoggerFactory loggerFactory, IProcStatClient procStatClient,
+
+
+        public UploadProcessingService(ILoggerFactory loggerFactory, IBulkUploadSvcBusClient bulkUploadSvcBusClient,
         IFeatureManagementExecutor featureManagementExecutor, IUploadEventHubService uploadEventHubService, IBlobReaderFactory blobReaderFactory)
         {
             // Get environment variables.
@@ -48,14 +50,14 @@ namespace BulkFileUploadFunctionApp.Services
             _routingStorageAccountKey = Environment.GetEnvironmentVariable("ROUTING_STORAGE_ACCOUNT_KEY", EnvironmentVariableTarget.Process) ?? "";
             _edavUploadRootContainerName = Environment.GetEnvironmentVariable("EDAV_UPLOAD_ROOT_CONTAINER_NAME", EnvironmentVariableTarget.Process) ?? "upload";
             _routingUploadRootContainerName = Environment.GetEnvironmentVariable("ROUTING_UPLOAD_ROOT_CONTAINER_NAME", EnvironmentVariableTarget.Process) ?? "routeingress";
-            _uploadConfigContainer =  Environment.GetEnvironmentVariable("UPLOAD_CONFIGS", EnvironmentVariableTarget.Process) ?? "upload-configs";
-            
+            _uploadConfigContainer = Environment.GetEnvironmentVariable("UPLOAD_CONFIGS", EnvironmentVariableTarget.Process) ?? "upload-configs";
+
+
             // Instantiate helper services.
             _logger = loggerFactory.CreateLogger<UploadProcessingService>();
             _blobCopyHelper = new(_logger);
             _blobReader = blobReaderFactory.CreateInstance(_logger);
             _featureManagementExecutor = featureManagementExecutor;
-            _procStatClient = procStatClient;
 
             _uploadEventHubService = uploadEventHubService;
             _dexStorageAccountConnectionString = $"DefaultEndpointsProtocol=https;AccountName={_dexAzureStorageAccountName};AccountKey={_dexAzureStorageAccountKey};EndpointSuffix=core.windows.net";
@@ -69,6 +71,8 @@ namespace BulkFileUploadFunctionApp.Services
                 new Uri($"https://{_edavAzureStorageAccountName}.blob.core.windows.net"),
                 new DefaultAzureCredential() // using Service Principal
             );
+
+            _bulkUploadSvcBusClient = bulkUploadSvcBusClient;
         }
 
         public async Task<CopyPrereqs> GetCopyPrereqs(string blobCreatedUrl)
@@ -93,11 +97,6 @@ namespace BulkFileUploadFunctionApp.Services
                     throw new TusInfoFileException("received info file without an upload ID");
                 }
 
-                // Get trace
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    trace = await _procStatClient.GetTraceByUploadId(uploadId);
-                });
 
                 HydrateMetadata(tusInfoFile);
 
@@ -106,18 +105,61 @@ namespace BulkFileUploadFunctionApp.Services
                 useCase = tusInfoFile.GetUseCase();
                 useCaseCategory = tusInfoFile.GetUseCaseCategory();
                 destinationContainerName = $"{useCase}-{useCaseCategory}";
-                string uploadConfigFilename = $"{useCase}-{useCaseCategory}.json";
+                string uploadConfigFilename = $"{useCase}-{useCaseCategory}.json".ToLower();
 
                 var uploadConfig = await GetUploadConfig(uploadConfigFilename, version);
                 _logger.LogInformation($"Got upload config for {version}: {JsonSerializer.Serialize(uploadConfig)}");
                 // translate V1 metadata 
                 if (version == MetadataVersion.V1)
                 {
-                    var uploadConfigV2 = await GetUploadConfig(uploadConfigFilename, MetadataVersion.V2);
+                    // Get metadata v2 config filename.
+                    // Default to v1 filename.
+                    string uploadConfigV2Filename = uploadConfigFilename;
+
+                    if (!String.IsNullOrEmpty(uploadConfig.CompatComfigFilename))
+                    {
+                        uploadConfigV2Filename = uploadConfig.CompatComfigFilename;
+                    }
+
+                    var uploadConfigV2 = await GetUploadConfig(uploadConfigV2Filename, MetadataVersion.V2);
                     _logger.LogInformation($"Translating to {JsonSerializer.Serialize(uploadConfigV2)}");
-                    tusInfoFile.MetaData = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
+                    var transformedMetadata = TranslateMetadata(tusInfoFile.MetaData, uploadConfigV2);
+
+                    // Combine v1 and v2 metadata
+                    var transformItems = new List<MetadataItem>();
+                    transformedMetadata.ToList().ForEach(x => {
+                        tusInfoFile.MetaData[x.Key] = x.Value;
+                        transformItems.Add(new MetadataItem
+                        {
+                            Field = x.Key,
+                            Value = x.Value
+                        });
+                    });
+
+                    // Publish report for transformed metadata.
+                    var report = new Report
+                    {
+                        UploadId = uploadId,
+                        DataStreamId = useCase,
+                        DataStreamRoute = useCaseCategory,
+                        StageName = "dex-metadata-transform",
+                        DispositionType = "add",
+                        ContentType = "json",
+                        Content = new BulkMetadataTransformContent
+                        {
+                            SchemaName = "dex-metadata-transform",
+                            SchemaVersion = "1.0",
+                            Transforms = new BulkMetadataTransform
+                            {
+                                Action = "add",
+                                Items = transformItems
+                            }
+                        }
+                    };
+
+                    await _bulkUploadSvcBusClient.PublishReport(report);
                 }
-                
+
                 string? filename = tusInfoFile.MetaData!.GetValueOrDefault("received_filename", null);
 
                 // Get dex folder and filename 
@@ -128,63 +170,58 @@ namespace BulkFileUploadFunctionApp.Services
                 var fileNameSuffix = GetFilenameSuffix(uploadConfig, uploadId);
                 var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filename);
                 var fileExtension = Path.GetExtension(filename);
-            
+
                 string destinationBlobFilename = $"{folderPath}/{fileNameWithoutExtension}{fileNameSuffix}{fileExtension}";
 
                 // Get copy targets
                 List<CopyTargetsEnum> targets = uploadConfig.CopyConfig.TargetEnums;
-                
+
                 return new CopyPrereqs(uploadId,
                                     blobCreatedUrl,
-                                    tusPayloadFilename, 
-                                    useCase, 
-                                    useCaseCategory, 
-                                    destinationBlobFilename, 
-                                    tusInfoFile.MetaData, 
+                                    tusPayloadFilename,
+                                    useCase,
+                                    useCaseCategory,
+                                    destinationBlobFilename,
+                                    tusInfoFile.MetaData,
                                     targets,
                                     trace);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError("Failed to copy from TUS to Dex");
                 ExceptionUtils.LogErrorDetails(ex, _logger);
-                
-                // Send copy failure report
-                SendFailureReport(uploadId, useCase, useCaseCategory, blobCreatedUrl, destinationContainerName, $"Failed to get copy preqs: {ex.Message}");
 
-                throw ex;
+                // Send copy failure report
+                await SendFailureReport(
+                    uploadId,
+                    useCase,
+                    useCaseCategory,
+                    "DEX",
+                    $"Failed to get copy preqs: {ex.Message}");
+
+                throw;
             }
         }
+
         public async Task CopyAll(CopyPrereqs copyPrereqs)
         {
             Span? copySpan = null;
 
             try
             {
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    copySpan = await _procStatClient.StartSpanForTrace(copyPrereqs.Trace.TraceId, copyPrereqs.Trace.SpanId, Constants.PROC_STAT_REPORT_STAGE_NAME);
-                });
 
                 copyPrereqs.DexBlobUrl = await CopyFromTusToDex(copyPrereqs);
 
                 // copy to targets
                 await CopyFromDexToTarget(copyPrereqs);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 ExceptionUtils.LogErrorDetails(ex, _logger);
                 throw ex;
             }
-            finally
-            {
-                if(copySpan != null) 
-                {
-                    await _procStatClient.StopSpanForTrace(copyPrereqs.Trace.TraceId, copySpan.SpanId);
-                }
-            }
         }
-               
+
         /// <summary>
         /// Copies a blob from the tus upload folder to the DEX storage account
         /// </summary>
@@ -218,17 +255,14 @@ namespace BulkFileUploadFunctionApp.Services
                 _logger.LogError("Failed to copy blob from TUS to Dex");
 
                 // Send copy failure report
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    SendFailureReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.SourceBlobUrl, 
-                                      copyPrereqs.DexBlobFolderName, 
-                                      $"Failed to copy blob from TUS to DEX. {ex.Message}");
-                });
 
-                throw ex;
+                await SendFailureReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "DEX",
+                                    $"Failed to copy blob from TUS to DEX. {ex.Message}");
+
+                throw;
             }
         }
 
@@ -244,7 +278,7 @@ namespace BulkFileUploadFunctionApp.Services
                     {
                         await CopyFromDexToEdav(copyPrereqs);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         // publish retry event
                         await PublishRetryEvent(BlobCopyStage.CopyToEdav,
@@ -264,15 +298,16 @@ namespace BulkFileUploadFunctionApp.Services
                         {
                             _logger.LogInformation($"Routing is disabled. Bypassing routing for blob");
                         });
-                    } catch (Exception ex)
+                    }
+                    catch (Exception ex)
                     {
                         // publish retry event
                         await PublishRetryEvent(BlobCopyStage.CopyToRouting,
                                                 copyPrereqs);
                     }
-                    
+
                 }
-            }        
+            }
         }
 
         /// <summary>
@@ -301,32 +336,24 @@ namespace BulkFileUploadFunctionApp.Services
                 await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
 
                 // Send copy success report
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    SendSuccessReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.DexBlobUrl, 
-                                      destBlobClient.Uri.ToString());
-                });
+                await SendSuccessReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "edav");
             }
             catch (Exception ex)
             {
                 _logger.LogError("Failed to copy from Dex to Edav");
-                ExceptionUtils.LogErrorDetails(ex, _logger);               
+                ExceptionUtils.LogErrorDetails(ex, _logger);
 
                 // Send copy failure report
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    SendFailureReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.DexBlobUrl, 
-                                      destinationContainerName, 
-                                      $"Failed to copy blob from DEX to EDAV. {ex.Message}");
-                });
+                await SendFailureReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "edav",
+                                    $"Failed to copy blob from DEX to EDAV. {ex.Message}");
 
-                throw ex;
+                throw;
             }
         }
 
@@ -355,14 +382,10 @@ namespace BulkFileUploadFunctionApp.Services
                 await _blobCopyHelper.CopyBlobStreamAsync(sourceBlobClient, destBlobClient, copyPrereqs.Metadata);
 
                 // Send copy success report
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    SendSuccessReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.DexBlobUrl, 
-                                      destBlobClient.Uri.ToString());
-                });
+                await SendSuccessReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "routing");
             }
             catch (Exception ex)
             {
@@ -370,17 +393,13 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);
 
                 // Send copy failure report
-                await _featureManagementExecutor.ExecuteIfEnabledAsync(Constants.PROC_STAT_FEATURE_FLAG_NAME, async () =>
-                {
-                    SendFailureReport(copyPrereqs.UploadId, 
-                                      copyPrereqs.UseCase, 
-                                      copyPrereqs.UseCaseCategory, 
-                                      copyPrereqs.DexBlobUrl, 
-                                      destinationContainerName, 
-                                      $"Failed to copy blob from DEX to ROUTING. {ex.Message}");
-                });
+                await SendFailureReport(copyPrereqs.UploadId,
+                                    copyPrereqs.UseCase,
+                                    copyPrereqs.UseCaseCategory,
+                                    "routing",
+                                    $"Failed to copy blob from DEX to ROUTING. {ex.Message}");
 
-                throw ex;
+                throw;
             }
         }
 
@@ -388,7 +407,7 @@ namespace BulkFileUploadFunctionApp.Services
         {
             string suffix = string.Empty; // Default to no suffix.
 
-            if (uploadConfig.CopyConfig?.FilenameSuffix == CopyConfig.FILENAME_SIFFIX_UID)
+            if (uploadConfig.CopyConfig?.FilenameSuffix == CopyConfig.FILENAME_SUFFIX_UID)
             {
                 suffix = $"_{uploadId}";
             }
@@ -399,14 +418,14 @@ namespace BulkFileUploadFunctionApp.Services
         private async Task<TusInfoFile> GetTusInfoFile(string tusPayloadFilename)
         {
             // GET FILE METADATA
-            string tusInfoFilename = $"{tusPayloadFilename}.info";             
+            string tusInfoFilename = $"{tusPayloadFilename}.info";
             _logger.LogInformation($"Retrieving tus info file: {tusInfoFilename}");
 
             TusInfoFile tusInfoFile = await _blobReader.GetObjectFromBlobJsonContent<TusInfoFile>(_dexStorageAccountConnectionString, _tusAzureStorageContainer, tusInfoFilename);
 
             if (tusInfoFile.ID == null)
                 throw new Exception("Malformed tus info file. No ID provided.");
-            
+
             if (tusInfoFile.MetaData == null)
                 throw new TusInfoFileException("tus info file required metadata is missing");
 
@@ -417,12 +436,14 @@ namespace BulkFileUploadFunctionApp.Services
         {
             var uploadConfig = UploadConfig.Default;
             var configFilename = $"{versionNum.ToString().ToLower()}/{filename}";
+            _logger.LogInformation($"Getting upload config file {configFilename}");
 
             try
             {
                 // Determine the filename and subfolder creation schemes for this destination/event.
                 uploadConfig = await _blobReader.GetObjectFromBlobJsonContent<UploadConfig>(_dexStorageAccountConnectionString, _uploadConfigContainer, configFilename);
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 _logger.LogError($"No upload config found for {configFilename}.  Using default config. Exception = {e.Message}");
             }
@@ -441,7 +462,7 @@ namespace BulkFileUploadFunctionApp.Services
             uploadConfig.CopyConfig.TargetEnums = targetEnums;
 
             return uploadConfig;
-        }           
+        }
 
         /// <summary>
         /// Determines the folder path from the upload configuration.
@@ -477,7 +498,7 @@ namespace BulkFileUploadFunctionApp.Services
 
         private Dictionary<string, string> TranslateMetadata(Dictionary<string, string> fromMetadata, UploadConfig toConfig)
         {
-            Dictionary<string, string> toMetadata = new Dictionary<string, string>(fromMetadata);
+            Dictionary<string, string> toMetadata = new Dictionary<string, string>();
 
             if (toConfig.MetadataConfig == null || toConfig.MetadataConfig.Fields == null || toConfig.MetadataConfig.Version == null)
             {
@@ -494,7 +515,7 @@ namespace BulkFileUploadFunctionApp.Services
                 }
 
                 // Skip if field already provided.
-                if (toMetadata.ContainsKey(field.FieldName))
+                if (fromMetadata.ContainsKey(field.FieldName))
                 {
                     continue;
                 }
@@ -507,7 +528,7 @@ namespace BulkFileUploadFunctionApp.Services
 
                 if (field.CompatFieldName != null)
                 {
-                    toMetadata[field.FieldName] = toMetadata.GetValueOrDefault(field.CompatFieldName, "");
+                    toMetadata[field.FieldName] = fromMetadata.GetValueOrDefault(field.CompatFieldName, "");
                     continue;
                 }
 
@@ -526,8 +547,8 @@ namespace BulkFileUploadFunctionApp.Services
         }
 
         public async Task PublishRetryEvent(BlobCopyStage copyStage, CopyPrereqs copyPrereqs)
-        {            
-            try 
+        {
+            try
             {
                 BlobCopyRetryEvent blobCopyRetryEvent = new BlobCopyRetryEvent();
                 blobCopyRetryEvent.CopyRetryStage = copyStage;
@@ -541,22 +562,50 @@ namespace BulkFileUploadFunctionApp.Services
                 ExceptionUtils.LogErrorDetails(ex, _logger);
             }
         }
-        private void SendSuccessReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destPath)
+        private async Task SendSuccessReport(string uploadId, string destinationId, string eventType, string destStorageId)
         {
-            _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
+            var successReport = new Report
             {
-                var successReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destPath, result: "success");
-                _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, successReport);
-            });
+                UploadId = uploadId,
+                DataStreamId = destinationId,
+                DataStreamRoute = eventType,
+                StageName = Constants.PROC_STAT_REPORT_STAGE_NAME,
+                ContentType = "json",
+                DispositionType = "add",
+                Content = new CopyContent("success", destStorageId)
+            };
+
+            try
+            {
+                await _bulkUploadSvcBusClient.PublishReport(successReport);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send success report");
+            }
         }
 
-        private void SendFailureReport(string uploadId, string destinationId, string eventType, string sourceBlobUrl, string destinationContainerName, string error)
+        private async Task SendFailureReport(string uploadId, string destinationId, string eventType, string destStorageId, string error)
         {
-            _featureManagementExecutor.ExecuteIfEnabled(Constants.PROC_STAT_FEATURE_FLAG_NAME, () =>
+            Report failReport = new Report
             {
-                CopyReport failReport = new CopyReport(sourceUrl: sourceBlobUrl, destUrl: destinationContainerName, result: "failure", errorDesc: error);
-                _procStatClient.CreateReport(uploadId, destinationId, eventType, Constants.PROC_STAT_REPORT_STAGE_NAME, failReport);
-            });
+                UploadId = uploadId,
+                DataStreamId = destinationId,
+                DataStreamRoute = eventType,
+                StageName = Constants.PROC_STAT_REPORT_STAGE_NAME,
+                ContentType = "json",
+                DispositionType = "add",
+                Content = new CopyContent("fail", destStorageId, error)
+            };
+            try
+            {
+                await _bulkUploadSvcBusClient.PublishReport(failReport);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send failure report");
+            }
+
         }
     }
 }

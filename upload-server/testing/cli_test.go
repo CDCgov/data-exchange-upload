@@ -9,10 +9,11 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
 var (
@@ -21,22 +22,23 @@ var (
 
 func TestTus(t *testing.T) {
 	url := ts.URL
+
 	for name, c := range Cases {
 		tuid, err := RunTusTestCase(url, "test/test.txt", c)
+		time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
+
 		if err != nil {
 			t.Error(name, err)
 		} else {
 
 			if tuid != "" {
-
 				f, err := os.Open("test/reports/" + tuid)
 				if err != nil {
 					t.Error(name, tuid, err)
 				}
 
-				// TODO: Expand test to check both metadata verify and upload status reports.
-				metadataReportCount, uploadStatusReportCount := 0, 0
-				rMetadata, rUploadStatus := &metadata.Report{}, &metadata.Report{}
+				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount, metadataTransformReportCount := 0, 0, 0, 0, 0
+				rMetadata, rUploadStatus := &models.Report{}, &models.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
 					t.Fatal(name, tuid, err)
@@ -46,6 +48,12 @@ func TestTus(t *testing.T) {
 				for rScanner.Scan() {
 					rLine := rScanner.Text()
 					rLineBytes := []byte(rLine)
+
+					if strings.Contains(rLine, "dex-metadata-transform") {
+						metadataTransformReportCount++
+						continue
+					}
+
 					if strings.Contains(rLine, "dex-metadata-verify") {
 						// Processing a metadata verify report
 						metadataReportCount++
@@ -74,6 +82,20 @@ func TestTus(t *testing.T) {
 
 						continue
 					}
+
+					if strings.Contains(rLine, "dex-upload-started") {
+						uploadStartedReportCount++
+						continue
+					}
+
+					if strings.Contains(rLine, "dex-upload-complete") {
+						uploadCompleteReportCount++
+						continue
+					}
+				}
+
+				if metadataTransformReportCount != 2 {
+					t.Error("expected two metadata transform reports but got", metadataTransformReportCount)
 				}
 
 				if metadataReportCount != 1 {
@@ -84,12 +106,20 @@ func TestTus(t *testing.T) {
 					t.Error("expected at least one upload status report count but got none")
 				}
 
+				if uploadStartedReportCount != 1 {
+					t.Error("at least one upload started report count but got none", uploadStartedReportCount)
+				}
+
+				if uploadCompleteReportCount != 1 {
+					t.Error("at least one upload complete report count but got none", uploadCompleteReportCount)
+				}
+
 				if c.err != nil {
-					if rMetadata.Content.(metadata.MetaDataVerifyContent).Issues == nil {
+					if rMetadata.Content.(models.MetaDataVerifyContent).Issues == nil {
 						t.Error("expected reported issues but got none", name, tuid, rMetadata)
 					}
 
-					if rUploadStatus.Content.(metadata.UploadStatusContent).Offset != rUploadStatus.Content.(metadata.UploadStatusContent).Size {
+					if rUploadStatus.Content.(models.UploadStatusContent).Offset != rUploadStatus.Content.(models.UploadStatusContent).Size {
 						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, rUploadStatus)
 					}
 				}
