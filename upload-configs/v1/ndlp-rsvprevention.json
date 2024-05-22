@@ -1,6 +1,6 @@
 {
 	"metadata_config": {
-		"schema_version": "1.0",
+		"version": "1.0",
 		"fields": [
 			{
 				"field_name": "meta_ext_source",

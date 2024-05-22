@@ -25,7 +25,7 @@ func TestTus(t *testing.T) {
 
 	for name, c := range Cases {
 		tuid, err := RunTusTestCase(url, "test/test.txt", c)
-		time.Sleep(2 * time.Second) // TODO: Find a better way to wait for all the hooks to finish.
+		time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
 
 		if err != nil {
 			t.Error(name, err)
@@ -37,7 +37,7 @@ func TestTus(t *testing.T) {
 					t.Error(name, tuid, err)
 				}
 
-				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount := 0, 0, 0, 0
+				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount, metadataTransformReportCount := 0, 0, 0, 0, 0
 				rMetadata, rUploadStatus := &models.Report{}, &models.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
@@ -48,6 +48,12 @@ func TestTus(t *testing.T) {
 				for rScanner.Scan() {
 					rLine := rScanner.Text()
 					rLineBytes := []byte(rLine)
+
+					if strings.Contains(rLine, "dex-metadata-transform") {
+						metadataTransformReportCount++
+						continue
+					}
+
 					if strings.Contains(rLine, "dex-metadata-verify") {
 						// Processing a metadata verify report
 						metadataReportCount++
@@ -86,6 +92,10 @@ func TestTus(t *testing.T) {
 						uploadCompleteReportCount++
 						continue
 					}
+				}
+
+				if metadataTransformReportCount != 2 {
+					t.Error("expected two metadata transform reports but got", metadataTransformReportCount)
 				}
 
 				if metadataReportCount != 1 {
