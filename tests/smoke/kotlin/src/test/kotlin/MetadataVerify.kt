@@ -13,6 +13,7 @@ import util.Constants.Companion.TEST_EVENT
 class MetadataVerify {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
     private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
+    private lateinit var authToken: String
     private lateinit var uploadClient: UploadClient
     private lateinit var metadataHappyPath: HashMap<String, String>
     private lateinit var metadataInvalidFilename: HashMap<String, String>
@@ -34,13 +35,17 @@ class MetadataVerify {
         @Optional("no-dest-id.properties") SENDER_MANIFEST_NO_DEST_ID: String,
         @Optional("no-event.properties") SENDER_MANIFEST_NO_EVENT: String
     ) {
-        val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
-        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
+        authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
 
         metadataHappyPath = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST")
         metadataInvalidFilename = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_INVALID_FILENAME")
         metadataNoDestId = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_DEST_ID")
         metadataNoEvent = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_EVENT")
+    }
+
+    @BeforeMethod
+    fun beforeMethod() {
+        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY])

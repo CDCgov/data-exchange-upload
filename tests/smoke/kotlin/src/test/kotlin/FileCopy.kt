@@ -143,8 +143,4 @@ class FileCopy {
             Assert.assertEquals(v1Value, actualValueInV2, "Expected V1 key value: $v1Value does not match with actual V2 key value: $actualValueInV2")
         }
     }
-
 }
-
-
-
