@@ -14,7 +14,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/serverdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
 	"github.com/joho/godotenv"
 ) // .import
 
@@ -69,8 +68,8 @@ func init() {
 	logger = cli.AppLogger(appConfig).With(logInfo...)
 	sloger.SetDefaultLogger(logger)
 
-	explogger := cli.ExpAppLogger(appConfig).With(logInfo...)
-	slogerxexp.SetDefaultLogger(explogger)
+	//explogger := cli.ExpAppLogger(appConfig).With(logInfo...)
+	//slogerxexp.SetDefaultLogger(explogger)
 
 }
 

@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	expslog "golang.org/x/exp/slog"
+	//expslog "golang.org/x/exp/slog"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
@@ -40,6 +40,9 @@ func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 
 	appLogger := logger.With(
 		slog.Group("app_info",
+			slog.String("System", "DEX"),
+			slog.String("Product", "UPLOAD API"),
+			slog.String("App", "UPLOAD SERVER"),
 			slog.String("Env", appConfig.Environment),
 		)) // .appLogger
 
@@ -49,6 +52,7 @@ func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 // AppLogger, used to config TUSD, this is the custom application logger for uniformity
 // NOTE: currently tusd supports x/exp/slog and is moving to log/slog
 // then this package should be removed and replaced by the app logger in sloger/sloger.go
+/*
 func ExpAppLogger(appConfig appconfig.AppConfig) *expslog.Logger {
 
 	// Configure debug on if needed, otherwise should be off
@@ -73,3 +77,4 @@ func ExpAppLogger(appConfig appconfig.AppConfig) *expslog.Logger {
 
 	return appLogger
 } // .AppLogger
+*/
