@@ -346,7 +346,6 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 }
 
 func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	//logger := WithTGUID(event.Upload.ID)
 	// Get values from event
 	uploadId := event.Upload.ID
 	uploadOffset := event.Upload.Offset
@@ -387,7 +386,6 @@ func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map
 }
 
 func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest map[string]string, uploadId string) error {
-	//logger := WithTGUID(uploadId)
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
 	content := &models.UploadLifecycleContent{
 		ReportContent: models.ReportContent{
