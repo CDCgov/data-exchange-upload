@@ -55,8 +55,8 @@ class MetadataVerify {
         senderManifestNoDestId = SENDER_MANIFEST_NO_DEST_ID
         senderManifestNoEvent = SENDER_MANIFEST_NO_EVENT
 
-        uploadConfigV1 = loadUploadConfig(dexBlobClient, USE_CASE, "v1")
-        uploadConfigV2 = loadUploadConfig(dexBlobClient, USE_CASE, "v2")
+        uploadConfigV1 = loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v1")
+        uploadConfigV2 = loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v2")
         dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
 
     }
