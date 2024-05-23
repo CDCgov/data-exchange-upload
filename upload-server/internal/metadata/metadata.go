@@ -162,8 +162,9 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[st
 }
 
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	manifest := event.Upload.MetaData
+	logger = sloger.DefaultLogger
 
+	manifest := event.Upload.MetaData
 	logger.Info("checking the sender manifest:", "manifest", manifest)
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
@@ -219,6 +220,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 }
 
 func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	logger = sloger.DefaultLogger
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 	logger := logger.With(models.TGUID_KEY, tuid)
