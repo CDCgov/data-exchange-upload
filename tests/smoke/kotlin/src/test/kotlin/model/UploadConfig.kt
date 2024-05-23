@@ -7,4 +7,5 @@ import com.fasterxml.jackson.annotation.JsonProperty
 data class UploadConfig(
     @get:JsonProperty("copy_config") val copyConfig: CopyConfig,
     @get:JsonProperty("metadata_config") val metadataConfig: MetadataConfig,
+    @get:JsonProperty("compat_config_filename") val compatConfigFilename: String?
 )

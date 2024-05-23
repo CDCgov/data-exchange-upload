@@ -2,7 +2,6 @@
 <suite name="DEXTESTING TESTEVENT1 DEV" parallel="tests" thread-count="3">
     <parameter name="USE_CASE" value="dextesting-testevent1" />
     <test name="Metadata Verify">
-        <parameter name="SENDER_MANIFEST" value="dextesting-testevent1.properties"/>
         <parameter name="SENDER_MANIFEST_NO_DEST_ID" value="no-dest-id.properties" />
         <parameter name="SENDER_MANIFEST_NO_EVENT" value="no-event.properties" />
         <parameter name="SENDER_MANIFEST_INVALID_FILENAME" value="invalid-filename.properties" />
@@ -16,9 +15,6 @@
         </classes>
     </test>
     <test name="Proc Stat">
-        <!-- Define parameters for expected URLs as comma-separated lists -->
-        <parameter name="EXPECTED_SOURCE_URL_PREFIXES" value="https://ocioededataexchangedev.blob.core.windows.net/dextesting-testevent1"/>
-        <parameter name="EXPECTED_DESTINATION_URL_PREFIXES" value="https://ocioederoutingdatasadev.blob.core.windows.net/routeingress/dextesting-testevent1,https://edavdevdatalakedex.blob.core.windows.net/upload/dextesting-testevent1"/>
         <classes>
             <class name="ProcStat" />
         </classes>
