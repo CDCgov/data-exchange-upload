@@ -8,8 +8,8 @@ class DataProvider {
         @DataProvider(name = "versionProvider")
         fun versionProvider(): Array<Array<String>> {
             return arrayOf(
-                arrayOf("V1"),
-                arrayOf("V2")
+                arrayOf("v1"),
+                arrayOf("v2")
             )
         }
     }
