@@ -71,9 +71,9 @@ class MetadataVerify {
         dataProvider = "versionProvider", dataProviderClass = DataProvider::class
     )
     fun shouldUploadFileGivenRequiredMetadata(context: ITestContext, version: String) {
-        metadata = Metadata.getMetadataMap(version, useCase, senderManifest)
+        metadata = Metadata.getSenderManifest(version, useCase, senderManifest)
         val uploadId = uploadClient.uploadFile(testFile, metadata)
-        context.setAttribute("uploadId_$version", uploadId)
+        context.setAttribute("uploadId", uploadId)
         Assert.assertNotNull(uploadId)
     }
 
@@ -84,7 +84,7 @@ class MetadataVerify {
         dataProvider = "versionProvider", dataProviderClass = DataProvider::class
     )
     fun shouldReturnErrorWhenDestinationIDNotProvided(version: String) {
-        metadata = Metadata.getMetadataMap(version, useCase, senderManifestNoDestId)
+        metadata = Metadata.getSenderManifest(version, useCase, senderManifestNoDestId)
         uploadClient.uploadFile(testFile, metadata)
     }
 
@@ -95,7 +95,7 @@ class MetadataVerify {
         dataProvider = "versionProvider", dataProviderClass = DataProvider::class
     )
     fun shouldReturnErrorWhenEventNotProvided(version: String) {
-        metadata = Metadata.getMetadataMap(version, useCase, senderManifestNoEvent)
+        metadata = Metadata.getSenderManifest(version, useCase, senderManifestNoEvent)
         uploadClient.uploadFile(testFile, metadata)
     }
 
@@ -121,7 +121,7 @@ class MetadataVerify {
         dataProvider = "versionProvider", dataProviderClass = DataProvider::class
     )
     fun shouldReturnErrorWhenFilenameContainsInvalidChars(version: String) {
-        metadata = Metadata.getMetadataMap(version, useCase, senderManifestInvalidFilename)
+        metadata = Metadata.getSenderManifest(version, useCase, senderManifestInvalidFilename)
         uploadClient.uploadFile(testFile, metadata)
     }
 
@@ -131,7 +131,7 @@ class MetadataVerify {
     )
     fun shouldValidateMetadataWithSenderManifest(version: String) {
 
-        metadata = Metadata.getMetadataMap(version, useCase, senderManifest)
+        metadata = Metadata.getSenderManifest(version, useCase, senderManifest)
         val uploadId = uploadClient.uploadFile(testFile, metadata)
 
         val uploadConfig = if (version == "V1") uploadConfigV1 else uploadConfigV2

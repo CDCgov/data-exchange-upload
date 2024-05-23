@@ -32,7 +32,6 @@ class Metadata {
             return "$useCaseDir/${date.year}/$month/$day"
         }
 
-
         // Using Calendar due to deprecation of Date.
         fun getFilePrefixByDate(date: DateTime): String {
             // Pad date numbers with 0.
@@ -41,16 +40,7 @@ class Metadata {
             return "${date.year}/$month/$day"
         }
 
-        @JvmStatic
-        @DataProvider(name = "versionProvider")
-        fun versionProvider(): Array<Array<String>> {
-            return arrayOf(
-                arrayOf("V1"),
-                arrayOf("V2")
-            )
-        }
-
-        fun getMetadataMap(version: String, useCase: String, manifest: String): HashMap<String, String> {
+        fun getSenderManifest(version: String, useCase: String, manifest: String): HashMap<String, String> {
             val path = getMetadataPath(version, useCase, manifest)
             return convertPropertiesToMetadataMap(path)
         }
@@ -60,7 +50,3 @@ class Metadata {
         }
     }
 }
-
-
-
-
