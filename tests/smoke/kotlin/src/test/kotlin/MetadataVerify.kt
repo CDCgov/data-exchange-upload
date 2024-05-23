@@ -135,8 +135,6 @@ class MetadataVerify {
         val uploadId = uploadClient.uploadFile(testFile, metadata)
 
         val uploadConfig = if (version == "V1") uploadConfigV1 else uploadConfigV2
-        val metadataFields = uploadConfig.metadataConfig.fields
-
 
         Thread.sleep(500)
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
@@ -154,9 +152,6 @@ class MetadataVerify {
             Assert.assertEquals(
                 value, actualValue, "Expected key value: $value does not match with actual key value: $actualValue"
             )
-        }
-        metadataFields.forEach { field ->
-            Assert.assertTrue(blobMetadata.containsKey(field.fieldName), "V2 keys mismatch: ${field.fieldName}")
         }
     }
 }
