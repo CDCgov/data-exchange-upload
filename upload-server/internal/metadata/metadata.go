@@ -172,7 +172,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	if tuid == "" {
 		return resp, errors.New("no Upload ID defined")
 	}
-
+	logger := WithTGUID(tuid)
 	content := &models.MetaDataVerifyContent{
 		ReportContent: models.ReportContent{
 			SchemaVersion: "0.0.1",
@@ -219,10 +219,9 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 }
 
 func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
-
+	logger := WithTGUID(tuid)
 	logger.Info("Generated UUID", "UUID", tuid)
 
 	content := &models.MetaDataTransformContent{
@@ -262,7 +261,7 @@ func WithTGUID(tguid string) *slog.Logger {
 
 func (v *HookEventHandler) WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tguid := event.Upload.ID
-
+	logger := WithTGUID(tguid)
 	if resp.ChangeFileInfo.ID != "" {
 		tguid = resp.ChangeFileInfo.ID
 	}
@@ -316,7 +315,7 @@ type HookEventHandler struct {
 }
 
 func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, manifest map[string]string, ctx context.Context) error {
-	log := WithTGUID(tguid)
+	logger := WithTGUID(tguid)
 	content := &models.UploadStatusContent{
 		ReportContent: models.ReportContent{
 			SchemaVersion: "1.0",
@@ -338,15 +337,16 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 		Content:         content,
 	}
 
-	log.Info("REPORT", "report", report)
+	logger.Info("REPORT", "report", report)
 	if err := v.Reporter.Publish(ctx, report); err != nil {
-		log.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
+		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
 	}
 
 	return nil
 }
 
 func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	logger := WithTGUID(event.Upload.ID)
 	// Get values from event
 	uploadId := event.Upload.ID
 	uploadOffset := event.Upload.Offset
@@ -361,7 +361,9 @@ func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookR
 }
 
 func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map[string]string, uploadId string) error {
+	logger := WithTGUID(uploadId)
 	logger.Info("Attempting to report upload started", "uploadId", uploadId)
+
 	content := &models.UploadLifecycleContent{
 		ReportContent: models.ReportContent{
 			SchemaVersion: "1.0",
@@ -385,6 +387,7 @@ func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map
 }
 
 func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest map[string]string, uploadId string) error {
+	logger := WithTGUID(uploadId)
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
 	content := &models.UploadLifecycleContent{
 		ReportContent: models.ReportContent{
@@ -410,6 +413,7 @@ func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest m
 
 func (v *HookEventHandler) PostCreate(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	if err := v.ReportUploadStarted(event.Context, event.Upload.MetaData, event.Upload.ID); err != nil {
+		logger := WithTGUID(event.Upload.ID)
 		logger.Error("Failed to report upload started", "UUID", event.Upload.ID, "err", err)
 	}
 	return resp, nil
@@ -417,6 +421,7 @@ func (v *HookEventHandler) PostCreate(event handler.HookEvent, resp hooks.HookRe
 
 func (v *HookEventHandler) PostFinish(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	if err := v.ReportUploadCompleted(event.Context, event.Upload.MetaData, event.Upload.ID); err != nil {
+		logger := WithTGUID(event.Upload.ID)
 		logger.Error("Failed to report upload completed", "UUID", event.Upload.ID, "err", err)
 	}
 	return resp, nil
