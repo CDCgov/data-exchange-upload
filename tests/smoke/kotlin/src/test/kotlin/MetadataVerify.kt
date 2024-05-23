@@ -21,23 +21,24 @@ class MetadataVerify {
     private lateinit var metadataNoEvent: HashMap<String, String>
 
     @Parameters(
-        "USE_CASE",
         "SENDER_MANIFEST",
+        "USE_CASE",
         "SENDER_MANIFEST_INVALID_FILENAME",
         "SENDER_MANIFEST_NO_DEST_ID",
         "SENDER_MANIFEST_NO_EVENT",
     )
     @BeforeTest(groups = [Constants.Groups.METADATA_VERIFY])
     fun beforeTest(
+        @Optional SENDER_MANIFEST: String?,
         @Optional("dextesting-testevent1") USE_CASE: String,
-        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
         @Optional("invalid-filename.properties") SENDER_MANIFEST_INVALID_FILENAME: String,
         @Optional("no-dest-id.properties") SENDER_MANIFEST_NO_DEST_ID: String,
         @Optional("no-event.properties") SENDER_MANIFEST_NO_EVENT: String
     ) {
         authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
 
-        metadataHappyPath = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST")
+        val happyPathFile = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
+        metadataHappyPath = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$happyPathFile")
         metadataInvalidFilename = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_INVALID_FILENAME")
         metadataNoDestId = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_DEST_ID")
         metadataNoEvent = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_EVENT")

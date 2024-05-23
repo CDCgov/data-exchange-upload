@@ -2,7 +2,6 @@
 <suite name="NDLP RSVPREVENTION STG" parallel="tests" thread-count="3">
     <parameter name="USE_CASE" value="ndlp-rsvprevention" />
     <test name="Metadata Verify">
-        <parameter name="SENDER_MANIFEST" value="ndlp-rsvprevention.properties"/>
         <parameter name="SENDER_MANIFEST_NO_DEST_ID" value="no-dest-id.properties" />
         <parameter name="SENDER_MANIFEST_NO_EVENT" value="no-event.properties" />
         <parameter name="SENDER_MANIFEST_INVALID_FILENAME" value="invalid-filename.properties" />
@@ -11,21 +10,11 @@
         </classes>
     </test>
     <test name="File Copy">
-        <parameter name="SENDER_MANIFEST" value="ndlp-rsvprevention.properties"/>
         <classes>
             <class name="FileCopy" />
         </classes>
     </test>
     <test name="Proc Stat">
-        <parameter name="SENDER_MANIFEST" value="ndlp-rsvprevention.properties"/>
-        <!-- Define parameters for expected URLs as comma-separated lists -->
-        <parameter name="EXPECTED_SOURCE_URL_PREFIXES" value="https://ocioededataexchangestg.blob.core.windows.net/ndlp-rsvprevention"/>
-        <parameter name="EXPECTED_DESTINATION_URL_PREFIXES" value="https://edavprddatalakedexstg.blob.core.windows.net/upload/ndlp-rsvprevention"/>
-        <groups>
-            <run>
-                <exclude name="proc-stat-trace" />
-            </run>
-        </groups>
         <classes>
             <class name="ProcStat" />
         </classes>
