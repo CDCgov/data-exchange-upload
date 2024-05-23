@@ -37,6 +37,9 @@ namespace BulkFileUploadFunctionApp.Utils
             string edavAzureStorageAccountName = string.Empty;
             string containerName = string.Empty;
             string serviceBusName = string.Empty;
+           // string tenantId = string.Empty;
+            //string clientId = string.Empty;
+            //string clientSecret = string.Empty;
 
             BlobServiceClient blobServiceClient = null;
             HealthCheckResult checkResult = null;
@@ -50,12 +53,14 @@ namespace BulkFileUploadFunctionApp.Utils
                  new DefaultAzureCredential() // using Service Principal                 
              );
 
-             checkResult = await CheckBlobStorageHealthAsync(storage, containerName, blobServiceClient);
-            } else if (storage == "PS API Service Bus"){
-                serviceBusName= "PS API Service Bus";
+                checkResult = await CheckBlobStorageHealthAsync(storage, containerName, blobServiceClient);
+            }
+            else if (storage == "PS API Service Bus")
+            {
+                serviceBusName = "PS API Service Bus";
                 string keyVaultUrl = "https://ocio-dev-upload-vault.vault.azure.net";
                 string secretName = "ps-service-bus-connection-str";
-                connectionString = await GetServiceBusConnectionString(keyVaultUrl, secretName);    
+                connectionString = await GetServiceBusConnectionString(keyVaultUrl, secretName);
                 bool isServiceBusHealthy = await IsServiceBusHealthy(connectionString);
                 checkResult = await CheckServiceBusHealthAsync(storage, serviceBusName, isServiceBusHealthy);
 
@@ -80,7 +85,7 @@ namespace BulkFileUploadFunctionApp.Utils
                 checkResult = await CheckBlobStorageHealthAsync(storage, containerName, blobServiceClient);
             }
 
-            _logger.LogInformation($"Checking health for destination: {storage}");           
+            _logger.LogInformation($"Checking health for destination: {storage}");
 
             return checkResult;
 
@@ -107,40 +112,43 @@ namespace BulkFileUploadFunctionApp.Utils
 
         private async Task<HealthCheckResult> CheckServiceBusHealthAsync(string destination, string serviceBusName, bool isServiceBusHealthy)
         {
-           
-               if (isServiceBusHealthy)
-                 {
-                    _logger.LogInformation($"Health check passed for Service Bus: {serviceBusName}");
-                     return new HealthCheckResult(destination, "UP", "Healthy");                     
-                 }
-                else
-                 {
-                     _logger.LogInformation($"Error occurred while checking {serviceBusName} Service Bus health.");
-                     return new HealthCheckResult(destination, "DOWN", "Unhealthy");
-                 }
-          
+
+            if (isServiceBusHealthy)
+            {
+                _logger.LogInformation($"Health check passed for Service Bus: {serviceBusName}");
+                return new HealthCheckResult(destination, "UP", "Healthy");
+            }
+            else
+            {
+                _logger.LogInformation($"Error occurred while checking {serviceBusName} Service Bus health.");
+                return new HealthCheckResult(destination, "DOWN", "Unhealthy");
+            }
+
         }
 
         private static async Task<bool> IsServiceBusHealthy(string connectionString)
         {
-        try
-        {
-        await using (var client = new ServiceBusClient(connectionString))
-        {              
-            return true;
-        }
-        }
-        catch (Exception ex)
-        {        
-            return false;
-        }
+            try
+            {
+                await using (var client = new ServiceBusClient(connectionString))
+                {
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
 
-       public static async Task<string> GetServiceBusConnectionString(string keyVaultUrl, string secretName)
+        public async Task<string> GetServiceBusConnectionString(string keyVaultUrl, string secretName)
         {
-            var client = new SecretClient(new Uri(keyVaultUrl), new DefaultAzureCredential());
+            string tenantId = _environmentVariableProvider.GetEnvironmentVariable("AZURE_TENANT_ID");
+            string clientId = _environmentVariableProvider.GetEnvironmentVariable("AZURE_CLIENT_ID");
+            string clientSecret = _environmentVariableProvider.GetEnvironmentVariable("AZURE_CLIENT_SECRET");
+            var client = new SecretClient(new Uri(keyVaultUrl), new ClientSecretCredential(tenantId, clientId, clientSecret));
             KeyVaultSecret secret = await client.GetSecretAsync(secretName);
-             return secret.Value;
+            return secret.Value;
         }
     }
 }
