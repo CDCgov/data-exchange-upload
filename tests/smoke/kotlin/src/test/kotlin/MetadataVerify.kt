@@ -134,7 +134,7 @@ class MetadataVerify {
         metadata = Metadata.getSenderManifest(version, useCase, senderManifest)
         val uploadId = uploadClient.uploadFile(testFile, metadata)
 
-        val uploadConfig = if (version == "V1") uploadConfigV1 else uploadConfigV2
+        val uploadConfig = if (version == "v1") uploadConfigV1 else uploadConfigV2
 
         Thread.sleep(500)//sleep is to wait for the uploaded test file to be routed to the destination storage container.
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
