@@ -83,6 +83,20 @@ paths:
                   status:
                     type: string
                     example: "UP"
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        service:
+                          type: string
+                          example: "Azure Service Bus"
+                        status:
+                          type: string
+                          example: "UP"
+                        health_issue:
+                          type: string
+                          example: "None reported"
 
   "/{tguid}":
     get:
