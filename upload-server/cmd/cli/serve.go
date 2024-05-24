@@ -17,8 +17,9 @@ import (
 )
 
 func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
-	logger = sloger.DefaultLogger
-
+	if sloger.DefaultLogger != nil {
+		logger = sloger.DefaultLogger
+	}
 	// initialize processing status health checker
 	psHealth, err := pshealth.New(appConfig)
 	if err != nil {

@@ -35,8 +35,9 @@ type Locker interface {
 
 // New returns a configured TUSD handler as-is with official implementation
 func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath string) (*tusd.Handler, error) {
-	logger = slogerxexp.DefaultLogger
-
+	if slogerxexp.DefaultLogger != nil {
+		logger = slogerxexp.DefaultLogger
+	}
 	if store == nil {
 		return nil, errors.New("No store provided")
 	}
