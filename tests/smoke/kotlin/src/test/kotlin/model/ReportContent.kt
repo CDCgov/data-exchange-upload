@@ -6,8 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ReportContent(
     @get:JsonProperty("schema_name") val schemaName: String,
-    @get:JsonProperty("file_source_blob_url") val fileSourceBlobUrl: String?,
-    @get:JsonProperty("file_destination_blob_url") val fileDestinationBlobUrl: String?,
+    @get:JsonProperty("destination") val destination: String?,
     val offset: Int?,
     val size: Int?
 )

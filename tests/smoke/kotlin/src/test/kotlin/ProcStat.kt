@@ -4,6 +4,7 @@ import io.restassured.RestAssured.*
 import io.restassured.response.ValidatableResponse
 import dex.DexUploadClient
 import model.Report
+import model.UploadConfig
 import org.hamcrest.Matchers.*
 import org.testng.Assert.assertNotNull
 import org.testng.ITestContext
@@ -20,12 +21,14 @@ import kotlin.test.assertNull
 class ProcStat {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
     private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
+    private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
     private val procStatReqSpec = given().apply {
         baseUri(EnvConfig.PROC_STAT_URL)
     }
     private lateinit var uploadClient: UploadClient
     private lateinit var uploadId: String
     private lateinit var reportResponse: ValidatableResponse
+    private lateinit var uploadConfig: UploadConfig
 
     @Parameters("SENDER_MANIFEST", "USE_CASE")
     @BeforeTest(groups = [Constants.Groups.PROC_STAT])
@@ -41,11 +44,13 @@ class ProcStat {
         val propertiesFilePath = "properties/V1/$USE_CASE/$senderManifestDataFile"
         val senderManifest = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
+        uploadConfig = ConfigLoader.loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v1")
+
         uploadId = uploadClient.uploadFile(testFile, senderManifest)
                 ?: throw TestNGException("Error uploading file ${testFile.name}")
         context.setAttribute("uploadId", uploadId)
 
-        Thread.sleep(12_000) // Hard delay to wait for PS API to settle.
+        Thread.sleep(1_000) // Hard delay to wait for PS API to settle.
 
         reportResponse = procStatReqSpec.get("/api/report/uploadId/$uploadId")
                 .then()
@@ -84,13 +89,9 @@ class ProcStat {
 
     @Parameters("EXPECTED_SOURCE_URL_PREFIXES", "EXPECTED_DESTINATION_URL_PREFIXES")
     @Test(groups = [Constants.Groups.PROC_STAT, Constants.Groups.PROC_STAT_REPORT])
-    fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded(
-        @Optional("https://ocioededataexchangedev.blob.core.windows.net/dextesting-testevent1") EXPECTED_SOURCE_URL_PREFIXES: String,
-        @Optional("https://ocioederoutingdatasadev.blob.core.windows.net/routeingress/dextesting-testevent1,https://edavdevdatalakedex.blob.core.windows.net/upload/dextesting-testevent1") EXPECTED_DESTINATION_URL_PREFIXES: String
-    ) {
+    fun shouldHaveValidDestinationAndSourceURLWhenFileUploaded() {
         // Parse the expected URLs from the parameters
-        val expectedSourceUrls = EXPECTED_SOURCE_URL_PREFIXES.split(",")
-        val expectedDestinationUrls = EXPECTED_DESTINATION_URL_PREFIXES.split(",")
+        val expectedDestinations = uploadConfig.copyConfig.targets
 
         val jsonPath = reportResponse.extract().jsonPath()
         val reports = jsonPath.getList("reports", Report::class.java)
@@ -98,17 +99,11 @@ class ProcStat {
 
         assert(dexFileCopyReports.isNotEmpty()) { "No 'dex-file-copy' reports found" }
 
-        val sourceUrls = dexFileCopyReports.mapNotNull { it.content.fileSourceBlobUrl }
-        val destinationUrls = dexFileCopyReports.mapNotNull { it.content.fileDestinationBlobUrl }
+        val destinations = dexFileCopyReports.mapNotNull { it.content.destination }
 
         // Validate source URLs
-        sourceUrls.forEach { sourceUrl ->
-            assert(expectedSourceUrls.any { sourceUrl.trim().contains(it.trim()) }) { "Source URL $sourceUrl does not match any expected URLs." }
-        }
-
-        // Validate destination URLs
-        destinationUrls.forEach { destinationUrl ->
-            assert(expectedDestinationUrls.any { destinationUrl.trim().contains(it.trim()) }) { "Destination URL $destinationUrl does not match any expected URLs." }
+        destinations.forEach { dest ->
+            assert(expectedDestinations.any { dest.trim().contains(it.trim()) }) { "Destination ${dest} does not match any expected destinations" }
         }
     }
 }

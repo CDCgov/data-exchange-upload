@@ -33,16 +33,16 @@ class MetadataVerify {
     private lateinit var uploadConfigV2: UploadConfig
 
     @Parameters(
-        "USE_CASE",
         "SENDER_MANIFEST",
+        "USE_CASE",
         "SENDER_MANIFEST_INVALID_FILENAME",
         "SENDER_MANIFEST_NO_DEST_ID",
         "SENDER_MANIFEST_NO_EVENT"
     )
     @BeforeTest(groups = [Constants.Groups.METADATA_VERIFY])
     fun beforeTest(
+        @Optional SENDER_MANIFEST: String?,
         @Optional("dextesting-testevent1") USE_CASE: String,
-        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
         @Optional("invalid-filename.properties") SENDER_MANIFEST_INVALID_FILENAME: String,
         @Optional("no-dest-id.properties") SENDER_MANIFEST_NO_DEST_ID: String,
         @Optional("no-event.properties") SENDER_MANIFEST_NO_EVENT: String
@@ -50,13 +50,13 @@ class MetadataVerify {
         authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
 
         useCase = USE_CASE
-        senderManifest = SENDER_MANIFEST
+        senderManifest = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
         senderManifestInvalidFilename = SENDER_MANIFEST_INVALID_FILENAME
         senderManifestNoDestId = SENDER_MANIFEST_NO_DEST_ID
         senderManifestNoEvent = SENDER_MANIFEST_NO_EVENT
 
-        uploadConfigV1 = loadUploadConfig(dexBlobClient, USE_CASE, "v1")
-        uploadConfigV2 = loadUploadConfig(dexBlobClient, USE_CASE, "v2")
+        uploadConfigV1 = loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v1")
+        uploadConfigV2 = loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v2")
         dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
 
     }
