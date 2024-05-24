@@ -44,7 +44,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	postReceiveHook := metadata.HookEventHandler{
+	hookHandler := metadata.HookEventHandler{
 		Reporter: &filereporters.FileReporter{
 			Dir: appConfig.LocalReportsFolder,
 		},
@@ -82,18 +82,18 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
-			postReceiveHook.Reporter = &azurereporters.ServiceBusReporter{
+			hookHandler.Reporter = &azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
 		}
 	}
 
-	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
-	handler.Register(tusHooks.HookPostReceive, postReceiveHook.PostReceive)
-
+	handler.Register(tusHooks.HookPreCreate, hookHandler.WithUploadID, hookHandler.WithTimestamp, manifestValidator.Verify)
+	handler.Register(tusHooks.HookPostReceive, hookHandler.PostReceive)
+	handler.Register(tusHooks.HookPostFinish, hookHandler.PostFinish)
+	handler.Register(tusHooks.HookPostCreate, hookHandler.PostCreate)
 	// TODO: -> handler.Register(tusHooks.HookPostFinish, copier.Merge, copier.Route)
-
 
 	return handler, nil
 }

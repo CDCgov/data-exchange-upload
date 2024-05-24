@@ -36,11 +36,8 @@ var host = new HostBuilder()
         services.AddAzureAppConfiguration();
         services.AddFeatureManagement();
 
-        // Register Proc Stat Http Service.
-        services.AddHttpClient<IProcStatClient, ProcStatClient>(client =>
-        {
-            client.BaseAddress = new Uri(Environment.GetEnvironmentVariable("PS_API_URL") ?? "");
-        });
+        // Register the ServiceBusClient as a singleton.
+        services.AddSingleton<IBulkUploadSvcBusClient, BulkUploadSvcBusClient>(); 
 
         services.AddSingleton<IUploadEventHubService, UploadEventHubService>();
 

@@ -1,5 +1,5 @@
-import auth.AuthClient
 import io.tus.java.client.ProtocolException
+import dex.DexUploadClient
 import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.annotations.*
@@ -12,7 +12,8 @@ import util.Constants.Companion.TEST_EVENT
 @Test()
 class MetadataVerify {
     private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
-    private val authClient = AuthClient(EnvConfig.UPLOAD_URL)
+    private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
+    private lateinit var authToken: String
     private lateinit var uploadClient: UploadClient
     private lateinit var metadataHappyPath: HashMap<String, String>
     private lateinit var metadataInvalidFilename: HashMap<String, String>
@@ -20,27 +21,32 @@ class MetadataVerify {
     private lateinit var metadataNoEvent: HashMap<String, String>
 
     @Parameters(
-        "USE_CASE",
         "SENDER_MANIFEST",
+        "USE_CASE",
         "SENDER_MANIFEST_INVALID_FILENAME",
         "SENDER_MANIFEST_NO_DEST_ID",
         "SENDER_MANIFEST_NO_EVENT",
     )
     @BeforeTest(groups = [Constants.Groups.METADATA_VERIFY])
     fun beforeTest(
+        @Optional SENDER_MANIFEST: String?,
         @Optional("dextesting-testevent1") USE_CASE: String,
-        @Optional("dextesting-testevent1.properties") SENDER_MANIFEST: String,
         @Optional("invalid-filename.properties") SENDER_MANIFEST_INVALID_FILENAME: String,
         @Optional("no-dest-id.properties") SENDER_MANIFEST_NO_DEST_ID: String,
         @Optional("no-event.properties") SENDER_MANIFEST_NO_EVENT: String
     ) {
-        val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
-        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
+        authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
 
-        metadataHappyPath = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST")
+        val happyPathFile = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
+        metadataHappyPath = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$happyPathFile")
         metadataInvalidFilename = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_INVALID_FILENAME")
         metadataNoDestId = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_DEST_ID")
         metadataNoEvent = Metadata.convertPropertiesToMetadataMap("properties/$USE_CASE/$SENDER_MANIFEST_NO_EVENT")
+    }
+
+    @BeforeMethod
+    fun beforeMethod() {
+        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
     @Test(groups = [Constants.Groups.METADATA_VERIFY])

@@ -172,7 +172,8 @@ func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
 		if err := uploader.Upload(); err != nil {
 			return "", fmt.Errorf("failed to upload file %w", err)
 		}
-		tuid := filepath.Base(uploader.Url())
+
+		tuid = filepath.Base(uploader.Url())
 
 		// check the file
 		resp, err := http.Get(url + "/info/" + tuid)

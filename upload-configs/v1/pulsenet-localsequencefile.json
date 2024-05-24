@@ -6,12 +6,12 @@
 				"field_name": "filename",
 				"allowed_values": null,
 				"required": true,
-				"description": "The name of the file submitted."
+				"description": "The name of the file submitted"
 			}
 		]
 	},
 	"copy_config": {
-		"folder_structure": "date_YYYY_MM_DD",
+		"folder_structure": "root",
 		"targets": [
 			"edav"
 		]
