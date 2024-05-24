@@ -8,7 +8,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/pshealth"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -21,7 +21,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 		logger = sloger.DefaultLogger
 	}
 	// initialize processing status health checker
-	psHealth, err := pshealth.New(appConfig)
+	sbHealth, err := sbhealth.New(appConfig)
 	if err != nil {
 		logger.Error("error initializing service bus health check", "error", err)
 	}
