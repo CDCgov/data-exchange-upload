@@ -10,6 +10,7 @@ const (
 	AZ_BLOB_CLIENT_NA      = "error: client not available, check config"
 	//
 	PROCESSING_STATUS_APP = "Processing Status"
+	SERVICE_BUS           = "Azure Service Bus"
 
 	META_DESTINATION_ID = "meta_destination_id"
 	META_EXT_EVENT      = "meta_ext_event"

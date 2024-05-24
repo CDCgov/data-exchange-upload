@@ -23,11 +23,11 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	// initialize processing status health checker
 	psHealth, err := pshealth.New(appConfig)
 	if err != nil {
-		logger.Error("error initialize processing status health check", "error", err)
-	} // .if
-	if psHealth != nil {
-		health.Register(psHealth)
-	} // .if
+		logger.Error("error initializing service bus health check", "error", err)
+	}
+	if sbHealth != nil {
+		health.Register(sbHealth)
+	}
 
 	// create and register data store
 	store, storeHealthCheck, err := GetDataStore(appConfig)
@@ -79,7 +79,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	http.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
 
 	// initialize and route handler for DEX
-	handlerDex := handlerdex.New(appConfig, psHealth)
+	handlerDex := handlerdex.New(appConfig)
 	http.Handle("/", handlerDex)
 
 	// --------------------------------------------------------------

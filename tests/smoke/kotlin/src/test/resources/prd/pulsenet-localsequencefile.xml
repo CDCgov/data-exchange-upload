@@ -2,7 +2,6 @@
 <suite name="PULSENET LOCALSEQUENCEFILE PRD" parallel="tests" thread-count="3">
     <parameter name="USE_CASE" value="pulsenet-localsequencefile" />
     <test name="Metadata Verify">
-        <parameter name="SENDER_MANIFEST" value="pulsenet-localsequencefile.properties"/>
         <parameter name="SENDER_MANIFEST_NO_DEST_ID" value="no-dest-id.properties" />
         <parameter name="SENDER_MANIFEST_NO_EVENT" value="no-event.properties" />
         <parameter name="SENDER_MANIFEST_INVALID_FILENAME" value="invalid-filename.properties" />
@@ -17,15 +16,6 @@
         </classes>
     </test>
     <test name="Proc Stat">
-        <parameter name="SENDER_MANIFEST" value="pulsenet-localsequencefile.properties"/>
-        <!-- Define parameters for expected URLs as comma-separated lists -->
-        <parameter name="EXPECTED_SOURCE_URL_PREFIXES" value="https://ocioededataexchangeprd.blob.core.windows.net/pulsenet-localsequencefile"/>
-        <parameter name="EXPECTED_DESTINATION_URL_PREFIXES" value="https://edavdevdatalakedex.blob.core.windows.net/upload/pulsenet-localsequencefile"/>
-        <groups>
-            <run>
-                <exclude name="proc-stat-trace" />
-            </run>
-        </groups>
         <classes>
             <class name="ProcStat" />
         </classes>
