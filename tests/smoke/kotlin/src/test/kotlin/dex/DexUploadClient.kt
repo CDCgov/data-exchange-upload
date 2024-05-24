@@ -3,6 +3,7 @@ package dex
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import model.AuthResponse
+import model.HealthResponse
 import model.InfoResponse
 import okhttp3.FormBody
 import okhttp3.Headers
@@ -57,6 +58,26 @@ class DexUploadClient(private val url: String) {
 
         val respBody: InfoResponse = objectMapper.readValue(resp.body?.string()
             ?: throw IOException("Empty response"), InfoResponse::class.java)
+
+        return respBody
+    }
+
+    fun getHealth(authToken: String): HealthResponse {
+        val req = Request.Builder()
+            .url("$url/upload/health")
+            .header("Authorization", "Bearer $authToken")
+            .build()
+
+        val resp = httpClient
+            .newCall(req)
+            .execute()
+
+        if (!resp.isSuccessful) {
+            throw IOException("Error getting health check. ${resp.message}")
+        }
+
+        val respBody: HealthResponse = objectMapper.readValue(resp.body?.string()
+            ?: throw IOException("Empty response"), HealthResponse::class.java)
 
         return respBody
     }

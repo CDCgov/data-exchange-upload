@@ -24,4 +24,9 @@
             <class name="Info" />
         </classes>
     </test>
+    <test name="Health Check">
+        <classes>
+            <class name="Health" />
+        </classes>
+    </test>
 </suite>
