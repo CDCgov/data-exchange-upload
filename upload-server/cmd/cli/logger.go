@@ -32,7 +32,8 @@ func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 	if appConfig.LoggerDebugOn {
 
 		opts = &slog.HandlerOptions{
-			Level: slog.LevelDebug,
+			Level:     slog.LevelDebug,
+			AddSource: true,
 		} // .opts
 	} // .if
 
@@ -61,7 +62,8 @@ func ExpAppLogger(appConfig appconfig.AppConfig) *expslog.Logger {
 	if appConfig.LoggerDebugOn {
 
 		opts = &expslog.HandlerOptions{
-			Level: expslog.LevelDebug,
+			Level:     expslog.LevelDebug,
+			AddSource: true,
 		} // .opts
 	} // .if
 
