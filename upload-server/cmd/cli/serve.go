@@ -16,16 +16,6 @@ import (
 )
 
 func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
-
-	// initialize processing status health checker
-	// psHealth, err := pshealth.New(appConfig)
-	// if err != nil {
-	// 	logger.Error("error initialize processing status health check", "error", err)
-	// } // .if
-	// if psHealth != nil {
-	// 	health.Register(psHealth)
-	// } // .if
-
 	// Register health check for PS API service bus.
 	sbHealth, err := sbhealth.New(appConfig)
 	if err != nil {

@@ -3,7 +3,9 @@ package sbhealth
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
@@ -16,8 +18,14 @@ type ServiceBusHealth struct {
 }
 
 func New(appConfig appconfig.AppConfig) (*ServiceBusHealth, error) {
-	// TODO set retry options.
-	client, err := admin.NewClientFromConnectionString(appConfig.ServiceBusConnectionString, nil)
+	client, err := admin.NewClientFromConnectionString(appConfig.ServiceBusConnectionString, &admin.ClientOptions{
+		ClientOptions: policy.ClientOptions{
+			Retry: policy.RetryOptions{
+				MaxRetries: 3,
+				RetryDelay: 1 * time.Second,
+			},
+		},
+	})
 	if err != nil {
 		return nil, err
 	}

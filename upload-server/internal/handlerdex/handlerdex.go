@@ -20,9 +20,6 @@ type HandlerDex struct {
 	TusAzBlobClient    *azblob.Client
 	RouterAzBlobClient *azblob.Client
 	EdavAzBlobClient   *azblob.Client
-
-	// processing status
-	// psHealth *pshealth.PsHealth
 } // .HandlerDex
 
 // New returns a DEX sever handler that can handle http requests
@@ -38,7 +35,6 @@ func New(appConfig appconfig.AppConfig) *HandlerDex {
 	return &HandlerDex{
 		appConfig: appConfig,
 		logger:    logger,
-		// psHealth:  psHealth,
 	} // .&HandlerDex
 } // .New
 
