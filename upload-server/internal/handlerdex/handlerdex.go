@@ -9,7 +9,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/pshealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 ) // .import
 
@@ -23,11 +22,11 @@ type HandlerDex struct {
 	EdavAzBlobClient   *azblob.Client
 
 	// processing status
-	psHealth *pshealth.PsHealth
+	// psHealth *pshealth.PsHealth
 } // .HandlerDex
 
 // New returns a DEX sever handler that can handle http requests
-func New(appConfig appconfig.AppConfig, psHealth *pshealth.PsHealth) *HandlerDex {
+func New(appConfig appconfig.AppConfig) *HandlerDex {
 
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
@@ -39,7 +38,7 @@ func New(appConfig appconfig.AppConfig, psHealth *pshealth.PsHealth) *HandlerDex
 	return &HandlerDex{
 		appConfig: appConfig,
 		logger:    logger,
-		psHealth:  psHealth,
+		// psHealth:  psHealth,
 	} // .&HandlerDex
 } // .New
 
