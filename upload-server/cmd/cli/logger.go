@@ -70,11 +70,11 @@ func ExpAppLogger(appConfig appconfig.AppConfig) *expslog.Logger {
 	logger := expslog.New(expslog.NewJSONHandler(os.Stdout, opts))
 
 	appLogger := logger.With(
-		slog.Group("app_info",
-			slog.String("System", "DEX"),
-			slog.String("Product", "UPLOAD API"),
-			slog.String("App", "UPLOAD SERVER"),
-			slog.String("Env", appConfig.Environment),
+		expslog.Group("app_info",
+			expslog.String("System", "DEX"),
+			expslog.String("Product", "UPLOAD API"),
+			expslog.String("App", "UPLOAD SERVER"),
+			expslog.String("Env", appConfig.Environment),
 		)) // .appLogger
 
 	return appLogger

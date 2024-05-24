@@ -2,8 +2,6 @@ package handlertusd
 
 import (
 	"errors"
-	"reflect"
-	"strings"
 
 	"golang.org/x/exp/slog"
 
@@ -17,10 +15,7 @@ import (
 var logger *slog.Logger
 
 func init() {
-	type Empty struct{}
-	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
-	// add package name to app logger
-	logger = slogerxexp.With("pkg", pkgParts[len(pkgParts)-1])
+	logger = slogerxexp.With()
 }
 
 type Store interface {
@@ -39,10 +34,10 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 		logger = slogerxexp.DefaultLogger
 	}
 	if store == nil {
-		return nil, errors.New("No store provided")
+		return nil, errors.New("no store provided")
 	}
 	if locker == nil {
-		return nil, errors.New("No locker provided")
+		return nil, errors.New("no locker provided")
 	}
 
 	// tusd.Handler exposes metrics by cli flag and defaults true
