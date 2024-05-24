@@ -151,7 +151,6 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[st
 		return err
 	}
 	config := c.Metadata
-
 	logger.Info("checking config", "config", config)
 
 	var errs error
@@ -219,10 +218,12 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 }
 
 func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
+	if sloger.DefaultLogger != nil {
+		logger = sloger.DefaultLogger.With(models.TGUID_KEY, tuid)
+	}
 	logger.Info("Generated UUID", "UUID", tuid)
 
 	content := &models.MetaDataTransformContent{
@@ -296,7 +297,6 @@ func (v *HookEventHandler) WithTimestamp(event handler.HookEvent, resp hooks.Hoo
 		DispositionType: "add",
 		Content:         content,
 	}
-
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
 	if err := v.Reporter.Publish(event.Context, report); err != nil {
 		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)

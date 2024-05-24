@@ -24,4 +24,5 @@ const (
 	TARGET_DEX_EDAV   = "dex_edav"
 
 	EVENT_UPLOAD_ID = "event.Upload.ID"
+	TGUID_KEY       = "tguid"
 ) // .const

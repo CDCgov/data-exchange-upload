@@ -10,13 +10,17 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
 func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
-	// Register health check for PS API service bus.
+	if sloger.DefaultLogger != nil {
+		logger = sloger.DefaultLogger
+	}
+	// initialize processing status health checker
 	sbHealth, err := sbhealth.New(appConfig)
 	if err != nil {
 		logger.Error("error initializing service bus health check", "error", err)
