@@ -224,7 +224,6 @@ func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.Hook
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger.With(models.TGUID_KEY, tuid)
 	}
-
 	logger.Info("Generated UUID", "UUID", tuid)
 
 	content := &models.MetaDataTransformContent{
@@ -356,7 +355,6 @@ func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookR
 
 func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map[string]string, uploadId string) error {
 	logger.Info("Attempting to report upload started", "uploadId", uploadId)
-
 	content := &models.UploadLifecycleContent{
 		ReportContent: models.ReportContent{
 			SchemaVersion: "1.0",
