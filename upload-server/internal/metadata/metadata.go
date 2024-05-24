@@ -222,7 +222,7 @@ func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.Hook
 	resp.ChangeFileInfo.ID = tuid
 
 	if sloger.DefaultLogger != nil {
-		logger = sloger.DefaultLogger.With(models.TGUID_KEY, tuid, "TESTING", "123")
+		logger = sloger.DefaultLogger.With(models.TGUID_KEY, tuid)
 	}
 
 	logger.Info("Generated UUID", "UUID", tuid)
