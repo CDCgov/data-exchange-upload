@@ -136,7 +136,7 @@ class MetadataVerify {
 
         val uploadConfig = if (version == "V1") uploadConfigV1 else uploadConfigV2
 
-        Thread.sleep(500)
+        Thread.sleep(500)//sleep is to wait for the uploaded test file to be routed to the destination storage container.
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
 
         val expectedFilename =
