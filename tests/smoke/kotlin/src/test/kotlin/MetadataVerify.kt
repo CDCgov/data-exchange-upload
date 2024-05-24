@@ -29,8 +29,7 @@ class MetadataVerify {
     private lateinit var senderManifestInvalidFilename: String
     private lateinit var senderManifestNoDestId: String
     private lateinit var senderManifestNoEvent: String
-    private lateinit var uploadConfigV1: UploadConfig
-    private lateinit var uploadConfigV2: UploadConfig
+    private lateinit var uploadConfig: UploadConfig
 
     @Parameters(
         "SENDER_MANIFEST",
@@ -55,10 +54,7 @@ class MetadataVerify {
         senderManifestNoDestId = SENDER_MANIFEST_NO_DEST_ID
         senderManifestNoEvent = SENDER_MANIFEST_NO_EVENT
 
-        uploadConfigV1 = loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v1")
-        uploadConfigV2 = loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v2")
         dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
-
     }
 
     @BeforeMethod
@@ -68,7 +64,8 @@ class MetadataVerify {
 
     @Test(
         groups = [Constants.Groups.METADATA_VERIFY],
-        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
+        dataProvider = "versionProvider",
+        dataProviderClass = DataProvider::class
     )
     fun shouldUploadFileGivenRequiredMetadata(context: ITestContext, version: String) {
         metadata = Metadata.getSenderManifest(version, useCase, senderManifest)
@@ -81,7 +78,8 @@ class MetadataVerify {
         groups = [Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*",
-        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
+        dataProvider = "versionProvider",
+        dataProviderClass = DataProvider::class
     )
     fun shouldReturnErrorWhenDestinationIDNotProvided(version: String) {
         metadata = Metadata.getSenderManifest(version, useCase, senderManifestNoDestId)
@@ -92,7 +90,8 @@ class MetadataVerify {
         groups = [Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*",
-        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
+        dataProvider = "versionProvider",
+        dataProviderClass = DataProvider::class
     )
     fun shouldReturnErrorWhenEventNotProvided(version: String) {
         metadata = Metadata.getSenderManifest(version, useCase, senderManifestNoEvent)
@@ -100,8 +99,7 @@ class MetadataVerify {
     }
 
     @Test(
-        groups = [
-            Constants.Groups.METADATA_VERIFY],
+        groups = [Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*field filename was missing"
     )
@@ -118,7 +116,8 @@ class MetadataVerify {
         groups = [Constants.Groups.METADATA_VERIFY],
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*",
-        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
+        dataProvider = "versionProvider",
+        dataProviderClass = DataProvider::class
     )
     fun shouldReturnErrorWhenFilenameContainsInvalidChars(version: String) {
         metadata = Metadata.getSenderManifest(version, useCase, senderManifestInvalidFilename)
@@ -127,14 +126,15 @@ class MetadataVerify {
 
     @Test(
         groups = [Constants.Groups.METADATA_VERIFY],
-        dataProvider = "versionProvider", dataProviderClass = DataProvider::class
+        dataProvider = "versionProvider",
+        dataProviderClass = DataProvider::class
     )
     fun shouldValidateMetadataWithSenderManifest(version: String) {
 
         metadata = Metadata.getSenderManifest(version, useCase, senderManifest)
         val uploadId = uploadClient.uploadFile(testFile, metadata)
 
-        val uploadConfig = if (version == "v1") uploadConfigV1 else uploadConfigV2
+        uploadConfig = loadUploadConfig(dexBlobClient, "$useCase.json", version)
 
         Thread.sleep(500)//sleep is to wait for the uploaded test file to be routed to the destination storage container.
         val filenameSuffix = if (uploadConfig.copyConfig.filenameSuffix == "upload_id") "_${uploadId}" else ""
