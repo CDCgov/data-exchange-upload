@@ -5,10 +5,10 @@ import java.io.File
 
 class TestFile {
     companion object {
-        fun getTestFileFromResources(filename: String): File {
+        fun getResourceFile(filename: String): File {
             return File(
                 this::class.java.classLoader.getResource(filename)?.file
-                    ?: throw TestNGException("Upload test file $filename not found.")
+                    ?: throw TestNGException("file $filename not found.")
             )
         }
     }

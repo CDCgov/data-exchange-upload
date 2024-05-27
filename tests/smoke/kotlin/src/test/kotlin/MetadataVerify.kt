@@ -17,7 +17,7 @@ import util.DataProvider
 @Listeners(UploadIdTestListener::class)
 @Test()
 class MetadataVerify {
-    private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
+    private val testFile = TestFile.getResourceFile("10KB-test-file")
     private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private lateinit var authToken: String
     private lateinit var uploadClient: UploadClient

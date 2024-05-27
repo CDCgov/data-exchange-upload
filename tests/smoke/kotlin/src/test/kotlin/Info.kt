@@ -13,7 +13,7 @@ import util.*
 @Listeners(UploadIdTestListener::class)
 @Test()
 class Info {
-    private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
+    private val testFile = TestFile.getResourceFile("10KB-test-file")
     private val dexUploadClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private lateinit var uploadClient: UploadClient
     private lateinit var authToken: String

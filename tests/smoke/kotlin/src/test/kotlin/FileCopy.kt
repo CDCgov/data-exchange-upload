@@ -19,7 +19,7 @@ import kotlin.collections.HashMap
 @Listeners(UploadIdTestListener::class)
 @Test()
 class FileCopy {
-    private val testFile = TestFile.getTestFileFromResources("10KB-test-file")
+    private val testFile = TestFile.getResourceFile("10KB-test-file")
     private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
     private val edavBlobClient = Azure.getBlobServiceClient(

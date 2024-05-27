@@ -1,0 +1,45 @@
+[
+  {
+    "meta_destination_id": "dextesting",
+    "meta_ext_event": "testevent1",
+    "filename": "dex-smoke-test"
+  },
+  {
+    "meta_destination_id": "aims-celr",
+    "meta_ext_event": "csv",
+    "meta_ext_objectkey": "test-obj-key",
+    "meta_ext_filename": "dex-smoke-test",
+    "meta_ext_file_timestamp": "test-timestamp",
+    "meta_username": "test-automation",
+    "meta_ext_filestatus": "test-file-status",
+    "meta_ext_uploadid": "test-upload-id",
+    "meta_ext_source": "test-src",
+    "meta_organization": "test-org"
+  },
+  {
+    "meta_destination_id": "aims-celr",
+    "meta_ext_event": "hl7",
+    "meta_ext_objectkey": "test-obj-key",
+    "meta_ext_filename": "dex-smoke-test",
+    "meta_ext_file_timestamp": "test-timestamp",
+    "meta_username": "test-automation",
+    "meta_ext_filestatus": "test-file-status",
+    "meta_ext_uploadid": "test-upload-id",
+    "meta_ext_source": "test-src",
+    "meta_organization": "test-org"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "celr",
+    "data_stream_route": "csv",
+    "received_filename": "dex-smoke-test",
+    "jurisdiction": "SMOKE",
+    "data_producer_id": "smoke-test-data-producer",
+    "sender_id": "APHL",
+    "meta_ext_objectkey": "test-obj-key",
+    "meta_ext_file_timestamp": "test-timestamp",
+    "meta_ext_uploadid": "test-upload-id",
+    "meta_ext_source": "test-src",
+    "meta_ext_filestatus": "test-file-status"
+  }
+]
