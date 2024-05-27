@@ -1,14 +1,16 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+//import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.8.10"
     id("com.adarshr.test-logger") version "4.0.0"
+//    id("org.jetbrains.intellij.platform") version "2.0.0-beta3"
     application
 }
 
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(17)
 }
 
 group = "me.cfarmer"
@@ -19,6 +21,17 @@ repositories {
 }
 
 dependencies {
+//    intellijPlatform {
+//        intellijIdeaCommunity("2024.1.2")
+//
+//        bundledPlugin("com.intellij.java")
+//
+//        pluginVerifier()
+//        zipSigner()
+//        instrumentationTools()
+//
+//        testFramework(TestFrameworkType.Platform.JUnit4)
+//    }
     testImplementation(kotlin("test"))
     testImplementation(platform("com.azure:azure-sdk-bom:1.2.10"))
     testImplementation("com.azure:azure-identity")
@@ -39,25 +52,25 @@ tasks.test {
     testLogging.exceptionFormat = TestExceptionFormat.FULL
 
     // Detect if suite params were passed in
-    val hasEnv = project.hasProperty("env")
-    val hasSuites = project.hasProperty("useCases")
-
-    useTestNG {
+//    val hasEnv = project.hasProperty("env")
+//    val hasSuites = project.hasProperty("useCases")
+    useTestNG()
+//    useTestNG {
         // If true, we want to test with XML suites.  Otherwise, test directly with Gradle and rely on default parameters.
-        if (hasEnv or hasSuites) {
-            val env = project.properties["env"] ?: "dev" // Default to dev.
-            val allUseCases = File("src/test/resources/$env").listFiles().map { it.nameWithoutExtension } // Collect all use cases from the env-specific suite directory.
-            val useCasesToRun: List<String> = project.properties["useCases"]?.toString()?.split(',') ?: allUseCases // If a set of use cases were passed in, use them.  Otherwise, default to running all.
-            val fullyQualifiedSuites = useCasesToRun.map { file("src/test/resources/$env/$it.xml") }
-            println("Running tests for use cases: $useCasesToRun")
-            suiteXmlFiles = fullyQualifiedSuites
-        }
-    }
+//        if (hasEnv or hasSuites) {
+//            val env = project.properties["env"] ?: "dev" // Default to dev.
+//            val allUseCases = File("src/test/resources/$env").listFiles().map { it.nameWithoutExtension } // Collect all use cases from the env-specific suite directory.
+//            val useCasesToRun: List<String> = project.properties["useCases"]?.toString()?.split(',') ?: allUseCases // If a set of use cases were passed in, use them.  Otherwise, default to running all.
+//            val fullyQualifiedSuites = useCasesToRun.map { file("src/test/resources/$env/$it.xml") }
+//            println("Running tests for use cases: $useCasesToRun")
+//            suiteXmlFiles = fullyQualifiedSuites
+//        }
+//    }
 }
 
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = "17"
 }
 
 application {
