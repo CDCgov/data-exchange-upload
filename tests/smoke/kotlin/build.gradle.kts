@@ -1,11 +1,9 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-//import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.8.10"
     id("com.adarshr.test-logger") version "4.0.0"
-//    id("org.jetbrains.intellij.platform") version "2.0.0-beta3"
     application
 }
 
@@ -21,17 +19,6 @@ repositories {
 }
 
 dependencies {
-//    intellijPlatform {
-//        intellijIdeaCommunity("2024.1.2")
-//
-//        bundledPlugin("com.intellij.java")
-//
-//        pluginVerifier()
-//        zipSigner()
-//        instrumentationTools()
-//
-//        testFramework(TestFrameworkType.Platform.JUnit4)
-//    }
     testImplementation(kotlin("test"))
     testImplementation(platform("com.azure:azure-sdk-bom:1.2.10"))
     testImplementation("com.azure:azure-identity")
@@ -54,7 +41,12 @@ tasks.test {
     // Detect if suite params were passed in
 //    val hasEnv = project.hasProperty("env")
 //    val hasSuites = project.hasProperty("useCases")
-    useTestNG()
+    useTestNG {
+        // This is needed otherwise System.getProperty returns null for the custom properties.
+        if (project.hasProperty("useCases")) {
+            systemProperties["useCases"] = project.properties["useCases"]
+        }
+    }
 //    useTestNG {
         // If true, we want to test with XML suites.  Otherwise, test directly with Gradle and rely on default parameters.
 //        if (hasEnv or hasSuites) {
