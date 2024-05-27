@@ -54,7 +54,7 @@ class FileCopy {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
         val senderManifestDataFile = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
-        val propertiesFilePath = "properties/$USE_CASE/$senderManifestDataFile"
+        val propertiesFilePath = "properties/V1/$USE_CASE/$senderManifestDataFile"
         metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
         bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
