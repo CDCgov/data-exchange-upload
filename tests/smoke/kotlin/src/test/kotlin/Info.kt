@@ -30,7 +30,7 @@ class Info {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
-    @Test(groups = [Constants.Groups.FILE_INFO], dataProvider = "validManifestProvider", dataProviderClass = DataProvider::class)
+    @Test(groups = [Constants.Groups.FILE_INFO], dataProvider = "validManifestAllProvider", dataProviderClass = DataProvider::class)
     fun shouldGetFileInfo(manifest: HashMap<String, String>) {
         val uid: String = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file given manifest $manifest")
         testContext.setAttribute("uploadId", uid)

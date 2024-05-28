@@ -27,19 +27,5 @@
     "meta_ext_uploadid": "test-upload-id",
     "meta_ext_source": "test-src",
     "meta_organization": "test-org"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "celr",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "SMOKE",
-    "data_producer_id": "smoke-test-data-producer",
-    "sender_id": "APHL",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_file_timestamp": "test-timestamp",
-    "meta_ext_uploadid": "test-upload-id",
-    "meta_ext_source": "test-src",
-    "meta_ext_filestatus": "test-file-status"
   }
 ]

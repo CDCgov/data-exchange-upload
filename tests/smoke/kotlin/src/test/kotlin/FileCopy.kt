@@ -80,7 +80,7 @@ class FileCopy {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
-    @Test(groups = [Constants.Groups.FILE_COPY], dataProvider = "validManifestProvider", dataProviderClass = DataProvider::class)
+    @Test(groups = [Constants.Groups.FILE_COPY], dataProvider = "validManifestAllProvider", dataProviderClass = DataProvider::class)
     fun shouldUploadFile(manifest: HashMap<String, String>) {
         val uid = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)

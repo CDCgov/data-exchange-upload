@@ -15,23 +15,27 @@ class DataProvider {
             )
         }
 
-        @DataProvider(name = "validManifestProvider")
+        @DataProvider(name = "validManifestAllProvider")
         @JvmStatic
-        fun validManifestProvider(): Array<Array<HashMap<String, String>>> {
+        fun validManifestAllProvider(): Array<Array<HashMap<String, String>>> {
             val useCases: List<String> = System.getProperty("useCases")?.split(",") ?: arrayListOf()
-            val jsonBytes = TestFile.getResourceFile("valid_manifests.json").readBytes()
-            val manifests: Array<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
+            val validManifests = arrayOf("valid_manifests_v1.json", "valid_manifests_v2.json")
+            val manifests = arrayListOf<HashMap<String, String>>()
 
-            // Filter by use cases.
-            val filtered: Array<HashMap<String, String>> = if (useCases.isNotEmpty()) manifests.filter {
-                val useCase = if (it.containsKey("version") && it["version"] == "2.0")
-                    "${it["data_stream_id"]}-${it["data_stream_route"]}"
-                else "${it["meta_destination_id"]}-${it["meta_ext_event"]}"
+            validManifests.forEach {
+                val jsonBytes = TestFile.getResourceFile(it).readBytes()
+                val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
+                val filtered: List<HashMap<String, String>> = if (useCases.isNotEmpty()) manifestJsons.filter { m ->
+                    val useCase = if (m.containsKey("version") && m["version"] == "2.0")
+                        "${m["data_stream_id"]}-${m["data_stream_route"]}"
+                    else "${m["meta_destination_id"]}-${m["meta_ext_event"]}"
 
-                useCases.contains(useCase)
-            }.toTypedArray() else manifests
+                    useCases.contains(useCase)
+                } else manifestJsons
+                manifests.addAll(filtered)
+            }
 
-            return filtered .map { arrayOf(it) }.toTypedArray()
+            return manifests.map { arrayOf(it) }.toTypedArray()
         }
     }
 }
