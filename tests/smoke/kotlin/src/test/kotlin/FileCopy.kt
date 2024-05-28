@@ -13,6 +13,7 @@ import org.testng.annotations.Optional
 import tus.UploadClient
 import util.*
 import util.ConfigLoader.Companion.loadUploadConfig
+import util.DataProvider
 import kotlin.collections.HashMap
 
 
@@ -31,89 +32,137 @@ class FileCopy {
             .build()
     )
     private val routingBlobClient = Azure.getBlobServiceClient(EnvConfig.ROUTING_STORAGE_CONNECTION_STRING)
-    private lateinit var bulkUploadsContainerClient: BlobContainerClient
+    private val bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
     private lateinit var dexContainerClient: BlobContainerClient
-    private lateinit var edavContainerClient: BlobContainerClient
-    private lateinit var routingContainerClient: BlobContainerClient
+    private val edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
+    private val routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
+    private lateinit var authToken: String
+    private lateinit var testContext: ITestContext
     private lateinit var uploadClient: UploadClient
     private lateinit var uploadId: String
     private lateinit var useCase: String
     private lateinit var uploadConfigV1: UploadConfig
     private lateinit var metadata: HashMap<String, String>
 
-    @Parameters("SENDER_MANIFEST", "USE_CASE")
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
     fun beforeTest(
-        context: ITestContext,
-        @Optional SENDER_MANIFEST: String?,
-        @Optional("dextesting-testevent1") USE_CASE: String,
+//        context: ITestContext,
+//        @Optional SENDER_MANIFEST: String?,
+//        @Optional("dextesting-testevent1") USE_CASE: String,
     ) {
-        useCase = USE_CASE
+//        useCase = USE_CASE
 
-        val authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
-        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
+        authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
+//        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
 
-        val senderManifestDataFile = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
-        val propertiesFilePath = "properties/V1/$USE_CASE/$senderManifestDataFile"
-        metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
+//        val senderManifestDataFile = if (SENDER_MANIFEST.isNullOrEmpty()) "$USE_CASE.properties" else SENDER_MANIFEST
+//        val propertiesFilePath = "properties/V1/$USE_CASE/$senderManifestDataFile"
+//        metadata = Metadata.convertPropertiesToMetadataMap(propertiesFilePath)
 
-        bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
+//        bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
 
-        uploadConfigV1 = loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v1")
+//        uploadConfigV1 = loadUploadConfig(dexBlobClient, "$USE_CASE.json", "v1")
 
-        dexContainerClient = dexBlobClient.getBlobContainerClient(USE_CASE)
-        edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
-        routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
+//        dexContainerClient = dexBlobClient.getBlobContainerClient(USE_CASE)
+//        edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
+//        routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
 
-        uploadId = uploadClient.uploadFile(testFile, metadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
-        context.setAttribute("uploadId", uploadId)
-        Thread.sleep(500) // Hard delay to wait for file to copy.
-
-        Assert.assertTrue(bulkUploadsContainerClient.exists())
+//        uploadId = uploadClient.uploadFile(testFile, metadata) ?: throw TestNGException("Error uploading file ${testFile.name}")
+//        context.setAttribute("uploadId", uploadId)
+//        Thread.sleep(500) // Hard delay to wait for file to copy.
+//
+//        Assert.assertTrue(bulkUploadsContainerClient.exists())
     }
 
-    @Test(groups = [Constants.Groups.FILE_COPY])
-    fun shouldUploadFileToTusContainer() {
-        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uploadId")
+    @BeforeMethod
+    fun setupUpload(context: ITestContext) {
+        testContext = context
+        uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
+    }
+
+    @Test(groups = [Constants.Groups.FILE_COPY], dataProvider = "validManifestProvider", dataProviderClass = DataProvider::class)
+    fun shouldUploadFile(manifest: HashMap<String, String>) {
+        val uid = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
+        testContext.setAttribute("uploadId", uid)
+//        Thread.sleep(500)
+
+        // First, check bulk upload and .info file.
+        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid")
         val uploadInfoBlob =
-            bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uploadId.info")
+            bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid.info")
 
         Assert.assertTrue(uploadBlob.exists())
         Assert.assertTrue(uploadInfoBlob.exists())
-    }
-
-    @Test(groups = [Constants.Groups.FILE_COPY])
-    fun shouldHaveSameSizeFileInTusContainer() {
-        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uploadId")
-
         Assert.assertEquals(uploadBlob.properties.blobSize, testFile.length())
-    }
 
-    @Test(groups = [Constants.Groups.FILE_COPY])
-    fun shouldCopyToDestinationContainers() {
-        val filenameSuffix = Filename.getFilenameSuffix(uploadConfigV1.copyConfig, uploadId)
+        // Next, check that the file arrived in destination storage.
+        val config = loadUploadConfig(dexBlobClient, manifest)
+        val filenameSuffix = Filename.getFilenameSuffix(config.copyConfig, uid)
         val expectedFilename = "${
             Metadata.getFilePrefixByDate(
                 DateTime(DateTimeZone.UTC),
-                useCase
+                manifest
             )
-        }/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
+        }/${Metadata.getFilename(manifest)}${filenameSuffix}${testFile.extension}"
         var expectedBlobClient: BlobClient?
 
-        if (uploadConfigV1.copyConfig.targets.contains("edav")) {
+        if (config.copyConfig.targets.contains("edav")) {
             expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
 
             Assert.assertNotNull(expectedBlobClient)
             Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
         }
 
-        if (uploadConfigV1.copyConfig.targets.contains("routing")) {
+        if (config.copyConfig.targets.contains("routing")) {
             expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
 
             Assert.assertNotNull(expectedBlobClient)
             Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
         }
     }
+
+//    @Test(groups = [Constants.Groups.FILE_COPY])
+//    fun shouldUploadFileToTusContainer() {
+//        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uploadId")
+//        val uploadInfoBlob =
+//            bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uploadId.info")
+//
+//        Assert.assertTrue(uploadBlob.exists())
+//        Assert.assertTrue(uploadInfoBlob.exists())
+//    }
+
+//    @Test(groups = [Constants.Groups.FILE_COPY])
+//    fun shouldHaveSameSizeFileInTusContainer() {
+//        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uploadId")
+//
+//        Assert.assertEquals(uploadBlob.properties.blobSize, testFile.length())
+//    }
+
+//    @Test(groups = [Constants.Groups.FILE_COPY])
+//    fun shouldCopyToDestinationContainers() {
+//        val filenameSuffix = Filename.getFilenameSuffix(uploadConfigV1.copyConfig, uploadId)
+//        val expectedFilename = "${
+//            Metadata.getFilePrefixByDate(
+//                DateTime(DateTimeZone.UTC),
+//                useCase
+//            )
+//        }/${testFile.nameWithoutExtension}${filenameSuffix}${testFile.extension}"
+//        var expectedBlobClient: BlobClient?
+//
+//        if (uploadConfigV1.copyConfig.targets.contains("edav")) {
+//            expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
+//
+//            Assert.assertNotNull(expectedBlobClient)
+//            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
+//        }
+//
+//        if (uploadConfigV1.copyConfig.targets.contains("routing")) {
+//            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
+//
+//            Assert.assertNotNull(expectedBlobClient)
+//            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
+//        }
+//    }
 
     @Test(groups = [Constants.Groups.FILE_COPY])
     fun shouldTranslateMetadataGivenV1SenderManifest() {
