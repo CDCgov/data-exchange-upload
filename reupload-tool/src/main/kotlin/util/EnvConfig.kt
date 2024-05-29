@@ -13,6 +13,8 @@ class EnvConfig {
         val SKIP_AUTH: Boolean = properties?.getProperty("skip.auth")?.let { it.toBoolean() } ?: System.getenv("SKIP_AUTH")?.let { it.toBoolean() } ?: false
         val SAMS_USERNAME: String = properties?.getProperty("sams.username") ?: System.getenv("SAMS_USERNAME")
         val SAMS_PASSWORD: String = properties?.getProperty("sams.password") ?: System.getenv("SAMS_PASSWORD")
+        val DEX_STORAGE_ACCOUNT_CONNECTION_STRING: String = properties?.getProperty("dex.storage.account.connection.string") ?: System.getenv("DEX_STORAGE_ACCOUNT_CONNECTION_STRING")
+        val TUS_CONTAINER_NAME: String = properties?.getProperty("tus.container.name") ?: System.getenv("TUS_CONTAINER_NAME") ?: "bulkuploads"
         val EDAV_STORAGE_ACCOUNT_NAME: String = properties?.getProperty("edav.storage.account.name") ?: System.getenv("EDAV_STORAGE_ACCOUNT_NAME")
         val EDAV_UPLOAD_CONTAINER_NAME: String = properties?.getProperty("edav.upload.container.name") ?: System.getenv("EDAV_UPLOAD_CONTAINER_NAME") ?: "upload"
         val ROUTING_STORAGE_CONNECTION_STRING: String = properties?.getProperty("routing.storage.connection.string") ?: System.getenv("ROUTING_STORAGE_CONNECTION_STRING")

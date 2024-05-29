@@ -3,9 +3,12 @@ package org.example
 import auth.AuthClient
 import com.azure.identity.ClientSecretCredential
 import com.azure.identity.ClientSecretCredentialBuilder
+import com.azure.storage.blob.BlobClient
 import com.azure.storage.blob.BlobServiceClient
 import com.azure.storage.blob.BlobServiceClientBuilder
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
+import org.example.model.Info
 import org.example.model.Reupload
 import org.example.util.EnvConfig
 import tus.UploadClient
@@ -29,6 +32,7 @@ fun main() {
     val uploadClient = UploadClient(dexUrl, authToken)
 
     // Initialize blob service clients
+    val dexBlobServiceClient = getBlobServiceClient(EnvConfig.DEX_STORAGE_ACCOUNT_CONNECTION_STRING)
     val edavBlobServiceClient = getBlobServiceClient(EnvConfig.EDAV_STORAGE_ACCOUNT_NAME,
         ClientSecretCredentialBuilder()
             .clientId(EnvConfig.AZURE_CLIENT_ID)
@@ -44,15 +48,10 @@ fun main() {
         try {
 
             // Check storage account
-            val srcBlobClient = when (reupload.srcAccountId) {
-                "edav" -> edavBlobServiceClient
-                    .getBlobContainerClient(EnvConfig.EDAV_UPLOAD_CONTAINER_NAME)
-                    .getBlobClient(reupload.src)
-
-                "routing" -> routingBlobServiceClient
-                    .getBlobContainerClient(EnvConfig.ROUTING_UPLOAD_CONTAINER_NAME)
-                    .getBlobClient(reupload.src)
-
+            val res = when (reupload.srcAccountId) {
+                "tus" -> reUploadFileFromTusCheckpoint(reupload.src, dexBlobServiceClient, uploadClient)
+                "edav" -> reUploadFileFromDestinationCheckpoint(reupload.src, reupload.dest, edavBlobServiceClient, EnvConfig.EDAV_UPLOAD_CONTAINER_NAME, uploadClient)
+                "routing" -> reUploadFileFromDestinationCheckpoint(reupload.src, reupload.dest, routingBlobServiceClient, EnvConfig.ROUTING_UPLOAD_CONTAINER_NAME, uploadClient)
                 else -> {
                     println("unsupported source storage account: ${reupload.srcAccountId}")
                     failCount++
@@ -60,21 +59,8 @@ fun main() {
                 }
             }
 
-            // Download the file
-            val srcFilename = srcBlobClient.blobName.split("/").last()
-            println("downloading ${srcBlobClient.blobName} of size ${srcBlobClient.properties.blobSize}")
-            srcBlobClient.downloadToFile("downloads/$srcFilename")
-
-            // Overwrite filename in metadata with new filename
-            val updatedMetadata = updateFilename(reupload.dest, srcBlobClient.properties.metadata)
-
-            // Upload file.
-            val fileToUpload = File("downloads/$srcFilename")
-
-            val uploadResult = reUpload(fileToUpload, updatedMetadata, uploadClient)
-
-            if (uploadResult.isSuccess) {
-                println("Successfully re-uploaded $srcFilename under filename ${reupload.dest} and ID ${uploadResult.getOrNull()}")
+            if (res.isSuccess) {
+                println("Successfully re-uploaded ${reupload.src} under filename ${reupload.dest} and ID ${res.getOrNull()}")
                 successCount++
             } else {
                 println("reupload failed")
@@ -98,10 +84,6 @@ fun readInputCsv(inputFile: File): List<Reupload> {
             it["srcaccountid"]!!
         )
     }
-}
-
-fun getFileFromResources(filename: String): File {
-    return File(object {}::class.java.classLoader.getResource(filename)?.file!!)
 }
 
 fun getBlobServiceClient(connectionString: String): BlobServiceClient {
@@ -131,10 +113,49 @@ fun updateFilename(filename: String, src: MutableMap<String, String>): MutableMa
     return res
 }
 
+fun reUploadFileFromTusCheckpoint(tguid: String, dexBlobServiceClient: BlobServiceClient, uploadClient: UploadClient): Result<String?> {
+    val fileBlobClient = dexBlobServiceClient
+        .getBlobContainerClient(EnvConfig.TUS_CONTAINER_NAME)
+        .getBlobClient("tus_prefix/$tguid")
+    val infoBlobClient = dexBlobServiceClient
+        .getBlobContainerClient(EnvConfig.TUS_CONTAINER_NAME)
+        .getBlobClient("tus_prefix/$tguid.info")
+
+    // Download the file
+    val fileToReupload = downloadFile(fileBlobClient).getOrThrow()
+
+    // Get metadata from the info file
+    val infoFile = downloadFile(infoBlobClient).getOrThrow().readBytes()
+    val info = jacksonObjectMapper().readValue(infoFile, Info::class.java)
+
+    return reUpload(fileToReupload, info.metadata, uploadClient)
+}
+
+fun reUploadFileFromDestinationCheckpoint(filename: String, newFilename: String, destBlobServiceClient: BlobServiceClient, containerName: String, uploadClient: UploadClient): Result<String?> {
+    val fileBlobClient = destBlobServiceClient
+        .getBlobContainerClient(containerName)
+        .getBlobClient(filename)
+
+    // Download the file
+    val fileToReupload = downloadFile(fileBlobClient).getOrThrow()
+    val updatedMetadata = updateFilename(newFilename, fileBlobClient.properties.metadata)
+
+    return reUpload(fileToReupload, updatedMetadata, uploadClient)
+}
+
 fun reUpload(file: File, metadata: MutableMap<String, String>, client: UploadClient): Result<String?> {
     return runCatching {
         println("uploading ${file.name}")
         client.uploadFile(file, metadata)
+    }
+}
+
+fun downloadFile(blobClient: BlobClient): Result<File> {
+    return runCatching {
+        val filename = blobClient.blobName.split("/").last()
+        println("downloading ${blobClient.blobName} of size ${blobClient.properties.blobSize} to downloads/$filename")
+        blobClient.downloadToFile("downloads/$filename")
+        File("downloads/$filename")
     }
 }
 
