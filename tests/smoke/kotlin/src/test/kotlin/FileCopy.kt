@@ -84,7 +84,7 @@ class FileCopy {
     fun shouldUploadFile(manifest: HashMap<String, String>) {
         val uid = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
-//        Thread.sleep(500)
+        Thread.sleep(500)
 
         // First, check bulk upload and .info file.
         val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid")
