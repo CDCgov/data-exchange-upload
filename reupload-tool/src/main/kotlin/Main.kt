@@ -50,8 +50,8 @@ fun main() {
             // Check storage account
             val res = when (reupload.srcAccountId) {
                 "tus" -> reUploadFileFromTusCheckpoint(reupload.src, dexBlobServiceClient, uploadClient)
-                "edav" -> reUploadFileFromDestinationCheckpoint(reupload.src, reupload.dest, edavBlobServiceClient, EnvConfig.EDAV_UPLOAD_CONTAINER_NAME, uploadClient)
-                "routing" -> reUploadFileFromDestinationCheckpoint(reupload.src, reupload.dest, routingBlobServiceClient, EnvConfig.ROUTING_UPLOAD_CONTAINER_NAME, uploadClient)
+                "edav" -> reUploadFileFromDestinationCheckpoint(reupload.src, reupload.dest!!, edavBlobServiceClient, EnvConfig.EDAV_UPLOAD_CONTAINER_NAME, uploadClient)
+                "routing" -> reUploadFileFromDestinationCheckpoint(reupload.src, reupload.dest!!, routingBlobServiceClient, EnvConfig.ROUTING_UPLOAD_CONTAINER_NAME, uploadClient)
                 else -> {
                     println("unsupported source storage account: ${reupload.srcAccountId}")
                     failCount++
@@ -60,7 +60,7 @@ fun main() {
             }
 
             if (res.isSuccess) {
-                println("Successfully re-uploaded ${reupload.src} under filename ${reupload.dest} and ID ${res.getOrNull()}")
+                println("Successfully re-uploaded ${reupload.src} under upload ID ${res.getOrNull()}")
                 successCount++
             } else {
                 println("reupload failed")
@@ -116,10 +116,10 @@ fun updateFilename(filename: String, src: MutableMap<String, String>): MutableMa
 fun reUploadFileFromTusCheckpoint(tguid: String, dexBlobServiceClient: BlobServiceClient, uploadClient: UploadClient): Result<String?> {
     val fileBlobClient = dexBlobServiceClient
         .getBlobContainerClient(EnvConfig.TUS_CONTAINER_NAME)
-        .getBlobClient("tus_prefix/$tguid")
+        .getBlobClient("tus-prefix/$tguid")
     val infoBlobClient = dexBlobServiceClient
         .getBlobContainerClient(EnvConfig.TUS_CONTAINER_NAME)
-        .getBlobClient("tus_prefix/$tguid.info")
+        .getBlobClient("tus-prefix/$tguid.info")
 
     // Download the file
     val fileToReupload = downloadFile(fileBlobClient).getOrThrow()
