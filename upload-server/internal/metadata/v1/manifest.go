@@ -37,6 +37,9 @@ func NewFromManifest(manifest handler.MetaData) (validation.ConfigLocation, erro
 
 func Hydrate(m map[string]string, config *validation.ManifestConfig) map[string]string {
 	for _, field := range config.Metadata.Fields {
+		if field.CompatFieldName == "" {
+			continue
+		}
 		if v, ok := m[field.FieldName]; ok {
 			m[field.CompatFieldName] = v
 		}

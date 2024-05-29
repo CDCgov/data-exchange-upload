@@ -10,6 +10,7 @@ import (
 	azureloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/azure"
 	fileloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/file"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	azurereporters "github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters/azure"
 	filereporters "github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters/file"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
@@ -95,7 +96,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	handler.Register(tusHooks.HookPostCreate, hookHandler.PostCreate)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
-	handler.Register(tusHooks.HookPostFinish, manifestValidator.Hydrate, copier.Merge, copier.Route)
+	handler.Register(tusHooks.HookPostFinish, manifestValidator.Hydrate, postprocessing.Merge, postprocessing.Deliver)
 
 	return handler, nil
 }

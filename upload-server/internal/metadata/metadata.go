@@ -225,6 +225,10 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	if v, ok := manifest["version"]; ok && v == "2.0" {
 		return resp, nil
 	}
+	//TODO: don't trigger this this way, it's a weird sideaffect
+	manifest["version"] = "2.0"
+	manifest["data_stream_id"] = manifest["meta_destination_id"]
+	manifest["data_stream_route"] = manifest["meta_ext_event"]
 	path, err := GetConfigIdentifierByVersion(ctx, manifest)
 	if err != nil {
 		return resp, err
