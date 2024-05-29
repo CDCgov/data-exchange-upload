@@ -93,7 +93,9 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	handler.Register(tusHooks.HookPostReceive, hookHandler.PostReceive)
 	handler.Register(tusHooks.HookPostFinish, hookHandler.PostFinish)
 	handler.Register(tusHooks.HookPostCreate, hookHandler.PostCreate)
-	// TODO: -> handler.Register(tusHooks.HookPostFinish, copier.Merge, copier.Route)
+	// note that tus sends this to a potentially blocking channel.
+	// however it immediately pulls from that channel in to a goroutine..so we're good
+	handler.Register(tusHooks.HookPostFinish, manifestValidator.Hydrate, copier.Merge, copier.Route)
 
 	return handler, nil
 }

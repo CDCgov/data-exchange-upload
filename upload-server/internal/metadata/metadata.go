@@ -217,6 +217,27 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	return resp, nil
 }
 
+func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	// TODO: this could be the event context...but honestly we don't want this to stop
+	// we do need graceful shutdown, so maybe we need a custom context here somehow
+	ctx := context.TODO()
+	manifest := event.Upload.MetaData
+	if v, ok := manifest["version"]; ok && v == "2.0" {
+		return resp, nil
+	}
+	path, err := GetConfigIdentifierByVersion(ctx, manifest)
+	if err != nil {
+		return resp, err
+	}
+	c, err := v.Configs.GetConfig(ctx, strings.ToLower(path))
+	if err != nil {
+		return resp, err
+	}
+	v2Manifest := v1.Hydrate(manifest, c)
+	resp.ChangeFileInfo.MetaData = v2Manifest
+	return resp, nil
+}
+
 func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid

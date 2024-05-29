@@ -23,10 +23,11 @@ type CopyConfig struct {
 }
 
 type FieldConfig struct {
-	FieldName     string   `json:"field_name"`
-	Required      bool     `json:"required"`
-	Description   string   `json:"description"`
-	AllowedValues []string `json:"allowed_values"`
+	FieldName       string   `json:"field_name"`
+	Required        bool     `json:"required"`
+	Description     string   `json:"description"`
+	AllowedValues   []string `json:"allowed_values"`
+	CompatFieldName string   `json:"compat_field_name"`
 }
 
 func validFileName(value string) error {
