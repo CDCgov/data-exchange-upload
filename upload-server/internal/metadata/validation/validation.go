@@ -8,8 +8,9 @@ import (
 )
 
 type ManifestConfig struct {
-	Metadata MetadataConfig `json:"metadata_config"`
-	Copy     CopyConfig     `json:"copy_config"`
+	Metadata             MetadataConfig `json:"metadata_config"`
+	Copy                 CopyConfig     `json:"copy_config"`
+	CompatConfigFilename string         `json:"compat_config_filename"`
 }
 
 type MetadataConfig struct {
@@ -18,6 +19,7 @@ type MetadataConfig struct {
 }
 
 type CopyConfig struct {
+	FilenameSuffix  string   `json:"filename_suffix"`
 	FolderStructure string   `json:"folder_structure"`
 	Targets         []string `json:"targets"`
 }

@@ -217,6 +217,30 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	return resp, nil
 }
 
+func (v *SenderManifestVerification) getHydrationConfig(ctx context.Context, manifest map[string]string) (*validation.ManifestConfig, error) {
+	path, err := GetConfigIdentifierByVersion(ctx, manifest)
+	if err != nil {
+		return nil, err
+	}
+	c, err := v.Configs.GetConfig(ctx, strings.ToLower(path))
+	if err != nil {
+		return nil, err
+	}
+	if c.CompatConfigFilename != "" {
+		return v.Configs.GetConfig(ctx, c.CompatConfigFilename)
+	}
+
+	//TODO: don't trigger this this way, it's a weird sideaffect
+	manifest["version"] = "2.0"
+	manifest["data_stream_id"] = manifest["meta_destination_id"]
+	manifest["data_stream_route"] = manifest["meta_ext_event"]
+	path, err = GetConfigIdentifierByVersion(ctx, manifest)
+	if err != nil {
+		return nil, err
+	}
+	return v.Configs.GetConfig(ctx, strings.ToLower(path))
+}
+
 func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	// TODO: this could be the event context...but honestly we don't want this to stop
 	// we do need graceful shutdown, so maybe we need a custom context here somehow
@@ -225,18 +249,12 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	if v, ok := manifest["version"]; ok && v == "2.0" {
 		return resp, nil
 	}
-	//TODO: don't trigger this this way, it's a weird sideaffect
-	manifest["version"] = "2.0"
-	manifest["data_stream_id"] = manifest["meta_destination_id"]
-	manifest["data_stream_route"] = manifest["meta_ext_event"]
-	path, err := GetConfigIdentifierByVersion(ctx, manifest)
+
+	c, err := v.getHydrationConfig(ctx, manifest)
 	if err != nil {
 		return resp, err
 	}
-	c, err := v.Configs.GetConfig(ctx, strings.ToLower(path))
-	if err != nil {
-		return resp, err
-	}
+
 	v2Manifest := v1.Hydrate(manifest, c)
 	resp.ChangeFileInfo.MetaData = v2Manifest
 	return resp, nil
