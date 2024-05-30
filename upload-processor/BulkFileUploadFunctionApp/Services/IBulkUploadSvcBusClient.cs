@@ -34,7 +34,7 @@ namespace BulkFileUploadFunctionApp.Services
             _logger = logger;
             _svcBusClient = new ServiceBusClient(_serviceBusConnectionString, new ServiceBusClientOptions
             {
-                TransportType = ServiceBusTransportType.AmqpTcp,
+                TransportType = ServiceBusTransportType.AmqpWebSockets,
                 RetryOptions = new ServiceBusRetryOptions
                 {
                     TryTimeout = TimeSpan.FromSeconds(60),
