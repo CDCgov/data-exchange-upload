@@ -6,5 +6,8 @@ import (
 )
 
 func Deliver(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	// root -> ""
+	// date -> default pattern
+	// "" -> ""
 	return resp, nil
 }
