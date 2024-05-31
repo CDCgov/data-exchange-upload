@@ -52,7 +52,9 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 			logger.Error("error configuring redis locker", "error", err)
 			return nil, err
 		}
+		// ADD redislocker health check object
 	}
+	// replace with redislocker health.Register(storeHealthCheck)
 
 	// get and initialize tusd hook handlers
 	hookHandler, err := GetHookHandler(appConfig)
