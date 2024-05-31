@@ -1,4 +1,4 @@
-# DEX Upload Release Notes - Version 2.1.0
+# DEX Upload Release Notes - Version 2.1.1
 
 *Release Date:* 2024-05-30 <br/>
 *Version Number:* Version 2.1.1 <br/>
