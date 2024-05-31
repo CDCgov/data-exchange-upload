@@ -1,7 +1,7 @@
 # DEX Upload Release Notes - Version 2.1.0
 
-*Release Date:* 2024-05-28 <br/>
-*Version Number:* Version 2.1.0 <br/>
+*Release Date:* 2024-05-30 <br/>
+*Version Number:* Version 2.1.1 <br/>
 *Release Changelog*
 *[API Swagger Documentation](https://github.com/CDCgov/data-exchange-upload/blob/main/docs/openapi.yml)* <br/>
 *[DEX Upload API Github Releases](https://github.com/CDCgov/data-exchange-upload/releases)* <br/>

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] 2024-05-30
+- Upgrade to the v2 TUS resumable upload protocol.  This brings more resilient file uploading, and better error messages.
+- Support backwards-compatible upload config filenames.  This allows senders migrating to v2 sender manifests to use different filenames for their v2 upload config JSON file.
+- Improved reporting to the Processing Status API.  This includes several new report types, but also a full migration to sending report messages to an Azure Service Bus instead of over HTTP.  This improves observability into files being uploaded and processed.
+- The Upload API is no longer sending trace information to the Processing Status API.
+- Improved logging.  This improves debugging and troubleshooting.
+- Support for CELR, NRSS, and EHDI programs.
+- Info endpoint.  This is a new HTTP endpoint where authenticated users can send a GET request to /upload/info/{uploadID} and get a response containing metadata about the file that was uploaded.  The uploadID path parameter is the unique ID given back by our service when an upload is complete.
+- Health check endpoint.  This is a new HTTP endpoint where users authenticated users can send a GET request to /upload/health and check the overall health of the Upload API service, and the other critical services that it depends on.
+
 ## [1.6.3] 2024-05-02
 - Remove appended tguid values from filenames routed to EDAV storage accounts.
 
