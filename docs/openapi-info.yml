@@ -12,7 +12,7 @@ tags:
   - name: UPLOAD_API
 
 servers:
-- url: https://apidev.cdc.gov/info
+- url: https://apidev.cdc.gov/upload/info
 
 paths:
   "/{tguid}":
