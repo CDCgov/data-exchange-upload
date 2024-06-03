@@ -9,15 +9,16 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func Merge(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (pp PostProcessor) Merge(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	id := event.Upload.ID
-	dir := "./uploads/tus-prefix"
+	dir := pp.UploadDir
+	dexDir := pp.UploadBaseDir + "/dex"
 	f, err := os.Open(dir + "/" + id)
 	if err != nil {
 		return resp, err
 	}
-	os.Mkdir("./uploads/dex", 0750)
-	dest, err := os.Create("./uploads/dex/" + id)
+	os.Mkdir(dexDir, 0750)
+	dest, err := os.Create(dexDir + "/" + id)
 	if err != nil {
 		return resp, err
 	}
@@ -34,6 +35,6 @@ func Merge(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse
 	if err != nil {
 		return resp, err
 	}
-	err = os.WriteFile("./uploads/dex/"+id+".meta", m, 0666)
+	err = os.WriteFile(dexDir+"/"+id+".meta", m, 0666)
 	return resp, err
 }
