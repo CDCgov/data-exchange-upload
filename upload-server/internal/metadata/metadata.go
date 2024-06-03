@@ -40,6 +40,8 @@ var registeredVersions = map[string]func(handler.MetaData) (validation.ConfigLoc
 	"2.0": v2.NewFromManifest,
 }
 
+var Cache *ConfigCache
+
 type ConfigCache struct {
 	sync.Map
 	Loader validation.ConfigLoader

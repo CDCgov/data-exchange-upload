@@ -166,6 +166,8 @@ func TestMain(m *testing.M) {
 		LocalFolderUploadsTus: "test/uploads",
 		LocalReportsFolder:    "test/reports",
 		LocalDEXFolder:        "test/dex",
+		LocalEDAVFolder:       "test/edav",
+		LocalROUTINGFolder:    "test/routing",
 		TusdHandlerBasePath:   "/files/",
 	}
 

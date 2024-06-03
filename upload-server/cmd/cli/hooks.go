@@ -32,14 +32,14 @@ func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error)
 func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
-	cache := &metadata.ConfigCache{
+	metadata.Cache = &metadata.ConfigCache{
 		Loader: &fileloader.FileConfigLoader{
 			FileSystem: os.DirFS(appConfig.UploadConfigPath),
 		},
 	}
 
 	manifestValidator := metadata.SenderManifestVerification{
-		Configs: cache,
+		Configs: metadata.Cache,
 		Reporter: &filereporters.FileReporter{
 			Dir: appConfig.LocalReportsFolder,
 		},
@@ -56,12 +56,22 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
 	})
 
+	postprocessing.RegisterTarget("edav", &postprocessing.FileDeliverer{
+		ToPath: appConfig.LocalEDAVFolder,
+		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
+	})
+
+	postprocessing.RegisterTarget("routing", &postprocessing.FileDeliverer{
+		ToPath: appConfig.LocalROUTINGFolder,
+		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
+	})
+
 	if appConfig.AzureConnection != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
 		if err != nil {
 			return nil, err
 		}
-		cache.Loader = &azureloader.AzureConfigLoader{
+		metadata.Cache.Loader = &azureloader.AzureConfigLoader{
 			Client:        client,
 			ContainerName: appConfig.AzureManifestConfigContainer,
 		}

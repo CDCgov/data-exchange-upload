@@ -46,6 +46,8 @@ type AppConfig struct {
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
 	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
+	LocalEDAVFolder       string `env:"LOCAL_DEX_FOLDER, default=./uploads/edav"`
+	LocalROUTINGFolder    string `env:"LOCAL_DEX_FOLDER, default=./uploads/routing"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`

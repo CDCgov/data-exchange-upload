@@ -2,6 +2,7 @@ package postprocessing
 
 import (
 	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -22,6 +23,18 @@ func RouteAndDeliverHook(event handler.HookEvent, resp hooks.HookResponse) (hook
 	if resp.ChangeFileInfo.MetaData != nil {
 		meta = resp.ChangeFileInfo.MetaData
 	}
+
+	// Load config from metadata.
+	path, err := metadata.GetConfigIdentifierByVersion(event.Context, meta)
+	if err != nil {
+		return resp, err
+	}
+	config, err := metadata.Cache.GetConfig(event.Context, path)
+	if err != nil {
+		return resp, err
+	}
+	targets = append(targets, config.Copy.Targets...)
+
 	var errs error
 	for _, target := range targets {
 		// fan out command
