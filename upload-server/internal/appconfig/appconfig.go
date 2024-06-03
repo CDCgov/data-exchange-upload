@@ -45,12 +45,13 @@ type AppConfig struct {
 
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
+	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
 
 	// Processing Status
-	ProcessingStatusHealthURI           string `env:"PROCESSING_STATUS_HEALTH_URI"`
+	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
 	AzureConnection            *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	ServiceBusConnectionString string              `env:"SERVICE_BUS_CONNECTION_STR"`

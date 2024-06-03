@@ -165,6 +165,7 @@ func TestMain(m *testing.M) {
 		UploadConfigPath:      "../../upload-configs/",
 		LocalFolderUploadsTus: "test/uploads",
 		LocalReportsFolder:    "test/reports",
+		LocalDEXFolder:        "test/dex",
 		TusdHandlerBasePath:   "/files/",
 	}
 

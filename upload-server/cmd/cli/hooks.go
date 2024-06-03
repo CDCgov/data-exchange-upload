@@ -51,10 +51,10 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	postProccessor := postprocessing.PostProcessor{
-		UploadBaseDir: appConfig.LocalFolderUploadsTus,
-		UploadDir:     appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
-	}
+	postprocessing.RegisterTarget("dex", &postprocessing.FileDeliverer{
+		ToPath: appConfig.LocalDEXFolder,
+		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
+	})
 
 	if appConfig.AzureConnection != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
@@ -100,7 +100,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	handler.Register(tusHooks.HookPostCreate, hookHandler.PostCreate)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
-	handler.Register(tusHooks.HookPostFinish, hookHandler.PostFinish, manifestValidator.Hydrate, postProccessor.Merge, postprocessing.Deliver)
+	handler.Register(tusHooks.HookPostFinish, hookHandler.PostFinish, manifestValidator.Hydrate, postprocessing.RouteAndDeliverHook)
 
 	return handler, nil
 }
