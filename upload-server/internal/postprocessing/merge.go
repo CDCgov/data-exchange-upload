@@ -28,5 +28,5 @@ func RouteAndDeliverHook(event handler.HookEvent, resp hooks.HookResponse) (hook
 		// send an event for each thing to be copied
 		errs = errors.Join(errs, Deliver(id, meta, target))
 	}
-	return resp, nil
+	return resp, errs
 }
