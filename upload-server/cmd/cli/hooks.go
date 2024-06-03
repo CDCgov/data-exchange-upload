@@ -20,16 +20,16 @@ import (
 	"nhooyr.io/websocket"
 )
 
-func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
+func GetHookHandler(appConfig appconfig.AppConfig, c chan postprocessing.Event) (tusHooks.HookHandler, error) {
 	if Flags.FileHooksDir != "" {
 		return &file.FileHook{
 			Directory: Flags.FileHooksDir,
 		}, nil
 	}
-	return PrebuiltHooks(appConfig)
+	return PrebuiltHooks(appConfig, c)
 }
 
-func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
+func PrebuiltHooks(appConfig appconfig.AppConfig, c chan postprocessing.Event) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	metadata.Cache = &metadata.ConfigCache{
@@ -110,7 +110,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	handler.Register(tusHooks.HookPostCreate, hookHandler.PostCreate)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
-	handler.Register(tusHooks.HookPostFinish, hookHandler.PostFinish, manifestValidator.Hydrate, postprocessing.RouteAndDeliverHook)
+	handler.Register(tusHooks.HookPostFinish, hookHandler.PostFinish, manifestValidator.Hydrate, postprocessing.RouteAndDeliverHook(c))
 
 	return handler, nil
 }

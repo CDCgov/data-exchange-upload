@@ -80,7 +80,7 @@ func main() {
 	logger.Info("starting app")
 
 	// start serving the app
-	_, err := cli.Serve(appConfig)
+	_, err := cli.Serve(ctx, appConfig)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)

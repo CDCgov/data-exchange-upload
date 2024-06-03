@@ -2,6 +2,7 @@ package testing
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -171,7 +172,7 @@ func TestMain(m *testing.M) {
 		TusdHandlerBasePath:   "/files/",
 	}
 
-	handler, err := cli.Serve(appConfig)
+	handler, err := cli.Serve(context.Background(), appConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

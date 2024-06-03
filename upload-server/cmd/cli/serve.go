@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -16,7 +17,8 @@ import (
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
-func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
+
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -54,8 +56,10 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 		}
 	}
 
+	postProcessingChannel := StartProcessorWorkers(ctx)
+
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(appConfig)
+	hookHandler, err := GetHookHandler(appConfig, postProcessingChannel)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
