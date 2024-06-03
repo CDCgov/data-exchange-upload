@@ -91,7 +91,7 @@ func GetConfigIdentifierByVersion(ctx context.Context, manifest handler.MetaData
 	return configLoc.Path(), nil
 }
 
-func getFilename(manifest map[string]string) string {
+func GetFilename(manifest map[string]string) string {
 
 	keys := []string{
 		"filename",
@@ -179,7 +179,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 			SchemaVersion: "0.0.1",
 			SchemaName:    "dex-metadata-verify",
 		},
-		Filename: getFilename(manifest),
+		Filename: GetFilename(manifest),
 		Metadata: manifest,
 	}
 
@@ -360,7 +360,7 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 			SchemaVersion: "1.0",
 			SchemaName:    "upload",
 		},
-		Filename: getFilename(manifest),
+		Filename: GetFilename(manifest),
 		Tguid:    tguid,
 		Offset:   strconv.FormatInt(offset, 10),
 		Size:     strconv.FormatInt(size, 10),

@@ -2,7 +2,10 @@ package cli
 
 import (
 	"context"
+	"errors"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"net"
+	"net/http"
 	"os"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
@@ -102,6 +105,36 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
+
+			// TODO use env vars for container names.
+			tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
+			if err != nil {
+				return nil, err
+			}
+			dexCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, "dex-checkpoint")
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = dexCheckpointContainerClient.GetProperties(context.TODO(), nil)
+			if err != nil {
+				var storageErr *azcore.ResponseError
+				if errors.As(err, &storageErr) {
+					if storageErr.StatusCode == http.StatusNotFound {
+						logger.Info("creating dex-checkpoint container")
+						_, err := dexCheckpointContainerClient.Create(context.TODO(), nil)
+						if err != nil {
+							logger.Error("failed to create dex checkpoint container")
+							return nil, err
+						}
+					}
+				}
+			}
+
+			postprocessing.RegisterTarget("dex", &postprocessing.AzureDeliverer{
+				FromContainerClient: tusContainerClient,
+				ToContainerClient:   dexCheckpointContainerClient,
+			})
 		}
 	}
 
