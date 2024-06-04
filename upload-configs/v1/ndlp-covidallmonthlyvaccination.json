@@ -151,5 +151,6 @@
         "targets": [
             "edav"
         ]
-    }
+    },
+	"compat_config_filename": "covid-all-monthly-vaccination-csv.json"
 }
