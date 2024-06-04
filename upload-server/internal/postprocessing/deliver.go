@@ -58,6 +58,7 @@ type FileDeliverer struct {
 type AzureDeliverer struct {
 	FromContainerClient *container.Client
 	ToContainerClient   *container.Client
+	TusPrefix           string
 }
 
 func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error {
@@ -88,7 +89,7 @@ func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error 
 func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error {
 	// Get blob src blob client.
 	// TODO get tus prefix from app config.  Place in azure deliverer.
-	srcBlobClient := ad.FromContainerClient.NewBlobClient("tus-prefix/" + tuid)
+	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	// Get filename from metadata.
 	filename := metadata.GetFilename(manifest)
 	tokens := strings.Split(filename, ".")

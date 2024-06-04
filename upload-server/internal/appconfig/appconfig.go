@@ -64,6 +64,9 @@ type AppConfig struct {
 	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
 	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
+
+	// Upload processing
+	DexCheckpointContainer string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {

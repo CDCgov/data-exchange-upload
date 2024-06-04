@@ -106,12 +106,11 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				QueueName: appConfig.ReportQueueName,
 			}
 
-			// TODO use env vars for container names.
 			tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
 			if err != nil {
 				return nil, err
 			}
-			dexCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, "dex-checkpoint")
+			dexCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.DexCheckpointContainer)
 			if err != nil {
 				return nil, err
 			}
@@ -134,6 +133,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 			postprocessing.RegisterTarget("dex", &postprocessing.AzureDeliverer{
 				FromContainerClient: tusContainerClient,
 				ToContainerClient:   dexCheckpointContainerClient,
+				TusPrefix:           appConfig.TusUploadPrefix,
 			})
 		}
 	}
