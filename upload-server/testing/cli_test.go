@@ -3,6 +3,7 @@ package testing
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"net/http/httptest"
@@ -121,6 +122,51 @@ func TestTus(t *testing.T) {
 
 					if rUploadStatus.Content.(models.UploadStatusContent).Offset != rUploadStatus.Content.(models.UploadStatusContent).Size {
 						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, rUploadStatus)
+					}
+				}
+
+				// Post-processing
+				// Check that the file exists in the dex checkpoint folder.
+				if _, err := os.Stat("./test/dex/" + tuid); errors.Is(err, os.ErrNotExist) {
+					t.Error("file was not copied to dex checkpoint for file", tuid)
+				}
+				// Also check that the .meta file exists in the dex folder.
+				if _, err := os.Stat("./test/dex/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
+					t.Error("meta file was not copied to dex checkpoint for file", tuid)
+				}
+				// Also check that the metadata in the .meta file is hydrated with v2 manifest fields.
+				metaFile, err := os.Open("./test/dex/" + tuid + ".meta")
+				if err != nil {
+					t.Error("error opening meta file for file", tuid)
+				}
+				defer metaFile.Close()
+
+				bytes, _ := io.ReadAll(metaFile)
+				var processedMeta map[string]string
+				err = json.Unmarshal(bytes, &processedMeta)
+				if err != nil {
+					t.Error("error deserializing metadata for file", tuid)
+				}
+
+				translationFields := map[string]string{
+					"meta_destination_id": "data_stream_id",
+					"meta_ext_event":      "data_stream_route",
+				}
+				v, ok := c.metadata["version"]
+
+				if !ok || v == "1.0" {
+					for v1Key, v2Key := range translationFields {
+						v1Val, ok := processedMeta[v1Key]
+						if !ok {
+							t.Error("malformed metadata; missing required field", v1Key, processedMeta)
+						}
+						v2Val, ok := processedMeta[v2Key]
+						if !ok {
+							t.Error("v1 metadata not hydrated; missing v2 field", v2Key)
+						}
+						if v1Val != v2Val {
+							t.Error("v1 to v2 fields not properly translated", v1Val, v2Val)
+						}
 					}
 				}
 			}

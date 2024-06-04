@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
@@ -134,7 +135,7 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 			return err
 		}
 		status = *getPropResp.CopyStatus
-		logger.Info("Copy progress", status)
+		logger.Info("Copy progress", "status", fmt.Sprintf("%s", status))
 	}
 
 	logger.Info("Copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL(), "status", status)
