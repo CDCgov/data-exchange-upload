@@ -89,7 +89,6 @@ func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error 
 
 func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error {
 	// Get blob src blob client.
-	// TODO get tus prefix from app config.  Place in azure deliverer.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	// Get filename from metadata.
 	filename := metadata.GetFilename(manifest)
