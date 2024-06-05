@@ -84,6 +84,7 @@ func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error 
 }
 
 func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error {
+	ctx := context.TODO()
 	// Get blob src blob client.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	blobName, err := getDeliveredFilename(ad.Target, tuid, manifest)
@@ -96,14 +97,14 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 		manifestPointer[k] = &value
 	}
 	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
-	resp, err := destBlobClient.StartCopyFromURL(context.TODO(), srcBlobClient.URL(), &blob.StartCopyFromURLOptions{Metadata: manifestPointer})
+	resp, err := destBlobClient.StartCopyFromURL(ctx, srcBlobClient.URL(), &blob.StartCopyFromURLOptions{Metadata: manifestPointer})
 	if err != nil {
 		return err
 	}
 
 	status := *resp.CopyStatus
 	for status == blob.CopyStatusTypePending {
-		getPropResp, err := destBlobClient.GetProperties(context.TODO(), nil)
+		getPropResp, err := destBlobClient.GetProperties(ctx, nil)
 		if err != nil {
 			return err
 		}
@@ -117,6 +118,7 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 }
 
 func getDeliveredFilename(target string, tuid string, manifest map[string]string) (string, error) {
+	ctx := context.TODO()
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadata.GetFilename(manifest)
 	filenameWithoutExtention := filename
@@ -127,11 +129,11 @@ func getDeliveredFilename(target string, tuid string, manifest map[string]string
 		filenameWithoutExtention = strings.Join(tokens[:len(tokens)-1], ".")
 	}
 	// Load config from metadata.
-	path, err := metadata.GetConfigIdentifierByVersion(context.TODO(), manifest)
+	path, err := metadata.GetConfigIdentifierByVersion(ctx, manifest)
 	if err != nil {
 		return "", err
 	}
-	config, err := metadata.Cache.GetConfig(context.TODO(), path)
+	config, err := metadata.Cache.GetConfig(ctx, path)
 	if err != nil {
 		return "", err
 	}
