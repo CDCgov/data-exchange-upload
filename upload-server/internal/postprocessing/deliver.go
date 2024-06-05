@@ -121,13 +121,9 @@ func getDeliveredFilename(target string, tuid string, manifest map[string]string
 	ctx := context.TODO()
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadata.GetFilename(manifest)
-	filenameWithoutExtention := filename
-	tokens := strings.Split(filename, ".")
-	extension := ""
-	if len(tokens) > 1 {
-		extension = "." + tokens[len(tokens)-1]
-		filenameWithoutExtention = strings.Join(tokens[:len(tokens)-1], ".")
-	}
+	extension := filepath.Ext(filename)
+	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
+
 	// Load config from metadata.
 	path, err := metadata.GetConfigIdentifierByVersion(ctx, manifest)
 	if err != nil {
@@ -141,7 +137,7 @@ func getDeliveredFilename(target string, tuid string, manifest map[string]string
 	if config.Copy.FilenameSuffix == "upload_id" {
 		suffix = "_" + tuid
 	}
-	blobName := filenameWithoutExtention + suffix + extension
+	blobName := filenameWithoutExtension + suffix + extension
 
 	// Next, need to set the filename prefix based on config and target.
 	// edav, routing -> use config
