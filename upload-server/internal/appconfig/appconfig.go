@@ -56,6 +56,8 @@ type AppConfig struct {
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
 	AzureConnection            *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
+	EdavConnection             *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
+	RoutingConnection          *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
 	ServiceBusConnectionString string              `env:"SERVICE_BUS_CONNECTION_STR"`
 	ReportQueueName            string              `env:"REPORT_QUEUE_NAME, default=processing-status-cosmos-db-queue"`
 
@@ -66,7 +68,9 @@ type AppConfig struct {
 	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 
 	// Upload processing
-	DexCheckpointContainer string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
+	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
+	EdavCheckpointContainer    string `env:"DEX_EDAV_CHECKPOINT_CONTAINER_NAME, default=upload"`
+	RoutingCheckpointContainer string `env:"DEX_ROUTING_CHECKPOINT_CONTAINER_NAME, default=routeingress"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -92,6 +96,9 @@ type AzureStorageConfig struct {
 	StorageName       string `env:"STORAGE_ACCOUNT"`
 	StorageKey        string `env:"STORAGE_KEY"`
 	ContainerEndpoint string `env:"ENDPOINT"`
+	ClientId          string `env:"CLIENT_ID"`
+	ClientSecret      string `env:"CLIENT_SECRET"`
+	TenantId          string `env:"TENANT_ID"`
 } // .AzureStorageConfig
 
 func (azc *AzureStorageConfig) Check() error {
