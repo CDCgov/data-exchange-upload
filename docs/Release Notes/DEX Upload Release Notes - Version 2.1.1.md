@@ -20,7 +20,7 @@ Upload API v2 brings several enhancements to existing capabilities, and a few ne
 
 ## New Features
 - Info endpoint.  This is a new HTTP endpoint where authenticated users can send a GET request to /upload/info/{uploadID} and get a response containing metadata about the file that was uploaded.  The uploadID path parameter is the unique ID given back by our service when an upload is complete.
-- Health check endpoint.  This is a new HTTP endpoint where users authenticated users can send a GET request to /upload/health and check the overall health of the Upload API service, and the other critical services that it depends on.
+- Health check endpoint.  This is a new HTTP endpoint where authenticated users can send a GET request to /upload/health and check the overall health of the Upload API service, and the other critical services that it depends on.
 
 ## Reporting Team
 - DEX Upload Team Distribution List - dexuploadapi@cdc.gov

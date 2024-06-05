@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved logging.  This improves debugging and troubleshooting.
 - Support for CELR, NRSS, and EHDI programs.
 - Info endpoint.  This is a new HTTP endpoint where authenticated users can send a GET request to /upload/info/{uploadID} and get a response containing metadata about the file that was uploaded.  The uploadID path parameter is the unique ID given back by our service when an upload is complete.
-- Health check endpoint.  This is a new HTTP endpoint where users authenticated users can send a GET request to /upload/health and check the overall health of the Upload API service, and the other critical services that it depends on.
+- Health check endpoint.  This is a new HTTP endpoint where authenticated users can send a GET request to /upload/health and check the overall health of the Upload API service, and the other critical services that it depends on.
 
 ## [1.6.3] 2024-05-02
 - Remove appended tguid values from filenames routed to EDAV storage accounts.
