@@ -43,30 +43,23 @@ class MetadataVerify {
         dataProvider = "validManifestAllProvider",
         dataProviderClass = DataProvider::class
     )
-    fun shouldUploadFileGivenRequiredMetadata(manifest: Map<String, String>, context: ITestContext) {
+    fun shouldUploadAndValidateFileGivenRequiredMetadata(manifest: Map<String, String>, context: ITestContext) {
+        //Upload File with Required Metadata
         metadata = HashMap(manifest)
         val uploadId = uploadClient.uploadFile(testFile, metadata)
         context.setAttribute("uploadId", uploadId)
         Assert.assertNotNull(uploadId)
-    }
 
-    @Test(
-        groups = [Constants.Groups.METADATA_VERIFY],
-        dataProvider = "validManifestAllProvider",
-        dataProviderClass = DataProvider::class
-    )
-    fun shouldValidateMetadataWithManifest(manifest: HashMap<String, String>) {
-
+        // Validate Metadata with Manifest
         val useCase = Metadata.getUseCaseFromManifest(manifest)
         val dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
 
-        val uploadConfig = loadUploadConfig(dexBlobClient, manifest)
+        val uploadConfig = loadUploadConfig(dexBlobClient, manifest as HashMap<String, String>)
 
         metadata = Metadata.readMetadataFromJsonFile(useCase)
-        val uid = uploadClient.uploadFile(testFile, manifest)
-            ?: throw TestNGException("Error uploading file ${testFile.name}")
-        testContext.setAttribute("uploadId", uid)
-        Thread.sleep(500)
+        val uid = uploadId ?: throw TestNGException("Error uploading file ${testFile.name}")
+        context.setAttribute("uploadId", uid)
+        Thread.sleep(500)//wait for uploaded file to be routed to the destination storage container
 
         val filenameSuffix = Filename.getFilenameSuffix(uploadConfig.copyConfig, uid)
         val expectedFilename =

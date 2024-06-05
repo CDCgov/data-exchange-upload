@@ -9,6 +9,7 @@ plugins {
 
 kotlin {
     jvmToolchain(17)
+
 }
 
 group = "me.cfarmer"
