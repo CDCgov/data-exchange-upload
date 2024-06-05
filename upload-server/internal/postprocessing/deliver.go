@@ -36,16 +36,10 @@ func RegisterTarget(name string, d Deliverer) {
 
 type Deliverer interface {
 	Deliver(tuid string, metadata map[string]string) error
-	GetDeliveredFilename(target string, tuid string, manifest map[string]string) (string, error)
 }
 
 // target may end up being a type
 func Deliver(tuid string, manifest map[string]string, target string) error {
-	// lets make this really dumb, it should take a file uri and take the rest from there. That makes it pretty recoverable.
-	// root -> ""
-	// date -> default pattern
-	// "" -> ""
-
 	d, ok := targets[target]
 	if !ok {
 		return errors.New("not recoverable, bad target " + target)
@@ -65,10 +59,6 @@ type AzureDeliverer struct {
 	Target              string
 }
 
-func (fd *FileDeliverer) GetDeliveredFilename(_ string, tuid string, _ map[string]string) (string, error) {
-	return tuid, nil
-}
-
 func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error {
 	f, err := fd.From.Open(tuid)
 	if err != nil {
@@ -76,8 +66,7 @@ func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error 
 	}
 	defer f.Close()
 	os.Mkdir(fd.ToPath, 0755)
-	filename, _ := fd.GetDeliveredFilename("", tuid, manifest)
-	dest, err := os.Create(filepath.Join(fd.ToPath, filename))
+	dest, err := os.Create(filepath.Join(fd.ToPath, tuid))
 	if err != nil {
 		return err
 	}
@@ -97,7 +86,7 @@ func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error 
 func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error {
 	// Get blob src blob client.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
-	blobName, err := ad.GetDeliveredFilename(ad.Target, tuid, manifest)
+	blobName, err := getDeliveredFilename(ad.Target, tuid, manifest)
 
 	// TODO Check copy status in some background goroutine.
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
@@ -127,7 +116,7 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 	return nil
 }
 
-func (ad *AzureDeliverer) GetDeliveredFilename(target string, tuid string, manifest map[string]string) (string, error) {
+func getDeliveredFilename(target string, tuid string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadata.GetFilename(manifest)
 	filenameWithoutExtention := filename
