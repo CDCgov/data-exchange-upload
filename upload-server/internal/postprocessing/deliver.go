@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 )
@@ -35,6 +36,7 @@ func RegisterTarget(name string, d Deliverer) {
 
 type Deliverer interface {
 	Deliver(tuid string, metadata map[string]string) error
+	GetDeliveredFilename(target string, tuid string, manifest map[string]string) (string, error)
 }
 
 // target may end up being a type
@@ -60,17 +62,22 @@ type AzureDeliverer struct {
 	FromContainerClient *container.Client
 	ToContainerClient   *container.Client
 	TusPrefix           string
+	Target              string
+}
+
+func (fd *FileDeliverer) GetDeliveredFilename(_ string, tuid string, _ map[string]string) (string, error) {
+	return tuid, nil
 }
 
 func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error {
-	//dir := "./uploads/tus-prefix"
 	f, err := fd.From.Open(tuid)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 	os.Mkdir(fd.ToPath, 0755)
-	dest, err := os.Create(filepath.Join(fd.ToPath, tuid))
+	filename, _ := fd.GetDeliveredFilename("", tuid, manifest)
+	dest, err := os.Create(filepath.Join(fd.ToPath, filename))
 	if err != nil {
 		return err
 	}
@@ -90,29 +97,7 @@ func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error 
 func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error {
 	// Get blob src blob client.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
-	// Get filename from metadata.
-	filename := metadata.GetFilename(manifest)
-	tokens := strings.Split(filename, ".")
-	extension := ""
-	if len(tokens) > 1 {
-		extension = "." + tokens[len(tokens)-1]
-	}
-
-	// Load config from metadata.
-	// TODO create a utility function from this.
-	path, err := metadata.GetConfigIdentifierByVersion(context.TODO(), manifest)
-	if err != nil {
-		return err
-	}
-	config, err := metadata.Cache.GetConfig(context.TODO(), path)
-	if err != nil {
-		return err
-	}
-	suffix := ""
-	if config.Copy.FilenameSuffix == "upload_id" {
-		suffix = "_" + tuid
-	}
-	blobName := filename + suffix + extension
+	blobName, err := ad.GetDeliveredFilename(ad.Target, tuid, manifest)
 
 	// TODO Check copy status in some background goroutine.
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
@@ -140,4 +125,46 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 	logger.Info("Copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL(), "status", status)
 
 	return nil
+}
+
+func (ad *AzureDeliverer) GetDeliveredFilename(target string, tuid string, manifest map[string]string) (string, error) {
+	// First, build the filename from the manifest and config.  This will be the default.
+	filename := metadata.GetFilename(manifest)
+	filenameWithoutExtention := filename
+	tokens := strings.Split(filename, ".")
+	extension := ""
+	if len(tokens) > 1 {
+		extension = "." + tokens[len(tokens)-1]
+		filenameWithoutExtention = strings.Join(tokens[:len(tokens)-1], ".")
+	}
+	// Load config from metadata.
+	path, err := metadata.GetConfigIdentifierByVersion(context.TODO(), manifest)
+	if err != nil {
+		return "", err
+	}
+	config, err := metadata.Cache.GetConfig(context.TODO(), path)
+	if err != nil {
+		return "", err
+	}
+	suffix := ""
+	if config.Copy.FilenameSuffix == "upload_id" {
+		suffix = "_" + tuid
+	}
+	blobName := filenameWithoutExtention + suffix + extension
+
+	// Next, need to set the filename prefix based on config and target.
+	// edav, routing -> use config
+	prefix := ""
+
+	switch target {
+	case "edav":
+	case "routing":
+		if config.Copy.FolderStructure == "date_YYYY_MM_DD" {
+			// Get UTC year, month, and day
+			t := time.Now().UTC()
+			prefix = fmt.Sprintf("%d/%02d/%02d/", t.Year(), t.Month(), t.Day())
+		}
+	}
+
+	return prefix + blobName, nil
 }
