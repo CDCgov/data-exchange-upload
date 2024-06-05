@@ -102,7 +102,7 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 	}
 
 	status := *resp.CopyStatus
-	for status == "pending" {
+	for status == blob.CopyStatusTypePending {
 		getPropResp, err := destBlobClient.GetProperties(context.TODO(), nil)
 		if err != nil {
 			return err
