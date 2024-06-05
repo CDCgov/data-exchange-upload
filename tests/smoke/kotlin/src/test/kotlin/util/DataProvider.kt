@@ -44,29 +44,6 @@ class DataProvider {
             return manifests.map { arrayOf(it) }.toTypedArray()
         }
 
-        @DataProvider(name = "validManifestAllProviderWithVersion")
-        @JvmStatic
-        fun validManifestAllProviderWithVersion(): Array<Array<Any>> {
-            val useCases: List<String> = System.getProperty("useCases")?.split(",") ?: arrayListOf()
-            val validManifests = arrayOf("valid_manifests_v1.json", "valid_manifests_v2.json")
-            val manifests = arrayListOf<HashMap<String, String>>()
-
-            validManifests.forEach {
-                val jsonBytes = TestFile.getResourceFile(it).readBytes()
-                val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
-                val filtered = filterByUseCases(useCases, manifestJsons)
-                manifests.addAll(filtered)
-            }
-
-            val versions = versionProvider()
-
-            return versions.flatMap { version ->
-                manifests.map { manifest ->
-                    arrayOf(version[0], manifest) as Array<Any>
-                }
-            }.toTypedArray()
-        }
-
         private fun filterByUseCases(
             useCases: List<String>,
             manifests: List<HashMap<String, String>>
