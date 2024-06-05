@@ -40,7 +40,7 @@ class MetadataVerify {
 
     @Test(
         groups = [Constants.Groups.METADATA_VERIFY],
-        dataProvider = "validManifestV1Provider",
+        dataProvider = "validManifestAllProvider",
         dataProviderClass = DataProvider::class
     )
     fun shouldUploadFileGivenRequiredMetadata(manifest: Map<String, String>, context: ITestContext) {
