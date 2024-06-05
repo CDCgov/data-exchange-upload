@@ -8,7 +8,7 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(11)
 }
 
 group = "me.cfarmer"
@@ -48,7 +48,7 @@ tasks.test {
         }
     }
 //    useTestNG {
-        // If true, we want to test with XML suites.  Otherwise, test directly with Gradle and rely on default parameters.
+    // If true, we want to test with XML suites.  Otherwise, test directly with Gradle and rely on default parameters.
 //        if (hasEnv or hasSuites) {
 //            val env = project.properties["env"] ?: "dev" // Default to dev.
 //            val allUseCases = File("src/test/resources/$env").listFiles().map { it.nameWithoutExtension } // Collect all use cases from the env-specific suite directory.
@@ -60,9 +60,8 @@ tasks.test {
 //    }
 }
 
-
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "17"
+    kotlinOptions.jvmTarget = "11"
 }
 
 application {

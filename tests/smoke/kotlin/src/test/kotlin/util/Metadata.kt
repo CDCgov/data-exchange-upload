@@ -1,6 +1,8 @@
 package util
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.joda.time.DateTime
+import java.io.File
 import java.io.FileNotFoundException
 import java.util.*
 import kotlin.collections.HashMap
@@ -51,7 +53,7 @@ class Metadata {
             return convertPropertiesToMetadataMap(path)
         }
 
-        fun getUseCaseFromManifest(manifest: HashMap<String, String>): String {
+        fun getUseCaseFromManifest(manifest: Map<String, String>): String {
             return if (manifest.containsKey("version")) {
                 when (manifest["version"]) {
                     "2.0" -> "${manifest["data_stream_id"]}-${manifest["data_stream_route"]}"
@@ -70,6 +72,28 @@ class Metadata {
 
         private fun getMetadataPath(version: String, useCase: String, manifest: String): String {
             return "properties/$version/$useCase/$manifest"
+        }
+
+        fun readMetadataFromJsonFile(useCase: String): HashMap<String, String> {
+            val objectMapper = ObjectMapper()
+            val metadataMap = HashMap<String, String>()
+            val jsonFiles = listOf("valid_manifests_v1.json", "valid_manifests_v2.json")
+
+            jsonFiles.forEach { jsonFile ->
+                val inputStream = this::class.java.classLoader.getResourceAsStream(jsonFile)
+                    ?: throw FileNotFoundException("JSON file '$jsonFile' not found in the classpath")
+
+                val jsonNodes = objectMapper.readTree(inputStream)
+                jsonNodes.forEach { node ->
+                    val nodeMap = node.fields().asSequence().map { it.key to it.value.asText() }.toMap()
+                    if (getUseCaseFromManifest(nodeMap) == useCase) {
+                        node.fields().forEachRemaining { entry ->
+                            metadataMap[entry.key] = entry.value.asText()
+                        }
+                    }
+                }
+            }
+            return metadataMap
         }
     }
 }
