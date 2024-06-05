@@ -123,6 +123,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				return nil, err
 			}
 
+			// TODO helper function for this
 			_, err = dexCheckpointContainerClient.GetProperties(context.TODO(), nil)
 			if err != nil {
 				var storageErr *azcore.ResponseError
@@ -172,16 +173,19 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				FromContainerClient: tusContainerClient,
 				ToContainerClient:   dexCheckpointContainerClient,
 				TusPrefix:           appConfig.TusUploadPrefix,
+				Target:              "dex",
 			})
 			postprocessing.RegisterTarget("edav", &postprocessing.AzureDeliverer{
 				FromContainerClient: tusContainerClient,
 				ToContainerClient:   edavCheckpointContainerClient,
 				TusPrefix:           appConfig.TusUploadPrefix,
+				Target:              "edav",
 			})
 			postprocessing.RegisterTarget("routing", &postprocessing.AzureDeliverer{
 				FromContainerClient: tusContainerClient,
 				ToContainerClient:   routingCheckpointContainerClient,
 				TusPrefix:           appConfig.TusUploadPrefix,
+				Target:              "routing",
 			})
 		}
 	}
