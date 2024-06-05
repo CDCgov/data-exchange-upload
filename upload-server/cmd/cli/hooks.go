@@ -2,10 +2,7 @@ package cli
 
 import (
 	"context"
-	"errors"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"net"
-	"net/http"
 	"os"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
@@ -123,50 +120,17 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				return nil, err
 			}
 
-			// TODO helper function for this
-			_, err = dexCheckpointContainerClient.GetProperties(context.TODO(), nil)
+			err = storeaz.CreateContainerIfNotExists(context.TODO(), dexCheckpointContainerClient)
 			if err != nil {
-				var storageErr *azcore.ResponseError
-				if errors.As(err, &storageErr) {
-					if storageErr.StatusCode == http.StatusNotFound {
-						logger.Info("creating dex checkpoint container", "container", appConfig.DexCheckpointContainer)
-						_, err := dexCheckpointContainerClient.Create(context.TODO(), nil)
-						if err != nil {
-							logger.Error("failed to create dex checkpoint container", "container", appConfig.DexCheckpointContainer)
-							return nil, err
-						}
-					}
-				}
+				return nil, err
 			}
-
-			_, err = edavCheckpointContainerClient.GetProperties(context.TODO(), nil)
+			err = storeaz.CreateContainerIfNotExists(context.TODO(), edavCheckpointContainerClient)
 			if err != nil {
-				var storageErr *azcore.ResponseError
-				if errors.As(err, &storageErr) {
-					if storageErr.StatusCode == http.StatusNotFound {
-						logger.Info("creating edav checkpoint container", "container", appConfig.EdavCheckpointContainer)
-						_, err := edavCheckpointContainerClient.Create(context.TODO(), nil)
-						if err != nil {
-							logger.Error("failed to create edav checkpoint container", "container", appConfig.EdavCheckpointContainer)
-							return nil, err
-						}
-					}
-				}
+				return nil, err
 			}
-
-			_, err = routingCheckpointContainerClient.GetProperties(context.TODO(), nil)
+			err = storeaz.CreateContainerIfNotExists(context.TODO(), routingCheckpointContainerClient)
 			if err != nil {
-				var storageErr *azcore.ResponseError
-				if errors.As(err, &storageErr) {
-					if storageErr.StatusCode == http.StatusNotFound {
-						logger.Info("creating routing checkpoint container", "container", appConfig.RoutingCheckpointContainer)
-						_, err := routingCheckpointContainerClient.Create(context.TODO(), nil)
-						if err != nil {
-							logger.Error("failed to create routing checkpoint container", "container", appConfig.RoutingCheckpointContainer)
-							return nil, err
-						}
-					}
-				}
+				return nil, err
 			}
 
 			postprocessing.RegisterTarget("dex", &postprocessing.AzureDeliverer{
