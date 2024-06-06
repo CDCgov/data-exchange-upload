@@ -34,6 +34,11 @@ type MetaDataTransformContent struct {
 	Value  string `json:"value"`  // Optional; Value given to the appended or updated field.
 }
 
+type BulkMetaDataTransformContent struct {
+	ReportContent
+	Transforms []MetaDataTransformContent `json:"transforms"`
+}
+
 type UploadStatusContent struct {
 	ReportContent
 	Filename string `json:"filename"`

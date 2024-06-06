@@ -38,6 +38,10 @@ func TestTus(t *testing.T) {
 					t.Error(name, tuid, err)
 				}
 
+				expectedMetadataTransformReportCount := 2
+				if v, ok := c.metadata["version"]; !ok || v == "1.0" {
+					expectedMetadataTransformReportCount = 3
+				}
 				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount, metadataTransformReportCount := 0, 0, 0, 0, 0
 				rMetadata, rUploadStatus := &models.Report{}, &models.Report{}
 				b, err := io.ReadAll(f)
@@ -95,8 +99,8 @@ func TestTus(t *testing.T) {
 					}
 				}
 
-				if metadataTransformReportCount != 2 {
-					t.Error("expected two metadata transform reports but got", metadataTransformReportCount)
+				if metadataTransformReportCount != expectedMetadataTransformReportCount {
+					t.Error("expected three metadata transform reports but got", metadataTransformReportCount)
 				}
 
 				if metadataReportCount != 1 {

@@ -247,6 +247,7 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	// TODO: this could be the event context...but honestly we don't want this to stop
 	// we do need graceful shutdown, so maybe we need a custom context here somehow
 	ctx := context.TODO()
+
 	manifest := event.Upload.MetaData
 	if v, ok := manifest["version"]; ok && v == "2.0" {
 		return resp, nil
@@ -257,8 +258,31 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 		return resp, err
 	}
 
-	v2Manifest := v1.Hydrate(manifest, c)
+	v2Manifest, transforms := v1.Hydrate(manifest, c)
 	resp.ChangeFileInfo.MetaData = v2Manifest
+
+	// Report new metadata
+	content := &models.BulkMetaDataTransformContent{
+		ReportContent: models.ReportContent{
+			SchemaVersion: "1.0",
+			SchemaName:    "metadata-transform",
+		},
+		Transforms: transforms,
+	}
+	report := &models.Report{
+		UploadID:        event.Upload.ID,
+		DataStreamID:    getDataStreamID(manifest),
+		DataStreamRoute: getDataStreamRoute(manifest),
+		StageName:       "dex-metadata-transform",
+		ContentType:     "json",
+		DispositionType: "add",
+		Content:         content,
+	}
+	logger.Info("Metadata Hydration Report", "report", report)
+	if err := v.Reporter.Publish(ctx, report); err != nil {
+		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "err", err)
+	}
+
 	return resp, nil
 }
 
