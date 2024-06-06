@@ -42,7 +42,7 @@ func TestTus(t *testing.T) {
 				if v, ok := c.metadata["version"]; !ok || v == "1.0" {
 					expectedMetadataTransformReportCount = 3
 				}
-				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount, metadataTransformReportCount := 0, 0, 0, 0, 0
+				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount, metadataTransformReportCount, fileCopyReportCount := 0, 0, 0, 0, 0, 0
 				rMetadata, rUploadStatus := &models.Report{}, &models.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
@@ -97,6 +97,11 @@ func TestTus(t *testing.T) {
 						uploadCompleteReportCount++
 						continue
 					}
+
+					if strings.Contains(rLine, "dex-file-copy") {
+						fileCopyReportCount++
+						continue
+					}
 				}
 
 				if metadataTransformReportCount != expectedMetadataTransformReportCount {
@@ -117,6 +122,10 @@ func TestTus(t *testing.T) {
 
 				if uploadCompleteReportCount != 1 {
 					t.Error("at least one upload complete report count but got none", uploadCompleteReportCount)
+				}
+
+				if fileCopyReportCount == 0 {
+					t.Error("expected at least one file copy report but got none")
 				}
 
 				if c.err != nil {

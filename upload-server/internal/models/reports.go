@@ -48,6 +48,13 @@ type UploadStatusContent struct {
 	Size   string `json:"size"`
 }
 
+type FileCopyContent struct {
+	ReportContent
+	Result           string `json:"result"`
+	Destination      string `json:"destination"`
+	ErrorDescription string `json:"error_description"`
+}
+
 func (r *Report) Identifier() string {
 	return r.UploadID
 }

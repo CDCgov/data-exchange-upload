@@ -108,7 +108,7 @@ func GetFilename(manifest map[string]string) string {
 	return ""
 }
 
-func getDataStreamID(manifest map[string]string) string {
+func GetDataStreamID(manifest map[string]string) string {
 	switch manifest["version"] {
 	case "2.0":
 		return manifest["data_stream_id"]
@@ -117,7 +117,7 @@ func getDataStreamID(manifest map[string]string) string {
 	}
 }
 
-func getDataStreamRoute(manifest map[string]string) string {
+func GetDataStreamRoute(manifest map[string]string) string {
 	switch manifest["version"] {
 	case "2.0":
 		return manifest["data_stream_route"]
@@ -185,8 +185,8 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 
 	report := &models.Report{
 		UploadID:        tuid,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-metadata-verify",
 		ContentType:     "json",
 		DispositionType: "add",
@@ -271,8 +271,8 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	}
 	report := &models.Report{
 		UploadID:        event.Upload.ID,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-metadata-transform",
 		ContentType:     "json",
 		DispositionType: "add",
@@ -308,8 +308,8 @@ func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.Hook
 	manifest := event.Upload.MetaData
 	report := &models.Report{
 		UploadID:        tuid,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-metadata-transform",
 		ContentType:     "json",
 		DispositionType: "add",
@@ -359,8 +359,8 @@ func (v *HookEventHandler) WithTimestamp(event handler.HookEvent, resp hooks.Hoo
 
 	report := &models.Report{
 		UploadID:        tguid,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-metadata-transform",
 		ContentType:     "json",
 		DispositionType: "add",
@@ -392,8 +392,8 @@ func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, m
 
 	report := &models.Report{
 		UploadID:        tguid,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-upload-status",
 		ContentType:     "json",
 		DispositionType: "replace",
@@ -434,8 +434,8 @@ func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map
 
 	report := &models.Report{
 		UploadID:        uploadId,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-upload-started",
 		ContentType:     "json",
 		DispositionType: "add",
@@ -458,8 +458,8 @@ func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest m
 
 	report := &models.Report{
 		UploadID:        uploadId,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-upload-complete",
 		ContentType:     "json",
 		DispositionType: "add",

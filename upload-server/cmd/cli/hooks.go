@@ -38,32 +38,35 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
+	fileReporter := filereporters.FileReporter{
+		Dir: appConfig.LocalReportsFolder,
+	}
+
 	manifestValidator := metadata.SenderManifestVerification{
-		Configs: metadata.Cache,
-		Reporter: &filereporters.FileReporter{
-			Dir: appConfig.LocalReportsFolder,
-		},
+		Configs:  metadata.Cache,
+		Reporter: &fileReporter,
 	}
 
 	hookHandler := metadata.HookEventHandler{
-		Reporter: &filereporters.FileReporter{
-			Dir: appConfig.LocalReportsFolder,
-		},
+		Reporter: &fileReporter,
 	}
 
 	postprocessing.RegisterTarget("dex", &postprocessing.FileDeliverer{
-		ToPath: appConfig.LocalDEXFolder,
-		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
+		ToPath:   appConfig.LocalDEXFolder,
+		From:     os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
+		Reporter: &fileReporter,
 	})
 
 	postprocessing.RegisterTarget("edav", &postprocessing.FileDeliverer{
-		ToPath: appConfig.LocalEDAVFolder,
-		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
+		ToPath:   appConfig.LocalEDAVFolder,
+		From:     os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
+		Reporter: &fileReporter,
 	})
 
 	postprocessing.RegisterTarget("routing", &postprocessing.FileDeliverer{
-		ToPath: appConfig.LocalROUTINGFolder,
-		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
+		ToPath:   appConfig.LocalROUTINGFolder,
+		From:     os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
+		Reporter: &fileReporter,
 	})
 
 	if appConfig.AzureConnection != nil {
@@ -94,14 +97,13 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				return nil, err
 			}
 
-			manifestValidator.Reporter = &azurereporters.ServiceBusReporter{
+			azureReporter := azurereporters.ServiceBusReporter{
 				Client:    sbclient,
 				QueueName: appConfig.ReportQueueName,
 			}
-			hookHandler.Reporter = &azurereporters.ServiceBusReporter{
-				Client:    sbclient,
-				QueueName: appConfig.ReportQueueName,
-			}
+
+			manifestValidator.Reporter = &azureReporter
+			hookHandler.Reporter = &azureReporter
 
 			tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
 			if err != nil {
@@ -138,18 +140,21 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				ToContainerClient:   dexCheckpointContainerClient,
 				TusPrefix:           appConfig.TusUploadPrefix,
 				Target:              "dex",
+				Reporter:            &azureReporter,
 			})
 			postprocessing.RegisterTarget("edav", &postprocessing.AzureDeliverer{
 				FromContainerClient: tusContainerClient,
 				ToContainerClient:   edavCheckpointContainerClient,
 				TusPrefix:           appConfig.TusUploadPrefix,
 				Target:              "edav",
+				Reporter:            &azureReporter,
 			})
 			postprocessing.RegisterTarget("routing", &postprocessing.AzureDeliverer{
 				FromContainerClient: tusContainerClient,
 				ToContainerClient:   routingCheckpointContainerClient,
 				TusPrefix:           appConfig.TusUploadPrefix,
 				Target:              "routing",
+				Reporter:            &azureReporter,
 			})
 		}
 	}
