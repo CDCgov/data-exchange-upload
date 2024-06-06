@@ -44,22 +44,18 @@ class MetadataVerify {
         dataProviderClass = DataProvider::class
     )
     fun shouldUploadAndValidateFileGivenRequiredMetadata(manifest: Map<String, String>, context: ITestContext) {
-        //Upload File with Required Metadata
-        metadata = HashMap(manifest)
-        val uploadId = uploadClient.uploadFile(testFile, metadata)
+
+        val uploadId = uploadClient.uploadFile(testFile, manifest)
         context.setAttribute("uploadId", uploadId)
         Assert.assertNotNull(uploadId)
 
-        // Validate Metadata with Manifest
         val useCase = Metadata.getUseCaseFromManifest(manifest)
         val dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
 
         val uploadConfig = loadUploadConfig(dexBlobClient, manifest as HashMap<String, String>)
 
-        metadata = Metadata.readMetadataFromJsonFile(useCase)
         val uid = uploadId ?: throw TestNGException("Error uploading file ${testFile.name}")
-        context.setAttribute("uploadId", uid)
-        Thread.sleep(500)//wait for uploaded file to be routed to the destination storage container
+        Thread.sleep(500)
 
         val filenameSuffix = Filename.getFilenameSuffix(uploadConfig.copyConfig, uid)
         val expectedFilename =
@@ -67,7 +63,7 @@ class MetadataVerify {
         val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
         val blobMetadata = expectedBlobClient.properties.metadata
 
-        metadata.forEach { (key, value) ->
+        manifest.forEach() { (key, value) ->
             val actualValue = blobMetadata[key]
             Assert.assertEquals(
                 value, actualValue, "Expected key value: $value does not match with actual key value: $actualValue"
