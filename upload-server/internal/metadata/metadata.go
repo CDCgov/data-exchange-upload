@@ -7,11 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"io"
 	"log/slog"
 	"net/http"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +20,6 @@ import (
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -139,8 +138,7 @@ func Uid() string {
 }
 
 type SenderManifestVerification struct {
-	Configs  *ConfigCache
-	Reporter reporters.Reporter
+	Configs *ConfigCache
 }
 
 func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[string]string) error {
@@ -195,9 +193,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 
 	defer func() {
 		logger.Info("REPORT", "report", report)
-		if err := v.Reporter.Publish(event.Context, report); err != nil {
-			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid, "err", err)
-		}
+		reports.Publish(event.Context, report)
 	}()
 
 	if err := v.verify(event.Context, manifest); err != nil {
@@ -279,14 +275,12 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 		Content:         content,
 	}
 	logger.Info("Metadata Hydration Report", "report", report)
-	if err := v.Reporter.Publish(ctx, report); err != nil {
-		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "err", err)
-	}
+	reports.Publish(ctx, report)
 
 	return resp, nil
 }
 
-func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
@@ -317,15 +311,13 @@ func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.Hook
 	}
 
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
-	if err := v.Reporter.Publish(event.Context, report); err != nil {
-		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid, "err", err)
-	}
+	reports.Publish(event.Context, report)
 
 	return resp, nil
 
 }
 
-func (v *HookEventHandler) WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tguid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
 		tguid = resp.ChangeFileInfo.ID
@@ -367,119 +359,7 @@ func (v *HookEventHandler) WithTimestamp(event handler.HookEvent, resp hooks.Hoo
 		Content:         content,
 	}
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
-	if err := v.Reporter.Publish(event.Context, report); err != nil {
-		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
-	}
+	reports.Publish(event.Context, report)
 
-	return resp, nil
-}
-
-type HookEventHandler struct {
-	Reporter reporters.Reporter
-}
-
-func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, manifest map[string]string, ctx context.Context) error {
-	content := &models.UploadStatusContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "upload",
-		},
-		Filename: GetFilename(manifest),
-		Tguid:    tguid,
-		Offset:   strconv.FormatInt(offset, 10),
-		Size:     strconv.FormatInt(size, 10),
-	}
-
-	report := &models.Report{
-		UploadID:        tguid,
-		DataStreamID:    GetDataStreamID(manifest),
-		DataStreamRoute: GetDataStreamRoute(manifest),
-		StageName:       "dex-upload-status",
-		ContentType:     "json",
-		DispositionType: "replace",
-		Content:         content,
-	}
-
-	logger.Info("REPORT", "report", report)
-	if err := v.Reporter.Publish(ctx, report); err != nil {
-		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
-	}
-
-	return nil
-}
-
-func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	// Get values from event
-	uploadId := event.Upload.ID
-	uploadOffset := event.Upload.Offset
-	uploadSize := event.Upload.Size
-	uploadMetadata := event.Upload.MetaData
-
-	if err := v.postReceive(uploadId, uploadOffset, uploadSize, uploadMetadata, event.Context); err != nil {
-		logger.Error("postReceive errors and warnings", "err", err)
-	}
-
-	return resp, nil
-}
-
-func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map[string]string, uploadId string) error {
-	logger.Info("Attempting to report upload started", "uploadId", uploadId)
-	content := &models.UploadLifecycleContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "dex-upload-started",
-		},
-		Status: "success",
-	}
-
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    GetDataStreamID(manifest),
-		DataStreamRoute: GetDataStreamRoute(manifest),
-		StageName:       "dex-upload-started",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
-
-	logger.Info("REPORT upload-started", "report", report)
-	return v.Reporter.Publish(ctx, report)
-}
-
-func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest map[string]string, uploadId string) error {
-	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
-	content := &models.UploadLifecycleContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "dex-upload-complete",
-		},
-		Status: "success",
-	}
-
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    GetDataStreamID(manifest),
-		DataStreamRoute: GetDataStreamRoute(manifest),
-		StageName:       "dex-upload-complete",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
-
-	logger.Info("REPORT upload-completed", "report", report)
-	return v.Reporter.Publish(ctx, report)
-}
-
-func (v *HookEventHandler) PostCreate(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	if err := v.ReportUploadStarted(event.Context, event.Upload.MetaData, event.Upload.ID); err != nil {
-		logger.Error("Failed to report upload started", "UUID", event.Upload.ID, "err", err)
-	}
-	return resp, nil
-}
-
-func (v *HookEventHandler) PostFinish(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	if err := v.ReportUploadCompleted(event.Context, event.Upload.MetaData, event.Upload.ID); err != nil {
-		logger.Error("Failed to report upload completed", "UUID", event.Upload.ID, "err", err)
-	}
 	return resp, nil
 }

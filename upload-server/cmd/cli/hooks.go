@@ -2,22 +2,18 @@ package cli
 
 import (
 	"context"
-	"net"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
 	"os"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	azureloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/azure"
 	fileloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/file"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
-	azurereporters "github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters/azure"
-	filereporters "github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters/file"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/hooks/file"
-	"nhooyr.io/websocket"
 )
 
 func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
@@ -38,35 +34,23 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		},
 	}
 
-	fileReporter := filereporters.FileReporter{
-		Dir: appConfig.LocalReportsFolder,
-	}
-
 	manifestValidator := metadata.SenderManifestVerification{
-		Configs:  metadata.Cache,
-		Reporter: &fileReporter,
-	}
-
-	hookHandler := metadata.HookEventHandler{
-		Reporter: &fileReporter,
+		Configs: metadata.Cache,
 	}
 
 	postprocessing.RegisterTarget("dex", &postprocessing.FileDeliverer{
-		ToPath:   appConfig.LocalDEXFolder,
-		From:     os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
-		Reporter: &fileReporter,
+		ToPath: appConfig.LocalDEXFolder,
+		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
 	})
 
 	postprocessing.RegisterTarget("edav", &postprocessing.FileDeliverer{
-		ToPath:   appConfig.LocalEDAVFolder,
-		From:     os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
-		Reporter: &fileReporter,
+		ToPath: appConfig.LocalEDAVFolder,
+		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
 	})
 
 	postprocessing.RegisterTarget("routing", &postprocessing.FileDeliverer{
-		ToPath:   appConfig.LocalROUTINGFolder,
-		From:     os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
-		Reporter: &fileReporter,
+		ToPath: appConfig.LocalROUTINGFolder,
+		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
 	})
 
 	if appConfig.AzureConnection != nil {
@@ -80,31 +64,6 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		}
 
 		if appConfig.ServiceBusConnectionString != "" {
-			// Standard boilerplate for a websocket handler.
-			newWebSocketConnFn := func(ctx context.Context, args azservicebus.NewWebSocketConnArgs) (net.Conn, error) {
-				opts := &websocket.DialOptions{Subprotocols: []string{"amqp"}}
-				wssConn, _, err := websocket.Dial(ctx, args.Host, opts)
-				if err != nil {
-					return nil, err
-				}
-
-				return websocket.NetConn(ctx, wssConn, websocket.MessageBinary), nil
-			}
-			sbclient, err := azservicebus.NewClientFromConnectionString(appConfig.ServiceBusConnectionString, &azservicebus.ClientOptions{
-				NewWebSocketConn: newWebSocketConnFn, // Setting this option so messages are sent to port 443.
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			azureReporter := azurereporters.ServiceBusReporter{
-				Client:    sbclient,
-				QueueName: appConfig.ReportQueueName,
-			}
-
-			manifestValidator.Reporter = &azureReporter
-			hookHandler.Reporter = &azureReporter
-
 			tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
 			if err != nil {
 				return nil, err
@@ -141,31 +100,28 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				ToContainerClient:   dexCheckpointContainerClient,
 				TusPrefix:           appConfig.TusUploadPrefix,
 				Target:              "dex",
-				Reporter:            &azureReporter,
 			})
 			postprocessing.RegisterTarget("edav", &postprocessing.AzureDeliverer{
 				FromContainerClient: tusContainerClient,
 				ToContainerClient:   edavCheckpointContainerClient,
 				TusPrefix:           appConfig.TusUploadPrefix,
 				Target:              "edav",
-				Reporter:            &azureReporter,
 			})
 			postprocessing.RegisterTarget("routing", &postprocessing.AzureDeliverer{
 				FromContainerClient: tusContainerClient,
 				ToContainerClient:   routingCheckpointContainerClient,
 				TusPrefix:           appConfig.TusUploadPrefix,
 				Target:              "routing",
-				Reporter:            &azureReporter,
 			})
 		}
 	}
 
-	handler.Register(tusHooks.HookPreCreate, hookHandler.WithUploadID, hookHandler.WithTimestamp, manifestValidator.Verify)
-	handler.Register(tusHooks.HookPostReceive, hookHandler.PostReceive)
-	handler.Register(tusHooks.HookPostCreate, hookHandler.PostCreate)
+	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
+	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
+	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
-	handler.Register(tusHooks.HookPostFinish, hookHandler.PostFinish, manifestValidator.Hydrate, postprocessing.RouteAndDeliverHook)
+	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, manifestValidator.Hydrate, postprocessing.RouteAndDeliverHook)
 
 	return handler, nil
 }

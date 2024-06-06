@@ -8,7 +8,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"io"
 	"io/fs"
@@ -38,7 +38,6 @@ func RegisterTarget(name string, d Deliverer) {
 
 type Deliverer interface {
 	Deliver(tuid string, metadata map[string]string) error
-	GetReporter() reporters.Reporter
 }
 
 // target may end up being a type
@@ -76,17 +75,14 @@ func Deliver(tuid string, manifest map[string]string, target string) error {
 	}
 
 	logger.Info("File Copy Report", "report", report)
-	if err := d.GetReporter().Publish(ctx, report); err != nil {
-		logger.Error("Failed to report", "report", report, "reporter", d.GetReporter(), "err", err)
-	}
+	reports.Publish(ctx, report)
 
 	return err
 }
 
 type FileDeliverer struct {
-	From     fs.FS
-	ToPath   string
-	Reporter reporters.Reporter
+	From   fs.FS
+	ToPath string
 }
 
 type AzureDeliverer struct {
@@ -94,7 +90,6 @@ type AzureDeliverer struct {
 	ToContainerClient   *container.Client
 	TusPrefix           string
 	Target              string
-	Reporter            reporters.Reporter
 }
 
 func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error {
@@ -119,14 +114,6 @@ func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error 
 	}
 	err = os.WriteFile(filepath.Join(fd.ToPath, tuid+".meta"), m, 0666)
 	return err
-}
-
-func (fd *FileDeliverer) GetReporter() reporters.Reporter {
-	return fd.Reporter
-}
-
-func (ad *AzureDeliverer) GetReporter() reporters.Reporter {
-	return ad.Reporter
 }
 
 func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error {
