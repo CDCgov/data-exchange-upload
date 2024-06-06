@@ -81,11 +81,9 @@ class ProcStat {
 
         val destinations = dexFileCopyReports.mapNotNull { it.content.destination }
 
-        // Validate source URLs
-        destinations.forEach { dest ->
-            assert(expectedDestinations.any { dest.trim().contains(it.trim()) }) { "Destination $dest does not match any expected destinations" }
+        // Post Processing
+        expectedDestinations.forEach { dest ->
+            assert(destinations.any { dest.trim().contains(it.trim()) }) { "Destination $dest was not found in copy reports" }
         }
-
-        // TODO Post Processing
     }
 }
