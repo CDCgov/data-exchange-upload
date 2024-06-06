@@ -77,10 +77,12 @@ func (c *FileStoreHealthCheck) Health(ctx context.Context) (rsp models.ServiceHe
 	if err != nil {
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = err.Error()
+		return rsp
 	}
 	if !info.IsDir() {
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = fmt.Sprintf("%s is not a directory", c.path)
+		return rsp
 	}
 	rsp.Status = models.STATUS_UP
 	return rsp
