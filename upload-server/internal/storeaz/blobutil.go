@@ -5,13 +5,23 @@ import (
 	"errors"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"log/slog"
 	"net/http"
+	"reflect"
+	"strings"
 )
 
 var (
 	logger *slog.Logger
 )
+
+func init() {
+	type Empty struct{}
+	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
+	// add package name to app logger
+	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
+}
 
 func CreateContainerIfNotExists(ctx context.Context, containerClient *container.Client) error {
 	_, err := containerClient.GetProperties(ctx, nil)
