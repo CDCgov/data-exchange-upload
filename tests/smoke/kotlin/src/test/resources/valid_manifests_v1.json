@@ -27,5 +27,26 @@
     "meta_ext_uploadid": "test-upload-id",
     "meta_ext_source": "test-src",
     "meta_organization": "test-org"
+  },
+  {
+    "meta_destination_id": "daart",
+    "meta_ext_event": "hl7",
+    "meta_ext_source": "smoke test source",
+    "original_filename": "dex-smoke-test",
+    "message_type": "ELR",
+    "route": "DAART",
+    "reporting_jurisdiction": "smoke test jurisdiction"
+  },
+  {
+    "meta_destination_id": "dex-hl7",
+    "meta_ext_event": "hl7ingress",
+    "meta_ext_source": "smoke test source",
+    "meta_ext_sourceversion": "smoke test source version",
+    "meta_username": "test-automation",
+    "original_filename": "dex-smoke-test",
+    "original_file_timestamp": "smoke test timestamp",
+    "message_type": "CASE",
+    "meta_data_stream_id": "dex-hl7",
+    "route": "COVID19_ELR"
   }
 ]
