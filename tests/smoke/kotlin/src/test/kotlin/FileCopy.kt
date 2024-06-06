@@ -51,7 +51,7 @@ class FileCopy {
     fun shouldUploadFile(manifest: HashMap<String, String>) {
         val uid = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
-        Thread.sleep(500)
+        Thread.sleep(1000)
 
         // First, check bulk upload and .info file.
         val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid")
@@ -66,11 +66,8 @@ class FileCopy {
         val config = loadUploadConfig(dexBlobClient, manifest)
         val filenameSuffix = Filename.getFilenameSuffix(config.copyConfig, uid)
         val expectedFilename = "${
-            Metadata.getFilePrefixByDate(
-                DateTime(DateTimeZone.UTC),
-                manifest
-            )
-        }/${Metadata.getFilename(manifest)}${filenameSuffix}${testFile.extension}"
+            Metadata.getFilePrefix(config.copyConfig, manifest)
+        }${Metadata.getFilename(manifest)}${filenameSuffix}${testFile.extension}"
         var expectedBlobClient: BlobClient?
 
         if (config.copyConfig.targets.contains("edav")) {
@@ -100,11 +97,11 @@ class FileCopy {
 
         val uid = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
-        Thread.sleep(500)
+        Thread.sleep(1000)
 
         val filenameSuffix = Filename.getFilenameSuffix(v1Config.copyConfig, uid)
         val expectedFilename =
-            "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC))}/${Metadata.getFilename(manifest)}$filenameSuffix${testFile.extension}"
+            "${Metadata.getFilePrefix(v1Config.copyConfig)}${Metadata.getFilename(manifest)}$filenameSuffix${testFile.extension}"
         val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
         val blobMetadata = expectedBlobClient.properties.metadata
 

@@ -1,6 +1,8 @@
 package util
 
+import model.CopyConfig
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import java.io.FileNotFoundException
 import java.util.*
 import kotlin.collections.HashMap
@@ -29,6 +31,26 @@ class Metadata {
             val month = if (date.monthOfYear < 10) "0${date.monthOfYear}" else "${date.monthOfYear}"
             val day = if (date.dayOfMonth < 10) "0${date.dayOfMonth}" else "${date.dayOfMonth}"
             return "$useCaseDir/${date.year}/$month/$day"
+        }
+
+        fun getFilePrefix(copyConfig: CopyConfig): String {
+            var prefix = ""
+
+            if (copyConfig.folderStructure == "date_YYYY_MM_DD") {
+                prefix = "${getFilePrefixByDate(DateTime(DateTimeZone.UTC))}/"
+            }
+
+            return prefix
+        }
+
+        fun getFilePrefix(copyConfig: CopyConfig, manifest: HashMap<String, String>): String {
+            var prefix = ""
+
+            if (copyConfig.folderStructure == "date_YYYY_MM_DD") {
+                prefix = "${getFilePrefixByDate(DateTime(DateTimeZone.UTC), manifest)}/"
+            }
+
+            return prefix
         }
 
         fun getFilePrefixByDate(date: DateTime, manifest: HashMap<String, String>): String {
