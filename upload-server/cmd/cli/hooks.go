@@ -122,15 +122,16 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 				return nil, err
 			}
 
-			err = storeaz.CreateContainerIfNotExists(context.TODO(), dexCheckpointContainerClient)
+			ctx := context.Background()
+			err = storeaz.CreateContainerIfNotExists(ctx, dexCheckpointContainerClient)
 			if err != nil {
 				return nil, err
 			}
-			err = storeaz.CreateContainerIfNotExists(context.TODO(), edavCheckpointContainerClient)
+			err = storeaz.CreateContainerIfNotExists(ctx, edavCheckpointContainerClient)
 			if err != nil {
 				return nil, err
 			}
-			err = storeaz.CreateContainerIfNotExists(context.TODO(), routingCheckpointContainerClient)
+			err = storeaz.CreateContainerIfNotExists(ctx, routingCheckpointContainerClient)
 			if err != nil {
 				return nil, err
 			}
