@@ -11,6 +11,8 @@ import org.testng.annotations.*
 import tus.UploadClient
 import util.*
 import util.ConfigLoader.Companion.loadUploadConfig
+import util.Constants.Companion.TEST_DESTINATION
+import util.Constants.Companion.TEST_EVENT
 import util.DataProvider
 
 @Listeners(UploadIdTestListener::class)
@@ -42,6 +44,31 @@ class MetadataVerify {
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*field .* was missing"
     )
     fun shouldReturnErrorWhenMissingRequiredField(manifest: Map<String, String>) {
+        uploadClient.uploadFile(testFile, manifest)
+    }
+
+    @Test(
+        groups = [Constants.Groups.METADATA_VERIFY],
+        dataProvider = "invalidManifestInvalidValueProvider",
+        dataProviderClass = DataProvider::class,
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*had disallowed value.*"
+    )
+    fun shouldReturnErrorWhenManifestValueInvalid(manifest: Map<String, String>) {
+        uploadClient.uploadFile(testFile, manifest)
+    }
+
+    @Test(
+        groups = [Constants.Groups.METADATA_VERIFY],
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*invalid character found.*"
+    )
+    fun shouldReturnErrorWhenFilenameContainsInvalidCars() {
+        val manifest = hashMapOf(
+            "meta_destination_id" to TEST_DESTINATION,
+            "meta_ext_event" to TEST_EVENT,
+            "filename" to "test/-file"
+        )
         uploadClient.uploadFile(testFile, manifest)
     }
 }
