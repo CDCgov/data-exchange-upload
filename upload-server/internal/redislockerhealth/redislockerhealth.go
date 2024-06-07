@@ -1,45 +1,45 @@
-package redislocker
+package redislockerhealth
 
 import (
 	"context"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-
+	"github.com/redis/go-redis/v9"
 	//"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	//"github.com/tus/tusd/v2/pkg/memorylocker"
 	//"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
-	"net/url"
 )
 
-type RedislockerHealth struct {
-	EndpointHealth    string
-	EndpointHealthURI *url.URL
-} // .PsHealth
+type RedisLockerHealth struct {
+	client *redis.Client
+}
 
-func New(appConfig appconfig.AppConfig) (*RedislockerHealth, error) {
-	// initialize locker
-	//var locker handlertusd.Locker = memorylocker.New()
+func New(uri string) (*RedisLockerHealth, error) {
 
-	endpointURI, err := url.ParseRequestURI(appConfig.TusRedisLockURI)
+	connection, err := redis.ParseURL(uri)
 	if err != nil {
 		return nil, err
-	} // .if
+	}
+	client := redis.NewClient(connection)
+	if res := client.Ping(context.Background()); res.Err() != nil {
+		return nil, res.Err()
+	}
 
-	return &RedislockerHealth{
-		EndpointHealth:    appConfig.TusRedisLockURI,
-		EndpointHealthURI: endpointURI,
-	}, nil // .return
+	return &RedisLockerHealth{
+		client: client,
+	}, nil
 
 } // .New
 
-func (rdlHealth RedislockerHealth) Health(ctx context.Context) models.ServiceHealthResp {
+func (redisLockerHealth RedisLockerHealth) Health(ctx context.Context) models.ServiceHealthResp {
 	var shr models.ServiceHealthResp
 	shr.Service = models.REDIS_LOCKER
 
-	// TODO: Get the redis locker instance.
-
-	// TODO: Check if redis server starts.
+	// Ping redis service
+	client := redisLockerHealth.client
+	if res := client.Ping(context.Background()); res.Err() != nil {
+		return redisLockerDown(res.Err())
+	}
 
 	// all good
 	shr.Status = models.STATUS_UP
@@ -49,7 +49,7 @@ func (rdlHealth RedislockerHealth) Health(ctx context.Context) models.ServiceHea
 
 func redisLockerDown(err error) models.ServiceHealthResp {
 	return models.ServiceHealthResp{
-		Service:     models.SERVICE_BUS,
+		Service:     models.REDIS_LOCKER,
 		Status:      models.STATUS_DOWN,
 		HealthIssue: err.Error(),
 	}
