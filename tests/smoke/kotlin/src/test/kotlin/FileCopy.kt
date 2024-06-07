@@ -1,8 +1,6 @@
 import com.azure.identity.ClientSecretCredentialBuilder
 import com.azure.storage.blob.BlobClient
 import dex.DexUploadClient
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.TestNGException

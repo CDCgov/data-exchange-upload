@@ -1,9 +1,7 @@
 import tus.UploadClient
 import io.restassured.RestAssured.*
-import io.restassured.response.ValidatableResponse
 import dex.DexUploadClient
 import model.Report
-import model.UploadConfig
 import org.hamcrest.Matchers.*
 import org.testng.Assert.assertNotNull
 import org.testng.ITestContext

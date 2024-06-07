@@ -1,16 +1,9 @@
-import com.azure.storage.blob.BlobContainerClient
 import dex.DexUploadClient
 import io.tus.java.client.ProtocolException
-import model.UploadConfig
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
-import org.testng.Assert
 import org.testng.ITestContext
-import org.testng.TestNGException
 import org.testng.annotations.*
 import tus.UploadClient
 import util.*
-import util.ConfigLoader.Companion.loadUploadConfig
 import util.Constants.Companion.TEST_DESTINATION
 import util.Constants.Companion.TEST_EVENT
 import util.DataProvider
