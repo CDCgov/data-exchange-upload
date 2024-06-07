@@ -44,6 +44,18 @@ class DataProvider {
             return manifests.map { arrayOf(it) }.toTypedArray()
         }
 
+        @DataProvider(name = "invalidManifestRequiredFieldsProvider")
+        @JvmStatic
+        fun invalidManifestRequiredFieldsProvider(): Array<Array<HashMap<String, String>>> {
+            val useCases: List<String> = System.getProperty("useCases")?.split(",") ?: arrayListOf()
+
+            val jsonBytes = TestFile.getResourceFile("invalid_manifests_required_fields.json").readBytes()
+            val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
+            val manifests = filterByUseCases(useCases, manifestJsons)
+
+            return manifests.map { arrayOf(it) }.toTypedArray()
+        }
+
         private fun filterByUseCases(
             useCases: List<String>,
             manifests: List<HashMap<String, String>>

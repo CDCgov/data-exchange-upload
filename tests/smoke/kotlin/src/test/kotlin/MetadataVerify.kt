@@ -1,5 +1,6 @@
 import com.azure.storage.blob.BlobContainerClient
 import dex.DexUploadClient
+import io.tus.java.client.ProtocolException
 import model.UploadConfig
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -20,12 +21,7 @@ class MetadataVerify {
     private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private lateinit var authToken: String
     private lateinit var uploadClient: UploadClient
-    private lateinit var metadata: HashMap<String, String>
-    private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
-    private lateinit var dexContainerClient: BlobContainerClient
     private lateinit var testContext: ITestContext
-    private lateinit var useCase: String
-    private lateinit var uploadConfig: UploadConfig
 
     @BeforeTest(groups = [Constants.Groups.METADATA_VERIFY])
     fun beforeTest() {
@@ -40,34 +36,12 @@ class MetadataVerify {
 
     @Test(
         groups = [Constants.Groups.METADATA_VERIFY],
-        dataProvider = "validManifestAllProvider",
-        dataProviderClass = DataProvider::class
+        dataProvider = "invalidManifestRequiredFieldsProvider",
+        dataProviderClass = DataProvider::class,
+        expectedExceptions = [ProtocolException::class],
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*field .* was missing"
     )
-    fun shouldUploadAndValidateFileGivenRequiredMetadata(manifest: Map<String, String>, context: ITestContext) {
-
-        val uploadId = uploadClient.uploadFile(testFile, manifest)
-        context.setAttribute("uploadId", uploadId)
-        Assert.assertNotNull(uploadId)
-
-        val useCase = Metadata.getUseCaseFromManifest(manifest)
-        val dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
-
-        val uploadConfig = loadUploadConfig(dexBlobClient, manifest as HashMap<String, String>)
-
-        val uid = uploadId ?: throw TestNGException("Error uploading file ${testFile.name}")
-        Thread.sleep(500)
-
-        val filenameSuffix = Filename.getFilenameSuffix(uploadConfig.copyConfig, uid)
-        val expectedFilename =
-            "${Metadata.getFilePrefixByDate(DateTime(DateTimeZone.UTC))}/${Metadata.getFilename(manifest)}$filenameSuffix${testFile.extension}"
-        val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
-        val blobMetadata = expectedBlobClient.properties.metadata
-
-        manifest.forEach() { (key, value) ->
-            val actualValue = blobMetadata[key]
-            Assert.assertEquals(
-                value, actualValue, "Expected key value: $value does not match with actual key value: $actualValue"
-            )
-        }
+    fun shouldReturnErrorWhenMissingRequiredField(manifest: Map<String, String>) {
+        uploadClient.uploadFile(testFile, manifest)
     }
 }
