@@ -5,9 +5,6 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/redis/go-redis/v9"
-	//"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
-	//"github.com/tus/tusd/v2/pkg/memorylocker"
-	//"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 )
 
 type RedisLockerHealth struct {
