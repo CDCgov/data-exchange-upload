@@ -122,7 +122,6 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	blobName, err := getDeliveredFilename(ad.Target, tuid, manifest)
 
-	// TODO Check copy status in some background goroutine.
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
 	manifestPointer := make(map[string]*string)
 	for k, v := range manifest {
@@ -136,13 +135,19 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 	}
 
 	status := *resp.CopyStatus
+	var statusDescription string
 	for status == blob.CopyStatusTypePending {
 		getPropResp, err := destBlobClient.GetProperties(ctx, nil)
 		if err != nil {
 			return err
 		}
 		status = *getPropResp.CopyStatus
+		statusDescription = *getPropResp.CopyStatusDescription
 		logger.Info("Copy progress", "status", fmt.Sprintf("%s", status))
+	}
+
+	if status != blob.CopyStatusTypeSuccess {
+		return fmt.Errorf("copy to target %s unsuccessful with status %s and description %s", ad.Target, status, statusDescription)
 	}
 
 	logger.Info("Copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL(), "status", status)
