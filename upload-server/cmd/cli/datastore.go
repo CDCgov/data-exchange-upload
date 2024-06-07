@@ -85,5 +85,6 @@ func (c *FileStoreHealthCheck) Health(ctx context.Context) (rsp models.ServiceHe
 		return rsp
 	}
 	rsp.Status = models.STATUS_UP
+	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 	return rsp
 }
