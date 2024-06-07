@@ -69,8 +69,8 @@ type AppConfig struct {
 
 	// Upload processing
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
-	EdavCheckpointContainer    string `env:"DEX_EDAV_CHECKPOINT_CONTAINER_NAME, default=upload"`
-	RoutingCheckpointContainer string `env:"DEX_ROUTING_CHECKPOINT_CONTAINER_NAME, default=routeingress"`
+	EdavCheckpointContainer    string `env:"DEX_EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
+	RoutingCheckpointContainer string `env:"DEX_ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
