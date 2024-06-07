@@ -44,10 +44,10 @@ class Metadata {
         }
 
         fun getFilePrefix(copyConfig: CopyConfig, manifest: HashMap<String, String>): String {
-            var prefix = ""
+            var prefix = "${getUseCaseFromManifest(manifest)}/"
 
             if (copyConfig.folderStructure == "date_YYYY_MM_DD") {
-                prefix = "${getFilePrefixByDate(DateTime(DateTimeZone.UTC), manifest)}/"
+                prefix = "$prefix${getFilePrefixByDate(DateTime(DateTimeZone.UTC))}/"
             }
 
             return prefix
