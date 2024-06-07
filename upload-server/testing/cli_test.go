@@ -144,11 +144,11 @@ func TestTus(t *testing.T) {
 					t.Error("file was not copied to dex checkpoint for file", tuid)
 				}
 				// Also check that the .meta file exists in the dex folder.
-				if _, err := os.Stat("./test/dex/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
+				if _, err := os.Stat("./test/uploads/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
 					t.Error("meta file was not copied to dex checkpoint for file", tuid)
 				}
 				// Also check that the metadata in the .meta file is hydrated with v2 manifest fields.
-				metaFile, err := os.Open("./test/dex/" + tuid + ".meta")
+				metaFile, err := os.Open("./test/uploads/" + tuid + ".meta")
 				if err != nil {
 					t.Error("error opening meta file for file", tuid)
 				}

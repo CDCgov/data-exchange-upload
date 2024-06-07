@@ -41,3 +41,13 @@ func CreateContainerIfNotExists(ctx context.Context, containerClient *container.
 
 	return nil
 }
+
+func PointerizeMetadata(metadata map[string]string) map[string]*string {
+	p := make(map[string]*string)
+	for k, v := range metadata {
+		value := v
+		p[k] = &value
+	}
+
+	return p
+}

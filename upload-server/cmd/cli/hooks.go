@@ -38,6 +38,12 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		Configs: metadata.Cache,
 	}
 
+	metadataAppender := &metadata.MetadataAppender{
+		Appender: &metadata.FileMetadataAppender{
+			Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
+		},
+	}
+
 	postprocessing.RegisterTarget("dex", &postprocessing.FileDeliverer{
 		ToPath: appConfig.LocalDEXFolder,
 		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
@@ -63,56 +69,59 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 			ContainerName: appConfig.AzureManifestConfigContainer,
 		}
 
-		if appConfig.ServiceBusConnectionString != "" {
-			tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
-			if err != nil {
-				return nil, err
-			}
-			dexCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.DexCheckpointContainer)
-			if err != nil {
-				return nil, err
-			}
-			edavCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.EdavConnection, appConfig.EdavCheckpointContainer)
-			if err != nil {
-				return nil, err
-			}
-			routingCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.RoutingConnection, appConfig.RoutingCheckpointContainer)
-			if err != nil {
-				return nil, err
-			}
+		tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
+		if err != nil {
+			return nil, err
+		}
+		dexCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.DexCheckpointContainer)
+		if err != nil {
+			return nil, err
+		}
+		edavCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.EdavConnection, appConfig.EdavCheckpointContainer)
+		if err != nil {
+			return nil, err
+		}
+		routingCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.RoutingConnection, appConfig.RoutingCheckpointContainer)
+		if err != nil {
+			return nil, err
+		}
 
-			ctx := context.Background()
-			err = storeaz.CreateContainerIfNotExists(ctx, dexCheckpointContainerClient)
-			if err != nil {
-				return nil, err
-			}
-			err = storeaz.CreateContainerIfNotExists(ctx, edavCheckpointContainerClient)
-			if err != nil {
-				return nil, err
-			}
-			err = storeaz.CreateContainerIfNotExists(ctx, routingCheckpointContainerClient)
-			if err != nil {
-				return nil, err
-			}
+		ctx := context.Background()
+		err = storeaz.CreateContainerIfNotExists(ctx, dexCheckpointContainerClient)
+		if err != nil {
+			return nil, err
+		}
+		err = storeaz.CreateContainerIfNotExists(ctx, edavCheckpointContainerClient)
+		if err != nil {
+			return nil, err
+		}
+		err = storeaz.CreateContainerIfNotExists(ctx, routingCheckpointContainerClient)
+		if err != nil {
+			return nil, err
+		}
 
-			postprocessing.RegisterTarget("dex", &postprocessing.AzureDeliverer{
-				FromContainerClient: tusContainerClient,
-				ToContainerClient:   dexCheckpointContainerClient,
-				TusPrefix:           appConfig.TusUploadPrefix,
-				Target:              "dex",
-			})
-			postprocessing.RegisterTarget("edav", &postprocessing.AzureDeliverer{
-				FromContainerClient: tusContainerClient,
-				ToContainerClient:   edavCheckpointContainerClient,
-				TusPrefix:           appConfig.TusUploadPrefix,
-				Target:              "edav",
-			})
-			postprocessing.RegisterTarget("routing", &postprocessing.AzureDeliverer{
-				FromContainerClient: tusContainerClient,
-				ToContainerClient:   routingCheckpointContainerClient,
-				TusPrefix:           appConfig.TusUploadPrefix,
-				Target:              "routing",
-			})
+		postprocessing.RegisterTarget("dex", &postprocessing.AzureDeliverer{
+			FromContainerClient: tusContainerClient,
+			ToContainerClient:   dexCheckpointContainerClient,
+			TusPrefix:           appConfig.TusUploadPrefix,
+			Target:              "dex",
+		})
+		postprocessing.RegisterTarget("edav", &postprocessing.AzureDeliverer{
+			FromContainerClient: tusContainerClient,
+			ToContainerClient:   edavCheckpointContainerClient,
+			TusPrefix:           appConfig.TusUploadPrefix,
+			Target:              "edav",
+		})
+		postprocessing.RegisterTarget("routing", &postprocessing.AzureDeliverer{
+			FromContainerClient: tusContainerClient,
+			ToContainerClient:   routingCheckpointContainerClient,
+			TusPrefix:           appConfig.TusUploadPrefix,
+			Target:              "routing",
+		})
+
+		metadataAppender.Appender = &metadata.AzureMetadataAppender{
+			ContainerClient: tusContainerClient,
+			TusPrefix:       appConfig.TusUploadPrefix,
 		}
 	}
 
@@ -121,7 +130,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
-	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, manifestValidator.Hydrate, postprocessing.RouteAndDeliverHook)
+	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, manifestValidator.Hydrate, metadataAppender.Appender.Append, postprocessing.RouteAndDeliverHook)
 
 	return handler, nil
 }

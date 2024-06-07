@@ -7,10 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -276,6 +280,72 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	}
 	logger.Info("Metadata Hydration Report", "report", report)
 	reports.Publish(ctx, report)
+
+	return resp, nil
+}
+
+type FileMetadataAppender struct {
+	Path string
+}
+
+type AzureMetadataAppender struct {
+	ContainerClient *container.Client
+	TusPrefix       string
+}
+
+type Appender interface {
+	Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error)
+}
+
+type MetadataAppender struct {
+	Appender Appender
+}
+
+func (fa *FileMetadataAppender) Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	tuid := event.Upload.ID
+	if resp.ChangeFileInfo.ID != "" {
+		tuid = resp.ChangeFileInfo.ID
+	}
+	if tuid == "" {
+		return resp, errors.New("no Upload ID defined")
+	}
+
+	metadata := event.Upload.MetaData
+
+	if resp.ChangeFileInfo.MetaData != nil {
+		metadata = resp.ChangeFileInfo.MetaData
+	}
+
+	m, err := json.Marshal(metadata)
+	if err != nil {
+		return resp, err
+	}
+	err = os.WriteFile(filepath.Join(fa.Path, tuid+".meta"), m, 0666)
+
+	return resp, nil
+}
+
+func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	tuid := event.Upload.ID
+	if resp.ChangeFileInfo.ID != "" {
+		tuid = resp.ChangeFileInfo.ID
+	}
+	if tuid == "" {
+		return resp, errors.New("no Upload ID defined")
+	}
+
+	metadata := event.Upload.MetaData
+
+	if resp.ChangeFileInfo.MetaData != nil {
+		metadata = resp.ChangeFileInfo.MetaData
+	}
+
+	// Get blob client.
+	blobClient := aa.ContainerClient.NewBlobClient(aa.TusPrefix + "/" + tuid)
+	_, err := blobClient.SetMetadata(event.Context, storeaz.PointerizeMetadata(metadata), nil)
+	if err != nil {
+		return resp, err
+	}
 
 	return resp, nil
 }

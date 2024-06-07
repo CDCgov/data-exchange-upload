@@ -2,7 +2,6 @@ package postprocessing
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
@@ -108,11 +107,11 @@ func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error 
 		return err
 	}
 
-	m, err := json.Marshal(manifest)
-	if err != nil {
-		return err
-	}
-	err = os.WriteFile(filepath.Join(fd.ToPath, tuid+".meta"), m, 0666)
+	//m, err := json.Marshal(manifest)
+	//if err != nil {
+	//	return err
+	//}
+	//err = os.WriteFile(filepath.Join(fd.ToPath, tuid+".meta"), m, 0666)
 	return err
 }
 
@@ -123,13 +122,13 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 	blobName, err := getDeliveredFilename(ad.Target, tuid, manifest)
 
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
-	manifestPointer := make(map[string]*string)
-	for k, v := range manifest {
-		value := v
-		manifestPointer[k] = &value
-	}
+	//manifestPointer := make(map[string]*string)
+	//for k, v := range manifest {
+	//	value := v
+	//	manifestPointer[k] = &value
+	//}
 	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
-	resp, err := destBlobClient.StartCopyFromURL(ctx, srcBlobClient.URL(), &blob.StartCopyFromURLOptions{Metadata: manifestPointer})
+	resp, err := destBlobClient.StartCopyFromURL(ctx, srcBlobClient.URL(), nil)
 	if err != nil {
 		return err
 	}
