@@ -2,8 +2,11 @@ package testing
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"io"
 	"log"
 	"net/http/httptest"
@@ -204,6 +207,51 @@ func TestWellKnownEndpoints(t *testing.T) {
 		if resp.StatusCode != 200 {
 			t.Error("bad response for ", endpoint, resp.StatusCode)
 		}
+	}
+}
+
+func TestGetFileDeliveryPrefixDate(t *testing.T) {
+	ctx := context.TODO()
+	m := map[string]string{
+		"version":           "2.0",
+		"data_stream_id":    "test_stream",
+		"data_stream_route": "test_route",
+	}
+	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+		Copy: validation.CopyConfig{
+			FolderStructure: metadata.FolderStructureDate,
+		},
+	})
+
+	p, err := metadata.GetFilenamePrefix(ctx, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dateTokens := strings.Split(p, "/")
+	if len(dateTokens) != 4 {
+		t.Error("date prefix not properly formatted", p)
+	}
+}
+
+func TestGetFileDeliveryPrefixRoot(t *testing.T) {
+	ctx := context.TODO()
+	m := map[string]string{
+		"version":           "2.0",
+		"data_stream_id":    "test_stream",
+		"data_stream_route": "test_route",
+	}
+	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+		Copy: validation.CopyConfig{
+			FolderStructure: metadata.FolderStructureRoot,
+		},
+	})
+
+	p, err := metadata.GetFilenamePrefix(ctx, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p != "" {
+		t.Error("expected file delivery prefix to be empty but was", p)
 	}
 }
 

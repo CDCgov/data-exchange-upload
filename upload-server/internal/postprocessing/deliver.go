@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
@@ -16,9 +17,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"time"
-
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 )
 
 var targets = map[string]Deliverer{}
@@ -152,7 +150,7 @@ func getDeliveredFilename(target string, tuid string, manifest map[string]string
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 
 	// Load config from metadata.
-	path, err := metadata.GetConfigIdentifierByVersion(ctx, manifest)
+	path, err := metadata.GetConfigIdentifierByVersion(manifest)
 	if err != nil {
 		return "", err
 	}
@@ -173,10 +171,9 @@ func getDeliveredFilename(target string, tuid string, manifest map[string]string
 	switch target {
 	case "edav":
 	case "routing":
-		if config.Copy.FolderStructure == "date_YYYY_MM_DD" {
-			// Get UTC year, month, and day
-			t := time.Now().UTC()
-			prefix = fmt.Sprintf("%d/%02d/%02d/", t.Year(), t.Month(), t.Day())
+		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
+		if err != nil {
+			return "", err
 		}
 	}
 

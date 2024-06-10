@@ -29,6 +29,9 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
+const FolderStructureDate = "date_YYYY_MM_DD"
+const FolderStructureRoot = "root"
+
 var logger *slog.Logger
 
 func init() {
@@ -48,6 +51,18 @@ var Cache *ConfigCache
 type ConfigCache struct {
 	sync.Map
 	Loader validation.ConfigLoader
+}
+
+func (c *ConfigCache) GetConfigFromManifest(ctx context.Context, manifest handler.MetaData) (*validation.ManifestConfig, error) {
+	path, err := GetConfigIdentifierByVersion(manifest)
+	if err != nil {
+		return nil, err
+	}
+	config, err := Cache.GetConfig(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
 }
 
 func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.ManifestConfig, error) {
@@ -78,7 +93,7 @@ func (c *ConfigCache) SetConfig(key any, config *validation.ManifestConfig) {
 	c.Store(key, config)
 }
 
-func GetConfigIdentifierByVersion(ctx context.Context, manifest handler.MetaData) (string, error) {
+func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
 	version := manifest["version"]
 	if version == "" {
 		version = "1.0"
@@ -130,6 +145,22 @@ func GetDataStreamRoute(manifest map[string]string) string {
 
 }
 
+func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
+	p := ""
+	config, err := Cache.GetConfigFromManifest(ctx, manifest)
+	if err != nil {
+		return p, err
+	}
+
+	if config.Copy.FolderStructure == FolderStructureDate {
+		// Get UTC year, month, and day
+		t := time.Now().UTC()
+		p = fmt.Sprintf("%d/%02d/%02d/", t.Year(), t.Month(), t.Day())
+	}
+
+	return p, nil
+}
+
 func Uid() string {
 	id := make([]byte, 16)
 	_, err := io.ReadFull(rand.Reader, id)
@@ -146,7 +177,7 @@ type SenderManifestVerification struct {
 }
 
 func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[string]string) error {
-	path, err := GetConfigIdentifierByVersion(ctx, manifest)
+	path, err := GetConfigIdentifierByVersion(manifest)
 	if err != nil {
 		return err
 	}
@@ -220,7 +251,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 }
 
 func (v *SenderManifestVerification) getHydrationConfig(ctx context.Context, manifest map[string]string) (*validation.ManifestConfig, error) {
-	path, err := GetConfigIdentifierByVersion(ctx, manifest)
+	path, err := GetConfigIdentifierByVersion(manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +267,7 @@ func (v *SenderManifestVerification) getHydrationConfig(ctx context.Context, man
 	manifest["version"] = "2.0"
 	manifest["data_stream_id"] = manifest["meta_destination_id"]
 	manifest["data_stream_route"] = manifest["meta_ext_event"]
-	path, err = GetConfigIdentifierByVersion(ctx, manifest)
+	path, err = GetConfigIdentifierByVersion(manifest)
 	if err != nil {
 		return nil, err
 	}
