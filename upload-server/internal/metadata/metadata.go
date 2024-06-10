@@ -32,6 +32,7 @@ import (
 const FolderStructureDate = "date_YYYY_MM_DD"
 const FolderStructureRoot = "root"
 const FilenameSuffixUploadId = "upload_id"
+const ErrNoUploadId = "no upload ID defined"
 
 var logger *slog.Logger
 
@@ -348,7 +349,7 @@ func (fa *FileMetadataAppender) Append(event handler.HookEvent, resp hooks.HookR
 		tuid = resp.ChangeFileInfo.ID
 	}
 	if tuid == "" {
-		return resp, errors.New("no Upload ID defined")
+		return resp, errors.New(ErrNoUploadId)
 	}
 
 	metadata := event.Upload.MetaData
