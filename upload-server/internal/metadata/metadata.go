@@ -55,18 +55,6 @@ type ConfigCache struct {
 	Loader validation.ConfigLoader
 }
 
-func (c *ConfigCache) GetConfigFromManifest(ctx context.Context, manifest handler.MetaData) (*validation.ManifestConfig, error) {
-	path, err := GetConfigIdentifierByVersion(manifest)
-	if err != nil {
-		return nil, err
-	}
-	config, err := Cache.GetConfig(ctx, path)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
 func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.ManifestConfig, error) {
 	conf, ok := c.Load(key)
 	if !ok {
@@ -93,6 +81,18 @@ func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.Ma
 
 func (c *ConfigCache) SetConfig(key any, config *validation.ManifestConfig) {
 	c.Store(key, config)
+}
+
+func GetConfigFromManifest(ctx context.Context, manifest handler.MetaData) (*validation.ManifestConfig, error) {
+	path, err := GetConfigIdentifierByVersion(manifest)
+	if err != nil {
+		return nil, err
+	}
+	config, err := Cache.GetConfig(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
 }
 
 func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
@@ -149,7 +149,7 @@ func GetDataStreamRoute(manifest map[string]string) string {
 
 func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
 	p := ""
-	config, err := Cache.GetConfigFromManifest(ctx, manifest)
+	config, err := GetConfigFromManifest(ctx, manifest)
 	if err != nil {
 		return p, err
 	}
@@ -165,7 +165,7 @@ func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, 
 
 func GetFilenameSuffix(ctx context.Context, manifest handler.MetaData, tuid string) (string, error) {
 	s := ""
-	c, err := Cache.GetConfigFromManifest(ctx, manifest)
+	c, err := GetConfigFromManifest(ctx, manifest)
 	if err != nil {
 		return s, err
 	}
