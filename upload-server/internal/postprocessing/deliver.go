@@ -34,12 +34,11 @@ func RegisterTarget(name string, d Deliverer) {
 }
 
 type Deliverer interface {
-	Deliver(tuid string, metadata map[string]string) error
+	Deliver(ctx context.Context, tuid string, metadata map[string]string) error
 }
 
 // target may end up being a type
-func Deliver(tuid string, manifest map[string]string, target string) error {
-	ctx := context.TODO()
+func Deliver(ctx context.Context, tuid string, manifest map[string]string, target string) error {
 	d, ok := targets[target]
 	if !ok {
 		return errors.New("not recoverable, bad target " + target)
@@ -64,7 +63,7 @@ func Deliver(tuid string, manifest map[string]string, target string) error {
 		Content:         content,
 	}
 
-	err := d.Deliver(tuid, manifest)
+	err := d.Deliver(ctx, tuid, manifest)
 	if err != nil {
 		logger.Error("failed to copy file", "target", target)
 		content.Result = "failed"
@@ -89,7 +88,7 @@ type AzureDeliverer struct {
 	Target              string
 }
 
-func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error {
+func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, manifest map[string]string) error {
 	f, err := fd.From.Open(tuid)
 	if err != nil {
 		return err
@@ -108,11 +107,10 @@ func (fd *FileDeliverer) Deliver(tuid string, manifest map[string]string) error 
 	return err
 }
 
-func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error {
-	ctx := context.TODO()
+func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
 	// Get blob src blob client.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
-	blobName, err := getDeliveredFilename(ad.Target, tuid, manifest)
+	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
 
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
 	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
@@ -142,8 +140,7 @@ func (ad *AzureDeliverer) Deliver(tuid string, manifest map[string]string) error
 	return nil
 }
 
-func getDeliveredFilename(target string, tuid string, manifest map[string]string) (string, error) {
-	ctx := context.TODO()
+func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadata.GetFilename(manifest)
 	extension := filepath.Ext(filename)

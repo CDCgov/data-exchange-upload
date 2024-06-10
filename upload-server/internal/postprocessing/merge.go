@@ -39,7 +39,7 @@ func RouteAndDeliverHook(event handler.HookEvent, resp hooks.HookResponse) (hook
 	for _, target := range targets {
 		// fan out command
 		// send an event for each thing to be copied
-		errs = errors.Join(errs, Deliver(id, meta, target))
+		errs = errors.Join(errs, Deliver(event.Context, id, meta, target))
 	}
 	return resp, errs
 }
