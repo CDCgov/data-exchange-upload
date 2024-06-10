@@ -255,6 +255,52 @@ func TestGetFileDeliveryPrefixRoot(t *testing.T) {
 	}
 }
 
+func TestDeliveryFilenameSuffixUploadId(t *testing.T) {
+	ctx := context.TODO()
+	m := map[string]string{
+		"version":           "2.0",
+		"data_stream_id":    "test_stream",
+		"data_stream_route": "test_route",
+	}
+	tuid := "1234"
+	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+		Copy: validation.CopyConfig{
+			FilenameSuffix: metadata.FilenameSuffixUploadId,
+		},
+	})
+
+	s, err := metadata.GetFilenameSuffix(ctx, m, tuid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != "_"+tuid {
+		t.Error("expected upload ID suffix but get", s)
+	}
+}
+
+func TestDeliveryFilenameSuffixNone(t *testing.T) {
+	ctx := context.TODO()
+	m := map[string]string{
+		"version":           "2.0",
+		"data_stream_id":    "test_stream",
+		"data_stream_route": "test_route",
+	}
+	tuid := "1234"
+	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+		Copy: validation.CopyConfig{
+			FilenameSuffix: "",
+		},
+	})
+
+	s, err := metadata.GetFilenameSuffix(ctx, m, tuid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != "" {
+		t.Error("expected empty suffix but get", s)
+	}
+}
+
 func TestFileInfoNotFound(t *testing.T) {
 	client := ts.Client()
 	resp, err := client.Get(ts.URL + "/info/1234")

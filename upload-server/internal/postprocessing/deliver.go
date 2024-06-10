@@ -149,19 +149,7 @@ func getDeliveredFilename(target string, tuid string, manifest map[string]string
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 
-	// Load config from metadata.
-	path, err := metadata.GetConfigIdentifierByVersion(manifest)
-	if err != nil {
-		return "", err
-	}
-	config, err := metadata.Cache.GetConfig(ctx, path)
-	if err != nil {
-		return "", err
-	}
-	suffix := ""
-	if config.Copy.FilenameSuffix == "upload_id" {
-		suffix = "_" + tuid
-	}
+	suffix, err := metadata.GetFilenameSuffix(ctx, manifest, tuid)
 	blobName := filenameWithoutExtension + suffix + extension
 
 	// Next, need to set the filename prefix based on config and target.

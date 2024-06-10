@@ -31,6 +31,7 @@ import (
 
 const FolderStructureDate = "date_YYYY_MM_DD"
 const FolderStructureRoot = "root"
+const FilenameSuffixUploadId = "upload_id"
 
 var logger *slog.Logger
 
@@ -159,6 +160,19 @@ func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, 
 	}
 
 	return p, nil
+}
+
+func GetFilenameSuffix(ctx context.Context, manifest handler.MetaData, tuid string) (string, error) {
+	s := ""
+	c, err := Cache.GetConfigFromManifest(ctx, manifest)
+	if err != nil {
+		return s, err
+	}
+	if c.Copy.FilenameSuffix == FilenameSuffixUploadId {
+		s = "_" + tuid
+	}
+
+	return s, nil
 }
 
 func Uid() string {
