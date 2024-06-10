@@ -1,0 +1,166 @@
+package postprocessing
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
+	"io"
+	"io/fs"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+)
+
+var targets = map[string]Deliverer{}
+var logger *slog.Logger
+
+func init() {
+	type Empty struct{}
+	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
+	// add package name to app logger
+	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
+}
+
+func RegisterTarget(name string, d Deliverer) {
+	targets[name] = d
+}
+
+type Deliverer interface {
+	Deliver(ctx context.Context, tuid string, metadata map[string]string) error
+}
+
+// target may end up being a type
+func Deliver(ctx context.Context, tuid string, manifest map[string]string, target string) error {
+	d, ok := targets[target]
+	if !ok {
+		return errors.New("not recoverable, bad target " + target)
+	}
+
+	content := &models.FileCopyContent{
+		ReportContent: models.ReportContent{
+			SchemaVersion: "0.0.1",
+			SchemaName:    "dex-file-copy",
+		},
+		Destination: target,
+		Result:      "success",
+	}
+
+	report := &models.Report{
+		UploadID:        tuid,
+		DataStreamID:    metadata.GetDataStreamID(manifest),
+		DataStreamRoute: metadata.GetDataStreamRoute(manifest),
+		StageName:       "dex-file-copy",
+		ContentType:     "json",
+		DispositionType: "add",
+		Content:         content,
+	}
+
+	err := d.Deliver(ctx, tuid, manifest)
+	if err != nil {
+		logger.Error("failed to copy file", "target", target)
+		content.Result = "failed"
+		content.ErrorDescription = err.Error()
+	}
+
+	logger.Info("File Copy Report", "report", report)
+	reports.Publish(ctx, report)
+
+	return err
+}
+
+type FileDeliverer struct {
+	From   fs.FS
+	ToPath string
+}
+
+type AzureDeliverer struct {
+	FromContainerClient *container.Client
+	ToContainerClient   *container.Client
+	TusPrefix           string
+	Target              string
+}
+
+func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, manifest map[string]string) error {
+	f, err := fd.From.Open(tuid)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	os.Mkdir(fd.ToPath, 0755)
+	dest, err := os.Create(filepath.Join(fd.ToPath, tuid))
+	if err != nil {
+		return err
+	}
+	defer dest.Close()
+	if _, err := io.Copy(dest, f); err != nil {
+		return err
+	}
+
+	return err
+}
+
+func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
+	// Get blob src blob client.
+	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
+	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
+
+	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
+	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
+	resp, err := destBlobClient.StartCopyFromURL(ctx, srcBlobClient.URL(), nil)
+	if err != nil {
+		return err
+	}
+
+	status := *resp.CopyStatus
+	var statusDescription string
+	for status == blob.CopyStatusTypePending {
+		getPropResp, err := destBlobClient.GetProperties(ctx, nil)
+		if err != nil {
+			return err
+		}
+		status = *getPropResp.CopyStatus
+		statusDescription = *getPropResp.CopyStatusDescription
+		logger.Info("Copy progress", "status", fmt.Sprintf("%s", status))
+	}
+
+	if status != blob.CopyStatusTypeSuccess {
+		return fmt.Errorf("copy to target %s unsuccessful with status %s and description %s", ad.Target, status, statusDescription)
+	}
+
+	logger.Info("Copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL(), "status", status)
+
+	return nil
+}
+
+func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
+	// First, build the filename from the manifest and config.  This will be the default.
+	filename := metadata.GetFilename(manifest)
+	extension := filepath.Ext(filename)
+	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
+
+	suffix, err := metadata.GetFilenameSuffix(ctx, manifest, tuid)
+	blobName := filenameWithoutExtension + suffix + extension
+
+	// Next, need to set the filename prefix based on config and target.
+	// edav, routing -> use config
+	prefix := ""
+
+	switch target {
+	case "edav":
+	case "routing":
+		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return prefix + blobName, nil
+}

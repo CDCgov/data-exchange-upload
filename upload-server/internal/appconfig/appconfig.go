@@ -45,14 +45,19 @@ type AppConfig struct {
 
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
+	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
+	LocalEDAVFolder       string `env:"LOCAL_DEX_FOLDER, default=./uploads/edav"`
+	LocalROUTINGFolder    string `env:"LOCAL_DEX_FOLDER, default=./uploads/routing"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
 
 	// Processing Status
-	ProcessingStatusHealthURI           string `env:"PROCESSING_STATUS_HEALTH_URI"`
+	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
 	AzureConnection            *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
+	EdavConnection             *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
+	RoutingConnection          *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
 	ServiceBusConnectionString string              `env:"SERVICE_BUS_CONNECTION_STR"`
 	ReportQueueName            string              `env:"REPORT_QUEUE_NAME, default=processing-status-cosmos-db-queue"`
 
@@ -61,6 +66,11 @@ type AppConfig struct {
 	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
 	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
+
+	// Upload processing
+	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
+	EdavCheckpointContainer    string `env:"DEX_EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
+	RoutingCheckpointContainer string `env:"DEX_ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -86,6 +96,9 @@ type AzureStorageConfig struct {
 	StorageName       string `env:"STORAGE_ACCOUNT"`
 	StorageKey        string `env:"STORAGE_KEY"`
 	ContainerEndpoint string `env:"ENDPOINT"`
+	ClientId          string `env:"CLIENT_ID"`
+	ClientSecret      string `env:"CLIENT_SECRET"`
+	TenantId          string `env:"TENANT_ID"`
 } // .AzureStorageConfig
 
 func (azc *AzureStorageConfig) Check() error {

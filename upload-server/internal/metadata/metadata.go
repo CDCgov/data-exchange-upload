@@ -7,11 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -20,11 +24,15 @@ import (
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
+
+const FolderStructureDate = "date_YYYY_MM_DD"
+const FolderStructureRoot = "root"
+const FilenameSuffixUploadId = "upload_id"
+const ErrNoUploadId = "no upload ID defined"
 
 var logger *slog.Logger
 
@@ -39,6 +47,8 @@ var registeredVersions = map[string]func(handler.MetaData) (validation.ConfigLoc
 	"1.0": v1.NewFromManifest,
 	"2.0": v2.NewFromManifest,
 }
+
+var Cache *ConfigCache
 
 type ConfigCache struct {
 	sync.Map
@@ -73,7 +83,19 @@ func (c *ConfigCache) SetConfig(key any, config *validation.ManifestConfig) {
 	c.Store(key, config)
 }
 
-func GetConfigIdentifierByVersion(ctx context.Context, manifest handler.MetaData) (string, error) {
+func GetConfigFromManifest(ctx context.Context, manifest handler.MetaData) (*validation.ManifestConfig, error) {
+	path, err := GetConfigIdentifierByVersion(manifest)
+	if err != nil {
+		return nil, err
+	}
+	config, err := Cache.GetConfig(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
 	version := manifest["version"]
 	if version == "" {
 		version = "1.0"
@@ -89,7 +111,7 @@ func GetConfigIdentifierByVersion(ctx context.Context, manifest handler.MetaData
 	return configLoc.Path(), nil
 }
 
-func getFilename(manifest map[string]string) string {
+func GetFilename(manifest map[string]string) string {
 
 	keys := []string{
 		"filename",
@@ -106,7 +128,7 @@ func getFilename(manifest map[string]string) string {
 	return ""
 }
 
-func getDataStreamID(manifest map[string]string) string {
+func GetDataStreamID(manifest map[string]string) string {
 	switch manifest["version"] {
 	case "2.0":
 		return manifest["data_stream_id"]
@@ -115,7 +137,7 @@ func getDataStreamID(manifest map[string]string) string {
 	}
 }
 
-func getDataStreamRoute(manifest map[string]string) string {
+func GetDataStreamRoute(manifest map[string]string) string {
 	switch manifest["version"] {
 	case "2.0":
 		return manifest["data_stream_route"]
@@ -123,6 +145,35 @@ func getDataStreamRoute(manifest map[string]string) string {
 		return manifest["meta_ext_event"]
 	}
 
+}
+
+func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
+	p := ""
+	config, err := GetConfigFromManifest(ctx, manifest)
+	if err != nil {
+		return p, err
+	}
+
+	if config.Copy.FolderStructure == FolderStructureDate {
+		// Get UTC year, month, and day
+		t := time.Now().UTC()
+		p = fmt.Sprintf("%d/%02d/%02d/", t.Year(), t.Month(), t.Day())
+	}
+
+	return p, nil
+}
+
+func GetFilenameSuffix(ctx context.Context, manifest handler.MetaData, tuid string) (string, error) {
+	s := ""
+	c, err := GetConfigFromManifest(ctx, manifest)
+	if err != nil {
+		return s, err
+	}
+	if c.Copy.FilenameSuffix == FilenameSuffixUploadId {
+		s = "_" + tuid
+	}
+
+	return s, nil
 }
 
 func Uid() string {
@@ -137,12 +188,11 @@ func Uid() string {
 }
 
 type SenderManifestVerification struct {
-	Configs  *ConfigCache
-	Reporter reporters.Reporter
+	Configs *ConfigCache
 }
 
 func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[string]string) error {
-	path, err := GetConfigIdentifierByVersion(ctx, manifest)
+	path, err := GetConfigIdentifierByVersion(manifest)
 	if err != nil {
 		return err
 	}
@@ -177,14 +227,14 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 			SchemaVersion: "0.0.1",
 			SchemaName:    "dex-metadata-verify",
 		},
-		Filename: getFilename(manifest),
+		Filename: GetFilename(manifest),
 		Metadata: manifest,
 	}
 
 	report := &models.Report{
 		UploadID:        tuid,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-metadata-verify",
 		ContentType:     "json",
 		DispositionType: "add",
@@ -193,9 +243,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 
 	defer func() {
 		logger.Info("REPORT", "report", report)
-		if err := v.Reporter.Publish(event.Context, report); err != nil {
-			logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid, "err", err)
-		}
+		reports.Publish(event.Context, report)
 	}()
 
 	if err := v.verify(event.Context, manifest); err != nil {
@@ -217,7 +265,134 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	return resp, nil
 }
 
-func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (v *SenderManifestVerification) getHydrationConfig(ctx context.Context, manifest map[string]string) (*validation.ManifestConfig, error) {
+	path, err := GetConfigIdentifierByVersion(manifest)
+	if err != nil {
+		return nil, err
+	}
+	c, err := v.Configs.GetConfig(ctx, strings.ToLower(path))
+	if err != nil {
+		return nil, err
+	}
+	if c.CompatConfigFilename != "" {
+		return v.Configs.GetConfig(ctx, c.CompatConfigFilename)
+	}
+
+	//TODO: don't trigger this this way, it's a weird sideaffect
+	manifest["version"] = "2.0"
+	manifest["data_stream_id"] = manifest["meta_destination_id"]
+	manifest["data_stream_route"] = manifest["meta_ext_event"]
+	path, err = GetConfigIdentifierByVersion(manifest)
+	if err != nil {
+		return nil, err
+	}
+	return v.Configs.GetConfig(ctx, strings.ToLower(path))
+}
+
+func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	// TODO: this could be the event context...but honestly we don't want this to stop
+	// we do need graceful shutdown, so maybe we need a custom context here somehow
+	ctx := context.TODO()
+
+	manifest := event.Upload.MetaData
+	if v, ok := manifest["version"]; ok && v == "2.0" {
+		return resp, nil
+	}
+
+	c, err := v.getHydrationConfig(ctx, manifest)
+	if err != nil {
+		return resp, err
+	}
+
+	v2Manifest, transforms := v1.Hydrate(manifest, c)
+	resp.ChangeFileInfo.MetaData = v2Manifest
+
+	// Report new metadata
+	content := &models.BulkMetaDataTransformContent{
+		ReportContent: models.ReportContent{
+			SchemaVersion: "1.0",
+			SchemaName:    "metadata-transform",
+		},
+		Transforms: transforms,
+	}
+	report := &models.Report{
+		UploadID:        event.Upload.ID,
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
+		StageName:       "dex-metadata-transform",
+		ContentType:     "json",
+		DispositionType: "add",
+		Content:         content,
+	}
+	logger.Info("Metadata Hydration Report", "report", report)
+	reports.Publish(ctx, report)
+
+	return resp, nil
+}
+
+type FileMetadataAppender struct {
+	Path string
+}
+
+type AzureMetadataAppender struct {
+	ContainerClient *container.Client
+	TusPrefix       string
+}
+
+type Appender interface {
+	Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error)
+}
+
+func (fa *FileMetadataAppender) Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	tuid := event.Upload.ID
+	if resp.ChangeFileInfo.ID != "" {
+		tuid = resp.ChangeFileInfo.ID
+	}
+	if tuid == "" {
+		return resp, errors.New(ErrNoUploadId)
+	}
+
+	metadata := event.Upload.MetaData
+
+	if resp.ChangeFileInfo.MetaData != nil {
+		metadata = resp.ChangeFileInfo.MetaData
+	}
+
+	m, err := json.Marshal(metadata)
+	if err != nil {
+		return resp, err
+	}
+	err = os.WriteFile(filepath.Join(fa.Path, tuid+".meta"), m, 0666)
+
+	return resp, nil
+}
+
+func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	tuid := event.Upload.ID
+	if resp.ChangeFileInfo.ID != "" {
+		tuid = resp.ChangeFileInfo.ID
+	}
+	if tuid == "" {
+		return resp, errors.New("no Upload ID defined")
+	}
+
+	metadata := event.Upload.MetaData
+
+	if resp.ChangeFileInfo.MetaData != nil {
+		metadata = resp.ChangeFileInfo.MetaData
+	}
+
+	// Get blob client.
+	blobClient := aa.ContainerClient.NewBlobClient(aa.TusPrefix + "/" + tuid)
+	_, err := blobClient.SetMetadata(event.Context, storeaz.PointerizeMetadata(metadata), nil)
+	if err != nil {
+		return resp, err
+	}
+
+	return resp, nil
+}
+
+func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
@@ -239,8 +414,8 @@ func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.Hook
 	manifest := event.Upload.MetaData
 	report := &models.Report{
 		UploadID:        tuid,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-metadata-transform",
 		ContentType:     "json",
 		DispositionType: "add",
@@ -248,15 +423,13 @@ func (v *HookEventHandler) WithUploadID(event handler.HookEvent, resp hooks.Hook
 	}
 
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
-	if err := v.Reporter.Publish(event.Context, report); err != nil {
-		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tuid, "err", err)
-	}
+	reports.Publish(event.Context, report)
 
 	return resp, nil
 
 }
 
-func (v *HookEventHandler) WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tguid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
 		tguid = resp.ChangeFileInfo.ID
@@ -290,127 +463,15 @@ func (v *HookEventHandler) WithTimestamp(event handler.HookEvent, resp hooks.Hoo
 
 	report := &models.Report{
 		UploadID:        tguid,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
+		DataStreamID:    GetDataStreamID(manifest),
+		DataStreamRoute: GetDataStreamRoute(manifest),
 		StageName:       "dex-metadata-transform",
 		ContentType:     "json",
 		DispositionType: "add",
 		Content:         content,
 	}
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
-	if err := v.Reporter.Publish(event.Context, report); err != nil {
-		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
-	}
+	reports.Publish(event.Context, report)
 
-	return resp, nil
-}
-
-type HookEventHandler struct {
-	Reporter reporters.Reporter
-}
-
-func (v *HookEventHandler) postReceive(tguid string, offset int64, size int64, manifest map[string]string, ctx context.Context) error {
-	content := &models.UploadStatusContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "upload",
-		},
-		Filename: getFilename(manifest),
-		Tguid:    tguid,
-		Offset:   strconv.FormatInt(offset, 10),
-		Size:     strconv.FormatInt(size, 10),
-	}
-
-	report := &models.Report{
-		UploadID:        tguid,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
-		StageName:       "dex-upload-status",
-		ContentType:     "json",
-		DispositionType: "replace",
-		Content:         content,
-	}
-
-	logger.Info("REPORT", "report", report)
-	if err := v.Reporter.Publish(ctx, report); err != nil {
-		logger.Error("Failed to report", "report", report, "reporter", v.Reporter, "UUID", tguid, "err", err)
-	}
-
-	return nil
-}
-
-func (v *HookEventHandler) PostReceive(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	// Get values from event
-	uploadId := event.Upload.ID
-	uploadOffset := event.Upload.Offset
-	uploadSize := event.Upload.Size
-	uploadMetadata := event.Upload.MetaData
-
-	if err := v.postReceive(uploadId, uploadOffset, uploadSize, uploadMetadata, event.Context); err != nil {
-		logger.Error("postReceive errors and warnings", "err", err)
-	}
-
-	return resp, nil
-}
-
-func (v *HookEventHandler) ReportUploadStarted(ctx context.Context, manifest map[string]string, uploadId string) error {
-	logger.Info("Attempting to report upload started", "uploadId", uploadId)
-	content := &models.UploadLifecycleContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "dex-upload-started",
-		},
-		Status: "success",
-	}
-
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
-		StageName:       "dex-upload-started",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
-
-	logger.Info("REPORT upload-started", "report", report)
-	return v.Reporter.Publish(ctx, report)
-}
-
-func (v *HookEventHandler) ReportUploadCompleted(ctx context.Context, manifest map[string]string, uploadId string) error {
-	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
-	content := &models.UploadLifecycleContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "dex-upload-complete",
-		},
-		Status: "success",
-	}
-
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    getDataStreamID(manifest),
-		DataStreamRoute: getDataStreamRoute(manifest),
-		StageName:       "dex-upload-complete",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
-
-	logger.Info("REPORT upload-completed", "report", report)
-	return v.Reporter.Publish(ctx, report)
-}
-
-func (v *HookEventHandler) PostCreate(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	if err := v.ReportUploadStarted(event.Context, event.Upload.MetaData, event.Upload.ID); err != nil {
-		logger.Error("Failed to report upload started", "UUID", event.Upload.ID, "err", err)
-	}
-	return resp, nil
-}
-
-func (v *HookEventHandler) PostFinish(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	if err := v.ReportUploadCompleted(event.Context, event.Upload.MetaData, event.Upload.ID); err != nil {
-		logger.Error("Failed to report upload completed", "UUID", event.Upload.ID, "err", err)
-	}
 	return resp, nil
 }
