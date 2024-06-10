@@ -38,10 +38,9 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		Configs: metadata.Cache,
 	}
 
-	metadataAppender := &metadata.MetadataAppender{
-		Appender: &metadata.FileMetadataAppender{
-			Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
-		},
+	var metadataAppender metadata.Appender
+	metadataAppender = &metadata.FileMetadataAppender{
+		Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
 	}
 
 	postprocessing.RegisterTarget("dex", &postprocessing.FileDeliverer{
@@ -119,7 +118,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 			Target:              "routing",
 		})
 
-		metadataAppender.Appender = &metadata.AzureMetadataAppender{
+		metadataAppender = &metadata.AzureMetadataAppender{
 			ContainerClient: tusContainerClient,
 			TusPrefix:       appConfig.TusUploadPrefix,
 		}
@@ -130,7 +129,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
-	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, manifestValidator.Hydrate, metadataAppender.Appender.Append, postprocessing.RouteAndDeliverHook)
+	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, manifestValidator.Hydrate, metadataAppender.Append, postprocessing.RouteAndDeliverHook)
 
 	return handler, nil
 }

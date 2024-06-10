@@ -342,10 +342,6 @@ type Appender interface {
 	Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error)
 }
 
-type MetadataAppender struct {
-	Appender Appender
-}
-
 func (fa *FileMetadataAppender) Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
