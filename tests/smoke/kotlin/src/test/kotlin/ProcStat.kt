@@ -43,7 +43,7 @@ class ProcStat {
         val config = ConfigLoader.loadUploadConfig(dexBlobClient, manifest)
         val uid = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
-        Thread.sleep(500)
+        Thread.sleep(1000)
 
         val reportResponse = procStatReqSpec.get("/api/report/uploadId/$uid")
             .then()
