@@ -111,7 +111,7 @@ func main() {
 		defer fmt.Printf("Benchmarking results: %f seconds/op\n", float64(result.NsPerOp())/float64(time.Second))
 	}
 	wg.Wait()
-	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
+	printSummary(time.Since(tStart).Seconds())
 }
 
 type config struct {
@@ -177,6 +177,14 @@ func runTest(f *BadHL7, conf *config) error {
 	}
 
 	return nil
+}
+
+func printSummary(duration float64) {
+	fmt.Println("----Load Test Summary----")
+	fmt.Println("Files uploaded:", load)
+	fmt.Println("Threads:", parallelism)
+	fmt.Println("File size:", size, "bytes;", size/1000, "KB;", size/1000000, "MB;", size/1000000000, "GB")
+	fmt.Println("Total duration:", duration, " seconds")
 }
 
 type Generator interface {
