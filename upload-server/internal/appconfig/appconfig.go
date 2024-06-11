@@ -96,9 +96,6 @@ type AzureStorageConfig struct {
 	StorageName       string `env:"STORAGE_ACCOUNT"`
 	StorageKey        string `env:"STORAGE_KEY"`
 	ContainerEndpoint string `env:"ENDPOINT"`
-	ClientId          string `env:"CLIENT_ID"`
-	ClientSecret      string `env:"CLIENT_SECRET"`
-	TenantId          string `env:"TENANT_ID"`
 } // .AzureStorageConfig
 
 func (azc *AzureStorageConfig) Check() error {
