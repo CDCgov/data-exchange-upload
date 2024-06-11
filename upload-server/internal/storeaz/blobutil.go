@@ -29,10 +29,10 @@ func CreateContainerIfNotExists(ctx context.Context, containerClient *container.
 		var storageErr *azcore.ResponseError
 		if errors.As(err, &storageErr) {
 			if storageErr.StatusCode == http.StatusNotFound {
-				logger.Info("creating routing checkpoint container", "container", containerClient.URL())
+				logger.Info("creating delivery checkpoint container", "container", containerClient.URL())
 				_, err := containerClient.Create(ctx, nil)
 				if err != nil {
-					logger.Error("failed to create routing checkpoint container", "container", containerClient.URL())
+					logger.Error("failed to create delivery checkpoint container", "container", containerClient.URL())
 					return err
 				}
 			}

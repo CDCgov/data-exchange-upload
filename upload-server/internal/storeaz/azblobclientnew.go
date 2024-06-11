@@ -3,6 +3,7 @@ package storeaz
 import (
 	"errors"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"os"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -37,7 +38,7 @@ func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string)
 			containerName)
 	}
 
-	if canUseServicePrinciple(conf) {
+	if canUseServicePrinciple() {
 		return newContainerClientByServicePrinciple(conf, containerName)
 	}
 
@@ -49,7 +50,6 @@ func newContainerClientByServicePrinciple(conf appconfig.AzureStorageConfig, con
 	if err != nil {
 		return nil, err
 	}
-
 	client, err := azblob.NewClient(conf.ContainerEndpoint, cred, nil)
 
 	return client.ServiceClient().NewContainerClient(containerName), nil
@@ -101,6 +101,6 @@ func canUseStorageKey(conf appconfig.AzureStorageConfig) bool {
 	return conf.StorageKey != ""
 }
 
-func canUseServicePrinciple(conf appconfig.AzureStorageConfig) bool {
-	return conf.ClientId != "" && conf.ClientSecret != "" && conf.TenantId != ""
+func canUseServicePrinciple() bool {
+	return os.Getenv("AZURE_CLIENT_ID") != "" && os.Getenv("AZURE_CLIENT_SECRET") != "" && os.Getenv("AZURE_TENANT_ID") != ""
 }
