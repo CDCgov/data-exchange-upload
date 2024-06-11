@@ -10,5 +10,13 @@
   {
     "meta_destination_id": "dextesting",
     "meta_ext_event": "testevent1"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "nrss",
+    "data_stream_route": "csv",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "test-jurisdiction",
+    "received_filename": "dex-smoke-test"
   }
 ]
