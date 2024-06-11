@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	flag.IntVar(&size, "size", 250*10000, "the size of the file to upload, in bytes")
+	flag.IntVar(&size, "size", 5, "the size of the file to upload, in MB")
 	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", 0, "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
@@ -44,6 +44,7 @@ func init() {
 	flag.BoolVar(&verbose, "v", false, "turn on debug logs")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
+	size = size * 1024 * 1024
 	programLevel := new(slog.LevelVar) // Info by default
 	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
 	slog.SetDefault(slog.New(h))
@@ -129,7 +130,7 @@ func worker(c <-chan struct{}, conf *config) {
 			slog.Error("ERROR: ", "error", err)
 		}
 		uploadCount++
-		fmt.Printf("upload progress %d / %d\n", uploadCount, load)
+		slog.Info("upload complete", "count", uploadCount, "out of", load)
 		wg.Done()
 	}
 }
