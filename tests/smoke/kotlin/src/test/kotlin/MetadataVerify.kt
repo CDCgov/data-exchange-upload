@@ -56,7 +56,7 @@ class MetadataVerify {
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*invalid character found.*"
     )
-    fun shouldReturnErrorWhenFilenameContainsInvalidCars() {
+    fun shouldReturnErrorWhenFilenameContainsInvalidChars() {
         val manifest = hashMapOf(
             "meta_destination_id" to TEST_DESTINATION,
             "meta_ext_event" to TEST_EVENT,
