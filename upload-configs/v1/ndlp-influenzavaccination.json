@@ -152,5 +152,6 @@
         "targets": [
             "edav"
         ]
-    }
+    },
+	"compat_config_filename": "influenza-vaccination-csv.json"
 }

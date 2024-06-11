@@ -63,6 +63,9 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 		health.Register(redisLockerHealth)
 	}
 
+	// initialize event reporter
+	err = InitReporters(appConfig)
+
 	// get and initialize tusd hook handlers
 	hookHandler, err := GetHookHandler(appConfig)
 	if err != nil {

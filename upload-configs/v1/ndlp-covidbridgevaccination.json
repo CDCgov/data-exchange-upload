@@ -151,5 +151,6 @@
         "targets": [
             "edav"
         ]
-    }
+    },
+	"compat_config_filename": "covid-bridge-vaccination-csv.json"
 }

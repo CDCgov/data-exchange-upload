@@ -156,5 +156,6 @@
 		"targets": [
 			"edav"
 		]
-	}
+	},
+	"compat_config_filename": "routine-immunization-other.json"
 }

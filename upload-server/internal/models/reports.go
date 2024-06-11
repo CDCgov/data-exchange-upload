@@ -34,6 +34,11 @@ type MetaDataTransformContent struct {
 	Value  string `json:"value"`  // Optional; Value given to the appended or updated field.
 }
 
+type BulkMetaDataTransformContent struct {
+	ReportContent
+	Transforms []MetaDataTransformContent `json:"transforms"`
+}
+
 type UploadStatusContent struct {
 	ReportContent
 	Filename string `json:"filename"`
@@ -41,6 +46,13 @@ type UploadStatusContent struct {
 	Tguid  string `json:"tguid"`
 	Offset string `json:"offset"`
 	Size   string `json:"size"`
+}
+
+type FileCopyContent struct {
+	ReportContent
+	Result           string `json:"result"`
+	Destination      string `json:"destination"`
+	ErrorDescription string `json:"error_description"`
 }
 
 func (r *Report) Identifier() string {

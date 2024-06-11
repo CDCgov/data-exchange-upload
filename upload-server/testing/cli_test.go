@@ -2,7 +2,11 @@ package testing
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
+	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"io"
 	"log"
 	"net/http/httptest"
@@ -37,7 +41,11 @@ func TestTus(t *testing.T) {
 					t.Error(name, tuid, err)
 				}
 
-				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount, metadataTransformReportCount := 0, 0, 0, 0, 0
+				expectedMetadataTransformReportCount := 2
+				if v, ok := c.metadata["version"]; !ok || v == "1.0" {
+					expectedMetadataTransformReportCount = 3
+				}
+				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount, metadataTransformReportCount, fileCopyReportCount := 0, 0, 0, 0, 0, 0
 				rMetadata, rUploadStatus := &models.Report{}, &models.Report{}
 				b, err := io.ReadAll(f)
 				if err != nil {
@@ -92,10 +100,15 @@ func TestTus(t *testing.T) {
 						uploadCompleteReportCount++
 						continue
 					}
+
+					if strings.Contains(rLine, "dex-file-copy") {
+						fileCopyReportCount++
+						continue
+					}
 				}
 
-				if metadataTransformReportCount != 2 {
-					t.Error("expected two metadata transform reports but got", metadataTransformReportCount)
+				if metadataTransformReportCount != expectedMetadataTransformReportCount {
+					t.Error("expected three metadata transform reports but got", metadataTransformReportCount)
 				}
 
 				if metadataReportCount != 1 {
@@ -114,6 +127,10 @@ func TestTus(t *testing.T) {
 					t.Error("at least one upload complete report count but got none", uploadCompleteReportCount)
 				}
 
+				if fileCopyReportCount == 0 {
+					t.Error("expected at least one file copy report but got none")
+				}
+
 				if c.err != nil {
 					if rMetadata.Content.(models.MetaDataVerifyContent).Issues == nil {
 						t.Error("expected reported issues but got none", name, tuid, rMetadata)
@@ -121,6 +138,51 @@ func TestTus(t *testing.T) {
 
 					if rUploadStatus.Content.(models.UploadStatusContent).Offset != rUploadStatus.Content.(models.UploadStatusContent).Size {
 						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, rUploadStatus)
+					}
+				}
+
+				// Post-processing
+				// Check that the file exists in the dex checkpoint folder.
+				if _, err := os.Stat("./test/dex/" + tuid); errors.Is(err, os.ErrNotExist) {
+					t.Error("file was not copied to dex checkpoint for file", tuid)
+				}
+				// Also check that the .meta file exists in the dex folder.
+				if _, err := os.Stat("./test/uploads/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
+					t.Error("meta file was not copied to dex checkpoint for file", tuid)
+				}
+				// Also check that the metadata in the .meta file is hydrated with v2 manifest fields.
+				metaFile, err := os.Open("./test/uploads/" + tuid + ".meta")
+				if err != nil {
+					t.Error("error opening meta file for file", tuid)
+				}
+				defer metaFile.Close()
+
+				bytes, _ := io.ReadAll(metaFile)
+				var processedMeta map[string]string
+				err = json.Unmarshal(bytes, &processedMeta)
+				if err != nil {
+					t.Error("error deserializing metadata for file", tuid)
+				}
+
+				translationFields := map[string]string{
+					"meta_destination_id": "data_stream_id",
+					"meta_ext_event":      "data_stream_route",
+				}
+				v, ok := c.metadata["version"]
+
+				if !ok || v == "1.0" {
+					for v1Key, v2Key := range translationFields {
+						v1Val, ok := processedMeta[v1Key]
+						if !ok {
+							t.Error("malformed metadata; missing required field", v1Key, processedMeta)
+						}
+						v2Val, ok := processedMeta[v2Key]
+						if !ok {
+							t.Error("v1 metadata not hydrated; missing v2 field", v2Key)
+						}
+						if v1Val != v2Val {
+							t.Error("v1 to v2 fields not properly translated", v1Val, v2Val)
+						}
 					}
 				}
 			}
@@ -148,6 +210,97 @@ func TestWellKnownEndpoints(t *testing.T) {
 	}
 }
 
+func TestGetFileDeliveryPrefixDate(t *testing.T) {
+	ctx := context.TODO()
+	m := map[string]string{
+		"version":           "2.0",
+		"data_stream_id":    "test_stream",
+		"data_stream_route": "test_route",
+	}
+	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+		Copy: validation.CopyConfig{
+			FolderStructure: metadata.FolderStructureDate,
+		},
+	})
+
+	p, err := metadata.GetFilenamePrefix(ctx, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dateTokens := strings.Split(p, "/")
+	if len(dateTokens) != 4 {
+		t.Error("date prefix not properly formatted", p)
+	}
+}
+
+func TestGetFileDeliveryPrefixRoot(t *testing.T) {
+	ctx := context.TODO()
+	m := map[string]string{
+		"version":           "2.0",
+		"data_stream_id":    "test_stream",
+		"data_stream_route": "test_route",
+	}
+	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+		Copy: validation.CopyConfig{
+			FolderStructure: metadata.FolderStructureRoot,
+		},
+	})
+
+	p, err := metadata.GetFilenamePrefix(ctx, m)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p != "" {
+		t.Error("expected file delivery prefix to be empty but was", p)
+	}
+}
+
+func TestDeliveryFilenameSuffixUploadId(t *testing.T) {
+	ctx := context.TODO()
+	m := map[string]string{
+		"version":           "2.0",
+		"data_stream_id":    "test_stream",
+		"data_stream_route": "test_route",
+	}
+	tuid := "1234"
+	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+		Copy: validation.CopyConfig{
+			FilenameSuffix: metadata.FilenameSuffixUploadId,
+		},
+	})
+
+	s, err := metadata.GetFilenameSuffix(ctx, m, tuid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != "_"+tuid {
+		t.Error("expected upload ID suffix but get", s)
+	}
+}
+
+func TestDeliveryFilenameSuffixNone(t *testing.T) {
+	ctx := context.TODO()
+	m := map[string]string{
+		"version":           "2.0",
+		"data_stream_id":    "test_stream",
+		"data_stream_route": "test_route",
+	}
+	tuid := "1234"
+	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+		Copy: validation.CopyConfig{
+			FilenameSuffix: "",
+		},
+	})
+
+	s, err := metadata.GetFilenameSuffix(ctx, m, tuid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s != "" {
+		t.Error("expected empty suffix but get", s)
+	}
+}
+
 func TestFileInfoNotFound(t *testing.T) {
 	client := ts.Client()
 	resp, err := client.Get(ts.URL + "/info/1234")
@@ -165,6 +318,9 @@ func TestMain(m *testing.M) {
 		UploadConfigPath:      "../../upload-configs/",
 		LocalFolderUploadsTus: "test/uploads",
 		LocalReportsFolder:    "test/reports",
+		LocalDEXFolder:        "test/dex",
+		LocalEDAVFolder:       "test/edav",
+		LocalROUTINGFolder:    "test/routing",
 		TusdHandlerBasePath:   "/files/",
 	}
 

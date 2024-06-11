@@ -65,6 +65,39 @@ paths:
         '200':
           description: Success
 
+  "/health":
+    get:
+      summary: tus storage health status
+      tags:
+        - TUSD
+      description: Get the tusd health status
+      operationId: health
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "UP"
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        service:
+                          type: string
+                          example: "Azure Service Bus"
+                        status:
+                          type: string
+                          example: "UP"
+                        health_issue:
+                          type: string
+                          example: "None reported"
+
   "/{tguid}":
     get:
       summary: Download File
