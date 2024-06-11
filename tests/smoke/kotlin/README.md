@@ -15,32 +15,29 @@ Next, run `gradle build` to install dependencies for this project.  This also in
 ### Environment Setup
 
 Next, set required environment variables.  This can be done by setting local gradle properties in a `local.properties` file at the root level, or passing them in on the command line as Java system properties.  To see a list of required variables, look at the `src/test/kotlin/util/EnvConfig.kt` file.
+These environment variables are how you target different DEX environments.  For example, for the dev environment, all environment variables need to point to URLs, endpoints, and services uses by the Upload API dev environment.
 
 ### Running tests
 
 This project contains a set of test suites that define the tests to be run.  These suites are grouped by environment and are broken up by use case.
 They are run by executing the `gradle test` comment with a few gradle properties that are passed in as command line arguments:
 
-- `env` - This is a required argument that specifies the environment you wish to target.  **Note that the values you've set in your `local.properties` should be targeting the same environment you specify here.**
 - `useCases` - This is an optional argument that allows you to select a subset of use cases you want to run the tests against.  It is a comma-separated list of use cases that you want to run.  Available use cases are defined by the name of the XML files within the environment folders.  By default, the tests will run for all use cases.
 
 #### Examples:
 
-- Run all use cases for the dev environment:
+- Run all use cases:
 
-`gradle test -Penv=dev`
+`gradle test`
 
-- Run only the test use case for the dev environment:
+- Run only the test use case:
 
-`gradle test -Penv=dev -PuseCases=dextesting-testevent1`
+`gradle test -PuseCases=dextesting-testevent1`
 
-- Run a select few use cases against the stg environment:
+- Run a select few use cases:
 
-`gradle test -Penv=stg -PuseCases=aims-celr-csv,aims-celr-hl7`
+`gradle test -PuseCases=aims-celr-csv,aims-celr-hl7`
 
 ## Future Improvements
 
-- Enable blob indexing in the routing storage account.  This will significantly speed up test times from searching for files within that storage account.
-- Remove the Processing Status hard delay when the Processing Status API system sync time is reduced.
-- Add more non-happy path tests for metadata verify that are specific to use cases.
-- Add tests for v2 metadata verification.
+- Parallelization for data provided test cases.

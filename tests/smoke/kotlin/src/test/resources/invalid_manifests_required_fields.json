@@ -1,0 +1,14 @@
+[
+  {
+    "meta_ext_event": "testevent1",
+    "filename": "dex-smoke-test"
+  },
+  {
+    "meta_destination_id": "dextesting",
+    "filename": "dex-smoke-test"
+  },
+  {
+    "meta_destination_id": "dextesting",
+    "meta_ext_event": "testevent1"
+  }
+]
