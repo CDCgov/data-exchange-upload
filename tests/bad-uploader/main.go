@@ -78,6 +78,7 @@ func resultOrFatal[T any](v T, err error) T {
 }
 
 var wg sync.WaitGroup
+var uploadCount int
 
 /*
 so we need to be able to create an arbirary number of test uploads
@@ -88,7 +89,7 @@ this will cover a use case for a single bad sender, so only one cred needed
 */
 
 func main() {
-
+	uploadCount = 0
 	conf := resultOrFatal(buildConfig())
 
 	c := make(chan struct{}, parallelism)
@@ -127,6 +128,8 @@ func worker(c <-chan struct{}, conf *config) {
 		if err := runTest(f, conf); err != nil {
 			slog.Error("ERROR: ", "error", err)
 		}
+		uploadCount++
+		fmt.Printf("upload progress %d / %d\n", uploadCount, load)
 		wg.Done()
 	}
 }
