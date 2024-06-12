@@ -2,6 +2,12 @@ name: DEV - Upload Server
 
 on:
   workflow_dispatch:
+    inputs:
+    REF:
+      description: Branch from CDCgov/data-exchange-upload that you want to deploy to the dev environment.
+      default: main
+      required: true
+      type: string
   push:
     branches:
         - main
@@ -13,5 +19,6 @@ jobs:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
       WORKFLOW: upload-server.yml
+      REF: ${{ inputs.REF }}
     secrets: inherit
 
