@@ -8,6 +8,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
@@ -52,6 +53,14 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 			logger.Error("error configuring redis locker", "error", err)
 			return nil, err
 		}
+		// redislocker health check
+		redisLockerHealth, err := redislockerhealth.New(appConfig.TusRedisLockURI)
+		if err != nil {
+			logger.Error("error configuring redis locker health check: ", "error", err)
+			return nil, err
+		}
+
+		health.Register(redisLockerHealth)
 	}
 
 	// initialize event reporter
