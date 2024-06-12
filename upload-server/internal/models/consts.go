@@ -11,6 +11,7 @@ const (
 	//
 	PROCESSING_STATUS_APP = "Processing Status"
 	SERVICE_BUS           = "Azure Service Bus"
+	REDIS_LOCKER          = "Redis Locker"
 
 	META_DESTINATION_ID = "meta_destination_id"
 	META_EXT_EVENT      = "meta_ext_event"
