@@ -10,6 +10,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storagehealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -30,6 +31,23 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 		health.Register(sbHealth)
 	}
 
+	// initialize Blob Storage health checker
+	edavContainerName := models.EDAV_STORAGE
+	routingContainerName := models.ROUTING_STORAGE
+	containerNames := []string{edavContainerName, routingContainerName}
+	for _, containerName := range containerNames {
+		// Context setup
+		ctx := context.Background()
+
+		storageHealth, err := storagehealth.CheckBlobStorageHealth(ctx, containerName)
+		if err != nil {
+			logger.Error("error initializing storage health check", "error", err)
+			continue
+		}
+		if storageHealth != nil {
+			health.Register(storageHealth)
+		}
+	}
 	// create and register data store
 	store, storeHealthCheck, err := GetDataStore(appConfig)
 	if err != nil {

@@ -2,6 +2,7 @@ module github.com/cdcgov/data-exchange-upload/upload-server
 
 go 1.22.1
 
+
 require (
 	github.com/tus/tusd/v2 v2.4.0
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
@@ -37,10 +38,10 @@ require (
 )
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.2
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.5.1
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus v1.6.1
-	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.1
+	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.3.2
 	github.com/alicebob/miniredis/v2 v2.32.1
 	github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571
 	github.com/go-redsync/redsync/v4 v4.13.0
