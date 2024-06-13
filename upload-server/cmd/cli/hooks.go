@@ -59,6 +59,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	})
 
 	if appConfig.AzureConnection != nil {
+		ctx := context.Background()
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
 		if err != nil {
 			return nil, err
@@ -76,25 +77,7 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		if err != nil {
 			return nil, err
 		}
-		edavCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.EdavConnection, appConfig.EdavCheckpointContainer)
-		if err != nil {
-			return nil, err
-		}
-		routingCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.RoutingConnection, appConfig.RoutingCheckpointContainer)
-		if err != nil {
-			return nil, err
-		}
-
-		ctx := context.Background()
 		err = storeaz.CreateContainerIfNotExists(ctx, dexCheckpointContainerClient)
-		if err != nil {
-			return nil, err
-		}
-		err = storeaz.CreateContainerIfNotExists(ctx, edavCheckpointContainerClient)
-		if err != nil {
-			return nil, err
-		}
-		err = storeaz.CreateContainerIfNotExists(ctx, routingCheckpointContainerClient)
 		if err != nil {
 			return nil, err
 		}
@@ -105,18 +88,44 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 			TusPrefix:           appConfig.TusUploadPrefix,
 			Target:              "dex",
 		})
-		postprocessing.RegisterTarget("edav", &postprocessing.AzureDeliverer{
-			FromContainerClient: tusContainerClient,
-			ToContainerClient:   edavCheckpointContainerClient,
-			TusPrefix:           appConfig.TusUploadPrefix,
-			Target:              "edav",
-		})
-		postprocessing.RegisterTarget("routing", &postprocessing.AzureDeliverer{
-			FromContainerClient: tusContainerClient,
-			ToContainerClient:   routingCheckpointContainerClient,
-			TusPrefix:           appConfig.TusUploadPrefix,
-			Target:              "routing",
-		})
+
+		// Connect to delivery storage accounts if we have their connection configs.
+		// If we don't, maybe we try and establish a connection?
+		// Maybe health check checks for storage config too?
+		if appConfig.EdavConnection != nil {
+			edavCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.EdavConnection, appConfig.EdavCheckpointContainer)
+			if err != nil {
+				return nil, err
+			}
+			err = storeaz.CreateContainerIfNotExists(ctx, edavCheckpointContainerClient)
+			if err != nil {
+				return nil, err
+			}
+
+			postprocessing.RegisterTarget("edav", &postprocessing.AzureDeliverer{
+				FromContainerClient: tusContainerClient,
+				ToContainerClient:   edavCheckpointContainerClient,
+				TusPrefix:           appConfig.TusUploadPrefix,
+				Target:              "edav",
+			})
+		}
+
+		if appConfig.RoutingConnection != nil {
+			routingCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.RoutingConnection, appConfig.RoutingCheckpointContainer)
+			if err != nil {
+				return nil, err
+			}
+			err = storeaz.CreateContainerIfNotExists(ctx, routingCheckpointContainerClient)
+			if err != nil {
+				return nil, err
+			}
+			postprocessing.RegisterTarget("routing", &postprocessing.AzureDeliverer{
+				FromContainerClient: tusContainerClient,
+				ToContainerClient:   routingCheckpointContainerClient,
+				TusPrefix:           appConfig.TusUploadPrefix,
+				Target:              "routing",
+			})
+		}
 
 		metadataAppender = &metadata.AzureMetadataAppender{
 			ContainerClient: tusContainerClient,
