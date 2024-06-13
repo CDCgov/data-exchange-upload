@@ -68,12 +68,6 @@
             "description": "The ID of the patient for whom this data is for assigned by the program"
         },
         {
-            "field_name": "patient_dob",
-            "required": true,
-            "allowed_values": null,
-            "description": "Date of birth of the patient"
-        },
-        {
             "field_name": "patient_race",
             "required": false,
             "allowed_values": [
