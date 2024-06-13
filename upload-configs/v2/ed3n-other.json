@@ -22,7 +22,7 @@
           "field_name": "sender_id",
           "required": true,
           "allowed_values": [
-            "MA-PHA","NY-PHA","VA-PHA","TX-PHA","CO-PHA","CT-PHA","WI-PHA","WA-PHA","UT-PHA"
+            "ED3N-App"
           ],
           "description": "This field is the identifier for the sender of the data."
         },
@@ -30,7 +30,7 @@
           "field_name": "data_producer_id",
           "required": true,
           "allowed_values": [
-            "MA-PHA","NY-PHA","VA-PHA","TX-PHA","CO-PHA","CT-PHA","WI-PHA","WA-PHA","UT-PHA"
+            "MA-NBS","NY-NBS","VA-NBS","TX-NBS","CO-NBS","CDC","IL-NBS","UT-NBS"
           ],
           "description": "This field is the identifier for the data producer."
         },
@@ -38,7 +38,7 @@
           "field_name": "jurisdiction",
           "required": true,
           "allowed_values": [
-            "MA","NY","VA","TX","CO","CT","WI","WA","UT"
+            "MA","NY","VA","TX","CO","IL","UT","CDC"
           ],
           "description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
         },
@@ -48,7 +48,7 @@
           "description": "This field is the name of the file when uploaded by the sender."
         },
         {
-            "field_name": "meta_ext_nbs_data_type",
+            "field_name": "nbs_data_type",
             "required": true,
             "allowed_values": [
               "MOLECULAR","BIOCHEMICAL","CLINICAL"    
@@ -56,31 +56,27 @@
             "description": "Identifies the type of data sent"
         },
         {
-            "field_name": "meta_ext_specimen_id",
+            "field_name": "specimen_id",
             "required": true,
             "allowed_values": null,
             "description": "The ID of the blood test specimen assigned by the program"
         },
         {
-            "field_name": "meta_ext_patient_id",
+            "field_name": "patient_id",
             "required": true,
             "allowed_values": null,
             "description": "The ID of the patient for whom this data is for assigned by the program"
         },
         {
-            "field_name": "meta_ext_patient_dob",
-            "required": true,
-            "allowed_values": null,
-            "description": "Date of birth of the patient"
-        },
-        {
-            "field_name": "meta_ext_patient_race",
+            "field_name": "patient_race",
             "required": false,
-            "allowed_values": null,
+            "allowed_values": [
+              "White","African American","Asian","Indian","Multiracial","Other"
+            ],
             "description": "Race of the patient"
         },
         {
-            "field_name": "meta_ext_patient_ethnicity",
+            "field_name": "patient_ethnicity",
             "required": false,
             "allowed_values": [
               "Hispanic","Not Hispanic"
@@ -88,7 +84,7 @@
             "description": "Ethicity of the patient"
         },
         {
-            "field_name": "meta_ext_patient_sex",
+            "field_name": "patient_sex",
             "required": false,
             "allowed_values": [
               "M","F"
@@ -96,19 +92,19 @@
             "description": "Biological sex of the patient"
         },
         {
-            "field_name": "meta_ext_instrument",
+            "field_name": "instrument",
             "required": true,
             "allowed_values": null,
             "description": "The sequencing instrument used to generate the data"
         },
         {
-            "field_name": "meta_ext_variant_caller",
+            "field_name": "variant_caller",
             "required": false,
             "allowed_values": null,
             "description": "The variant caller used to generate the data"
         },
         {
-            "field_name": "meta_ext_reagent_kit",
+            "field_name": "reagent_kit",
             "required": false,
             "allowed_values": null,
             "description": "The reagent kit used for the sequencing"
