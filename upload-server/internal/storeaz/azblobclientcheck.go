@@ -25,6 +25,8 @@ func NewAzureHealthCheck(conf *azurestore.AzConfig) (*AzureBlobHealthCheck, erro
 	}, nil
 }
 
+// TODO Health check that uses service principle.  Maybe don't need this if lower function handles it.
+
 func (c *AzureBlobHealthCheck) Health(ctx context.Context) models.ServiceHealthResp {
 	return checkAzBlobClient(tusPrefix, c.client)
 }

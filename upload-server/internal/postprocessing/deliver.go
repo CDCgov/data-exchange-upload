@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"io"
-	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -35,6 +36,44 @@ func RegisterTarget(name string, d Deliverer) {
 
 type Deliverer interface {
 	Deliver(ctx context.Context, tuid string, metadata map[string]string) error
+}
+
+func NewFileDeliverer(ctx context.Context, target string) (*FileDeliverer, error) {
+	localConfig, err := appconfig.LocalStoreConfig(target)
+	if err != nil {
+		return nil, err
+	}
+	return &FileDeliverer{
+		LocalStorageConfig: *localConfig,
+		Target:             target,
+	}, nil
+}
+
+func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.AppConfig) (*AzureDeliverer, error) {
+	config, err := appconfig.AzureStoreConfig(target)
+	if err != nil {
+		return nil, err
+	}
+	// TODO Can the tus container client be singleton?
+	tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
+	if err != nil {
+		return nil, err
+	}
+	checkpointContainerClient, err := storeaz.NewContainerClient(*config, config.ContainerName)
+	if err != nil {
+		return nil, err
+	}
+	err = storeaz.CreateContainerIfNotExists(ctx, checkpointContainerClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return &AzureDeliverer{
+		FromContainerClient: tusContainerClient,
+		ToContainerClient:   checkpointContainerClient,
+		TusPrefix:           appConfig.TusUploadPrefix,
+		Target:              target,
+	}, nil
 }
 
 // target may end up being a type
@@ -77,8 +116,8 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 }
 
 type FileDeliverer struct {
-	From   fs.FS
-	ToPath string
+	appconfig.LocalStorageConfig
+	Target string
 }
 
 type AzureDeliverer struct {
@@ -89,7 +128,7 @@ type AzureDeliverer struct {
 }
 
 func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, manifest map[string]string) error {
-	f, err := fd.From.Open(tuid)
+	f, err := fd.FromPath.Open(tuid)
 	if err != nil {
 		return err
 	}
@@ -105,6 +144,24 @@ func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, manifest map[st
 	}
 
 	return err
+}
+
+func (fd *FileDeliverer) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "File Deliver Target " + fd.Target
+	info, err := os.Stat(fd.ToPath)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+		return rsp
+	}
+	if !info.IsDir() {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = fmt.Sprintf("%s is not a directory", fd.ToPath)
+		return rsp
+	}
+	rsp.Status = models.STATUS_UP
+	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
+	return rsp
 }
 
 func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
@@ -138,6 +195,24 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 	logger.Info("Copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL(), "status", status)
 
 	return nil
+}
+
+func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "Azure deliver target " + ad.Target
+
+	if ad.ToContainerClient == nil {
+		// Running in azure, but deliverer not set up.
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "Azure deliverer target " + ad.Target + " not configured"
+	}
+
+	_, err := ad.ToContainerClient.GetProperties(ctx, nil)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+	}
+
+	return rsp
 }
 
 func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {

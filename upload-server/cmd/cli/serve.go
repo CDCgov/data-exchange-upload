@@ -1,6 +1,9 @@
 package cli
 
 import (
+	"context"
+	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"net/http"
 	"strings"
 
@@ -37,6 +40,64 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 		return nil, err
 	} // .if
 	health.Register(storeHealthCheck)
+
+	// Get one or more health checks for delivery stores.
+	// Maybe register deliverers at this level, and register health checks for them.
+	// Don't need to call postprocessing.RegisterTarget in hooks.go.  Can do it here if we want.
+	// Something like...
+	// dexDeliverer = postProcessing.GetDeliverer("dex", appConfig)
+	// health.Register(dexDeliverer)
+	// postProcessing.RegisterDeliverer(dexDeliverer)
+	ctx := context.TODO()
+	// TODO can this just be of type deliverer interface?
+	dexFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "dex")
+	if err != nil {
+		return nil, err
+	}
+	if appConfig.AzureConnection != nil {
+		dexAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "dex", &appConfig)
+		if err != nil {
+			return nil, err
+		}
+		postprocessing.RegisterTarget("dex", dexAzureDeliverer)
+		health.Register(dexAzureDeliverer)
+	} else {
+		fmt.Printf("***Registering file deliverer for dex")
+		postprocessing.RegisterTarget("dex", dexFileDeliverer)
+		health.Register(dexFileDeliverer)
+	}
+
+	edavFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "edav")
+	if err != nil {
+		return nil, err
+	}
+	if appConfig.EdavConnection != nil {
+		edavAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "edav", &appConfig)
+		if err != nil {
+			return nil, err
+		}
+		postprocessing.RegisterTarget("edav", edavAzureDeliverer)
+		health.Register(edavAzureDeliverer)
+	} else {
+		postprocessing.RegisterTarget("edav", edavFileDeliverer)
+		health.Register(edavFileDeliverer)
+	}
+
+	routingFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "routing")
+	if err != nil {
+		return nil, err
+	}
+	if appConfig.RoutingConnection != nil {
+		routingAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "routing", &appConfig)
+		if err != nil {
+			return nil, err
+		}
+		postprocessing.RegisterTarget("routing", routingAzureDeliverer)
+		health.Register(routingAzureDeliverer)
+	} else {
+		postprocessing.RegisterTarget("routing", routingFileDeliverer)
+		health.Register(routingFileDeliverer)
+	}
 
 	uploadInfoHandler, err := GetUploadInfoHandler(&appConfig)
 	if err != nil {
