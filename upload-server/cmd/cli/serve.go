@@ -50,17 +50,16 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 		var err error
 		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))
 		if err != nil {
-			logger.Error("error configuring redis locker, using tusd in-memory locker instead", "error", err)
-			// return nil, err
+			logger.Error("failed to configure Redis locker, defaulting to in-memory locker", "error", err)
 		}
-		// redislocker health check
+
+		// configure redislocker health check
 		redisLockerHealth, err := redislockerhealth.New(appConfig.TusRedisLockURI)
 		if err != nil {
-			logger.Error("error configuring redis locker health check, ommiting this check", "error", err)
+			logger.Error("failed to configure Redis locker health check, skipping check", "error", err)
 		} else {
 			health.Register(redisLockerHealth)
 		}
-
 	}
 
 	// initialize event reporter
