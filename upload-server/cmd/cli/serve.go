@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"net/http"
 	"strings"
@@ -62,7 +61,6 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 		postprocessing.RegisterTarget("dex", dexAzureDeliverer)
 		health.Register(dexAzureDeliverer)
 	} else {
-		fmt.Printf("***Registering file deliverer for dex")
 		postprocessing.RegisterTarget("dex", dexFileDeliverer)
 		health.Register(dexFileDeliverer)
 	}
@@ -74,10 +72,11 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	if appConfig.EdavConnection != nil {
 		edavAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "edav", &appConfig)
 		if err != nil {
-			return nil, err
+			logger.Error("failed to connect to edav deliverer target", err.Error())
+		} else {
+			postprocessing.RegisterTarget("edav", edavAzureDeliverer)
+			health.Register(edavAzureDeliverer)
 		}
-		postprocessing.RegisterTarget("edav", edavAzureDeliverer)
-		health.Register(edavAzureDeliverer)
 	} else {
 		postprocessing.RegisterTarget("edav", edavFileDeliverer)
 		health.Register(edavFileDeliverer)
@@ -90,10 +89,11 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	if appConfig.RoutingConnection != nil {
 		routingAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "routing", &appConfig)
 		if err != nil {
-			return nil, err
+			logger.Error("failed to connect to router deliverer target", err.Error())
+		} else {
+			postprocessing.RegisterTarget("routing", routingAzureDeliverer)
+			health.Register(routingAzureDeliverer)
 		}
-		postprocessing.RegisterTarget("routing", routingAzureDeliverer)
-		health.Register(routingAzureDeliverer)
 	} else {
 		postprocessing.RegisterTarget("routing", routingFileDeliverer)
 		health.Register(routingFileDeliverer)

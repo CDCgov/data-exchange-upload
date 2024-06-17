@@ -38,11 +38,17 @@ type Deliverer interface {
 	Deliver(ctx context.Context, tuid string, metadata map[string]string) error
 }
 
-func NewFileDeliverer(ctx context.Context, target string) (*FileDeliverer, error) {
+func NewFileDeliverer(_ context.Context, target string) (*FileDeliverer, error) {
 	localConfig, err := appconfig.LocalStoreConfig(target)
 	if err != nil {
 		return nil, err
 	}
+
+	_, err = os.Stat(localConfig.ToPath)
+	if err != nil {
+		os.Mkdir(localConfig.ToPath, 0755)
+	}
+
 	return &FileDeliverer{
 		LocalStorageConfig: *localConfig,
 		Target:             target,
