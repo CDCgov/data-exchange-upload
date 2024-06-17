@@ -148,24 +148,24 @@ func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 	}
 }
 
-func LocalStoreConfig(target string) (*LocalStorageConfig, error) {
-	fromPath := os.DirFS(LoadedConfig.LocalFolderUploadsTus + "/" + LoadedConfig.TusUploadPrefix)
+func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig, error) {
+	fromPath := os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix)
 
 	switch target {
 	case "dex":
 		return &LocalStorageConfig{
 			FromPath: fromPath,
-			ToPath:   LoadedConfig.LocalDEXFolder,
+			ToPath:   appConfig.LocalDEXFolder,
 		}, nil
 	case "edav":
 		return &LocalStorageConfig{
 			FromPath: fromPath,
-			ToPath:   LoadedConfig.LocalEDAVFolder,
+			ToPath:   appConfig.LocalEDAVFolder,
 		}, nil
 	case "routing":
 		return &LocalStorageConfig{
 			FromPath: fromPath,
-			ToPath:   LoadedConfig.LocalRoutingFolder,
+			ToPath:   appConfig.LocalRoutingFolder,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported local target %s", target)

@@ -38,8 +38,8 @@ type Deliverer interface {
 	Deliver(ctx context.Context, tuid string, metadata map[string]string) error
 }
 
-func NewFileDeliverer(_ context.Context, target string) (*FileDeliverer, error) {
-	localConfig, err := appconfig.LocalStoreConfig(target)
+func NewFileDeliverer(_ context.Context, target string, appConfig *appconfig.AppConfig) (*FileDeliverer, error) {
+	localConfig, err := appconfig.LocalStoreConfig(target, appConfig)
 	if err != nil {
 		return nil, err
 	}

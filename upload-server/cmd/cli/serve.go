@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"net/http"
 	"strings"
 
@@ -47,58 +46,58 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	// dexDeliverer = postProcessing.GetDeliverer("dex", appConfig)
 	// health.Register(dexDeliverer)
 	// postProcessing.RegisterDeliverer(dexDeliverer)
-	ctx := context.TODO()
-	// TODO can this just be of type deliverer interface?
-	dexFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "dex")
-	if err != nil {
-		return nil, err
-	}
-	if appConfig.AzureConnection != nil {
-		dexAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "dex", &appConfig)
-		if err != nil {
-			logger.Error("failed to connect to dex deliverer target", err.Error())
-		} else {
-			postprocessing.RegisterTarget("dex", dexAzureDeliverer)
-			health.Register(dexAzureDeliverer)
-		}
-	} else {
-		postprocessing.RegisterTarget("dex", dexFileDeliverer)
-		health.Register(dexFileDeliverer)
-	}
-
-	edavFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "edav")
-	if err != nil {
-		return nil, err
-	}
-	if appConfig.EdavConnection != nil {
-		edavAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "edav", &appConfig)
-		if err != nil {
-			logger.Error("failed to connect to edav deliverer target", err.Error())
-		} else {
-			postprocessing.RegisterTarget("edav", edavAzureDeliverer)
-			health.Register(edavAzureDeliverer)
-		}
-	} else {
-		postprocessing.RegisterTarget("edav", edavFileDeliverer)
-		health.Register(edavFileDeliverer)
-	}
-
-	routingFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "routing")
-	if err != nil {
-		return nil, err
-	}
-	if appConfig.RoutingConnection != nil {
-		routingAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "routing", &appConfig)
-		if err != nil {
-			logger.Error("failed to connect to router deliverer target", err.Error())
-		} else {
-			postprocessing.RegisterTarget("routing", routingAzureDeliverer)
-			health.Register(routingAzureDeliverer)
-		}
-	} else {
-		postprocessing.RegisterTarget("routing", routingFileDeliverer)
-		health.Register(routingFileDeliverer)
-	}
+	//ctx := context.TODO()
+	//// TODO can this just be of type deliverer interface?
+	//dexFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "dex", &appConfig)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if appConfig.AzureConnection != nil {
+	//	dexAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "dex", &appConfig)
+	//	if err != nil {
+	//		logger.Error("failed to connect to dex deliverer target", "error", err.Error())
+	//	} else {
+	//		postprocessing.RegisterTarget("dex", dexAzureDeliverer)
+	//		health.Register(dexAzureDeliverer)
+	//	}
+	//} else {
+	//	postprocessing.RegisterTarget("dex", dexFileDeliverer)
+	//	health.Register(dexFileDeliverer)
+	//}
+	//
+	//edavFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "edav", &appConfig)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if appConfig.EdavConnection != nil {
+	//	edavAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "edav", &appConfig)
+	//	if err != nil {
+	//		logger.Error("failed to connect to edav deliverer target", "error", err.Error())
+	//	} else {
+	//		postprocessing.RegisterTarget("edav", edavAzureDeliverer)
+	//		health.Register(edavAzureDeliverer)
+	//	}
+	//} else {
+	//	postprocessing.RegisterTarget("edav", edavFileDeliverer)
+	//	health.Register(edavFileDeliverer)
+	//}
+	//
+	//routingFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "routing", &appConfig)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if appConfig.RoutingConnection != nil {
+	//	routingAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "routing", &appConfig)
+	//	if err != nil {
+	//		logger.Error("failed to connect to router deliverer target", "error", err.Error())
+	//	} else {
+	//		postprocessing.RegisterTarget("routing", routingAzureDeliverer)
+	//		health.Register(routingAzureDeliverer)
+	//	}
+	//} else {
+	//	postprocessing.RegisterTarget("routing", routingFileDeliverer)
+	//	health.Register(routingFileDeliverer)
+	//}
 
 	uploadInfoHandler, err := GetUploadInfoHandler(&appConfig)
 	if err != nil {
@@ -129,7 +128,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	err = InitReporters(appConfig)
 
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(appConfig)
+	hookHandler, err := GetHookHandler(context.TODO(), appConfig)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
