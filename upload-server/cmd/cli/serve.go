@@ -56,10 +56,11 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	if appConfig.AzureConnection != nil {
 		dexAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "dex", &appConfig)
 		if err != nil {
-			return nil, err
+			logger.Error("failed to connect to dex deliverer target", err.Error())
+		} else {
+			postprocessing.RegisterTarget("dex", dexAzureDeliverer)
+			health.Register(dexAzureDeliverer)
 		}
-		postprocessing.RegisterTarget("dex", dexAzureDeliverer)
-		health.Register(dexAzureDeliverer)
 	} else {
 		postprocessing.RegisterTarget("dex", dexFileDeliverer)
 		health.Register(dexFileDeliverer)

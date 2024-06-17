@@ -56,7 +56,7 @@ func NewFileDeliverer(_ context.Context, target string) (*FileDeliverer, error) 
 }
 
 func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.AppConfig) (*AzureDeliverer, error) {
-	config, err := appconfig.AzureStoreConfig(target)
+	config, err := appconfig.GetAzureContainerConfig(target)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 	if err != nil {
 		return nil, err
 	}
-	checkpointContainerClient, err := storeaz.NewContainerClient(*config, config.ContainerName)
+	checkpointContainerClient, err := storeaz.NewContainerClient(config.AzureStorageConfig, config.ContainerName)
 	if err != nil {
 		return nil, err
 	}

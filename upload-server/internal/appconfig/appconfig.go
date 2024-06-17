@@ -70,9 +70,9 @@ type AppConfig struct {
 	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 
 	// Upload processing
-	//DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
-	//EdavCheckpointContainer    string `env:"DEX_EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
-	//RoutingCheckpointContainer string `env:"DEX_ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
+	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
+	EdavCheckpointContainer    string `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
+	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -98,8 +98,13 @@ type AzureStorageConfig struct {
 	StorageName       string `env:"STORAGE_ACCOUNT"`
 	StorageKey        string `env:"STORAGE_KEY"`
 	ContainerEndpoint string `env:"ENDPOINT"`
-	ContainerName     string `env:"CONTAINER_NAME"`
 } // .AzureStorageConfig
+
+type AzureContainerConfig struct {
+	AzureStorageConfig
+	ContainerName string
+}
+
 type LocalStorageConfig struct {
 	FromPath fs.FS
 	ToPath   string
@@ -121,14 +126,23 @@ func (azc *AzureStorageConfig) Check() error {
 	return errors.Join(errs...)
 }
 
-func AzureStoreConfig(target string) (*AzureStorageConfig, error) {
+func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 	switch target {
 	case "dex":
-		return LoadedConfig.AzureConnection, nil
+		return &AzureContainerConfig{
+			AzureStorageConfig: *LoadedConfig.AzureConnection,
+			ContainerName:      LoadedConfig.DexCheckpointContainer,
+		}, nil
 	case "edav":
-		return LoadedConfig.EdavConnection, nil
+		return &AzureContainerConfig{
+			AzureStorageConfig: *LoadedConfig.EdavConnection,
+			ContainerName:      LoadedConfig.EdavCheckpointContainer,
+		}, nil
 	case "routing":
-		return LoadedConfig.RoutingConnection, nil
+		return &AzureContainerConfig{
+			AzureStorageConfig: *LoadedConfig.RoutingConnection,
+			ContainerName:      LoadedConfig.RoutingCheckpointContainer,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported azure target %s", target)
 	}
