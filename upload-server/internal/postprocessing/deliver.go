@@ -205,6 +205,7 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 
 func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "Azure deliver target " + ad.Target
+	rsp.Status = models.STATUS_UP
 
 	if ad.ToContainerClient == nil {
 		// Running in azure, but deliverer not set up.
