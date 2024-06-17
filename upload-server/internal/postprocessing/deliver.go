@@ -44,11 +44,6 @@ func NewFileDeliverer(_ context.Context, target string, appConfig *appconfig.App
 		return nil, err
 	}
 
-	_, err = os.Stat(localConfig.ToPath)
-	if err != nil {
-		os.Mkdir(localConfig.ToPath, 0755)
-	}
-
 	return &FileDeliverer{
 		LocalStorageConfig: *localConfig,
 		Target:             target,
