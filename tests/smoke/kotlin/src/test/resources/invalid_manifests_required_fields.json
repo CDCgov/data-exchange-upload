@@ -21,6 +21,19 @@
   },
   {
     "version": "2.0",
+    "data_stream_id": "nrss",
+    "data_stream_route": "hl7v2",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "test-jurisdiction",
+    "received_filename": "dex-smoke-test",
+    "meta_ext_uploadid": "test-upload-id",
+    "meta_ext_filestatus": "test-file-status",
+    "meta_ext_file_timestamp": "test-file-timestamp",
+    "meta_ext_objectkey": "test-obj-key",
+    "meta_ext_source": "smoke test source"
+  },
+  {
+    "version": "2.0",
     "data_stream_id": "eicr",
     "data_stream_route": "fhir",
     "data_producer_id": "test-producer-id",
