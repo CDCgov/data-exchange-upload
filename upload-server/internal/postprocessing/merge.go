@@ -34,16 +34,6 @@ func RouteAndDeliverHook(c chan Event) func(handler.HookEvent, hooks.HookRespons
 			return resp, err
 		}
 		targets = append(targets, config.Copy.Targets...)
-		// Load config from metadata.
-		path, err := metadata.GetConfigIdentifierByVersion(event.Context, meta)
-		if err != nil {
-			return resp, err
-		}
-		config, err := metadata.Cache.GetConfig(event.Context, path)
-		if err != nil {
-			return resp, err
-		}
-		targets = append(targets, config.Copy.Targets...)
 
 		for _, target := range targets {
 			// fan out command
