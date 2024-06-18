@@ -5,7 +5,16 @@
 			{
 				"field_name": "sender_id",
 				"allowed_values": [
-					"GA-PHA"
+					"CA-ABCs",
+					"CO-ABCs",
+					"CT-ABCs",
+					"GA-ABCs",
+					"MD-ABCs",
+					"MN-ABCs",
+					"NM-ABCs",
+					"NY-ABCs",
+					"OR-ABCs",
+					"TN-ABCs"
 				],
 				"required": true,
 				"description": "This field is the identifier for the sender of the data."
@@ -13,7 +22,16 @@
 			{
 				"field_name": "data_producer_id",
 				"allowed_values": [
-                    "GA-PHA"
+					"CA-ABCs",
+					"CO-ABCs",
+					"CT-ABCs",
+					"GA-ABCs",
+					"MD-ABCs",
+					"MN-ABCs",
+					"NM-ABCs",
+					"NY-ABCs",
+					"OR-ABCs",
+					"TN-ABCs"
                 ],
 				"required": true,
 				"description": "This field is the identifier for the data producer."
@@ -21,7 +39,16 @@
 			{
 				"field_name": "jurisdiction",
 				"allowed_values": [
-                    "GA"
+                    "CA",
+					"CO",
+					"CT",
+					"GA",
+					"MD",
+					"MN",
+					"NM",
+					"NY",
+					"OR",
+					"TN"
                 ],
 				"required": true,
 				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
