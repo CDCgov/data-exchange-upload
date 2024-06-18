@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
 	"os"
 
@@ -16,16 +17,16 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
 
-func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
+func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	if Flags.FileHooksDir != "" {
 		return &file.FileHook{
 			Directory: Flags.FileHooksDir,
 		}, nil
 	}
-	return PrebuiltHooks(appConfig)
+	return PrebuiltHooks(ctx, appConfig)
 }
 
-func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
+func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	metadata.Cache = &metadata.ConfigCache{
@@ -39,24 +40,9 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 	}
 
 	var metadataAppender metadata.Appender
-	metadataAppender = &metadata.FileMetadataAppender{
-		Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
-	}
-
-	postprocessing.RegisterTarget("dex", &postprocessing.FileDeliverer{
-		ToPath: appConfig.LocalDEXFolder,
-		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
-	})
-
-	postprocessing.RegisterTarget("edav", &postprocessing.FileDeliverer{
-		ToPath: appConfig.LocalEDAVFolder,
-		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
-	})
-
-	postprocessing.RegisterTarget("routing", &postprocessing.FileDeliverer{
-		ToPath: appConfig.LocalROUTINGFolder,
-		From:   os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix),
-	})
+	var dexDeliverer postprocessing.Deliverer
+	var edavDeliverer postprocessing.Deliverer
+	var routingDeliverer postprocessing.Deliverer
 
 	if appConfig.AzureConnection != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
@@ -72,56 +58,60 @@ func PrebuiltHooks(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) 
 		if err != nil {
 			return nil, err
 		}
-		dexCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.DexCheckpointContainer)
-		if err != nil {
-			return nil, err
-		}
-		edavCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.EdavConnection, appConfig.EdavCheckpointContainer)
-		if err != nil {
-			return nil, err
-		}
-		routingCheckpointContainerClient, err := storeaz.NewContainerClient(*appConfig.RoutingConnection, appConfig.RoutingCheckpointContainer)
-		if err != nil {
-			return nil, err
-		}
-
-		ctx := context.Background()
-		err = storeaz.CreateContainerIfNotExists(ctx, dexCheckpointContainerClient)
-		if err != nil {
-			return nil, err
-		}
-		err = storeaz.CreateContainerIfNotExists(ctx, edavCheckpointContainerClient)
-		if err != nil {
-			return nil, err
-		}
-		err = storeaz.CreateContainerIfNotExists(ctx, routingCheckpointContainerClient)
-		if err != nil {
-			return nil, err
-		}
-
-		postprocessing.RegisterTarget("dex", &postprocessing.AzureDeliverer{
-			FromContainerClient: tusContainerClient,
-			ToContainerClient:   dexCheckpointContainerClient,
-			TusPrefix:           appConfig.TusUploadPrefix,
-			Target:              "dex",
-		})
-		postprocessing.RegisterTarget("edav", &postprocessing.AzureDeliverer{
-			FromContainerClient: tusContainerClient,
-			ToContainerClient:   edavCheckpointContainerClient,
-			TusPrefix:           appConfig.TusUploadPrefix,
-			Target:              "edav",
-		})
-		postprocessing.RegisterTarget("routing", &postprocessing.AzureDeliverer{
-			FromContainerClient: tusContainerClient,
-			ToContainerClient:   routingCheckpointContainerClient,
-			TusPrefix:           appConfig.TusUploadPrefix,
-			Target:              "routing",
-		})
 
 		metadataAppender = &metadata.AzureMetadataAppender{
 			ContainerClient: tusContainerClient,
 			TusPrefix:       appConfig.TusUploadPrefix,
 		}
+
+		dexDeliverer, err = postprocessing.NewAzureDeliverer(ctx, "dex", &appConfig)
+		if err != nil {
+			logger.Error("failed to connect to dex deliverer target", "error", err.Error())
+		} else {
+			postprocessing.RegisterTarget("dex", dexDeliverer)
+			health.Register(dexDeliverer)
+		}
+		if appConfig.EdavConnection != nil {
+			edavDeliverer, err = postprocessing.NewAzureDeliverer(ctx, "edav", &appConfig)
+			if err != nil {
+				logger.Error("failed to connect to edav deliverer target", "error", err.Error())
+			} else {
+				postprocessing.RegisterTarget("edav", edavDeliverer)
+				health.Register(edavDeliverer)
+			}
+		}
+		if appConfig.RoutingConnection != nil {
+			routingDeliverer, err = postprocessing.NewAzureDeliverer(ctx, "routing", &appConfig)
+			if err != nil {
+				logger.Error("failed to connect to router deliverer target", "error", err.Error())
+			} else {
+				postprocessing.RegisterTarget("routing", routingDeliverer)
+				health.Register(routingDeliverer)
+			}
+		}
+	} else {
+		metadataAppender = &metadata.FileMetadataAppender{
+			Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
+		}
+
+		dexDeliverer, err := postprocessing.NewFileDeliverer(ctx, "dex", &appConfig)
+		if err != nil {
+			return nil, err
+		}
+		postprocessing.RegisterTarget("dex", dexDeliverer)
+		health.Register(dexDeliverer)
+		edavDeliverer, err := postprocessing.NewFileDeliverer(ctx, "edav", &appConfig)
+		if err != nil {
+			return nil, err
+		}
+		postprocessing.RegisterTarget("edav", edavDeliverer)
+		health.Register(edavDeliverer)
+		routingDeliverer, err := postprocessing.NewFileDeliverer(ctx, "routing", &appConfig)
+		if err != nil {
+			return nil, err
+		}
+		postprocessing.RegisterTarget("routing", routingDeliverer)
+		health.Register(routingDeliverer)
 	}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)

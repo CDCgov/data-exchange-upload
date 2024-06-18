@@ -320,7 +320,7 @@ func TestMain(m *testing.M) {
 		LocalReportsFolder:    "test/reports",
 		LocalDEXFolder:        "test/dex",
 		LocalEDAVFolder:       "test/edav",
-		LocalROUTINGFolder:    "test/routing",
+		LocalRoutingFolder:    "test/routing",
 		TusdHandlerBasePath:   "/files/",
 	}
 
