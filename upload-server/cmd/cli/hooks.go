@@ -42,22 +42,9 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan po
 	}
 
 	var metadataAppender metadata.Appender
-	metadataAppender = &metadata.FileMetadataAppender{
-		Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
-	}
-
-	dexFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "dex", &appConfig)
-	if err != nil {
-		return nil, err
-	}
-	edavFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "edav", &appConfig)
-	if err != nil {
-		return nil, err
-	}
-	routingFileDeliverer, err := postprocessing.NewFileDeliverer(ctx, "routing", &appConfig)
-	if err != nil {
-		return nil, err
-	}
+	var dexDeliverer postprocessing.Deliverer
+	var edavDeliverer postprocessing.Deliverer
+	var routingDeliverer postprocessing.Deliverer
 
 	if appConfig.AzureConnection != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
@@ -79,38 +66,54 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan po
 			TusPrefix:       appConfig.TusUploadPrefix,
 		}
 
-		dexAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "dex", &appConfig)
+		dexDeliverer, err = postprocessing.NewAzureDeliverer(ctx, "dex", &appConfig)
 		if err != nil {
 			logger.Error("failed to connect to dex deliverer target", "error", err.Error())
 		} else {
-			postprocessing.RegisterTarget("dex", dexAzureDeliverer)
-			health.Register(dexAzureDeliverer)
+			postprocessing.RegisterTarget("dex", dexDeliverer)
+			health.Register(dexDeliverer)
 		}
 		if appConfig.EdavConnection != nil {
-			edavAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "edav", &appConfig)
+			edavDeliverer, err = postprocessing.NewAzureDeliverer(ctx, "edav", &appConfig)
 			if err != nil {
 				logger.Error("failed to connect to edav deliverer target", "error", err.Error())
 			} else {
-				postprocessing.RegisterTarget("edav", edavAzureDeliverer)
-				health.Register(edavAzureDeliverer)
+				postprocessing.RegisterTarget("edav", edavDeliverer)
+				health.Register(edavDeliverer)
 			}
 		}
 		if appConfig.RoutingConnection != nil {
-			routingAzureDeliverer, err := postprocessing.NewAzureDeliverer(ctx, "routing", &appConfig)
+			routingDeliverer, err = postprocessing.NewAzureDeliverer(ctx, "routing", &appConfig)
 			if err != nil {
 				logger.Error("failed to connect to router deliverer target", "error", err.Error())
 			} else {
-				postprocessing.RegisterTarget("routing", routingAzureDeliverer)
-				health.Register(routingAzureDeliverer)
+				postprocessing.RegisterTarget("routing", routingDeliverer)
+				health.Register(routingDeliverer)
 			}
 		}
 	} else {
-		postprocessing.RegisterTarget("dex", dexFileDeliverer)
-		health.Register(dexFileDeliverer)
-		postprocessing.RegisterTarget("edav", edavFileDeliverer)
-		health.Register(edavFileDeliverer)
-		postprocessing.RegisterTarget("routing", routingFileDeliverer)
-		health.Register(routingFileDeliverer)
+		metadataAppender = &metadata.FileMetadataAppender{
+			Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
+		}
+
+		dexDeliverer, err := postprocessing.NewFileDeliverer(ctx, "dex", &appConfig)
+		if err != nil {
+			return nil, err
+		}
+		postprocessing.RegisterTarget("dex", dexDeliverer)
+		health.Register(dexDeliverer)
+		edavDeliverer, err := postprocessing.NewFileDeliverer(ctx, "edav", &appConfig)
+		if err != nil {
+			return nil, err
+		}
+		postprocessing.RegisterTarget("edav", edavDeliverer)
+		health.Register(edavDeliverer)
+		routingDeliverer, err := postprocessing.NewFileDeliverer(ctx, "routing", &appConfig)
+		if err != nil {
+			return nil, err
+		}
+		postprocessing.RegisterTarget("routing", routingDeliverer)
+		health.Register(routingDeliverer)
 	}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)

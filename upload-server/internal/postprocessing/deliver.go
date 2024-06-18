@@ -4,20 +4,22 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 )
 
 var targets = map[string]Deliverer{}
@@ -35,6 +37,7 @@ func RegisterTarget(name string, d Deliverer) {
 }
 
 type Deliverer interface {
+	health.Checkable
 	Deliver(ctx context.Context, tuid string, metadata map[string]string) error
 }
 
