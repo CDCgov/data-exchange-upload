@@ -80,7 +80,7 @@ func main() {
 	logger.Info("starting app")
 
 	// start serving the app
-	_, err := cli.Serve(ctx, appConfig)
+	_, postProcessWaitGroup, err := cli.Serve(ctx, appConfig)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
@@ -119,6 +119,11 @@ func main() {
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
 	<-sigint
+
+	// ------------------------------------------------------------------
+	// 	Wait for workers
+	// ------------------------------------------------------------------
+	postProcessWaitGroup.Wait()
 
 	// ------------------------------------------------------------------
 	// close other connections, if needed

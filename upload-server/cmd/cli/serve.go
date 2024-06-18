@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
@@ -18,8 +19,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
-
+func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, *sync.WaitGroup, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -36,14 +36,14 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	store, storeHealthCheck, err := GetDataStore(appConfig)
 	if err != nil {
 		logger.Error("error starting app, error configuring storage", "error", err)
-		return nil, err
+		return nil, nil, err
 	} // .if
 	health.Register(storeHealthCheck)
 
 	uploadInfoHandler, err := GetUploadInfoHandler(&appConfig)
 	if err != nil {
 		logger.Error("error configuring upload info handler: ", "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// initialize locker
@@ -68,18 +68,18 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	err = InitReporters(appConfig)
 
 	// get and initialize tusd hook handlers
-	postProcessingChannel := StartProcessorWorkers(ctx)
-	hookHandler, err := GetHookHandler(context.TODO(), appConfig, postProcessingChannel)
+	postProcessingChannel, postProcessWaitGroup := StartProcessorWorkers(ctx)
+	hookHandler, err := GetHookHandler(context.TODO(), appConfig, postProcessingChannel, postProcessWaitGroup)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// initialize tusd handler
 	handlerTusd, err := handlertusd.New(store, locker, hookHandler, appConfig.TusdHandlerBasePath)
 	if err != nil {
 		logger.Error("error starting tusd handler: ", "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// --------------------------------------------------------------
@@ -105,5 +105,5 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
 
-	return http.DefaultServeMux, nil
+	return http.DefaultServeMux, postProcessWaitGroup, nil
 }
