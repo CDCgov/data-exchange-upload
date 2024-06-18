@@ -71,7 +71,7 @@ type FileStoreHealthCheck struct {
 	path string
 }
 
-func (c *FileStoreHealthCheck) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+func (c *FileStoreHealthCheck) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "File Storage"
 	info, err := os.Stat(c.path)
 	if err != nil {

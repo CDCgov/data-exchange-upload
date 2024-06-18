@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -66,7 +67,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	err = InitReporters(appConfig)
 
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(appConfig)
+	hookHandler, err := GetHookHandler(context.TODO(), appConfig)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err

@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -46,8 +48,8 @@ type AppConfig struct {
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
 	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
-	LocalEDAVFolder       string `env:"LOCAL_DEX_FOLDER, default=./uploads/edav"`
-	LocalROUTINGFolder    string `env:"LOCAL_DEX_FOLDER, default=./uploads/routing"`
+	LocalEDAVFolder       string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
+	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
@@ -69,8 +71,8 @@ type AppConfig struct {
 
 	// Upload processing
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
-	EdavCheckpointContainer    string `env:"DEX_EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
-	RoutingCheckpointContainer string `env:"DEX_ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
+	EdavCheckpointContainer    string `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
+	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -98,6 +100,16 @@ type AzureStorageConfig struct {
 	ContainerEndpoint string `env:"ENDPOINT"`
 } // .AzureStorageConfig
 
+type AzureContainerConfig struct {
+	AzureStorageConfig
+	ContainerName string
+}
+
+type LocalStorageConfig struct {
+	FromPath fs.FS
+	ToPath   string
+}
+
 func (azc *AzureStorageConfig) Check() error {
 	errs := []error{}
 	if azc.StorageName == "" {
@@ -106,11 +118,58 @@ func (azc *AzureStorageConfig) Check() error {
 		})
 	}
 	if azc.StorageKey == "" {
+		// TODO check in using service principle
 		errs = append(errs, &MissingConfigError{
 			ConfigName: "AzStorageKey",
 		})
 	}
 	return errors.Join(errs...)
+}
+
+func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
+	switch target {
+	case "dex":
+		return &AzureContainerConfig{
+			AzureStorageConfig: *LoadedConfig.AzureConnection,
+			ContainerName:      LoadedConfig.DexCheckpointContainer,
+		}, nil
+	case "edav":
+		return &AzureContainerConfig{
+			AzureStorageConfig: *LoadedConfig.EdavConnection,
+			ContainerName:      LoadedConfig.EdavCheckpointContainer,
+		}, nil
+	case "routing":
+		return &AzureContainerConfig{
+			AzureStorageConfig: *LoadedConfig.RoutingConnection,
+			ContainerName:      LoadedConfig.RoutingCheckpointContainer,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported azure target %s", target)
+	}
+}
+
+func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig, error) {
+	fromPath := os.DirFS(appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix)
+
+	switch target {
+	case "dex":
+		return &LocalStorageConfig{
+			FromPath: fromPath,
+			ToPath:   appConfig.LocalDEXFolder,
+		}, nil
+	case "edav":
+		return &LocalStorageConfig{
+			FromPath: fromPath,
+			ToPath:   appConfig.LocalEDAVFolder,
+		}, nil
+	case "routing":
+		return &LocalStorageConfig{
+			FromPath: fromPath,
+			ToPath:   appConfig.LocalRoutingFolder,
+		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported local target %s", target)
+	}
 }
 
 var LoadedConfig = &AppConfig{}
