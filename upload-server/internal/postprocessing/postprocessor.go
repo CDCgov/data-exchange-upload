@@ -17,12 +17,18 @@ type Event struct {
 }
 
 func Worker(ctx context.Context, c chan Event, wg *sync.WaitGroup) {
-	for e := range c {
-		if err := Deliver(ctx, e.ID, e.Manifest, e.Target); err != nil {
-			go func(e Event) {
-				c <- e
-			}(e)
+	select {
+	case <-ctx.Done():
+		close(c)
+		return
+	default:
+		for e := range c {
+			if err := Deliver(ctx, e.ID, e.Manifest, e.Target); err != nil {
+				go func(e Event) {
+					c <- e
+				}(e)
+			}
+			wg.Done()
 		}
-		wg.Done()
 	}
 }

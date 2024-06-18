@@ -324,7 +324,7 @@ func TestMain(m *testing.M) {
 		TusdHandlerBasePath:   "/files/",
 	}
 
-	handler, err := cli.Serve(context.Background(), appConfig)
+	handler, _, err := cli.Serve(context.Background(), appConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
