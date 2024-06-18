@@ -33,7 +33,7 @@ var (
 )
 
 func init() {
-	flag.IntVar(&size, "size", 250*10000, "the size of the file to upload, in bytes")
+	flag.IntVar(&size, "size", 5, "the size of the file to upload, in MB")
 	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", 0, "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
@@ -44,6 +44,7 @@ func init() {
 	flag.BoolVar(&verbose, "v", false, "turn on debug logs")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
+	size = size * 1024 * 1024
 	programLevel := new(slog.LevelVar) // Info by default
 	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
 	slog.SetDefault(slog.New(h))
@@ -78,6 +79,7 @@ func resultOrFatal[T any](v T, err error) T {
 }
 
 var wg sync.WaitGroup
+var uploadCount int
 
 /*
 so we need to be able to create an arbirary number of test uploads
@@ -88,7 +90,7 @@ this will cover a use case for a single bad sender, so only one cred needed
 */
 
 func main() {
-
+	uploadCount = 0
 	conf := resultOrFatal(buildConfig())
 
 	c := make(chan struct{}, parallelism)
@@ -110,7 +112,7 @@ func main() {
 		defer fmt.Printf("Benchmarking results: %f seconds/op\n", float64(result.NsPerOp())/float64(time.Second))
 	}
 	wg.Wait()
-	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
+	printSummary(time.Since(tStart).Seconds())
 }
 
 type config struct {
@@ -127,6 +129,8 @@ func worker(c <-chan struct{}, conf *config) {
 		if err := runTest(f, conf); err != nil {
 			slog.Error("ERROR: ", "error", err)
 		}
+		uploadCount++
+		slog.Info("upload complete", "count", uploadCount, "out of", load)
 		wg.Done()
 	}
 }
@@ -174,6 +178,14 @@ func runTest(f *BadHL7, conf *config) error {
 	}
 
 	return nil
+}
+
+func printSummary(duration float64) {
+	fmt.Println("----Load Test Summary----")
+	fmt.Println("Files uploaded:", load)
+	fmt.Println("Threads:", parallelism)
+	fmt.Println("File size:", size, "bytes;", size/1000, "KB;", size/1000000, "MB;", size/1000000000, "GB")
+	fmt.Println("Total duration:", duration, " seconds")
 }
 
 type Generator interface {
