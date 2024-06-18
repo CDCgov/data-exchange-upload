@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] 2024-06-18
+- Version 2 sender manifest configuration for NDLP/Immunization data streams
+
 ## [2.1.1] 2024-05-30
 - Upgrade to the v2 TUS resumable upload protocol.  This brings more resilient file uploading, and better error messages.
 - Support backwards-compatible upload config filenames.  This allows senders migrating to v2 sender manifests to use different filenames for their v2 upload config JSON file.
