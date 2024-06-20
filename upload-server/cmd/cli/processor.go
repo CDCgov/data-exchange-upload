@@ -8,12 +8,16 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 )
 
-func StartProcessorWorkers(ctx context.Context) (chan postprocessing.Event, *sync.WaitGroup) {
+func StartProcessorWorkers(ctx context.Context, c chan postprocessing.Event) {
 	var wg sync.WaitGroup
 	numWorkers := runtime.NumCPU()
-	c := make(chan postprocessing.Event, numWorkers)
+	wg.Add(numWorkers)
 	for i := 0; i < numWorkers; i++ {
-		go postprocessing.Worker(ctx, c, &wg)
+		go func() {
+			postprocessing.Worker(ctx, c)
+			wg.Done()
+		}()
 	}
-	return c, &wg
+
+	wg.Wait()
 }

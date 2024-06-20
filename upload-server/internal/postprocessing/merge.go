@@ -2,13 +2,11 @@ package postprocessing
 
 import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"sync"
-
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func RouteAndDeliverHook(c chan Event, wg *sync.WaitGroup) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
+func RouteAndDeliverHook(c chan Event) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
 	return func(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 		id := event.Upload.ID
 		//put a message on a queue system
@@ -39,7 +37,6 @@ func RouteAndDeliverHook(c chan Event, wg *sync.WaitGroup) func(handler.HookEven
 		for _, target := range targets {
 			// fan out command
 			// send an event for each thing to be copied
-			wg.Add(1)
 			c <- Event{
 				ID:       id,
 				Manifest: meta,

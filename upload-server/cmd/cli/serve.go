@@ -2,14 +2,11 @@ package cli
 
 import (
 	"context"
-	"net/http"
-	"strings"
-	"sync"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
@@ -17,9 +14,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
+	"net/http"
+	"strings"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, *sync.WaitGroup, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan chan postprocessing.Event) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -36,14 +35,14 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, *s
 	store, storeHealthCheck, err := GetDataStore(appConfig)
 	if err != nil {
 		logger.Error("error starting app, error configuring storage", "error", err)
-		return nil, nil, err
+		return nil, err
 	} // .if
 	health.Register(storeHealthCheck)
 
 	uploadInfoHandler, err := GetUploadInfoHandler(&appConfig)
 	if err != nil {
 		logger.Error("error configuring upload info handler: ", "error", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	// initialize locker
@@ -68,18 +67,17 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, *s
 	err = InitReporters(appConfig)
 
 	// get and initialize tusd hook handlers
-	postProcessingChannel, postProcessWaitGroup := StartProcessorWorkers(ctx)
-	hookHandler, err := GetHookHandler(context.TODO(), appConfig, postProcessingChannel, postProcessWaitGroup)
+	hookHandler, err := GetHookHandler(ctx, appConfig, processingChan)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	// initialize tusd handler
 	handlerTusd, err := handlertusd.New(store, locker, hookHandler, appConfig.TusdHandlerBasePath)
 	if err != nil {
 		logger.Error("error starting tusd handler: ", "error", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	// --------------------------------------------------------------
@@ -105,5 +103,5 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, *s
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
 
-	return http.DefaultServeMux, postProcessWaitGroup, nil
+	return http.DefaultServeMux, nil
 }

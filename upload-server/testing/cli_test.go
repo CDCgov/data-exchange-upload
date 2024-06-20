@@ -7,11 +7,13 @@ import (
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"io"
 	"log"
 	"net/http/httptest"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -324,7 +326,16 @@ func TestMain(m *testing.M) {
 		TusdHandlerBasePath:   "/files/",
 	}
 
-	handler, _, err := cli.Serve(context.Background(), appConfig)
+	testContext := context.Background()
+	var testWaitGroup sync.WaitGroup
+	postProcessingChannel := make(chan postprocessing.Event)
+	defer close(postProcessingChannel)
+	testWaitGroup.Add(1)
+	go func() {
+		cli.StartProcessorWorkers(testContext, postProcessingChannel)
+		testWaitGroup.Done()
+	}()
+	handler, err := cli.Serve(testContext, appConfig, postProcessingChannel)
 	if err != nil {
 		log.Fatal(err)
 	}

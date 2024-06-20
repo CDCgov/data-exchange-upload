@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -75,12 +78,22 @@ func init() {
 }
 
 func main() {
-	ctx := context.Background()
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	var mainWaitGroup sync.WaitGroup
 
 	logger.Info("starting app")
 
+	// workers
+	postProcessingChannel := make(chan postprocessing.Event)
+	defer close(postProcessingChannel)
+	mainWaitGroup.Add(1)
+	go func() {
+		cli.StartProcessorWorkers(ctx, postProcessingChannel)
+		mainWaitGroup.Done()
+	}()
+
 	// start serving the app
-	_, postProcessWaitGroup, err := cli.Serve(ctx, appConfig)
+	_, err := cli.Serve(ctx, appConfig, postProcessingChannel)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
@@ -103,12 +116,14 @@ func main() {
 	// ------------------------------------------------------------------
 	httpServer := serverDex.HttpServer()
 
+	mainWaitGroup.Add(1)
 	go func() {
 		err := httpServer.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("error starting app, error starting http server", "error", err, "port", appConfig.ServerPort)
 			os.Exit(appMainExitCode)
 		} // .if
+		mainWaitGroup.Done()
 	}() // .go
 
 	logger.Info("started http server with tusd and dex handlers", "port", appConfig.ServerPort)
@@ -119,16 +134,15 @@ func main() {
 	sigint := make(chan os.Signal, 1)
 	signal.Notify(sigint, os.Interrupt)
 	<-sigint
-
-	// ------------------------------------------------------------------
-	// 	Wait for workers
-	// ------------------------------------------------------------------
-	postProcessWaitGroup.Wait()
-
+	cancelFunc()
 	// ------------------------------------------------------------------
 	// close other connections, if needed
 	// ------------------------------------------------------------------
-	httpServer.Shutdown(ctx)
+	httpShutdownCtx, httpShutdownCancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
+	defer httpShutdownCancelFunc()
+	httpServer.Shutdown(httpShutdownCtx)
+
+	mainWaitGroup.Wait()
 
 	logger.Info("closing server by os signal", "port", appConfig.ServerPort)
 } // .main

@@ -2,7 +2,6 @@ package postprocessing
 
 import (
 	"context"
-	"sync"
 )
 
 type PostProcessor struct {
@@ -16,19 +15,18 @@ type Event struct {
 	Target   string
 }
 
-func Worker(ctx context.Context, c chan Event, wg *sync.WaitGroup) {
-	select {
-	case <-ctx.Done():
-		close(c)
-		return
-	default:
-		for e := range c {
+func Worker(ctx context.Context, c chan Event) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case e := <-c:
 			if err := Deliver(ctx, e.ID, e.Manifest, e.Target); err != nil {
-				go func(e Event) {
-					c <- e
-				}(e)
+				// TODO Retry
+				//go func(e Event) {
+				//	c <- e
+				//}(e)
 			}
-			wg.Done()
 		}
 	}
 }
