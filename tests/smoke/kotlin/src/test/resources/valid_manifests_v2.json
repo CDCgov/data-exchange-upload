@@ -127,6 +127,7 @@
     "meta_ext_file_timestamp": "test-file-timestamp"
   },
   {
+    "version": "2.0",
     "data_stream_id": "ehdi",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
