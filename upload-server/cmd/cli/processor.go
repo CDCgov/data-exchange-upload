@@ -15,6 +15,5 @@ func StartProcessorWorkers(ctx context.Context) (chan postprocessing.Event, *syn
 	for i := 0; i < numWorkers; i++ {
 		go postprocessing.Worker(ctx, c, &wg)
 	}
-	//TODO could do something like return sa waitgroup for elegant shutdown
 	return c, &wg
 }
