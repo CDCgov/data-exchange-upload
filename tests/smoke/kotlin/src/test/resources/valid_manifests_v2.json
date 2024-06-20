@@ -127,6 +127,7 @@
     "meta_ext_file_timestamp": "test-file-timestamp"
   },
   {
+    "version": "2.0",
     "data_stream_id": "ehdi",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -138,5 +139,84 @@
     "meta_ext_uploadid": "test-upload-id",
     "meta_ext_source": "test-src",
     "meta_ext_filestatus": "test-file-status"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "ndlp",
+    "data_stream_route": "aplhistoricaldata",
+    "received_filename": "dex-smoke-test",
+    "sender_id": "johns-hopkins-apl",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "test-jurisdiction"
+    },
+  {
+    "version": "2.0",
+    "data_stream_id": "ndlp",
+    "data_stream_route": "covidallmonthlyvaccination",
+    "received_filename": "dex-smoke-test",
+    "sender_id": "IZGW",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "AKA",
+    "meta_ext_sourceversion": "V2023-09-01",
+    "meta_username": "test-automation",
+    "meta_ext_objectkey": "smoke test object key",
+    "meta_ext_submissionperiod": "smoke test submission period"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "ndlp",
+    "data_stream_route": "covidbridgevaccination",
+    "received_filename": "dex-smoke-test",
+    "sender_id": "IZGW",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "AKA",
+    "meta_ext_sourceversion": "V2023-09-01",
+    "meta_username": "test-automation",
+    "meta_ext_objectkey": "smoke test object key",
+    "meta_ext_submissionperiod": "smoke test submission period"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "ndlp",
+    "data_stream_route": "influenzavaccination",
+    "received_filename": "dex-smoke-test",
+    "sender_id": "IZGW",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "AKA",
+    "meta_ext_sourceversion": "V2023-09-01",
+    "meta_username": "test-automation",
+    "meta_ext_objectkey": "smoke test object key",
+    "meta_ext_submissionperiod": "smoke test submission period"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "ndlp",
+    "data_stream_route": "routineimmunization",
+    "received_filename": "dex-smoke-test",
+    "sender_id": "IZGW",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "AKA",
+    "meta_ext_sourceversion": "V2023-09-01",
+    "meta_username": "test-automation",
+    "meta_ext_objectkey": "smoke test object key",
+    "meta_ext_file_timestamp": "test file last modified",
+    "meta_ext_filestatus": "test file status",
+    "meta_ext_uploadid": "test file uploadid",
+    "meta_program": "test program",
+    "meta_organization": "test organization",
+    "meta_ext_submissionperiod": "smoke test submission period"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "ndlp",
+    "data_stream_route": "rsvprevention",
+    "received_filename": "dex-smoke-test",
+    "sender_id": "IZGW",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "AKA",
+    "meta_ext_sourceversion": "V2023-09-01",
+    "meta_username": "test-automation",
+    "meta_ext_objectkey": "smoke test object key",
+    "meta_ext_submissionperiod": "smoke test submission period"
   }
 ]
