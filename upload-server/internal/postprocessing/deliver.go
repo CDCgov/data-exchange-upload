@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,7 +22,6 @@ import (
 )
 
 var targets = map[string]Deliverer{}
-var logger *slog.Logger
 
 func init() {
 	type Empty struct{}
