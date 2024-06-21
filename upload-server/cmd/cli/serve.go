@@ -2,13 +2,11 @@ package cli
 
 import (
 	"context"
-	"net/http"
-	"strings"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
@@ -16,9 +14,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
+	"net/http"
+	"strings"
 )
 
-func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan chan postprocessing.Event) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -67,7 +67,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	err = InitReporters(appConfig)
 
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(context.TODO(), appConfig)
+	hookHandler, err := GetHookHandler(ctx, appConfig, processingChan)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
