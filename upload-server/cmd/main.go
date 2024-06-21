@@ -3,15 +3,17 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"runtime/debug"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -132,7 +134,7 @@ func main() {
 	// 	Block for Exit, server above is on goroutine
 	// ------------------------------------------------------------------
 	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt)
+	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 	<-sigint
 	cancelFunc()
 	// ------------------------------------------------------------------
