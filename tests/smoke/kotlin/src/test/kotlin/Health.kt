@@ -22,7 +22,11 @@ class Health {
 
         Assert.assertNotNull(healthCheck)
         Assert.assertEquals(healthCheck.status, "UP")
-        Assert.assertEquals(healthCheck.services.size, expectedDependentServices.size, "Unexpected number of dependent services: ${healthCheck.services}")
+
+        Assert.assertEquals(
+            healthCheck.services.size,
+            expectedDependentServices.size, "Unexpected number of dependent services: ${healthCheck.services}"
+        )
 
         healthCheck.services.forEach {
             Assert.assertTrue(expectedDependentServices.contains(it.service))
