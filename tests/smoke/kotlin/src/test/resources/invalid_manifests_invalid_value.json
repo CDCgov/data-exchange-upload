@@ -287,5 +287,32 @@
     "patient_sex": "M",
     "instrument": "test instrument",
     "variant_caller": "test variant caller"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "abcs",
+    "data_stream_route": "csv",
+    "received_filename": "dex-smoke-test",
+    "jurisdiction": "CA",
+    "data_producer_id": "CA-ABCs",
+    "sender_id": "ca-abcs"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "abcs",
+    "data_stream_route": "csv",
+    "received_filename": "dex-smoke-test",
+    "jurisdiction": "blah",
+    "data_producer_id": "ca-abcs",
+    "sender_id": "CA-ABCs"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "abcs",
+    "data_stream_route": "csv",
+    "received_filename": "dex-smoke-test",
+    "jurisdiction": "CA",
+    "data_producer_id": "CA-ABCs",
+    "sender_id": "@1234"
   }
 ]
