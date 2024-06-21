@@ -11,10 +11,12 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -22,7 +24,8 @@ import (
 )
 
 var (
-	ts *httptest.Server
+	ts          *httptest.Server
+	testContext context.Context
 )
 
 func TestTus(t *testing.T) {
@@ -35,8 +38,12 @@ func TestTus(t *testing.T) {
 		if err != nil {
 			t.Error(name, err)
 		} else {
-
 			if tuid != "" {
+				config, err := metadata.GetConfigFromManifest(testContext, handler.MetaData(c.metadata))
+				if err != nil {
+					t.Fatal(err)
+				}
+
 				f, err := os.Open("test/reports/" + tuid)
 				if err != nil {
 					t.Error(name, tuid, err)
@@ -151,6 +158,20 @@ func TestTus(t *testing.T) {
 				if _, err := os.Stat("./test/uploads/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
 					t.Error("meta file was not copied to dex checkpoint for file", tuid)
 				}
+
+				if slices.Contains(config.Copy.Targets, "edav") {
+					// Check that the file exists in the target checkpoint folders.
+					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
+						t.Error("file was not copied to edav checkpoint for file", tuid)
+					}
+				}
+
+				if slices.Contains(config.Copy.Targets, "routing") {
+					if _, err := os.Stat("./test/routing/" + tuid); errors.Is(err, os.ErrNotExist) {
+						t.Error("file was not copied to routing checkpoint for file", tuid)
+					}
+				}
+
 				// Also check that the metadata in the .meta file is hydrated with v2 manifest fields.
 				metaFile, err := os.Open("./test/uploads/" + tuid + ".meta")
 				if err != nil {
@@ -325,21 +346,25 @@ func TestMain(m *testing.M) {
 		TusdHandlerBasePath:   "/files/",
 	}
 
-	testContext := context.Background()
+	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
 	postProcessingChannel := make(chan postprocessing.Event)
-	defer close(postProcessingChannel)
 	testWaitGroup.Add(1)
 	go func() {
 		cli.StartProcessorWorkers(testContext, postProcessingChannel)
 		testWaitGroup.Done()
 	}()
-	handler, err := cli.Serve(testContext, appConfig, postProcessingChannel)
+
+	serveHandler, err := cli.Serve(testContext, appConfig, postProcessingChannel)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ts = httptest.NewServer(handler)
-	defer ts.Close()
-	os.Exit(m.Run())
+
+	ts = httptest.NewServer(serveHandler)
+	testRes := m.Run()
+
+	ts.Close()
+	close(postProcessingChannel)
+	os.Exit(testRes)
 }
