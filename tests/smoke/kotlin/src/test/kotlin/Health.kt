@@ -17,7 +17,7 @@ class Health {
 
     @Test(groups = [Constants.Groups.HEALTH_CHECK])
     fun shouldGetHealthCheck() {
-        val expectedDependentServices = arrayOf("Azure Service Bus", "Tus storage", "Redis Locker")
+        val expectedDependentServices = arrayOf("Azure Service Bus", "Tus storage", "Redis Locker", "Azure deliver target dex", "Azure deliver target edav", "Azure deliver target routing")
         val healthCheck = dexUploadClient.getHealth(authToken)
 
         Assert.assertNotNull(healthCheck)
