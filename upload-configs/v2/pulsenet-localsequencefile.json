@@ -5,7 +5,7 @@
          {
             "field_name": "sender_id",
             "required": true,
-            "allowed_values": null,
+            "allowed_values": "PulseNet-App",
             "description": "This field is the identifier for the sender of the data."
          },
          {
@@ -23,18 +23,21 @@
          {
             "field_name": "received_filename",
             "required": true,
+            "allowed_values": null,
             "description": "This field is the name of the file when uploaded.",
             "compat_field_name": "filename"
          },
          {
             "field_name": "data_stream_id",
             "required": true,
+            "allowed_values": "pulsenet",
             "description": "This field is the identifier for the data stream.",
             "compat_field_name": "meta_destination_id"
          },
          {
             "field_name": "data_stream_route",
             "required": true,
+            "allowed_values": "localsequencefile",
             "description": "This recieved is the route of the data stream.",
             "compat_field_name": "meta_ext_event"
          }
