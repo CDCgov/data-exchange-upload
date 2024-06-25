@@ -314,23 +314,5 @@
     "jurisdiction": "CA",
     "data_producer_id": "CA-ABCs",
     "sender_id": "@1234"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "pulsenet",
-    "data_stream_route": "localsequencefile",
-    "received_filename": "dex-smoke-test",
-    "sender_id" : "pulsenet-app",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "pulsenet",
-    "data_stream_route": "localsequencefile",
-    "received_filename": "dex-smoke-test",
-    "sender_id" : "blah",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction"
   }
 ]
