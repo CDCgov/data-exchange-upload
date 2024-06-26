@@ -164,5 +164,13 @@
     "received_filename": "dex-smoke-test",
     "jurisdiction": "CA",
     "data_producer_id": "CA-ABCs"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "pulsenet",
+    "data_stream_route": "localsequencefile",
+    "received_filename": "dex-smoke-test",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "test-jurisdiction"
   }
 ]
