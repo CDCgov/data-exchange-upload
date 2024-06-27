@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	neturl "net/url"
@@ -30,7 +31,28 @@ var (
 	password    string
 	samsURL     string
 	verbose     bool
+
+	manifest = JSONVar{
+		"meta_destination_id": "dextesting",
+		"meta_ext_event":      "testevent1",
+		"filename":            "test",
+	}
 )
+
+type JSONVar map[string]string
+
+func (f *JSONVar) String() string {
+	s, err := json.Marshal(f)
+	if err != nil {
+		log.Println("failed to create a string value", err)
+	}
+	return string(s)
+}
+
+func (f *JSONVar) Set(s string) error {
+	*f = make(JSONVar) // reset f
+	return json.Unmarshal([]byte(s), f)
+}
 
 func init() {
 	flag.IntVar(&size, "size", 250*10000, "the size of the file to upload, in bytes")
@@ -42,6 +64,7 @@ func init() {
 	flag.StringVar(&username, "username", "", "username for sams")
 	flag.StringVar(&password, "password", "", "password for sams")
 	flag.BoolVar(&verbose, "v", false, "turn on debug logs")
+	flag.Var(&manifest, "manifest", "The manifest to use for the load test.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	programLevel := new(slog.LevelVar) // Info by default
@@ -91,7 +114,7 @@ func main() {
 
 	conf := resultOrFatal(buildConfig())
 
-	c := make(chan struct{}, parallelism)
+	c := make(chan testCase, parallelism)
 	slog.Info("Starting threads", "parallelism", parallelism)
 	for i := 0; i < parallelism; i++ {
 		go worker(c, conf)
@@ -102,7 +125,14 @@ func main() {
 		slog.Info("Running load test", "uploads", load)
 		for i := 0; i < load; i++ {
 			wg.Add(1)
-			c <- struct{}{}
+			c <- testCase{
+				chunk: int64(chunk),
+				file: &BadFile{
+					FileSize:       size,
+					DummyGenerator: &RandomBytesReader{},
+					Manifest:       manifest,
+				},
+			}
 		}
 	} else {
 		slog.Info("Running benchmark")
@@ -113,40 +143,55 @@ func main() {
 	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
 }
 
+type uploadable interface {
+	io.ReadSeekCloser
+	Size() int64
+	Metadata() map[string]string
+	Fingerprint() string
+}
+
+type testCase struct {
+	chunk int64
+	file  uploadable
+}
+
 type config struct {
 	url         string
 	tokenSource *SAMSTokenSource
 }
 
-func worker(c <-chan struct{}, conf *config) {
-	for range c {
-		f := &BadHL7{
-			Size:           size,
-			DummyGenerator: &RandomBytesReader{},
-		}
-		if err := runTest(f, conf); err != nil {
+func worker(c <-chan testCase, conf *config) {
+	for e := range c {
+		if err := runTest(e, conf); err != nil {
 			slog.Error("ERROR: ", "error", err)
 		}
 		wg.Done()
 	}
 }
 
-func asPallelBenchmark(c chan struct{}) func(*testing.B) {
+func asPallelBenchmark(c chan testCase) func(*testing.B) {
 	return func(b *testing.B) {
 		slog.Info("benchmarking", "runs", b.N)
 		for i := 0; i < b.N; i++ {
 			wg.Add(1)
-			c <- struct{}{}
+			c <- testCase{
+				chunk: int64(chunk),
+				file: &BadFile{
+					FileSize:       size,
+					DummyGenerator: &RandomBytesReader{},
+					Manifest:       manifest,
+				},
+			}
 		}
 	}
 }
 
-func runTest(f *BadHL7, conf *config) error {
-	//not great
-	defer f.Close()
+func runTest(t testCase, conf *config) error {
+
+	f := t.file
 	// create the tus client.
 	tusConf := tus.DefaultConfig()
-	tusConf.ChunkSize = int64(chunk)
+	tusConf.ChunkSize = t.chunk
 	if conf.tokenSource != nil {
 		tusConf.HttpClient = oauth2.NewClient(context.TODO(), conf.tokenSource)
 	}
@@ -156,7 +201,7 @@ func runTest(f *BadHL7, conf *config) error {
 	}
 
 	// create an upload from a file.
-	upload := tus.NewUpload(f, int64(f.Size), f.Metadata(), f.Fingerprint())
+	upload := tus.NewUpload(f, f.Size(), f.Metadata(), f.Fingerprint())
 
 	// create the uploader.
 	uploader, err := client.CreateUpload(upload)
@@ -186,25 +231,26 @@ func (rb *RandomBytesReader) Read(b []byte) (int, error) {
 	return rand.Read(b)
 }
 
-type BadHL7 struct {
-	Size           int
+type BadFile struct {
+	FileSize       int
 	offset         int
+	Manifest       map[string]string
 	DummyGenerator Generator
 }
 
-func (b *BadHL7) Metadata() map[string]string {
-	return map[string]string{
-		"meta_destination_id": "dextesting",
-		"meta_ext_event":      "testevent1",
-		"filename":            "test",
-	}
+func (b *BadFile) Size() int64 {
+	return int64(b.FileSize)
 }
 
-func (b *BadHL7) Fingerprint() string {
+func (b *BadFile) Metadata() map[string]string {
+	return b.Manifest
+}
+
+func (b *BadFile) Fingerprint() string {
 	return ""
 }
 
-func (b *BadHL7) Read(p []byte) (int, error) {
+func (b *BadFile) Read(p []byte) (int, error) {
 
 	// needs to limit size read to size eventually
 	i, err := b.DummyGenerator.Read(p)
@@ -212,18 +258,18 @@ func (b *BadHL7) Read(p []byte) (int, error) {
 		return i, err
 	}
 
-	if b.offset+i > b.Size {
-		return b.Size - b.offset, nil
+	if b.offset+i > b.FileSize {
+		return b.FileSize - b.offset, nil
 	}
 	b.offset += i
 	return i, nil
 }
 
-func (b *BadHL7) Seek(offset int64, whence int) (int64, error) {
+func (b *BadFile) Seek(offset int64, whence int) (int64, error) {
 	return offset, nil
 }
 
-func (b *BadHL7) Close() error {
+func (b *BadFile) Close() error {
 	return nil
 }
 
