@@ -133,7 +133,7 @@ func (t *TestCases) String() string {
 }
 
 func init() {
-	flag.Float64Var(&size, "size", 250*10000, "the size of the file to upload, in bytes")
+	flag.Float64Var(&size, "size", 5, "the size of the file to upload, in MB")
 	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", 0, "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
@@ -147,6 +147,7 @@ func init() {
 	flag.Var(&cases, "case-dir", "A directory of test cases.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
+	size = size * 1024 * 1024
 	programLevel := new(slog.LevelVar) // Info by default
 	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
 	slog.SetDefault(slog.New(h))
@@ -290,17 +291,16 @@ func runTest(t TestCase, conf *config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create upload: %w, %+v", err, t)
 	}
-
-	for uploader.Offset() < upload.Size() && !uploader.IsAborted() {
-		err := uploader.UploadChunck()
-
-		if err != nil {
-			return err
+	slog.Info("UploadID", "upload_id", uploader.Url())
+	c := make(chan tus.Upload)
+	uploader.NotifyUploadProgress(c)
+	go func(c chan tus.Upload, url string) {
+		for u := range c {
+			slog.Debug("Upload Progress", "url", url, "progress", u.Progress())
 		}
-		slog.Debug("uploaded", "offset", uploader.Offset(), "size", upload.Size())
-	}
+	}(c, uploader.Url())
 
-	return nil
+	return uploader.Upload()
 }
 
 type Generator interface {
