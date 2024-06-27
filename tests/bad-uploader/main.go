@@ -7,11 +7,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"log/slog"
 	"net/http"
 	neturl "net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"testing"
@@ -98,6 +100,38 @@ func (t *TestCase) Set(s string) error {
 	return nil
 }
 
+type TestCases struct {
+	cases []TestCase
+	i     int
+}
+
+func (t *TestCases) Next() TestCase {
+	c := t.cases[t.i]
+	t.i = (t.i + 1) % len(t.cases)
+	return c
+}
+
+func (t *TestCases) Set(s string) error {
+	t.cases = []TestCase{}
+	return filepath.WalkDir(s, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			c := TestCase{}
+			if err := (&c).Set(path); err != nil {
+				return err
+			}
+			t.cases = append(t.cases, c)
+		}
+		return nil
+	})
+}
+
+func (t *TestCases) String() string {
+	return ""
+}
+
 func init() {
 	flag.Float64Var(&size, "size", 250*10000, "the size of the file to upload, in bytes")
 	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
@@ -110,6 +144,7 @@ func init() {
 	flag.BoolVar(&verbose, "v", false, "turn on debug logs")
 	flag.Var(&manifest, "manifest", "The manifest to use for the load test.")
 	flag.Var(&testcase, "case-file", "A json file describing the test case to use.")
+	flag.Var(&cases, "case-dir", "A directory of test cases.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	programLevel := new(slog.LevelVar) // Info by default
@@ -128,7 +163,10 @@ func init() {
 			Manifest: manifest,
 		}
 	}
-	cases = TestCases{cases: []TestCase{testcase}}
+	if !flagset["case-dir"] {
+		cases = TestCases{cases: []TestCase{testcase}}
+	}
+	slog.Debug("testing with cases", "cases", cases)
 }
 
 func buildConfig() (*config, error) {
@@ -157,16 +195,6 @@ func resultOrFatal[T any](v T, err error) T {
 }
 
 var wg sync.WaitGroup
-
-type TestCases struct {
-	cases []TestCase
-	i     int
-}
-
-func (t TestCases) Next() TestCase {
-	defer func() { t.i = (t.i + 1) % len(t.cases) }()
-	return t.cases[t.i]
-}
 
 /*
 so we need to be able to create an arbirary number of test uploads
