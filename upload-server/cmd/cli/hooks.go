@@ -117,9 +117,10 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan po
 	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
 	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
 	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
+	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
-	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, manifestValidator.Hydrate, metadataAppender.Append, postprocessing.RouteAndDeliverHook(c))
+	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook(c))
 
 	return handler, nil
 }
