@@ -351,8 +351,9 @@ func TestMain(m *testing.M) {
 	defer testWaitGroup.Wait()
 	postProcessingChannel := make(chan event.FileReadyEvent)
 	testWaitGroup.Add(1)
+	testListener := cli.MakeEventListener(appConfig, postProcessingChannel)
 	go func() {
-		cli.StartProcessorWorkers(testContext, postProcessingChannel)
+		cli.StartEventListener(testContext, testListener)
 		testWaitGroup.Done()
 	}()
 
