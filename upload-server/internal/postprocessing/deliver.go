@@ -129,7 +129,7 @@ type AzureDeliverer struct {
 	Target              string
 }
 
-func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, manifest map[string]string) error {
+func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, _ map[string]string) error {
 	f, err := fd.FromPath.Open(tuid)
 	if err != nil {
 		return err

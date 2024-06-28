@@ -1,12 +1,13 @@
 package postprocessing
 
 import (
+	evt "github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func RouteAndDeliverHook(c chan Event) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
+func RouteAndDeliverHook(p evt.Publisher) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
 	return func(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 		id := event.Upload.ID
 		//put a message on a queue system
@@ -37,11 +38,18 @@ func RouteAndDeliverHook(c chan Event) func(handler.HookEvent, hooks.HookRespons
 		for _, target := range targets {
 			// fan out command
 			// send an event for each thing to be copied
-			c <- Event{
-				ID:       id,
-				Manifest: meta,
-				Target:   target,
-			}
+			//c <- Event{
+			//	ID:       id,
+			//	Manifest: meta,
+			//	Target:   target,
+			//}
+			p.Publish(evt.FileReadyEvent{
+				Event: evt.Event{
+					ID: id,
+				},
+				Manifest:      meta,
+				DeliverTarget: target,
+			})
 		}
 		return resp, nil
 	}

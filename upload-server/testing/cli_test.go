@@ -7,10 +7,10 @@ import (
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log"
@@ -349,7 +349,7 @@ func TestMain(m *testing.M) {
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
-	postProcessingChannel := make(chan postprocessing.Event)
+	postProcessingChannel := make(chan event.FileReadyEvent)
 	testWaitGroup.Add(1)
 	go func() {
 		cli.StartProcessorWorkers(testContext, postProcessingChannel)

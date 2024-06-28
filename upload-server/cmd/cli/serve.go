@@ -3,10 +3,10 @@ package cli
 import (
 	"context"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
@@ -18,7 +18,7 @@ import (
 	"strings"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan chan postprocessing.Event) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyChan chan event.FileReadyEvent) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -66,8 +66,11 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan ch
 	// initialize event reporter
 	err = InitReporters(appConfig)
 
+	fileReadyPublisher := event.MemoryPublisher{
+		FileReadyChannel: fileReadyChan,
+	}
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(ctx, appConfig, processingChan)
+	hookHandler, err := GetHookHandler(ctx, appConfig, &fileReadyPublisher)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err

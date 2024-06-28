@@ -2,6 +2,7 @@ package postprocessing
 
 import (
 	"context"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"log/slog"
 	"reflect"
@@ -28,13 +29,13 @@ type Event struct {
 	Target   string
 }
 
-func Worker(ctx context.Context, c chan Event) {
+func Worker(ctx context.Context, c chan event.FileReadyEvent) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case e := <-c:
-			if err := Deliver(ctx, e.ID, e.Manifest, e.Target); err != nil {
+			if err := Deliver(ctx, e.ID, e.Manifest, e.DeliverTarget); err != nil {
 				// TODO Retry
 				logger.Error("error delivering file to target", "event", e, "error", err.Error())
 			}
