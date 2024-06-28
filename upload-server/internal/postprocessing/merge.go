@@ -43,13 +43,16 @@ func RouteAndDeliverHook(p evt.Publisher) func(handler.HookEvent, hooks.HookResp
 			//	Manifest: meta,
 			//	Target:   target,
 			//}
-			p.Publish(event.Context, evt.FileReadyEvent{
+			err := p.Publish(event.Context, evt.FileReadyEvent{
 				Event: evt.Event{
 					ID: id,
 				},
 				Manifest:      meta,
 				DeliverTarget: target,
 			})
+			if err != nil {
+				return resp, err
+			}
 		}
 		return resp, nil
 	}

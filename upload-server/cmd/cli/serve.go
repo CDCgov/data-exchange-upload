@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
@@ -66,11 +68,25 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyChan cha
 	// initialize event reporter
 	err = InitReporters(appConfig)
 
-	fileReadyPublisher := event.MemoryPublisher{
+	var fileReadyPublisher event.Publisher
+	fileReadyPublisher = &event.MemoryPublisher{
 		FileReadyChannel: fileReadyChan,
 	}
+
+	if appConfig.QueueConnection != nil {
+		cred := azcore.NewKeyCredential(appConfig.QueueConnection.AccessKey)
+		client, err := aznamespaces.NewSenderClientWithSharedKeyCredential(appConfig.QueueConnection.Endpoint, appConfig.QueueConnection.Topic, cred, nil)
+		if err != nil {
+			logger.Error("failed to connect to azure event grid")
+		}
+
+		fileReadyPublisher = &event.AzurePublisher{
+			Client: client,
+		}
+	}
+
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(ctx, appConfig, &fileReadyPublisher)
+	hookHandler, err := GetHookHandler(ctx, appConfig, fileReadyPublisher)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err

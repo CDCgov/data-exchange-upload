@@ -2,6 +2,8 @@ package cli
 
 import (
 	"context"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
@@ -9,16 +11,29 @@ import (
 )
 
 func MakeEventListener(appConfig appconfig.AppConfig, c chan event.FileReadyEvent) postprocessing.EventProcessable {
-	return &postprocessing.MemoryEventListener{
+	var listener postprocessing.EventProcessable
+	listener = &postprocessing.MemoryEventListener{
 		C: c,
 	}
+
+	if appConfig.QueueConnection != nil {
+		cred := azcore.NewKeyCredential(appConfig.QueueConnection.AccessKey)
+		client, err := aznamespaces.NewReceiverClientWithSharedKeyCredential(appConfig.QueueConnection.Endpoint, appConfig.QueueConnection.Topic, appConfig.QueueConnection.Subscription, cred, nil)
+		if err != nil {
+			logger.Error("failed to configure azure receiver", "error", err)
+		}
+		listener = &postprocessing.AzureEventListener{
+			Client: *client,
+		}
+	}
+
+	return listener
 }
 
-// Maybe separate creating of workers from starting of them.  Then can just pass in workers here.
 func StartEventListener(ctx context.Context, listener postprocessing.EventProcessable) {
 	for {
 		var wg sync.WaitGroup
-		events := listener.GetEventBatch(5)
+		events := listener.GetEventBatch(ctx, 5)
 		select {
 		case <-ctx.Done():
 			return

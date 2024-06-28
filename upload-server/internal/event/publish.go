@@ -3,8 +3,21 @@ package event
 import (
 	"context"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/messaging"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventgrid"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
+	"log/slog"
+	"reflect"
+	"strings"
 )
+
+var logger *slog.Logger
+
+func init() {
+	type Empty struct{}
+	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
+	// add package name to app logger
+	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
+}
 
 type Event struct {
 	ID string
@@ -17,7 +30,7 @@ type FileReadyEvent struct {
 }
 
 type Publisher interface {
-	Publish(ctx context.Context, event FileReadyEvent)
+	Publish(ctx context.Context, event FileReadyEvent) error
 }
 
 type MemoryPublisher struct {
@@ -25,26 +38,23 @@ type MemoryPublisher struct {
 }
 
 type AzurePublisher struct {
-	Client azeventgrid.Client
+	Client *aznamespaces.SenderClient
 }
 
-func (mp *MemoryPublisher) Publish(_ context.Context, event FileReadyEvent) {
+func (mp *MemoryPublisher) Publish(_ context.Context, event FileReadyEvent) error {
 	mp.FileReadyChannel <- event
+	return nil
 }
 
 // TODO batch events
 func (ap *AzurePublisher) Publish(ctx context.Context, event FileReadyEvent) error {
-	var eventsToSend []messaging.CloudEvent
-
-	evt, err := messaging.NewCloudEvent("Upload API", "File Ready", event, nil)
+	logger.Info("publishing file ready event")
+	evt, err := messaging.NewCloudEvent("upload", "fileReady", event, nil)
 	if err != nil {
 		return err
 	}
 
-	eventsToSend = append(eventsToSend, evt)
-
-	// TODO env var for topic name
-	_, err = ap.Client.PublishCloudEvents(ctx, "upload-file-ready", eventsToSend, nil)
+	_, err = ap.Client.SendEvent(ctx, &evt, nil)
 
 	return err
 }
