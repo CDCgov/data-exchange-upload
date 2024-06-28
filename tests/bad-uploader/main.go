@@ -7,10 +7,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
+	"log"
 	"log/slog"
 	"net/http"
 	neturl "net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"testing"
@@ -22,7 +25,7 @@ import (
 
 var (
 	url         string
-	size        int
+	size        float64
 	parallelism int
 	load        int
 	chunk       float64
@@ -30,10 +33,107 @@ var (
 	password    string
 	samsURL     string
 	verbose     bool
+
+	manifest = JSONVar{
+		"meta_destination_id": "dextesting",
+		"meta_ext_event":      "testevent1",
+		"filename":            "test",
+	}
+
+	testcase TestCase
+	cases    TestCases
 )
 
+type JSONVar map[string]string
+
+func (f *JSONVar) String() string {
+	s, err := json.Marshal(f)
+	if err != nil {
+		log.Println("failed to create a string value", err)
+	}
+	return string(s)
+}
+
+func (f *JSONVar) Set(s string) error {
+	*f = make(JSONVar) // reset f
+	return json.Unmarshal([]byte(s), f)
+}
+
+type TestCase struct {
+	Chunk    float64
+	Size     float64
+	Manifest map[string]string
+}
+
+func (t *TestCase) String() string {
+	s, err := json.Marshal(t)
+	if err != nil {
+		log.Println("failed to create a string value", err)
+	}
+	return string(s)
+}
+
+func (t *TestCase) Set(s string) error {
+	f, err := os.Open(s)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(b, t); err != nil {
+		return err
+	}
+
+	t.Chunk = t.Chunk * 1024 * 1024
+	t.Size = t.Size * 1024 * 1024
+
+	if t.Chunk < 1 {
+		return fmt.Errorf("chunk size must be > 1 byte")
+	}
+
+	if t.Size < 1 {
+		return fmt.Errorf("size of file must be > 1 byte")
+	}
+	return nil
+}
+
+type TestCases struct {
+	cases []TestCase
+	i     int
+}
+
+func (t *TestCases) Next() TestCase {
+	c := t.cases[t.i]
+	t.i = (t.i + 1) % len(t.cases)
+	return c
+}
+
+func (t *TestCases) Set(s string) error {
+	t.cases = []TestCase{}
+	return filepath.WalkDir(s, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			c := TestCase{}
+			if err := (&c).Set(path); err != nil {
+				return err
+			}
+			t.cases = append(t.cases, c)
+		}
+		return nil
+	})
+}
+
+func (t *TestCases) String() string {
+	return ""
+}
+
 func init() {
-	flag.IntVar(&size, "size", 5, "the size of the file to upload, in MB")
+	flag.Float64Var(&size, "size", 5, "the size of the file to upload, in MB")
 	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", 0, "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
@@ -42,6 +142,9 @@ func init() {
 	flag.StringVar(&username, "username", "", "username for sams")
 	flag.StringVar(&password, "password", "", "password for sams")
 	flag.BoolVar(&verbose, "v", false, "turn on debug logs")
+	flag.Var(&manifest, "manifest", "The manifest to use for the load test.")
+	flag.Var(&testcase, "case-file", "A json file describing the test case to use.")
+	flag.Var(&cases, "case-dir", "A directory of test cases.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
@@ -51,6 +154,20 @@ func init() {
 	if verbose {
 		programLevel.Set(slog.LevelDebug)
 	}
+
+	flagset := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) { flagset[f.Name] = true })
+	if !flagset["case-file"] {
+		testcase = TestCase{
+			Chunk:    chunk,
+			Size:     size,
+			Manifest: manifest,
+		}
+	}
+	if !flagset["case-dir"] {
+		cases = TestCases{cases: []TestCase{testcase}}
+	}
+	slog.Debug("testing with cases", "cases", cases)
 }
 
 func buildConfig() (*config, error) {
@@ -92,7 +209,7 @@ func main() {
 
 	conf := resultOrFatal(buildConfig())
 
-	c := make(chan struct{}, parallelism)
+	c := make(chan TestCase, parallelism)
 	slog.Info("Starting threads", "parallelism", parallelism)
 	for i := 0; i < parallelism; i++ {
 		go worker(c, conf)
@@ -103,66 +220,76 @@ func main() {
 		slog.Info("Running load test", "uploads", load)
 		for i := 0; i < load; i++ {
 			wg.Add(1)
-			c <- struct{}{}
+			c <- cases.Next()
 		}
 	} else {
 		slog.Info("Running benchmark")
-		result := testing.Benchmark(asPallelBenchmark(c))
+		result := testing.Benchmark(asPallelBenchmark(c, cases.Next))
 		defer fmt.Printf("Benchmarking results: %f seconds/op\n", float64(result.NsPerOp())/float64(time.Second))
 	}
 	wg.Wait()
 	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
 }
 
+/*
+type uploadable interface {
+	io.ReadSeekCloser
+	Size() int64
+	Metadata() map[string]string
+	Fingerprint() string
+}
+*/
+
 type config struct {
 	url         string
 	tokenSource *SAMSTokenSource
 }
 
-func worker(c <-chan struct{}, conf *config) {
-	for range c {
-		f := &BadHL7{
-			Size:           size,
-			DummyGenerator: &RandomBytesReader{},
-		}
-		if err := runTest(f, conf); err != nil {
-			slog.Error("ERROR: ", "error", err)
+func worker(c <-chan TestCase, conf *config) {
+	for e := range c {
+		if err := runTest(e, conf); err != nil {
+			slog.Error("ERROR: ", "error", err, "case", e)
 		}
 		wg.Done()
 	}
 }
 
-func asPallelBenchmark(c chan struct{}) func(*testing.B) {
+func asPallelBenchmark(c chan TestCase, next func() TestCase) func(*testing.B) {
 	return func(b *testing.B) {
 		slog.Info("benchmarking", "runs", b.N)
 		for i := 0; i < b.N; i++ {
 			wg.Add(1)
-			c <- struct{}{}
+			c <- next()
 		}
 	}
 }
 
-func runTest(f *BadHL7, conf *config) error {
-	//not great
-	defer f.Close()
+func runTest(t TestCase, conf *config) error {
+
+	f := &BadFile{
+		FileSize:       int(t.Size),
+		DummyGenerator: &RandomBytesReader{},
+		Manifest:       t.Manifest,
+	}
+
 	// create the tus client.
 	tusConf := tus.DefaultConfig()
-	tusConf.ChunkSize = int64(chunk)
+	tusConf.ChunkSize = int64(t.Chunk)
 	if conf.tokenSource != nil {
 		tusConf.HttpClient = oauth2.NewClient(context.TODO(), conf.tokenSource)
 	}
 	client, err := tus.NewClient(conf.url, tusConf)
 	if err != nil {
-		return fmt.Errorf("failed to create client: %w", err)
+		return fmt.Errorf("failed to create client: %w, %+v", err, t)
 	}
 
 	// create an upload from a file.
-	upload := tus.NewUpload(f, int64(f.Size), f.Metadata(), f.Fingerprint())
+	upload := tus.NewUpload(f, f.Size(), f.Metadata(), f.Fingerprint())
 
 	// create the uploader.
 	uploader, err := client.CreateUpload(upload)
 	if err != nil {
-		return fmt.Errorf("failed to create upload: %w", err)
+		return fmt.Errorf("failed to create upload: %w, %+v", err, t)
 	}
 	slog.Info("UploadID", "upload_id", uploader.Url())
 	c := make(chan tus.Upload)
@@ -186,25 +313,26 @@ func (rb *RandomBytesReader) Read(b []byte) (int, error) {
 	return rand.Read(b)
 }
 
-type BadHL7 struct {
-	Size           int
+type BadFile struct {
+	FileSize       int
 	offset         int
+	Manifest       map[string]string
 	DummyGenerator Generator
 }
 
-func (b *BadHL7) Metadata() map[string]string {
-	return map[string]string{
-		"meta_destination_id": "dextesting",
-		"meta_ext_event":      "testevent1",
-		"filename":            "test",
-	}
+func (b *BadFile) Size() int64 {
+	return int64(b.FileSize)
 }
 
-func (b *BadHL7) Fingerprint() string {
+func (b *BadFile) Metadata() map[string]string {
+	return b.Manifest
+}
+
+func (b *BadFile) Fingerprint() string {
 	return ""
 }
 
-func (b *BadHL7) Read(p []byte) (int, error) {
+func (b *BadFile) Read(p []byte) (int, error) {
 
 	// needs to limit size read to size eventually
 	i, err := b.DummyGenerator.Read(p)
@@ -212,18 +340,18 @@ func (b *BadHL7) Read(p []byte) (int, error) {
 		return i, err
 	}
 
-	if b.offset+i > b.Size {
-		return b.Size - b.offset, nil
+	if b.offset+i > b.FileSize {
+		return b.FileSize - b.offset, nil
 	}
 	b.offset += i
 	return i, nil
 }
 
-func (b *BadHL7) Seek(offset int64, whence int) (int64, error) {
+func (b *BadFile) Seek(offset int64, whence int) (int64, error) {
 	return offset, nil
 }
 
-func (b *BadHL7) Close() error {
+func (b *BadFile) Close() error {
 	return nil
 }
 
