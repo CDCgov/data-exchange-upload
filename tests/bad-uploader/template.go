@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"text/template"
 )
@@ -13,7 +14,7 @@ type TemplateGenerator struct {
 	Repeats  int
 	Manifest map[string]string
 	r        io.Reader
-	w        io.Writer
+	w        io.WriteCloser
 }
 
 func (tg *TemplateGenerator) Size() int64 {
@@ -32,11 +33,14 @@ func (tg *TemplateGenerator) next() (err error) {
 		}
 	}
 
-	if tg.r == nil || tg.w == nil {
-		tg.r, tg.w = io.Pipe()
-	}
+	tg.r, tg.w = io.Pipe()
 
-	return tg.t.Execute(tg.w, nil)
+	go func() {
+		slog.Debug("writing template")
+		tg.t.Execute(tg.w, nil)
+		tg.w.Close()
+	}()
+	return nil
 }
 
 func (tg *TemplateGenerator) Metadata() map[string]string {
@@ -48,9 +52,20 @@ func (tg *TemplateGenerator) Fingerprint() string {
 }
 
 func (tg *TemplateGenerator) Read(p []byte) (int, error) {
+	if tg.t == nil {
+		if err := tg.next(); err != nil {
+			return 0, err
+		}
+	}
+	slog.Debug("reading template")
 	n, err := tg.r.Read(p)
+	slog.Debug("read template")
 	if err == io.EOF {
-		tg.next()
+		slog.Debug("hit eof")
+		//TODO if we should stop return the EOF?
+		if err := tg.next(); err != nil {
+			return n, err
+		}
 		// do we need to re-read here or will it just try again?
 		return n, nil
 	}

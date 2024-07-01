@@ -266,10 +266,10 @@ func asPallelBenchmark(c chan TestCase, next func() TestCase) func(*testing.B) {
 
 func runTest(t TestCase, conf *config) error {
 
-	f := &BadFile{
-		FileSize:       int(t.Size),
-		DummyGenerator: &RandomBytesReader{},
-		Manifest:       t.Manifest,
+	f := &TemplateGenerator{
+		Repeats:  12,
+		Path:     "test.hl7",
+		Manifest: t.Manifest,
 	}
 
 	// create the tus client.
