@@ -12,7 +12,6 @@ const (
 	PROCESSING_STATUS_APP = "Processing Status"
 	SERVICE_BUS           = "Azure Service Bus"
 	REDIS_LOCKER          = "Redis Locker"
-	MMS_API               = "MMS API"
 
 	META_DESTINATION_ID = "meta_destination_id"
 	META_EXT_EVENT      = "meta_ext_event"
@@ -27,4 +26,9 @@ const (
 
 	EVENT_UPLOAD_ID = "event.Upload.ID"
 	TGUID_KEY       = "tguid"
+
+	// MMS
+	MMS_API                   = "MMS API"
+	MMS_CONFIG_NOTFOUND_MSG   = "configuration not found"
+	MMS_CONFIG_RET_FAILED_MSG = "failed to retrieve configuration"
 ) // .const

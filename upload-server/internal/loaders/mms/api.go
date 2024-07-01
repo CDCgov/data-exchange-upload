@@ -5,8 +5,10 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -47,8 +49,12 @@ func (l *APIConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte, 
 	}
 
 	// Cache miss: retrieve from API
-	url := l.BaseURL + path
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	url, err := url.JoinPath(l.BaseURL, path)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -61,9 +67,9 @@ func (l *APIConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte, 
 
 	if resp.StatusCode != http.StatusOK {
 		if resp.StatusCode == http.StatusNotFound {
-			return nil, errors.New("configuration not found")
+			return nil, errors.New(models.MMS_CONFIG_NOTFOUND_MSG)
 		}
-		return nil, errors.New("failed to retrieve configuration")
+		return nil, errors.New(models.MMS_CONFIG_RET_FAILED_MSG)
 	}
 
 	configData, err := io.ReadAll(resp.Body)
