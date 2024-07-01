@@ -2,10 +2,14 @@ package cli
 
 import (
 	"context"
+	"net/http"
+	"strings"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/mmsapihealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
@@ -14,11 +18,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
-	"net/http"
-	"strings"
 )
 
 func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan chan postprocessing.Event) (http.Handler, error) {
+	var err error
+
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -48,7 +52,6 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan ch
 	// initialize locker
 	var locker handlertusd.Locker = memorylocker.New()
 	if appConfig.TusRedisLockURI != "" {
-		var err error
 		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))
 		if err != nil {
 			logger.Error("failed to configure Redis locker, defaulting to in-memory locker", "error", err)
@@ -60,6 +63,17 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan ch
 			logger.Error("failed to configure Redis locker health check, skipping check", "error", err)
 		} else {
 			health.Register(redisLockerHealth)
+		}
+	}
+
+	// initialize MMS API
+	if appConfig.MmsApiURI != "" {
+		// configure MMS API health check
+		mmsApiHealth, err := mmsapihealth.New(appConfig.MmsApiURI)
+		if err != nil {
+			logger.Error("failed to configure MMS API health check, skipping check", "error", err)
+		} else {
+			health.Register(mmsApiHealth)
 		}
 	}
 
