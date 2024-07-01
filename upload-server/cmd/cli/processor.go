@@ -33,17 +33,32 @@ func MakeEventListener(appConfig appconfig.AppConfig, c chan event.FileReadyEven
 func StartEventListener(ctx context.Context, listener postprocessing.EventProcessable) {
 	for {
 		var wg sync.WaitGroup
-		events := listener.GetEventBatch(ctx, 5)
+		events, err := listener.GetEventBatch(ctx, 5)
 		select {
 		case <-ctx.Done():
 			return
+		case err != nil:
+			// TODO Dead letter
+			continue
 		default:
 			for _, e := range events {
 				wg.Add(1)
 				e := e // TODO is this necessary?
 				go func() {
 					defer wg.Done()
-					listener.Process(ctx, e)
+					//listener.Process(ctx, e)
+
+					err := postprocessing.ProcessFileReadyEvent(ctx, e)
+					if err != nil {
+						listener.HandleError(ctx, e, err)
+						return
+					}
+					err = listener.HandleSuccess(ctx, e)
+					if err != nil {
+						listener.HandleError(ctx, e, err)
+						return
+					}
+
 				}()
 			}
 			wg.Wait()

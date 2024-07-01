@@ -20,7 +20,8 @@ func init() {
 }
 
 type Event struct {
-	ID string
+	ID        string
+	LockToken string
 }
 
 type FileReadyEvent struct {
