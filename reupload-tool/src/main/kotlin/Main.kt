@@ -1,0 +1,173 @@
+package org.example
+
+import auth.AuthClient
+import com.azure.identity.ClientSecretCredential
+import com.azure.identity.ClientSecretCredentialBuilder
+import com.azure.storage.blob.BlobClient
+import com.azure.storage.blob.BlobServiceClient
+import com.azure.storage.blob.BlobServiceClientBuilder
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.github.doyaaaaaken.kotlincsv.dsl.csvReader
+import org.example.model.Info
+import org.example.model.Reupload
+import org.example.util.EnvConfig
+import tus.UploadClient
+import java.io.File
+
+fun main() {
+    val input = if (System.getProperty("csv").isNullOrEmpty()) File("input.csv") else File(System.getProperty("csv"))
+
+    // First, read in input csv.
+    val reuploads = readInputCsv(input)
+    println("Reuploading ${reuploads.size} file(s)")
+
+    // Initialize auth client
+    val dexUrl = EnvConfig.DEX_URL
+    val authToken = if (EnvConfig.SKIP_AUTH) "" else {
+        println("Getting SAMS token")
+        val authClient = AuthClient(dexUrl)
+        authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
+    }
+
+    // Initialize upload client
+    val uploadClient = UploadClient(dexUrl, authToken)
+
+    // Initialize blob service clients
+    val dexBlobServiceClient = getBlobServiceClient(EnvConfig.DEX_STORAGE_ACCOUNT_CONNECTION_STRING)
+    val edavBlobServiceClient = getBlobServiceClient(EnvConfig.EDAV_STORAGE_ACCOUNT_NAME,
+        ClientSecretCredentialBuilder()
+            .clientId(EnvConfig.AZURE_CLIENT_ID)
+            .clientSecret(EnvConfig.AZURE_CLIENT_SECRET)
+            .tenantId(EnvConfig.AZURE_TENANT_ID)
+            .build())
+    val routingBlobServiceClient = getBlobServiceClient(EnvConfig.ROUTING_STORAGE_CONNECTION_STRING)
+
+    // Reupload files
+    var successCount = 0
+    var failCount = 0
+    for (reupload: Reupload in reuploads) {
+        try {
+
+            // Check storage account
+            val res = when (reupload.srcAccountId) {
+                "tus" -> reUploadFileFromTusCheckpoint(reupload.src, dexBlobServiceClient, uploadClient)
+                "edav" -> reUploadFileFromDestinationCheckpoint(reupload.src, reupload.dest!!, edavBlobServiceClient, EnvConfig.EDAV_UPLOAD_CONTAINER_NAME, uploadClient)
+                "routing" -> reUploadFileFromDestinationCheckpoint(reupload.src, reupload.dest!!, routingBlobServiceClient, EnvConfig.ROUTING_UPLOAD_CONTAINER_NAME, uploadClient)
+                else -> {
+                    println("unsupported source storage account: ${reupload.srcAccountId}")
+                    failCount++
+                    continue
+                }
+            }
+
+            if (res.isSuccess) {
+                println("Successfully re-uploaded ${reupload.src} under upload ID ${res.getOrNull()}")
+                successCount++
+            } else {
+                println("reupload failed. ${res.exceptionOrNull()?.message}")
+                failCount++
+            }
+        } catch (e: Exception) {
+            println("Reupload of ${reupload.src} failed during setup.  Error: ${e.message}")
+            failCount++
+        }
+    }
+
+    cleanupDownloads(File("downloads"))
+    println("Reuploaded ${reuploads.size} files.  $successCount success. $failCount failed")
+}
+
+fun readInputCsv(inputFile: File): List<Reupload> {
+    return csvReader().readAllWithHeader(inputFile).map {
+        Reupload(
+            it["src"]!!,
+            it["dest"]!!,
+            it["srcaccountid"]!!
+        )
+    }
+}
+
+fun getBlobServiceClient(connectionString: String): BlobServiceClient {
+    return BlobServiceClientBuilder()
+        .connectionString(connectionString)
+        .buildClient()
+}
+
+fun getBlobServiceClient(storageAccountName: String, azureCredentials: ClientSecretCredential): BlobServiceClient {
+    return BlobServiceClientBuilder()
+        .endpoint("https://$storageAccountName.blob.core.windows.net")
+        .credential(azureCredentials)
+        .buildClient()
+}
+
+// TODO: Make src immutable
+fun updateFilename(filename: String, src: MutableMap<String, String>): MutableMap<String, String> {
+    val res = src.toMutableMap()
+    val filenameFields = listOf("filename", "original_filename", "meta_ext_filename", "received_filename")
+
+    res.forEach{
+        if (filenameFields.contains(it.key)) {
+            res[it.key] = filename
+        }
+    }
+
+    return res
+}
+
+fun reUploadFileFromTusCheckpoint(tguid: String, dexBlobServiceClient: BlobServiceClient, uploadClient: UploadClient): Result<String?> {
+    val fileBlobClient = dexBlobServiceClient
+        .getBlobContainerClient(EnvConfig.TUS_CONTAINER_NAME)
+        .getBlobClient("tus-prefix/$tguid")
+    val infoBlobClient = dexBlobServiceClient
+        .getBlobContainerClient(EnvConfig.TUS_CONTAINER_NAME)
+        .getBlobClient("tus-prefix/$tguid.info")
+
+    // Download the file
+    val fileToReupload = downloadFile(fileBlobClient).getOrThrow()
+
+    // Get metadata from the info file
+    val infoFile = downloadFile(infoBlobClient).getOrThrow().readBytes()
+    val info = jacksonObjectMapper().readValue(infoFile, Info::class.java)
+
+    return reUpload(fileToReupload, info.metadata, uploadClient)
+}
+
+fun reUploadFileFromDestinationCheckpoint(filename: String, newFilename: String, destBlobServiceClient: BlobServiceClient, containerName: String, uploadClient: UploadClient): Result<String?> {
+    val fileBlobClient = destBlobServiceClient
+        .getBlobContainerClient(containerName)
+        .getBlobClient(filename)
+
+    // Download the file
+    val fileToReupload = downloadFile(fileBlobClient).getOrThrow()
+    val updatedMetadata = updateFilename(newFilename, fileBlobClient.properties.metadata)
+
+    return reUpload(fileToReupload, updatedMetadata, uploadClient)
+}
+
+fun reUpload(file: File, metadata: MutableMap<String, String>, client: UploadClient): Result<String?> {
+    return runCatching {
+        println("uploading ${file.name}")
+        client.uploadFile(file, metadata)
+    }
+}
+
+fun downloadFile(blobClient: BlobClient): Result<File> {
+    return runCatching {
+        val filename = blobClient.blobName.split("/").last()
+        println("downloading ${blobClient.blobName} of size ${blobClient.properties.blobSize} to downloads/$filename")
+        blobClient.downloadToFile("downloads/$filename")
+        File("downloads/$filename")
+    }
+}
+
+fun cleanupDownloads(directory: File) {
+    if (directory.exists() && directory.isDirectory) {
+        directory.listFiles()?.forEach { file ->
+            if (file.isDirectory) {
+                cleanupDownloads(file)
+            } else {
+                file.delete()
+            }
+        }
+    }
+}
