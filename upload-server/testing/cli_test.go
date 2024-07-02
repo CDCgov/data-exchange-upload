@@ -98,7 +98,13 @@ func TestTus(t *testing.T) {
 				}
 
 				// Post-processing
-				// TODO Check that events were published
+				events, err := readEventFile(tuid)
+				if err != nil {
+					t.Error("no events found for tuid", "tuid", tuid)
+				}
+				if len(events) != len(config.Copy.Targets)+1 {
+					t.Errorf("expected %d file ready event(s) but got %d", len(config.Copy.Targets)+1, len(events))
+				}
 
 				// Check that the file exists in the dex checkpoint folder.
 				if _, err := os.Stat("./test/dex/" + tuid); errors.Is(err, os.ErrNotExist) {
@@ -406,4 +412,33 @@ func checkReportSummary(fileSummary ReportFileSummary, stageName string, expecte
 	}
 
 	return nil
+}
+
+func readEventFile(tuid string) ([]event.Event, error) {
+	var events []event.Event
+	f, err := os.Open("test/events/" + tuid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open event file file for %s; inner error %w", tuid, err)
+	}
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read event file %s; inner error %w", f.Name(), err)
+	}
+
+	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
+	for rScanner.Scan() {
+		eLine := rScanner.Text()
+		eLineBytes := []byte(eLine)
+
+		var e event.Event
+		err := json.Unmarshal(eLineBytes, &e)
+		if err != nil {
+			return nil, err
+		}
+
+		events = append(events, e)
+	}
+
+	return events, nil
 }
