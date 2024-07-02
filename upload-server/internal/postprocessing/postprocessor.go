@@ -2,7 +2,6 @@ package postprocessing
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -69,7 +68,7 @@ func (ael *AzureEventListener) GetEventBatch(ctx context.Context, max int) ([]ev
 		logger.Info("received event", "event", e.Event.Data)
 
 		var fre event.FileReadyEvent
-		err := json.Unmarshal(e.Event.Data.([]byte), &fre)
+		fre, err := event.NewFileReadyEventFromCloudEvent(e.Event, *e.BrokerProperties.LockToken)
 		if err != nil {
 			return nil, err
 		}
@@ -93,32 +92,5 @@ func (ael *AzureEventListener) HandleError(ctx context.Context, e event.FileRead
 	_, err := ael.Client.RejectEvents(ctx, []string{e.Event.LockToken}, nil)
 	if err != nil {
 		logger.Error("failed to reject events", "error", err.Error())
-	}
-}
-
-func (ael *AzureEventListener) Process(ctx context.Context, e event.FileReadyEvent) {
-	if err := Deliver(ctx, e.ID, e.Manifest, e.DeliverTarget); err != nil {
-		// TODO Retry
-		logger.Error("error delivering file to target", "event", e, "error", err.Error())
-	}
-}
-
-type Event struct {
-	ID       string
-	Manifest map[string]string
-	Target   string
-}
-
-func Worker(ctx context.Context, c chan event.FileReadyEvent) {
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case e := <-c:
-			if err := Deliver(ctx, e.ID, e.Manifest, e.DeliverTarget); err != nil {
-				// TODO Retry
-				logger.Error("error delivering file to target", "event", e, "error", err.Error())
-			}
-		}
 	}
 }

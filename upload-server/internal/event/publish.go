@@ -23,29 +23,6 @@ func init() {
 	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
 }
 
-type Event struct {
-	ID        string
-	Type      string
-	LockToken string
-}
-
-type FileReadyEvent struct {
-	Event
-	Manifest      map[string]string
-	DeliverTarget string
-}
-
-func NewFileReadyEvent(id string, manifest map[string]string, target string) FileReadyEvent {
-	return FileReadyEvent{
-		Event: Event{
-			ID:   id,
-			Type: FileReadyEventType,
-		},
-		Manifest:      manifest,
-		DeliverTarget: target,
-	}
-}
-
 type Publisher interface {
 	Publish(ctx context.Context, event FileReadyEvent) error
 }
