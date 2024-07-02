@@ -75,7 +75,8 @@ type AppConfig struct {
 	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
 
 	// MMS API
-	MmsApiURI string `env:"MMS_API_URI"`
+	MmsApiURI           string `env:"MMS_API_URI"`
+	MmsApiRedisCacheTTL string `env:"MMS_API_REDIS_CACHE_TTL, default=10"` // minutes
 } // .AppConfig
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
