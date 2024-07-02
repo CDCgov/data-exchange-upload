@@ -84,13 +84,22 @@ func (ael *AzureEventListener) HandleSuccess(ctx context.Context, e event.FileRe
 		logger.Error("failed to ack event", "error", err)
 		return err
 	}
+	logger.Info("successfully handled event", "event", e)
 	return nil
 }
 
 func (ael *AzureEventListener) HandleError(ctx context.Context, e event.FileReadyEvent, handlerError error) {
 	logger.Error("failed to handle event", "event", e, "error", handlerError.Error())
-	_, err := ael.Client.RejectEvents(ctx, []string{e.Event.LockToken}, nil)
+	resp, err := ael.Client.RejectEvents(ctx, []string{e.Event.LockToken}, nil)
 	if err != nil {
+		// TODO need to handle this better
 		logger.Error("failed to reject events", "error", err.Error())
+		for _, t := range resp.FailedLockTokens {
+			logger.Error("failed to dead letter event with lock token", "token", t)
+		}
+	}
+
+	for _, t := range resp.SucceededLockTokens {
+		logger.Info("successfully dead lettered event with lock token", "token", t)
 	}
 }
