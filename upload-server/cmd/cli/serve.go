@@ -83,7 +83,10 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyChan cha
 
 		fileReadyPublisher = &event.AzurePublisher{
 			Client: client,
+			Config: *appConfig.QueueConnection,
 		}
+
+		health.Register(fileReadyPublisher)
 	}
 
 	// get and initialize tusd hook handlers
