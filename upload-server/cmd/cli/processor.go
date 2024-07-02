@@ -34,12 +34,13 @@ func StartEventListener(ctx context.Context, listener postprocessing.EventProces
 	for {
 		var wg sync.WaitGroup
 		events, err := listener.GetEventBatch(ctx, 5)
+		if err != nil {
+			// TODO dead letter
+			continue
+		}
 		select {
 		case <-ctx.Done():
 			return
-		case err != nil:
-			// TODO Dead letter
-			continue
 		default:
 			for _, e := range events {
 				wg.Add(1)

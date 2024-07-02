@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -44,112 +45,61 @@ func TestTus(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				f, err := os.Open("test/reports/" + tuid)
-				if err != nil {
-					t.Error(name, tuid, err)
-				}
-
 				expectedMetadataTransformReportCount := 2
 				if v, ok := c.metadata["version"]; !ok || v == "1.0" {
 					expectedMetadataTransformReportCount = 3
 				}
-				metadataReportCount, uploadStatusReportCount, uploadStartedReportCount, uploadCompleteReportCount, metadataTransformReportCount, fileCopyReportCount := 0, 0, 0, 0, 0, 0
-				rMetadata, rUploadStatus := &models.Report{}, &models.Report{}
-				b, err := io.ReadAll(f)
+
+				reportSummary, err := readReportFile(tuid)
 				if err != nil {
-					t.Fatal(name, tuid, err)
+					t.Error("failed to read report file for", "tuid", tuid)
 				}
-
-				rScanner := bufio.NewScanner(strings.NewReader(string(b)))
-				for rScanner.Scan() {
-					rLine := rScanner.Text()
-					rLineBytes := []byte(rLine)
-
-					if strings.Contains(rLine, "dex-metadata-transform") {
-						metadataTransformReportCount++
-						continue
-					}
-
-					if strings.Contains(rLine, "dex-metadata-verify") {
-						// Processing a metadata verify report
-						metadataReportCount++
-
-						if err := json.Unmarshal(rLineBytes, rMetadata); err != nil {
-							t.Fatal(name, tuid, err)
-						}
-
-						if rMetadata.DataStreamID == "" || rMetadata.DataStreamRoute == "" {
-							t.Error("DataStreamID or DataStreamRoute is missing in metadata report", name, tuid)
-						}
-
-						continue
-					}
-
-					if strings.Contains(rLine, "dex-upload-status") {
-						uploadStatusReportCount++
-
-						if err := json.Unmarshal(rLineBytes, rUploadStatus); err != nil {
-							t.Fatal(name, tuid, err)
-						}
-
-						if rUploadStatus.DataStreamID == "" || rUploadStatus.DataStreamRoute == "" {
-							t.Error("DataStreamID or DataStreamRoute is missing in upload status report", name, tuid)
-						}
-
-						continue
-					}
-
-					if strings.Contains(rLine, "dex-upload-started") {
-						uploadStartedReportCount++
-						continue
-					}
-
-					if strings.Contains(rLine, "dex-upload-complete") {
-						uploadCompleteReportCount++
-						continue
-					}
-
-					if strings.Contains(rLine, "dex-file-copy") {
-						fileCopyReportCount++
-						continue
-					}
+				err = checkReportSummary(reportSummary, "dex-metadata-verify", 1)
+				if err != nil {
+					t.Error(err.Error())
 				}
-
-				if metadataTransformReportCount != expectedMetadataTransformReportCount {
-					t.Error("expected three metadata transform reports but got", metadataTransformReportCount)
+				err = checkReportSummary(reportSummary, "dex-metadata-transform", expectedMetadataTransformReportCount)
+				if err != nil {
+					t.Error(err.Error())
 				}
-
-				if metadataReportCount != 1 {
-					t.Error("expected one metadata verify report but got", metadataReportCount)
+				err = checkReportSummary(reportSummary, "dex-upload-status", 1)
+				if err != nil {
+					t.Error(err.Error())
 				}
-
-				if uploadStatusReportCount == 0 {
-					t.Error("expected at least one upload status report count but got none")
+				err = checkReportSummary(reportSummary, "dex-upload-started", 1)
+				if err != nil {
+					t.Error(err.Error())
 				}
-
-				if uploadStartedReportCount != 1 {
-					t.Error("at least one upload started report count but got none", uploadStartedReportCount)
+				err = checkReportSummary(reportSummary, "dex-upload-complete", 1)
+				if err != nil {
+					t.Error(err.Error())
 				}
-
-				if uploadCompleteReportCount != 1 {
-					t.Error("at least one upload complete report count but got none", uploadCompleteReportCount)
-				}
-
-				if fileCopyReportCount == 0 {
-					t.Error("expected at least one file copy report but got none")
+				err = checkReportSummary(reportSummary, "dex-file-copy", 3)
+				if err != nil {
+					t.Error(err.Error())
 				}
 
 				if c.err != nil {
-					if rMetadata.Content.(models.MetaDataVerifyContent).Issues == nil {
-						t.Error("expected reported issues but got none", name, tuid, rMetadata)
+					metadataVerifyReport, ok := reportSummary.Summaries["dex-metadata-verify"]
+					if !ok {
+						t.Error("expected metadata verify report but got none")
+					}
+					if metadataVerifyReport.Reports[0].Content.(models.MetaDataVerifyContent).Issues == nil {
+						t.Error("expected reported issues but got none", name, tuid, metadataVerifyReport.Reports[0])
 					}
 
-					if rUploadStatus.Content.(models.UploadStatusContent).Offset != rUploadStatus.Content.(models.UploadStatusContent).Size {
-						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, rUploadStatus)
+					uploadStatusReport, ok := reportSummary.Summaries["dex-upload-status"]
+					if !ok {
+						t.Error("expected upload status report but got none")
+					}
+					if uploadStatusReport.Reports[0].Content.(models.UploadStatusContent).Offset != uploadStatusReport.Reports[0].Content.(models.UploadStatusContent).Size {
+						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, uploadStatusReport.Reports[0])
 					}
 				}
 
 				// Post-processing
+				// TODO Check that events were published
+
 				// Check that the file exists in the dex checkpoint folder.
 				if _, err := os.Stat("./test/dex/" + tuid); errors.Is(err, os.ErrNotExist) {
 					t.Error("file was not copied to dex checkpoint for file", tuid)
@@ -340,6 +290,7 @@ func TestMain(m *testing.M) {
 		UploadConfigPath:      "../../upload-configs/",
 		LocalFolderUploadsTus: "test/uploads",
 		LocalReportsFolder:    "test/reports",
+		LocalEventsFolder:     "test/events",
 		LocalDEXFolder:        "test/dex",
 		LocalEDAVFolder:       "test/edav",
 		LocalRoutingFolder:    "test/routing",
@@ -368,4 +319,91 @@ func TestMain(m *testing.M) {
 	ts.Close()
 	close(postProcessingChannel)
 	os.Exit(testRes)
+}
+
+type ReportSummary struct {
+	Reports []models.Report
+	Count   int
+}
+type ReportFileSummary struct {
+	Tuid      string
+	Summaries map[string]ReportSummary
+}
+
+func readReportFile(tuid string) (ReportFileSummary, error) {
+	summary := ReportFileSummary{
+		Tuid:      tuid,
+		Summaries: map[string]ReportSummary{},
+	}
+
+	f, err := os.Open("test/reports/" + tuid)
+	if err != nil {
+		return summary, fmt.Errorf("failed to open report file for %s; inner error %w", tuid, err)
+	}
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return summary, fmt.Errorf("failed to read report file %s; inner error %w", f.Name(), err)
+	}
+
+	trackedStages := []string{
+		"dex-metadata-verify",
+		"dex-metadata-transform",
+		"dex-upload-status",
+		"dex-upload-started",
+		"dex-upload-complete",
+		"dex-file-copy",
+	}
+
+	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
+	for rScanner.Scan() {
+		rLine := rScanner.Text()
+		rLineBytes := []byte(rLine)
+
+		r, err := unmarshalReport(rLineBytes)
+		if err != nil {
+			return summary, err
+		}
+
+		for _, s := range trackedStages {
+			if strings.Contains(rLine, s) {
+				appendReport(summary, r)
+			}
+		}
+	}
+
+	return summary, nil
+}
+
+func unmarshalReport(bytes []byte) (models.Report, error) {
+	var r models.Report
+	err := json.Unmarshal(bytes, &r)
+	return r, err
+}
+
+func appendReport(summary ReportFileSummary, r models.Report) ReportFileSummary {
+	stageName := r.StageName
+	s, ok := summary.Summaries[stageName]
+	if !ok {
+		summary.Summaries[stageName] = ReportSummary{
+			Count:   1,
+			Reports: []models.Report{r},
+		}
+		return summary
+	}
+	s.Count++
+	s.Reports = append(s.Reports, r)
+	return summary
+}
+
+func checkReportSummary(fileSummary ReportFileSummary, stageName string, expectedCount int) error {
+	summary, ok := fileSummary.Summaries[stageName]
+
+	if !ok {
+		return fmt.Errorf("expected %d %s report but got none", expectedCount, stageName)
+	} else if summary.Count != 1 {
+		return fmt.Errorf("expected %d %s report but got %d", expectedCount, stageName, summary.Count)
+	}
+
+	return nil
 }

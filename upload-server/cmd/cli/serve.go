@@ -71,6 +71,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyChan cha
 	var fileReadyPublisher event.Publisher
 	fileReadyPublisher = &event.MemoryPublisher{
 		FileReadyChannel: fileReadyChan,
+		Dir:              appConfig.LocalEventsFolder,
 	}
 
 	if appConfig.QueueConnection != nil {

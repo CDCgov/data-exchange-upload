@@ -44,13 +44,14 @@ type EventProcessable interface {
 	HandleError(ctx context.Context, event event.FileReadyEvent, handlerError error)
 }
 
-func (mel *MemoryEventListener) GetEventBatch(_ context.Context, _ int) []event.FileReadyEvent {
+func (mel *MemoryEventListener) GetEventBatch(_ context.Context, _ int) ([]event.FileReadyEvent, error) {
 	evt := <-mel.C
-	return []event.FileReadyEvent{evt}
+	return []event.FileReadyEvent{evt}, nil
 }
 
-func (mel *MemoryEventListener) HandleSuccess(_ context.Context, e event.FileReadyEvent) {
+func (mel *MemoryEventListener) HandleSuccess(_ context.Context, e event.FileReadyEvent) error {
 	logger.Info("successfully delivered file to target", "target", e.DeliverTarget)
+	return nil
 }
 
 func (mel *MemoryEventListener) HandleError(_ context.Context, e event.FileReadyEvent, err error) {

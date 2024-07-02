@@ -47,6 +47,7 @@ type AppConfig struct {
 
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
+	LocalEventsFolder     string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
 	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
 	LocalEDAVFolder       string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
 	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`

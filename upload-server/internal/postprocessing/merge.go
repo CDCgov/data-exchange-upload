@@ -36,20 +36,7 @@ func RouteAndDeliverHook(p evt.Publisher) func(handler.HookEvent, hooks.HookResp
 		targets = append(targets, config.Copy.Targets...)
 
 		for _, target := range targets {
-			// fan out command
-			// send an event for each thing to be copied
-			//c <- Event{
-			//	ID:       id,
-			//	Manifest: meta,
-			//	Target:   target,
-			//}
-			err := p.Publish(event.Context, evt.FileReadyEvent{
-				Event: evt.Event{
-					ID: id,
-				},
-				Manifest:      meta,
-				DeliverTarget: target,
-			})
+			err := p.Publish(event.Context, evt.NewFileReadyEvent(id, meta, target))
 			if err != nil {
 				return resp, err
 			}
