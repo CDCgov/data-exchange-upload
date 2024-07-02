@@ -19,7 +19,7 @@ To specify one or more files to be re-uploaded, generate a CSV file with the fol
 
 - src - The name of the file to be re-uploaded, including any path prefixes.
 - dest - The name of the file to be re-uploaded under.  Can be the same name as `src` without the path prefixes.
-- srcaccountid - The unique label or identifier of the storage account where the `src` file is located.  Available options are `edav` and `routing`.
+- srcaccountid - The unique label or identifier of the storage account where the `src` file is located.  Available options are `tus`, edav` and `routing`.
 
 ### Environment Variables
 

@@ -24,6 +24,7 @@ fun main() {
     // Initialize auth client
     val dexUrl = EnvConfig.DEX_URL
     val authToken = if (EnvConfig.SKIP_AUTH) "" else {
+        println("Getting SAMS token")
         val authClient = AuthClient(dexUrl)
         authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
     }
@@ -63,7 +64,7 @@ fun main() {
                 println("Successfully re-uploaded ${reupload.src} under upload ID ${res.getOrNull()}")
                 successCount++
             } else {
-                println("reupload failed")
+                println("reupload failed. ${res.exceptionOrNull()?.message}")
                 failCount++
             }
         } catch (e: Exception) {

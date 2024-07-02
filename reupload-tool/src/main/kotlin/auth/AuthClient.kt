@@ -29,7 +29,7 @@ class AuthClient(private val url: String) {
             .execute()
 
         if (!resp.isSuccessful) {
-            throw IOException("Error getting token.")
+            throw IOException("Error getting token. ${resp.body?.string()}")
         }
 
         val respBody: AuthResponse = objectMapper.readValue(resp.body?.string()
