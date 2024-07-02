@@ -16,9 +16,7 @@ func RouteAndDeliverHook(p evt.Publisher) func(handler.HookEvent, hooks.HookResp
 
 		// should eventually take a tuid and that's it
 		// why don't we just do this n times, once internal, once to edav, once to routing (whatever the number of targets is?)
-		targets := []string{
-			"dex",
-		}
+		var targets []string
 		meta := event.Upload.MetaData
 		if resp.ChangeFileInfo.MetaData != nil {
 			meta = resp.ChangeFileInfo.MetaData

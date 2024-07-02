@@ -6,15 +6,15 @@ import (
 )
 
 type Event struct {
-	ID        string
-	Type      string
-	LockToken string
+	ID        string `json:"id"`
+	Type      string `json:"type"`
+	LockToken string `json:"lock_token"`
 }
 
 type FileReadyEvent struct {
 	Event
-	Manifest      map[string]string
-	DeliverTarget string
+	Manifest      map[string]string `json:"manifest"`
+	DeliverTarget string            `json:"deliver_target"`
 }
 
 func NewFileReadyEvent(id string, manifest map[string]string, target string) FileReadyEvent {

@@ -102,14 +102,10 @@ func TestTus(t *testing.T) {
 				if err != nil {
 					t.Error("no events found for tuid", "tuid", tuid)
 				}
-				if len(events) != len(config.Copy.Targets)+1 {
-					t.Errorf("expected %d file ready event(s) but got %d", len(config.Copy.Targets)+1, len(events))
+				if len(events) != len(config.Copy.Targets) {
+					t.Errorf("expected %d file ready event(s) but got %d", len(config.Copy.Targets), len(events))
 				}
 
-				// Check that the file exists in the dex checkpoint folder.
-				if _, err := os.Stat("./test/dex/" + tuid); errors.Is(err, os.ErrNotExist) {
-					t.Error("file was not copied to dex checkpoint for file", tuid)
-				}
 				// Also check that the .meta file exists in the dex folder.
 				if _, err := os.Stat("./test/uploads/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
 					t.Error("meta file was not copied to dex checkpoint for file", tuid)
