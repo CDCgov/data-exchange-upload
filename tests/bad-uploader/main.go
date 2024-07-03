@@ -43,6 +43,9 @@ var (
 
 	testcase TestCase
 	cases    TestCases
+
+	templatePath string
+	repetitions  int
 )
 
 type JSONVar map[string]string
@@ -61,9 +64,11 @@ func (f *JSONVar) Set(s string) error {
 }
 
 type TestCase struct {
-	Chunk    float64
-	Size     float64
-	Manifest map[string]string
+	Chunk       float64
+	Size        float64
+	Manifest    map[string]string
+	Template    string
+	Repetitions int
 }
 
 func (t *TestCase) String() string {
@@ -95,7 +100,7 @@ func (t *TestCase) Set(s string) error {
 		return fmt.Errorf("chunk size must be > 1 byte")
 	}
 
-	if t.Size < 1 {
+	if t.Size < 1 && t.Template == "" {
 		return fmt.Errorf("size of file must be > 1 byte")
 	}
 	return nil
@@ -146,6 +151,8 @@ func init() {
 	flag.Var(&manifest, "manifest", "The manifest to use for the load test.")
 	flag.Var(&testcase, "case-file", "A json file describing the test case to use.")
 	flag.Var(&cases, "case-dir", "A directory of test cases.")
+	flag.StringVar(&templatePath, "template", "", "The path to a template file to use to generate test files")
+	flag.IntVar(&repetitions, "repetitions", 1, "The number of times to repeat a template when building a file")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
@@ -163,6 +170,10 @@ func init() {
 			Chunk:    chunk,
 			Size:     size,
 			Manifest: manifest,
+		}
+		if templatePath != "" {
+			testcase.Template = templatePath
+			testcase.Repetitions = repetitions
 		}
 	}
 	if !flagset["case-dir"] {
@@ -232,15 +243,6 @@ func main() {
 	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
 }
 
-/*
-type uploadable interface {
-	io.ReadSeekCloser
-	Size() int64
-	Metadata() map[string]string
-	Fingerprint() string
-}
-*/
-
 type config struct {
 	url         string
 	tokenSource *SAMSTokenSource
@@ -265,12 +267,28 @@ func asPallelBenchmark(c chan TestCase, next func() TestCase) func(*testing.B) {
 	}
 }
 
+type uploadable interface {
+	io.ReadSeekCloser
+	Size() int64
+	Metadata() map[string]string
+	Fingerprint() string
+}
+
 func runTest(t TestCase, conf *config) error {
 
-	f := &TemplateGenerator{
-		Repeats:  12,
-		Path:     "test.hl7",
-		Manifest: t.Manifest,
+	var f uploadable
+	if t.Template != "" {
+		f = &TemplateGenerator{
+			Repeats:  t.Repetitions,
+			Path:     t.Template,
+			Manifest: t.Manifest,
+		}
+	} else {
+		f = &BadFile{
+			FileSize:       int(t.Size),
+			Manifest:       t.Manifest,
+			DummyGenerator: &RandomBytesReader{},
+		}
 	}
 
 	// create the tus client.
@@ -354,10 +372,12 @@ func (b *BadFile) Read(p []byte) (int, error) {
 		return i, err
 	}
 
-	b.offset += i
-	if b.offset > b.FileSize {
-		return b.FileSize - b.offset, nil
+	if b.offset+i > b.FileSize {
+		n := (b.offset + 1) - b.FileSize
+		b.offset += i
+		return n, nil
 	}
+	b.offset += i
 	return i, nil
 }
 
