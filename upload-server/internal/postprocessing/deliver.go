@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"io"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -65,6 +65,10 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 	if err != nil {
 		return nil, err
 	}
+	checkpointClient, err := storeaz.NewBlobClient(config.AzureStorageConfig)
+	if err != nil {
+		return nil, err
+	}
 	err = storeaz.CreateContainerIfNotExists(ctx, checkpointContainerClient)
 	if err != nil {
 		return nil, err
@@ -72,6 +76,8 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 
 	return &AzureDeliverer{
 		FromContainerClient: tusContainerClient,
+		ToClient:            checkpointClient,
+		ToContainer:         config.ContainerName,
 		ToContainerClient:   checkpointContainerClient,
 		TusPrefix:           appConfig.TusUploadPrefix,
 		Target:              target,
@@ -125,6 +131,8 @@ type FileDeliverer struct {
 type AzureDeliverer struct {
 	FromContainerClient *container.Client
 	ToContainerClient   *container.Client
+	ToClient            *azblob.Client
+	ToContainer         string
 	TusPrefix           string
 	Target              string
 }
@@ -172,29 +180,42 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
 
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
-	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
-	resp, err := destBlobClient.StartCopyFromURL(ctx, srcBlobClient.URL(), nil)
+	s, err := srcBlobClient.DownloadStream(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	status := *resp.CopyStatus
-	var statusDescription string
-	for status == blob.CopyStatusTypePending {
-		getPropResp, err := destBlobClient.GetProperties(ctx, nil)
-		if err != nil {
-			return err
-		}
-		status = *getPropResp.CopyStatus
-		statusDescription = *getPropResp.CopyStatusDescription
-		logger.Info("Copy progress", "status", fmt.Sprintf("%s", status))
+	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
+
+	_, err = ad.ToClient.UploadStream(ctx, ad.ToContainer, blobName, s.Body, nil)
+	if err != nil {
+		return err
 	}
 
-	if status != blob.CopyStatusTypeSuccess {
-		return fmt.Errorf("copy to target %s unsuccessful with status %s and description %s", ad.Target, status, statusDescription)
-	}
+	logger.Info("successful copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
 
-	logger.Info("Copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL(), "status", status)
+	//resp, err := destBlobClient.StartCopyFromURL(ctx, srcBlobClient.URL(), nil)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//status := *resp.CopyStatus
+	//var statusDescription string
+	//for status == blob.CopyStatusTypePending {
+	//	getPropResp, err := destBlobClient.GetProperties(ctx, nil)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	status = *getPropResp.CopyStatus
+	//	statusDescription = *getPropResp.CopyStatusDescription
+	//	logger.Info("Copy progress", "status", fmt.Sprintf("%s", status))
+	//}
+	//
+	//if status != blob.CopyStatusTypeSuccess {
+	//	return fmt.Errorf("copy to target %s unsuccessful with status %s and description %s", ad.Target, status, statusDescription)
+	//}
+	//
+	//logger.Info("Copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL(), "status", status)
 
 	return nil
 }
