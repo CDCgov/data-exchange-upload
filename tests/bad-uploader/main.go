@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -302,7 +303,15 @@ func runTest(t TestCase, conf *config) error {
 		}
 	}(c, uploader.Url())
 
-	return uploader.Upload()
+	for {
+		if err := uploader.UploadChunck(); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return err
+		}
+	}
+	return nil
 }
 
 type Generator interface {
@@ -336,16 +345,19 @@ func (b *BadFile) Fingerprint() string {
 
 func (b *BadFile) Read(p []byte) (int, error) {
 
+	if b.offset > b.FileSize {
+		return 0, io.EOF
+	}
 	// needs to limit size read to size eventually
 	i, err := b.DummyGenerator.Read(p)
 	if err != nil {
 		return i, err
 	}
 
-	if b.offset+i > b.FileSize {
+	b.offset += i
+	if b.offset > b.FileSize {
 		return b.FileSize - b.offset, nil
 	}
-	b.offset += i
 	return i, nil
 }
 

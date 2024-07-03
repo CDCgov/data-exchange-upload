@@ -82,6 +82,10 @@ func (tg *TemplateGenerator) Read(p []byte) (int, error) {
 	n, err := tg.r.Read(p)
 	slog.Debug("read template")
 	if err == io.EOF {
+		if tg.Repeats < 1 {
+			return 0, err
+		}
+		tg.Repeats--
 		slog.Debug("hit eof")
 		//TODO if we should stop return the EOF?
 		if err := tg.next(); err != nil {
