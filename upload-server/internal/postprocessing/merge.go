@@ -34,10 +34,12 @@ func RouteAndDeliverHook(p evt.Publisher) func(handler.HookEvent, hooks.HookResp
 		targets = append(targets, config.Copy.Targets...)
 
 		for _, target := range targets {
-			err := p.Publish(event.Context, evt.NewFileReadyEvent(id, meta, target))
+			e := evt.NewFileReadyEvent(id, meta, target)
+			err := p.Publish(event.Context, e)
 			if err != nil {
 				return resp, err
 			}
+			logger.Info("published event", "event", e)
 		}
 		return resp, nil
 	}

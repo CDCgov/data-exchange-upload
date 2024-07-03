@@ -20,8 +20,6 @@ import (
 
 var logger *slog.Logger
 
-const FileReadyEventType = "FileReady"
-
 func init() {
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
@@ -36,7 +34,6 @@ type Publisher interface {
 
 type MemoryPublisher struct {
 	Dir string
-	//FileReadyChannel chan FileReady
 }
 
 type AzurePublisher struct {
@@ -76,14 +73,12 @@ func (mp *MemoryPublisher) Health(_ context.Context) (rsp models.ServiceHealthRe
 }
 
 func (ap *AzurePublisher) Publish(ctx context.Context, event FileReady) error {
-	logger.Info("publishing file ready event")
 	evt, err := messaging.NewCloudEvent("upload", FileReadyEventType, event, nil)
 	if err != nil {
 		return err
 	}
 
 	_, err = ap.Client.SendEvent(ctx, &evt, nil)
-	// TODO better logging
 	return err
 }
 

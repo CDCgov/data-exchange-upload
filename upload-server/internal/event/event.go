@@ -5,6 +5,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/messaging"
 )
 
+const FileReadyEventType = "FileReady"
+
 var fileReadyChan chan FileReady
 
 type Event struct {
