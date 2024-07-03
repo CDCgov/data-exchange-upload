@@ -37,7 +37,7 @@ func SubscribeToEvents(ctx context.Context, sub event.Subscribable) {
 		var wg sync.WaitGroup
 		events, err := sub.GetBatch(ctx, 5)
 		if err != nil {
-			// TODO dead letter
+			logger.Error("failed to get event batch", "error", err)
 			continue
 		}
 		select {
@@ -50,11 +50,13 @@ func SubscribeToEvents(ctx context.Context, sub event.Subscribable) {
 					defer wg.Done()
 					err := postprocessing.ProcessFileReadyEvent(ctx, e)
 					if err != nil {
+						logger.Error("failed to process event", "event", e, "error", err)
 						sub.HandleError(ctx, e, err)
 						return
 					}
 					err = sub.HandleSuccess(ctx, e)
 					if err != nil {
+						logger.Error("failed to acknowledge event", "event", e, "error", err)
 						sub.HandleError(ctx, e, err)
 						return
 					}
