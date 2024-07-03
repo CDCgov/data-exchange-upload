@@ -89,7 +89,6 @@ func (tg *TemplateGenerator) Read(p []byte) (int, error) {
 		if err := tg.next(); err != nil {
 			return n, err
 		}
-		// do we need to re-read here or will it just try again?
 		return n, nil
 	}
 	return n, err
