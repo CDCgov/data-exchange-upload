@@ -2,6 +2,8 @@ module github.com/cdcgov/bad-uploader
 
 go 1.22.1
 
+replace github.com/eventials/go-tus => github.com/whytheplatypus/go-tus v0.0.0-20240703123832-233d6aa3475d
+
 require (
 	github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
