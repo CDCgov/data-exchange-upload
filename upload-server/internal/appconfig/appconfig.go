@@ -61,7 +61,8 @@ type AppConfig struct {
 	AzureConnection            *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	EdavConnection             *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
 	RoutingConnection          *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
-	QueueConnection            *AzureQueueConfig   `env:", prefix=QUEUE_,noinit"`
+	PublisherConnection        *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
+	SubscriberConnection       *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
 	ServiceBusConnectionString string              `env:"SERVICE_BUS_CONNECTION_STR"`
 	ReportQueueName            string              `env:"REPORT_QUEUE_NAME, default=processing-status-cosmos-db-queue"`
 

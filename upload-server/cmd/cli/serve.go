@@ -20,7 +20,7 @@ import (
 	"strings"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyChan chan event.FileReadyEvent) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyChan chan event.FileReady) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -74,16 +74,16 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyChan cha
 		Dir:              appConfig.LocalEventsFolder,
 	}
 
-	if appConfig.QueueConnection != nil {
-		cred := azcore.NewKeyCredential(appConfig.QueueConnection.AccessKey)
-		client, err := aznamespaces.NewSenderClientWithSharedKeyCredential(appConfig.QueueConnection.Endpoint, appConfig.QueueConnection.Topic, cred, nil)
+	if appConfig.PublisherConnection != nil {
+		cred := azcore.NewKeyCredential(appConfig.PublisherConnection.AccessKey)
+		client, err := aznamespaces.NewSenderClientWithSharedKeyCredential(appConfig.PublisherConnection.Endpoint, appConfig.PublisherConnection.Topic, cred, nil)
 		if err != nil {
 			logger.Error("failed to connect to azure event grid")
 		}
 
 		fileReadyPublisher = &event.AzurePublisher{
 			Client: client,
-			Config: *appConfig.QueueConnection,
+			Config: *appConfig.PublisherConnection,
 		}
 
 		health.Register(fileReadyPublisher)

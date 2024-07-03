@@ -23,6 +23,6 @@ type PostProcessor struct {
 	UploadDir     string
 }
 
-func ProcessFileReadyEvent(ctx context.Context, e event.FileReadyEvent) error {
+func ProcessFileReadyEvent(ctx context.Context, e event.FileReady) error {
 	return Deliver(ctx, e.ID, e.Manifest, e.DeliverTarget)
 }

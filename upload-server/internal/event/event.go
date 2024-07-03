@@ -11,14 +11,14 @@ type Event struct {
 	LockToken string `json:"lock_token"`
 }
 
-type FileReadyEvent struct {
+type FileReady struct {
 	Event
 	Manifest      map[string]string `json:"manifest"`
 	DeliverTarget string            `json:"deliver_target"`
 }
 
-func NewFileReadyEvent(id string, manifest map[string]string, target string) FileReadyEvent {
-	return FileReadyEvent{
+func NewFileReadyEvent(id string, manifest map[string]string, target string) FileReady {
+	return FileReady{
 		Event: Event{
 			ID:   id,
 			Type: FileReadyEventType,
@@ -28,8 +28,8 @@ func NewFileReadyEvent(id string, manifest map[string]string, target string) Fil
 	}
 }
 
-func NewFileReadyEventFromCloudEvent(event messaging.CloudEvent, lockToken string) (FileReadyEvent, error) {
-	var fre FileReadyEvent
+func NewFileReadyEventFromCloudEvent(event messaging.CloudEvent, lockToken string) (FileReady, error) {
+	var fre FileReady
 	err := json.Unmarshal(event.Data.([]byte), &fre)
 	if err != nil {
 		return fre, err

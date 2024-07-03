@@ -31,12 +31,12 @@ func init() {
 
 type Publisher interface {
 	health.Checkable
-	Publish(ctx context.Context, event FileReadyEvent) error
+	Publish(ctx context.Context, event FileReady) error
 }
 
 type MemoryPublisher struct {
 	Dir              string
-	FileReadyChannel chan FileReadyEvent
+	FileReadyChannel chan FileReady
 }
 
 type AzurePublisher struct {
@@ -44,7 +44,7 @@ type AzurePublisher struct {
 	Config appconfig.AzureQueueConfig
 }
 
-func (mp *MemoryPublisher) Publish(_ context.Context, event FileReadyEvent) error {
+func (mp *MemoryPublisher) Publish(_ context.Context, event FileReady) error {
 	err := os.Mkdir(mp.Dir, 0750)
 	if err != nil && !os.IsExist(err) {
 		return err
@@ -75,7 +75,7 @@ func (mp *MemoryPublisher) Health(_ context.Context) (rsp models.ServiceHealthRe
 	return rsp
 }
 
-func (ap *AzurePublisher) Publish(ctx context.Context, event FileReadyEvent) error {
+func (ap *AzurePublisher) Publish(ctx context.Context, event FileReady) error {
 	logger.Info("publishing file ready event")
 	evt, err := messaging.NewCloudEvent("upload", FileReadyEventType, event, nil)
 	if err != nil {
@@ -95,6 +95,7 @@ func (ap *AzurePublisher) Health(_ context.Context) (rsp models.ServiceHealthRes
 	if ap.Client == nil {
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = "Azure event publisher not configured"
+		return rsp
 	}
 
 	// Check via management API

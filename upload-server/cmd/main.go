@@ -85,12 +85,12 @@ func main() {
 	logger.Info("starting app")
 
 	// workers
-	fileReadyChan := make(chan event.FileReadyEvent)
+	fileReadyChan := make(chan event.FileReady)
 	defer close(fileReadyChan)
 	mainWaitGroup.Add(1)
-	listener := cli.MakeEventSubscriber(appConfig, fileReadyChan)
+	subscriber := cli.MakeEventSubscriber(appConfig, fileReadyChan)
 	go func() {
-		cli.StartEventListener(ctx, listener)
+		cli.StartEventListener(ctx, subscriber)
 		mainWaitGroup.Done()
 	}()
 

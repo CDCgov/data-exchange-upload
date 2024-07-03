@@ -2,49 +2,64 @@ package event
 
 import (
 	"context"
+	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/eventgrid/armeventgrid/v2"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
-type MemoryEventSubscriber struct {
-	C chan FileReadyEvent
+type MemorySubscriber struct {
+	C chan FileReady
 }
 
-type AzureEventSubscriber struct {
-	Client aznamespaces.ReceiverClient
+type AzureSubscriber struct {
+	Client *aznamespaces.ReceiverClient
+	Config appconfig.AzureQueueConfig
 }
 
 type Subscribable interface {
-	GetBatch(ctx context.Context, max int) ([]FileReadyEvent, error)
-	HandleSuccess(ctx context.Context, event FileReadyEvent) error
-	HandleError(ctx context.Context, event FileReadyEvent, handlerError error)
+	health.Checkable
+	GetBatch(ctx context.Context, max int) ([]FileReady, error)
+	HandleSuccess(ctx context.Context, event FileReady) error
+	HandleError(ctx context.Context, event FileReady, handlerError error)
 }
 
-func (mel *MemoryEventSubscriber) GetBatch(_ context.Context, _ int) ([]FileReadyEvent, error) {
-	evt := <-mel.C
-	return []FileReadyEvent{evt}, nil
+func (ms *MemorySubscriber) GetBatch(_ context.Context, _ int) ([]FileReady, error) {
+	evt := <-ms.C
+	return []FileReady{evt}, nil
 }
 
-func (mel *MemoryEventSubscriber) HandleSuccess(_ context.Context, e FileReadyEvent) error {
+func (ms *MemorySubscriber) HandleSuccess(_ context.Context, e FileReady) error {
 	logger.Info("successfully delivered file to target", "target", e.DeliverTarget)
 	return nil
 }
 
-func (mel *MemoryEventSubscriber) HandleError(_ context.Context, e FileReadyEvent, err error) {
+func (ms *MemorySubscriber) HandleError(_ context.Context, e FileReady, err error) {
 	logger.Error("failed to deliver file to target", "target", e.DeliverTarget, "error", err.Error())
 }
 
-func (ael *AzureEventSubscriber) GetBatch(ctx context.Context, max int) ([]FileReadyEvent, error) {
-	resp, _ := ael.Client.ReceiveEvents(ctx, &aznamespaces.ReceiveEventsOptions{
+func (ms *MemorySubscriber) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "Memory Subscriber"
+	rsp.Status = models.STATUS_UP
+	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
+	return rsp
+}
+
+func (as *AzureSubscriber) GetBatch(ctx context.Context, max int) ([]FileReady, error) {
+	resp, _ := as.Client.ReceiveEvents(ctx, &aznamespaces.ReceiveEventsOptions{
 		MaxEvents:   to.Ptr(int32(max)),
 		MaxWaitTime: to.Ptr[int32](60),
 	})
 
-	var fileReadyEvents []FileReadyEvent
+	var fileReadyEvents []FileReady
 	for _, e := range resp.Details {
 		logger.Info("received event", "event", e.Event.Data)
 
-		var fre FileReadyEvent
+		var fre FileReady
 		fre, err := NewFileReadyEventFromCloudEvent(e.Event, *e.BrokerProperties.LockToken)
 		if err != nil {
 			return nil, err
@@ -55,8 +70,8 @@ func (ael *AzureEventSubscriber) GetBatch(ctx context.Context, max int) ([]FileR
 	return fileReadyEvents, nil
 }
 
-func (ael *AzureEventSubscriber) HandleSuccess(ctx context.Context, e FileReadyEvent) error {
-	_, err := ael.Client.AcknowledgeEvents(ctx, []string{e.Event.LockToken}, nil)
+func (as *AzureSubscriber) HandleSuccess(ctx context.Context, e FileReady) error {
+	_, err := as.Client.AcknowledgeEvents(ctx, []string{e.Event.LockToken}, nil)
 	if err != nil {
 		logger.Error("failed to ack event", "error", err)
 		return err
@@ -65,9 +80,9 @@ func (ael *AzureEventSubscriber) HandleSuccess(ctx context.Context, e FileReadyE
 	return nil
 }
 
-func (ael *AzureEventSubscriber) HandleError(ctx context.Context, e FileReadyEvent, handlerError error) {
+func (as *AzureSubscriber) HandleError(ctx context.Context, e FileReady, handlerError error) {
 	logger.Error("failed to handle event", "event", e, "error", handlerError.Error())
-	resp, err := ael.Client.RejectEvents(ctx, []string{e.Event.LockToken}, nil)
+	resp, err := as.Client.RejectEvents(ctx, []string{e.Event.LockToken}, nil)
 	if err != nil {
 		// TODO need to handle this better
 		logger.Error("failed to reject events", "error", err.Error())
@@ -79,4 +94,30 @@ func (ael *AzureEventSubscriber) HandleError(ctx context.Context, e FileReadyEve
 	for _, t := range resp.SucceededLockTokens {
 		logger.Info("successfully dead lettered event with lock token", "token", t)
 	}
+}
+
+func (as *AzureSubscriber) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "Azure Event Subscriber"
+	rsp.Status = models.STATUS_UP
+	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
+
+	if as.Client == nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "Azure event subscriber not configured"
+		return rsp
+	}
+
+	// Check via management API
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "Failed to authenticate to Azure"
+	}
+	_, err = armeventgrid.NewClientFactory(as.Config.Subscription, cred, nil)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = fmt.Sprintf("Failed to connect to namespace %s", as.Config.Endpoint)
+	}
+
+	return rsp
 }
