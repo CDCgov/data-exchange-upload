@@ -84,18 +84,18 @@ func main() {
 
 	logger.Info("starting app")
 
-	// workers
-	fileReadyChan := make(chan event.FileReady)
-	defer close(fileReadyChan)
+	// Pub Sub
+	event.InitFileReadyChannel()
+	defer event.CloseFileReadyChannel()
 	mainWaitGroup.Add(1)
-	subscriber := cli.MakeEventSubscriber(appConfig, fileReadyChan)
+	subscriber := cli.MakeEventSubscriber(appConfig)
 	go func() {
-		cli.StartEventListener(ctx, subscriber)
+		cli.SubscribeToEvents(ctx, subscriber)
 		mainWaitGroup.Done()
 	}()
 
 	// start serving the app
-	_, err := cli.Serve(ctx, appConfig, fileReadyChan)
+	_, err := cli.Serve(ctx, appConfig)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)

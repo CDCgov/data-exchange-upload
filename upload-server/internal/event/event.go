@@ -5,6 +5,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/messaging"
 )
 
+var fileReadyChan chan FileReady
+
 type Event struct {
 	ID        string `json:"id"`
 	Type      string `json:"type"`
@@ -15,6 +17,14 @@ type FileReady struct {
 	Event
 	Manifest      map[string]string `json:"manifest"`
 	DeliverTarget string            `json:"deliver_target"`
+}
+
+func InitFileReadyChannel() {
+	fileReadyChan = make(chan FileReady)
+}
+
+func CloseFileReadyChannel() {
+	close(fileReadyChan)
 }
 
 func NewFileReadyEvent(id string, manifest map[string]string, target string) FileReady {

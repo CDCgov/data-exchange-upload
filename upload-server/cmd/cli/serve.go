@@ -20,7 +20,7 @@ import (
 	"strings"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyChan chan event.FileReady) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -70,8 +70,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyChan cha
 
 	var fileReadyPublisher event.Publisher
 	fileReadyPublisher = &event.MemoryPublisher{
-		FileReadyChannel: fileReadyChan,
-		Dir:              appConfig.LocalEventsFolder,
+		Dir: appConfig.LocalEventsFolder,
 	}
 
 	if appConfig.PublisherConnection != nil {

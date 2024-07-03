@@ -11,11 +11,9 @@ import (
 	"sync"
 )
 
-func MakeEventSubscriber(appConfig appconfig.AppConfig, c chan event.FileReady) event.Subscribable {
+func MakeEventSubscriber(appConfig appconfig.AppConfig) event.Subscribable {
 	var sub event.Subscribable
-	sub = &event.MemorySubscriber{
-		C: c,
-	}
+	sub = &event.MemorySubscriber{}
 
 	if appConfig.SubscriberConnection != nil {
 		cred := azcore.NewKeyCredential(appConfig.SubscriberConnection.AccessKey)
@@ -34,7 +32,7 @@ func MakeEventSubscriber(appConfig appconfig.AppConfig, c chan event.FileReady) 
 	return sub
 }
 
-func StartEventListener(ctx context.Context, sub event.Subscribable) {
+func SubscribeToEvents(ctx context.Context, sub event.Subscribable) {
 	for {
 		var wg sync.WaitGroup
 		events, err := sub.GetBatch(ctx, 5)

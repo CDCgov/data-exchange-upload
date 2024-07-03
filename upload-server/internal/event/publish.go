@@ -35,8 +35,8 @@ type Publisher interface {
 }
 
 type MemoryPublisher struct {
-	Dir              string
-	FileReadyChannel chan FileReady
+	Dir string
+	//FileReadyChannel chan FileReady
 }
 
 type AzurePublisher struct {
@@ -64,7 +64,7 @@ func (mp *MemoryPublisher) Publish(_ context.Context, event FileReady) error {
 		return err
 	}
 
-	mp.FileReadyChannel <- event
+	fileReadyChan <- event
 	return nil
 }
 
@@ -83,7 +83,7 @@ func (ap *AzurePublisher) Publish(ctx context.Context, event FileReady) error {
 	}
 
 	_, err = ap.Client.SendEvent(ctx, &evt, nil)
-
+	// TODO better logging
 	return err
 }
 

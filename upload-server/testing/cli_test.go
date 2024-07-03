@@ -302,15 +302,16 @@ func TestMain(m *testing.M) {
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
-	postProcessingChannel := make(chan event.FileReady)
+	//postProcessingChannel := make(chan event.FileReady)
+	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
-	testListener := cli.MakeEventSubscriber(appConfig, postProcessingChannel)
+	testListener := cli.MakeEventSubscriber(appConfig)
 	go func() {
-		cli.StartEventListener(testContext, testListener)
+		cli.SubscribeToEvents(testContext, testListener)
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig, postProcessingChannel)
+	serveHandler, err := cli.Serve(testContext, appConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -319,7 +320,7 @@ func TestMain(m *testing.M) {
 	testRes := m.Run()
 
 	ts.Close()
-	close(postProcessingChannel)
+	event.CloseFileReadyChannel()
 	os.Exit(testRes)
 }
 

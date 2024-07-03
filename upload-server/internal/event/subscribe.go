@@ -12,9 +12,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
-type MemorySubscriber struct {
-	C chan FileReady
-}
+type MemorySubscriber struct{}
 
 type AzureSubscriber struct {
 	Client *aznamespaces.ReceiverClient
@@ -29,7 +27,7 @@ type Subscribable interface {
 }
 
 func (ms *MemorySubscriber) GetBatch(_ context.Context, _ int) ([]FileReady, error) {
-	evt := <-ms.C
+	evt := <-fileReadyChan
 	return []FileReady{evt}, nil
 }
 
