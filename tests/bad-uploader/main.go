@@ -46,6 +46,8 @@ var (
 
 	templatePath string
 	repetitions  int
+
+	duration time.Duration
 )
 
 type JSONVar map[string]string
@@ -153,6 +155,7 @@ func init() {
 	flag.Var(&cases, "case-dir", "A directory of test cases.")
 	flag.StringVar(&templatePath, "template", "", "The path to a template file to use to generate test files")
 	flag.IntVar(&repetitions, "repetitions", 1, "The number of times to repeat a template when building a file")
+	flag.DurationVar(&duration, "duration", 0, "the duration to run load for.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
@@ -228,7 +231,20 @@ func main() {
 	}
 
 	tStart := time.Now()
-	if load > 0 {
+	if duration > 0 {
+		slog.Info("Running duration test test", "duration", duration)
+		i := 0
+		for {
+			if time.Since(tStart) > duration {
+				break
+			}
+			wg.Add(1)
+			c <- cases.Next()
+			i++
+		}
+		slog.Info("uploads over time", "uploads", i, "duration", duration)
+		slog.Info("roughly in 24 hours", "uploads", int((24*time.Hour)/duration)*i)
+	} else if load > 0 {
 		slog.Info("Running load test", "uploads", load)
 		for i := 0; i < load; i++ {
 			wg.Add(1)
@@ -294,6 +310,7 @@ func runTest(t TestCase, conf *config) error {
 	// create the tus client.
 	tusConf := tus.DefaultConfig()
 	tusConf.ChunkSize = int64(t.Chunk)
+	tusConf.HttpClient = &http.Client{}
 	if conf.tokenSource != nil {
 		tusConf.HttpClient = oauth2.NewClient(context.TODO(), conf.tokenSource)
 	}
@@ -312,7 +329,7 @@ func runTest(t TestCase, conf *config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create upload: %w, %+v", err, t)
 	}
-	slog.Info("UploadID", "upload_id", uploader.Url())
+	slog.Debug("UploadID", "upload_id", uploader.Url())
 	c := make(chan tus.Upload)
 	uploader.NotifyUploadProgress(c)
 	go func(c chan tus.Upload, url string) {
