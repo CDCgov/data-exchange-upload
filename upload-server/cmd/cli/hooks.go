@@ -2,13 +2,17 @@ package cli
 
 import (
 	"context"
+	"os"
+	"strconv"
+	"time"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
-	"os"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	azureloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/azure"
 	fileloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/file"
+	mmsloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/mms"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
@@ -35,6 +39,32 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan po
 		},
 	}
 
+	if appConfig.MmsApiURI != "" {
+		// Initialize MMS loader
+		ttlMinutes, err := strconv.Atoi(appConfig.MmsApiRedisCacheTTL)
+		if err != nil {
+			return nil, err
+		}
+
+		metadata.Cache.Loader = mmsloader.NewAPIConfigLoader(
+			appConfig.MmsApiURI,
+			appConfig.TusRedisLockURI,
+			time.Duration(ttlMinutes)*time.Minute,
+		)
+	} else {
+		if appConfig.AzureConnection != nil {
+			// Initialize Azure loader
+			client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
+			if err != nil {
+				return nil, err
+			}
+			metadata.Cache.Loader = &azureloader.AzureConfigLoader{
+				Client:        client,
+				ContainerName: appConfig.AzureManifestConfigContainer,
+			}
+		}
+	}
+
 	manifestValidator := metadata.SenderManifestVerification{
 		Configs: metadata.Cache,
 	}
@@ -45,15 +75,6 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan po
 	var routingDeliverer postprocessing.Deliverer
 
 	if appConfig.AzureConnection != nil {
-		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
-		if err != nil {
-			return nil, err
-		}
-		metadata.Cache.Loader = &azureloader.AzureConfigLoader{
-			Client:        client,
-			ContainerName: appConfig.AzureManifestConfigContainer,
-		}
-
 		tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
 		if err != nil {
 			return nil, err
