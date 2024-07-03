@@ -278,6 +278,8 @@ func runTest(t TestCase, conf *config) error {
 	if conf.tokenSource != nil {
 		tusConf.HttpClient = oauth2.NewClient(context.TODO(), conf.tokenSource)
 	}
+	tusConf.Header.Set("Upload-Defer-Length", "1")
+	tusConf.Header.Set("Upload-Length", "")
 	client, err := tus.NewClient(conf.url, tusConf)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w, %+v", err, t)

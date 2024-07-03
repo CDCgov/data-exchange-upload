@@ -4,9 +4,24 @@ import (
 	"io"
 	"log"
 	"log/slog"
-	"os"
+	"math/rand"
 	"text/template"
 )
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+var funcs = template.FuncMap{
+	"RandomString": randSeq,
+	"RandomInt":    rand.Intn,
+}
 
 type TemplateGenerator struct {
 	t        *template.Template
@@ -18,16 +33,20 @@ type TemplateGenerator struct {
 }
 
 func (tg *TemplateGenerator) Size() int64 {
-	fi, err := os.Stat(tg.Path)
-	if err != nil {
-		log.Fatalf(err.Error())
+	if err := tg.next(); err != nil {
+		log.Fatal(err)
 	}
-	return fi.Size() * int64(tg.Repeats)
+	b, err := io.ReadAll(tg.r)
+	if err != nil {
+		log.Fatal(err)
+	}
+	size := len(b)
+	return int64(size) * int64(tg.Repeats)
 }
 
 func (tg *TemplateGenerator) next() (err error) {
 	if tg.t == nil {
-		tg.t, err = template.New(tg.Path).ParseFiles(tg.Path)
+		tg.t, err = template.New(tg.Path).Funcs(funcs).ParseFiles(tg.Path)
 		if err != nil {
 			return err
 		}
@@ -37,7 +56,9 @@ func (tg *TemplateGenerator) next() (err error) {
 
 	go func() {
 		slog.Debug("writing template")
-		tg.t.Execute(tg.w, nil)
+		if err := tg.t.Execute(tg.w, nil); err != nil {
+			slog.Error("failed to execute template", "error", err)
+		}
 		tg.w.Close()
 	}()
 	return nil
