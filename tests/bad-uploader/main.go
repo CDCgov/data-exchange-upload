@@ -232,7 +232,7 @@ func main() {
 
 	tStart := time.Now()
 	if duration > 0 {
-		slog.Info("Running duration test test", "duration", duration)
+		slog.Info("Running duration test", "duration", duration)
 		i := 0
 		for {
 			if time.Since(tStart) > duration {
@@ -252,7 +252,7 @@ func main() {
 		}
 	} else {
 		slog.Info("Running benchmark")
-		result := testing.Benchmark(asPallelBenchmark(c, cases.Next))
+		result := testing.Benchmark(asParallelBenchmark(c, cases.Next))
 		defer fmt.Printf("Benchmarking results: %f seconds/op\n", float64(result.NsPerOp())/float64(time.Second))
 	}
 	wg.Wait()
@@ -273,7 +273,7 @@ func worker(c <-chan TestCase, conf *config) {
 	}
 }
 
-func asPallelBenchmark(c chan TestCase, next func() TestCase) func(*testing.B) {
+func asParallelBenchmark(c chan TestCase, next func() TestCase) func(*testing.B) {
 	return func(b *testing.B) {
 		slog.Info("benchmarking", "runs", b.N)
 		for i := 0; i < b.N; i++ {
