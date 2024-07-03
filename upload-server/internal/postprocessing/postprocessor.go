@@ -2,8 +2,6 @@ package postprocessing
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"log/slog"
@@ -25,81 +23,6 @@ type PostProcessor struct {
 	UploadDir     string
 }
 
-type MemoryEventListener struct {
-	C chan event.FileReadyEvent
-}
-
-type AzureEventListener struct {
-	Client aznamespaces.ReceiverClient
-}
-
 func ProcessFileReadyEvent(ctx context.Context, e event.FileReadyEvent) error {
 	return Deliver(ctx, e.ID, e.Manifest, e.DeliverTarget)
-}
-
-type EventProcessable interface {
-	GetEventBatch(ctx context.Context, max int) ([]event.FileReadyEvent, error)
-	HandleSuccess(ctx context.Context, event event.FileReadyEvent) error
-	HandleError(ctx context.Context, event event.FileReadyEvent, handlerError error)
-}
-
-func (mel *MemoryEventListener) GetEventBatch(_ context.Context, _ int) ([]event.FileReadyEvent, error) {
-	evt := <-mel.C
-	return []event.FileReadyEvent{evt}, nil
-}
-
-func (mel *MemoryEventListener) HandleSuccess(_ context.Context, e event.FileReadyEvent) error {
-	logger.Info("successfully delivered file to target", "target", e.DeliverTarget)
-	return nil
-}
-
-func (mel *MemoryEventListener) HandleError(_ context.Context, e event.FileReadyEvent, err error) {
-	logger.Error("failed to deliver file to target", "target", e.DeliverTarget, "error", err.Error())
-}
-
-func (ael *AzureEventListener) GetEventBatch(ctx context.Context, max int) ([]event.FileReadyEvent, error) {
-	resp, _ := ael.Client.ReceiveEvents(ctx, &aznamespaces.ReceiveEventsOptions{
-		MaxEvents:   to.Ptr(int32(max)),
-		MaxWaitTime: to.Ptr[int32](60),
-	})
-
-	var fileReadyEvents []event.FileReadyEvent
-	for _, e := range resp.Details {
-		logger.Info("received event", "event", e.Event.Data)
-
-		var fre event.FileReadyEvent
-		fre, err := event.NewFileReadyEventFromCloudEvent(e.Event, *e.BrokerProperties.LockToken)
-		if err != nil {
-			return nil, err
-		}
-		fileReadyEvents = append(fileReadyEvents, fre)
-	}
-
-	return fileReadyEvents, nil
-}
-
-func (ael *AzureEventListener) HandleSuccess(ctx context.Context, e event.FileReadyEvent) error {
-	_, err := ael.Client.AcknowledgeEvents(ctx, []string{e.Event.LockToken}, nil)
-	if err != nil {
-		logger.Error("failed to ack event", "error", err)
-		return err
-	}
-	logger.Info("successfully handled event", "event", e)
-	return nil
-}
-
-func (ael *AzureEventListener) HandleError(ctx context.Context, e event.FileReadyEvent, handlerError error) {
-	logger.Error("failed to handle event", "event", e, "error", handlerError.Error())
-	resp, err := ael.Client.RejectEvents(ctx, []string{e.Event.LockToken}, nil)
-	if err != nil {
-		// TODO need to handle this better
-		logger.Error("failed to reject events", "error", err.Error())
-		for _, t := range resp.FailedLockTokens {
-			logger.Error("failed to dead letter event with lock token", "token", t)
-		}
-	}
-
-	for _, t := range resp.SucceededLockTokens {
-		logger.Info("successfully dead lettered event with lock token", "token", t)
-	}
 }

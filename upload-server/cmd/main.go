@@ -88,7 +88,7 @@ func main() {
 	fileReadyChan := make(chan event.FileReadyEvent)
 	defer close(fileReadyChan)
 	mainWaitGroup.Add(1)
-	listener := cli.MakeEventListener(appConfig, fileReadyChan)
+	listener := cli.MakeEventSubscriber(appConfig, fileReadyChan)
 	go func() {
 		cli.StartEventListener(ctx, listener)
 		mainWaitGroup.Done()

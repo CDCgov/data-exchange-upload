@@ -10,9 +10,9 @@ import (
 	"sync"
 )
 
-func MakeEventListener(appConfig appconfig.AppConfig, c chan event.FileReadyEvent) postprocessing.EventProcessable {
-	var listener postprocessing.EventProcessable
-	listener = &postprocessing.MemoryEventListener{
+func MakeEventSubscriber(appConfig appconfig.AppConfig, c chan event.FileReadyEvent) event.Subscribable {
+	var sub event.Subscribable
+	sub = &event.MemoryEventSubscriber{
 		C: c,
 	}
 
@@ -22,18 +22,18 @@ func MakeEventListener(appConfig appconfig.AppConfig, c chan event.FileReadyEven
 		if err != nil {
 			logger.Error("failed to configure azure receiver", "error", err)
 		}
-		listener = &postprocessing.AzureEventListener{
+		sub = &event.AzureEventSubscriber{
 			Client: *client,
 		}
 	}
 
-	return listener
+	return sub
 }
 
-func StartEventListener(ctx context.Context, listener postprocessing.EventProcessable) {
+func StartEventListener(ctx context.Context, sub event.Subscribable) {
 	for {
 		var wg sync.WaitGroup
-		events, err := listener.GetEventBatch(ctx, 5)
+		events, err := sub.GetBatch(ctx, 5)
 		if err != nil {
 			// TODO dead letter
 			continue
@@ -44,40 +44,22 @@ func StartEventListener(ctx context.Context, listener postprocessing.EventProces
 		default:
 			for _, e := range events {
 				wg.Add(1)
-				e := e // TODO is this necessary?
-				go func() {
+				go func(e event.FileReadyEvent) {
 					defer wg.Done()
-					//listener.Process(ctx, e)
-
 					err := postprocessing.ProcessFileReadyEvent(ctx, e)
 					if err != nil {
-						listener.HandleError(ctx, e, err)
+						sub.HandleError(ctx, e, err)
 						return
 					}
-					err = listener.HandleSuccess(ctx, e)
+					err = sub.HandleSuccess(ctx, e)
 					if err != nil {
-						listener.HandleError(ctx, e, err)
+						sub.HandleError(ctx, e, err)
 						return
 					}
 
-				}()
+				}(e)
 			}
 			wg.Wait()
 		}
 	}
-
-	//var wg sync.WaitGroup
-	//numWorkers := len(workers)
-	//wg.Add(numWorkers)
-	//
-	//for i := 0; i < numWorkers; i++ {
-	//	i := i // TODO is this needed?
-	//	go func() {
-	//		//postprocessing.Worker(ctx, c)
-	//		workers[i].DoWork(ctx)
-	//		wg.Done()
-	//	}()
-	//}
-	//
-	//wg.Wait()
 }
