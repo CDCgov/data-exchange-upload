@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,8 +13,6 @@ import (
 	"syscall"
 	"testing"
 	"time"
-
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -85,17 +84,18 @@ func main() {
 
 	logger.Info("starting app")
 
-	// workers
-	postProcessingChannel := make(chan postprocessing.Event)
-	defer close(postProcessingChannel)
+	// Pub Sub
+	event.InitFileReadyChannel()
+	defer event.CloseFileReadyChannel()
 	mainWaitGroup.Add(1)
+	subscriber := cli.MakeEventSubscriber(appConfig)
 	go func() {
-		cli.StartProcessorWorkers(ctx, postProcessingChannel)
+		cli.SubscribeToEvents(ctx, subscriber)
 		mainWaitGroup.Done()
 	}()
 
 	// start serving the app
-	_, err := cli.Serve(ctx, appConfig, postProcessingChannel)
+	_, err := cli.Serve(ctx, appConfig)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)

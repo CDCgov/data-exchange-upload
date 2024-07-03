@@ -97,8 +97,6 @@ func newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint string) (*
 	return client, nil
 } // .newAzBlobClient
 
-// TODO helper for getting credential via service principle or key
-
 func canUseStorageKey(conf appconfig.AzureStorageConfig) bool {
 	return conf.StorageKey != ""
 }
