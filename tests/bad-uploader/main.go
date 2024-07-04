@@ -66,6 +66,7 @@ func (f *JSONVar) Set(s string) error {
 }
 
 type SubTemplate struct {
+	Name        string
 	Repetitions int
 	Args        map[string]any
 }
@@ -75,7 +76,7 @@ type TestCase struct {
 	Size         float64
 	Manifest     map[string]string
 	TemplateFile string
-	Templates    map[string]SubTemplate
+	Templates    []SubTemplate
 	Repetitions  int
 }
 

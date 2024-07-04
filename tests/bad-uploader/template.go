@@ -32,7 +32,7 @@ type TemplateGenerator struct {
 	t         *template.Template
 	Path      string
 	Repeats   int
-	Templates map[string]SubTemplate
+	Templates []SubTemplate
 	Manifest  map[string]string
 	r         io.Reader
 	w         io.WriteCloser
@@ -53,17 +53,16 @@ func (tg *TemplateGenerator) next() (err error) {
 	tg.r, tg.w = io.Pipe()
 
 	go func() {
-		templates := tg.t.Templates()
+		templates := tg.Templates
 		for _, t := range templates {
 			slog.Debug("writing template")
 			// ok we know this generates the whole template, so it can be a memory issue
-			temp := tg.Templates[t.Name()]
-			if temp.Args == nil {
-				temp.Args = map[string]any{}
+			if t.Args == nil {
+				t.Args = map[string]any{}
 			}
-			for i := range temp.Repetitions {
-				temp.Args["Index"] = i
-				if err := tg.t.ExecuteTemplate(tg.w, t.Name(), temp.Args); err != nil {
+			for i := range t.Repetitions {
+				t.Args["Index"] = i
+				if err := tg.t.ExecuteTemplate(tg.w, t.Name, t.Args); err != nil {
 					slog.Error("failed to execute template", "error", err)
 				}
 			}

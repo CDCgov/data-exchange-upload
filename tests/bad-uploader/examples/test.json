@@ -1,0 +1,20 @@
+{
+    "Chunk": 5,
+    "Manifest": {
+		"meta_destination_id": "dextesting",
+		"meta_ext_event":      "testevent1",
+		"filename":            "test"
+	},
+	"templatefile": "examples/test.hl7",
+	"templates": [
+		{
+			"name": "header",
+			"repetitions": 1
+		},
+		{
+			"name": "obx",
+			"repetitions": 12
+		}
+	],
+	"repetitions": 2
+}

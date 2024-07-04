@@ -1,0 +1,11 @@
+{{- define "header"}}
+MSH|^~\&|HL7|CG3_SICU|CE_CENTRAL|GH_CSF|20251014154001||ORU^R01|{{RandomString 14}}|P|2.3||||||UNICODE UTF-8
+PID|||10002^^^A^MR||RAPID^^|^^|||||^^^^^^^||||||||||||||||||
+PV1||E|G52008|||||||||||||||||||||||||||||||||||||||||
+{{- end}}
+{{- define "obr"}}
+OBR|{{.Index}}||||||20251014154001||||||||||||||||||||^^^^|||||||||
+{{- end}}
+{{- define "obx"}}
+OBX|{{.Index}}|ST|HR||68|/min|||||R
+{{- end}}
