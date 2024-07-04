@@ -65,12 +65,18 @@ func (f *JSONVar) Set(s string) error {
 	return json.Unmarshal([]byte(s), f)
 }
 
-type TestCase struct {
-	Chunk       float64
-	Size        float64
-	Manifest    map[string]string
-	Template    string
+type SubTemplate struct {
 	Repetitions int
+	Args        map[string]any
+}
+
+type TestCase struct {
+	Chunk        float64
+	Size         float64
+	Manifest     map[string]string
+	TemplateFile string
+	Templates    map[string]SubTemplate
+	Repetitions  int
 }
 
 func (t *TestCase) String() string {
@@ -102,7 +108,7 @@ func (t *TestCase) Set(s string) error {
 		return fmt.Errorf("chunk size must be > 1 byte")
 	}
 
-	if t.Size < 1 && t.Template == "" {
+	if t.Size < 1 && t.TemplateFile == "" {
 		return fmt.Errorf("size of file must be > 1 byte")
 	}
 	return nil
@@ -175,7 +181,7 @@ func init() {
 			Manifest: manifest,
 		}
 		if templatePath != "" {
-			testcase.Template = templatePath
+			testcase.TemplateFile = templatePath
 			testcase.Repetitions = repetitions
 		}
 	}
@@ -293,11 +299,12 @@ type uploadable interface {
 func runTest(t TestCase, conf *config) error {
 
 	var f uploadable
-	if t.Template != "" {
+	if t.TemplateFile != "" {
 		f = &TemplateGenerator{
-			Repeats:  t.Repetitions,
-			Path:     t.Template,
-			Manifest: t.Manifest,
+			Repeats:   t.Repetitions,
+			Path:      t.TemplateFile,
+			Templates: t.Templates,
+			Manifest:  t.Manifest,
 		}
 	} else {
 		f = &BadFile{
@@ -345,6 +352,9 @@ func runTest(t TestCase, conf *config) error {
 			}
 			return err
 		}
+		m := &runtime.MemStats{}
+		runtime.ReadMemStats(m)
+		log.Println("sys mem", m.Sys)
 	}
 	return nil
 }
