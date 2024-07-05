@@ -20,18 +20,18 @@ type UploadInspecter interface {
 }
 
 type InfoHandler struct {
-	inspecter UploadInspecter
+	inspector UploadInspecter
 }
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("UploadID")
 
-	fileInfo, err := ih.inspecter.InspectInfoFile(r.Context(), id)
+	fileInfo, err := ih.inspector.InspectInfoFile(r.Context(), id)
 	if err != nil {
 		http.Error(rw, "error getting file manifest", getStatusFromError(err))
 		return
 	}
-	uploadedFileInfo, err := ih.inspecter.InspectUploadedFile(r.Context(), id)
+	uploadedFileInfo, err := ih.inspector.InspectUploadedFile(r.Context(), id)
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("error getting file info.  Manifest: %#v", fileInfo), getStatusFromError(err))
 		return
