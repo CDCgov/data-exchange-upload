@@ -26,9 +26,13 @@ type Subscribable interface {
 	HandleError(ctx context.Context, event FileReady, handlerError error)
 }
 
-func (ms *MemorySubscriber) GetBatch(_ context.Context, _ int) ([]FileReady, error) {
-	evt := <-fileReadyChan
-	return []FileReady{evt}, nil
+func (ms *MemorySubscriber) GetBatch(ctx context.Context, _ int) ([]FileReady, error) {
+	select {
+	case <-ctx.Done():
+		return nil, nil
+	case evt := <-fileReadyChan:
+		return []FileReady{evt}, nil
+	}
 }
 
 func (ms *MemorySubscriber) HandleSuccess(_ context.Context, e FileReady) error {
