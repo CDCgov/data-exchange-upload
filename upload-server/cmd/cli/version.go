@@ -10,9 +10,9 @@ type VersionHandler struct{}
 
 func (vh *VersionHandler) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
 	resp := &version.Response{
-		Repo:             version.GitRepo,
-		LatestReleaseTag: version.LatestReleaseTag,
-		GitShortSha:      version.GitShortSha,
+		Repo:                 version.GitRepo,
+		LatestReleaseVersion: version.LatestReleaseVersion,
+		GitShortSha:          version.GitShortSha,
 	}
 
 	rw.Header().Set("Content-Type", "application/json")

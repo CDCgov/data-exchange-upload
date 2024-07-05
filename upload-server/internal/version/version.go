@@ -1,13 +1,13 @@
 package version
 
 var (
-	GitRepo          string
-	LatestReleaseTag string
-	GitShortSha      string
+	GitRepo              string
+	LatestReleaseVersion string
+	GitShortSha          string
 )
 
 type Response struct {
-	Repo             string `json:"repo"`
-	LatestReleaseTag string `json:"latest_release_tag"`
-	GitShortSha      string `json:"git_short_sha"`
+	Repo                 string `json:"repo"`
+	LatestReleaseVersion string `json:"latest_release_version"`
+	GitShortSha          string `json:"git_short_sha"`
 }
