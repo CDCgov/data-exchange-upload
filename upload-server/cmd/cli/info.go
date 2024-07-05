@@ -14,13 +14,13 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 )
 
-type UploadInspecter interface {
+type UploadInspector interface {
 	InspectInfoFile(c context.Context, id string) (map[string]any, error)
 	InspectUploadedFile(c context.Context, id string) (map[string]any, error)
 }
 
 type InfoHandler struct {
-	inspector UploadInspecter
+	inspector UploadInspector
 }
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -54,7 +54,7 @@ func getStatusFromError(err error) int {
 	return http.StatusInternalServerError
 }
 
-func createInspector(appConfig *appconfig.AppConfig) (UploadInspecter, error) {
+func createInspector(appConfig *appconfig.AppConfig) (UploadInspector, error) {
 	if appConfig.AzureConnection != nil {
 		// Create tus container client.
 		containerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
