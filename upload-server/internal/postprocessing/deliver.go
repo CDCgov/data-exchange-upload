@@ -194,29 +194,6 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 
 	logger.Info("successful copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
 
-	//resp, err := destBlobClient.StartCopyFromURL(ctx, srcBlobClient.URL(), nil)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//status := *resp.CopyStatus
-	//var statusDescription string
-	//for status == blob.CopyStatusTypePending {
-	//	getPropResp, err := destBlobClient.GetProperties(ctx, nil)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	status = *getPropResp.CopyStatus
-	//	statusDescription = *getPropResp.CopyStatusDescription
-	//	logger.Info("Copy progress", "status", fmt.Sprintf("%s", status))
-	//}
-	//
-	//if status != blob.CopyStatusTypeSuccess {
-	//	return fmt.Errorf("copy to target %s unsuccessful with status %s and description %s", ad.Target, status, statusDescription)
-	//}
-	//
-	//logger.Info("Copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL(), "status", status)
-
 	return nil
 }
 
