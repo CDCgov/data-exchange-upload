@@ -18,20 +18,18 @@ class DataProvider {
         @DataProvider(name = "validManifestAllProvider")
         @JvmStatic
         fun validManifestAllProvider(): Array<Array<HashMap<String, String>>> {
-            val useCases: List<String> = System.getProperty("useCases")?.split(",") ?: arrayListOf()
+            val useCases: String? = System.getProperty("useCases")
             val validManifests = arrayOf("valid_manifests_v1.json", "valid_manifests_v2.json")
             val manifests = arrayListOf<HashMap<String, String>>()
-
-            val criteriaString: String? = System.getProperty("criteria")
-            val criteria: Map<String, String> = criteriaString?.split(",")?.associate {
+            val manifestFilter: HashMap<String, String> = useCases?.split(",")?.associate {
                 val (key, value) = it.split(":")
                 key to value
-            } ?: emptyMap()
+            }?.let { HashMap(it) } ?: HashMap()
 
             validManifests.forEach {
                 val jsonBytes = TestFile.getResourceFile(it).readBytes()
                 val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
-                val filtered = filterByUseCases(useCases, manifestJsons, criteria)
+                val filtered = filterByUseCases(manifestJsons, manifestFilter)
                 manifests.addAll(filtered)
             }
 
@@ -41,17 +39,20 @@ class DataProvider {
         @DataProvider(name = "validManifestV1Provider")
         @JvmStatic
         fun validManifestV1Provider(): Array<Array<HashMap<String, String>>> {
-            val useCases: List<String> = System.getProperty("useCases")?.split(",") ?: arrayListOf()
-
-            val criteriaString: String? = System.getProperty("criteria")
-            val criteria: Map<String, String> = criteriaString?.split(",")?.associate {
+            val useCases: String? = System.getProperty("useCases")
+            val validManifests = arrayOf("valid_manifests_v1.json")
+            val manifests = arrayListOf<HashMap<String, String>>()
+            val manifestFilter: HashMap<String, String> = useCases?.split(",")?.associate {
                 val (key, value) = it.split(":")
                 key to value
-            } ?: emptyMap()
+            }?.let { HashMap(it) } ?: HashMap()
 
-            val jsonBytes = TestFile.getResourceFile("valid_manifests_v1.json").readBytes()
-            val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
-            val manifests = filterByUseCases(useCases, manifestJsons, criteria)
+            validManifests.forEach {
+                val jsonBytes = TestFile.getResourceFile(it).readBytes()
+                val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
+                val filtered = filterByUseCases(manifestJsons, manifestFilter)
+                manifests.addAll(filtered)
+            }
 
             return manifests.map { arrayOf(it) }.toTypedArray()
         }
@@ -59,17 +60,20 @@ class DataProvider {
         @DataProvider(name = "invalidManifestRequiredFieldsProvider")
         @JvmStatic
         fun invalidManifestRequiredFieldsProvider(): Array<Array<HashMap<String, String>>> {
-            val useCases: List<String> = System.getProperty("useCases")?.split(",") ?: arrayListOf()
-
-            val criteriaString: String? = System.getProperty("criteria")
-            val criteria: Map<String, String> = criteriaString?.split(",")?.associate {
+            val useCases: String? = System.getProperty("useCases")
+            val validManifests = arrayOf("invalid_manifests_required_fields.json")
+            val manifests = arrayListOf<HashMap<String, String>>()
+            val manifestFilter: HashMap<String, String> = useCases?.split(",")?.associate {
                 val (key, value) = it.split(":")
                 key to value
-            } ?: emptyMap()
+            }?.let { HashMap(it) } ?: HashMap()
 
-            val jsonBytes = TestFile.getResourceFile("invalid_manifests_required_fields.json").readBytes()
-            val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
-            val manifests = filterByUseCases(useCases, manifestJsons, criteria)
+            validManifests.forEach {
+                val jsonBytes = TestFile.getResourceFile(it).readBytes()
+                val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
+                val filtered = filterByUseCases(manifestJsons, manifestFilter)
+                manifests.addAll(filtered)
+            }
 
             return manifests.map { arrayOf(it) }.toTypedArray()
         }
@@ -77,33 +81,31 @@ class DataProvider {
         @DataProvider(name = "invalidManifestInvalidValueProvider")
         @JvmStatic
         fun invalidManifestInvalidValueProvider(): Array<Array<HashMap<String, String>>> {
-            val useCases: List<String> = System.getProperty("useCases")?.split(",") ?: arrayListOf()
-
-            val criteriaString: String? = System.getProperty("criteria")
-            val criteria: Map<String, String> = criteriaString?.split(",")?.associate {
+            val useCases: String? = System.getProperty("useCases")
+            val validManifests = arrayOf("invalid_manifests_invalid_value.json")
+            val manifests = arrayListOf<HashMap<String, String>>()
+            val manifestFilter: HashMap<String, String> = useCases?.split(",")?.associate {
                 val (key, value) = it.split(":")
                 key to value
-            } ?: emptyMap()
+            }?.let { HashMap(it) } ?: HashMap()
 
-            val jsonBytes = TestFile.getResourceFile("invalid_manifests_invalid_value.json").readBytes()
-            val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
-            val manifests = filterByUseCases(useCases, manifestJsons, criteria)
+            validManifests.forEach {
+                val jsonBytes = TestFile.getResourceFile(it).readBytes()
+                val manifestJsons: List<HashMap<String, String>> = ObjectMapper().readValue(jsonBytes)
+                val filtered = filterByUseCases(manifestJsons, manifestFilter)
+                manifests.addAll(filtered)
+            }
 
             return manifests.map { arrayOf(it) }.toTypedArray()
         }
 
         private fun filterByUseCases(
-            useCases: List<String>,
             manifests: List<HashMap<String, String>>,
-            criteria: Map<String, String>
+            manifestFilter: HashMap<String, String>
         ): List<HashMap<String, String>> {
-            return if (useCases.isNotEmpty()) {
+            return if (manifestFilter.isNotEmpty()) {
                 manifests.filter { m ->
-                    val useCase = if (m.containsKey("version") && m["version"] == "2.0")
-                        "${m["data_stream_id"]}-${m["data_stream_route"]}"
-                    else "${m["meta_destination_id"]}-${m["meta_ext_event"]}"
-
-                    useCases.contains(useCase) && criteria.all { (key, value) ->
+                    manifestFilter.all { (key, value) ->
                         m[key] == value
                     }
                 }
