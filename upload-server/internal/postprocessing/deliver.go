@@ -181,6 +181,7 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
 	s, err := srcBlobClient.DownloadStream(ctx, nil)
+	defer s.Body.Close()
 	if err != nil {
 		return err
 	}
