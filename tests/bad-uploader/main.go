@@ -14,6 +14,7 @@ import (
 	"net/http"
 	neturl "net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -337,6 +338,10 @@ func runTest(t TestCase, conf *config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create upload: %w, %+v", err, t)
 	}
+	log.Println(uploader.Url())
+
+	uploader.SetUrl("https://apidev.cdc.gov/upload/files/" + path.Base(uploader.Url()))
+
 	slog.Debug("UploadID", "upload_id", uploader.Url())
 	c := make(chan tus.Upload)
 	uploader.NotifyUploadProgress(c)
@@ -349,6 +354,7 @@ func runTest(t TestCase, conf *config) error {
 	for {
 		if err := uploader.UploadChunck(); err != nil {
 			if errors.Is(err, io.EOF) {
+				log.Println("got eof")
 				break
 			}
 			return err
@@ -391,21 +397,23 @@ func (b *BadFile) Fingerprint() string {
 
 func (b *BadFile) Read(p []byte) (int, error) {
 
-	if b.offset > b.FileSize {
-		return 0, io.EOF
-	}
 	// needs to limit size read to size eventually
 	i, err := b.DummyGenerator.Read(p)
 	if err != nil {
 		return i, err
 	}
+	log.Println("reading", b.offset, b.FileSize)
 
 	if b.offset+i > b.FileSize {
-		n := (b.offset + 1) - b.FileSize
-		b.offset += i
-		return n, nil
+		i = b.FileSize - b.offset
 	}
+
 	b.offset += i
+
+	if b.offset >= b.FileSize {
+		return i, io.EOF
+	}
+	log.Println("read", b.offset, b.FileSize)
 	return i, nil
 }
 
