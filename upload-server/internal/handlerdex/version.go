@@ -6,15 +6,17 @@ import (
 ) // .import
 
 // TODO: replace with git SHA in github actions at commit time
-const GitRepo = "%%git remote get-url remote-name%%"
+const GitRepo = "%%GIT_REPO%%"
 const GitVersion = "%%GIT_VERSION%%"
 const GitShortVersion = "%%GIT_SHORT_VERSION%%"
+const LatestReleaseTag = "%%LATEST_RELEASE_TAG%%"
 
 // VersionResp can be used if needed to populate file metadata
 type VersionResp struct {
-	GitRepo         string `json:"git_repo"`
-	GitVersion      string `json:"git_version"`
-	GitShortVersion string `json:"git_short_version"`
+	GitRepo          string `json:"git_repo"`
+	GitVersion       string `json:"git_version"`
+	GitShortVersion  string `json:"git_short_version"`
+	LatestReleaseTag string `json:"latest_release_tag"`
 } // .VersionResp
 
 // version provide git repo and version from where this app was built
