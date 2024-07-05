@@ -15,6 +15,7 @@ func (vh *VersionHandler) ServeHTTP(rw http.ResponseWriter, _ *http.Request) {
 		GitShortSha:      version.GitShortSha,
 	}
 
+	rw.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(rw)
 	enc.Encode(resp)
 }
