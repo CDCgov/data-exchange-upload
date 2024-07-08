@@ -147,6 +147,14 @@ func GetDataStreamRoute(manifest map[string]string) string {
 
 }
 
+func GetJurisdiction(manifest map[string]string) string {
+	return manifest["jurisdiction"]
+}
+
+func GetDexIngestDatetime(manifest map[string]string) string {
+	return manifest["dex_ingest_datetime"]
+}
+
 func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
 	p := ""
 	config, err := GetConfigFromManifest(ctx, manifest)
@@ -222,26 +230,37 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	content := &models.MetaDataVerifyContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "0.0.1",
-			SchemaName:    "dex-metadata-verify",
-		},
-		Filename: GetFilename(manifest),
-		Metadata: manifest,
-	}
+	rb := reports.NewBuilder("1.0.0")
+	rb.SetStartTime(time.Now().UTC())
+	rb.SetUploadId(tuid)
+	rb.SetManifest(manifest)
+	rb.SetDispositionType("add")
 
-	report := &models.Report{
-		UploadID:        tuid,
-		DataStreamID:    GetDataStreamID(manifest),
-		DataStreamRoute: GetDataStreamRoute(manifest),
-		StageName:       "dex-metadata-verify",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
+	//content := &models.MetaDataVerifyContent{
+	//	ReportContent: models.ReportContent{
+	//		SchemaVersion: "0.0.1",
+	//		SchemaName:    "dex-metadata-verify",
+	//	},
+	//	Filename: GetFilename(manifest),
+	//	Metadata: manifest,
+	//}
+	//
+	//report := &models.Report{
+	//	UploadID:        tuid,
+	//	DataStreamID:    GetDataStreamID(manifest),
+	//	DataStreamRoute: GetDataStreamRoute(manifest),
+	//	StageName:       "dex-metadata-verify",
+	//	ContentType:     "json",
+	//	DispositionType: "add",
+	//	Content:         content,
+	//}
 
 	defer func() {
+		report, err := rb.Build("dex-metadata-verify")
+		if err != nil {
+			logger.Error("error building report", "error", err.Error())
+			return
+		}
 		logger.Info("REPORT", "report", report)
 		reports.Publish(event.Context, report)
 	}()
@@ -249,7 +268,9 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	if err := v.verify(event.Context, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
-		content.Issues = &validation.ValidationError{Err: err}
+		rb.SetStatus("failed")
+		rb.AppendIssue(err.Error())
+		//content.Issues = &validation.ValidationError{Err: err}
 
 		if errors.Is(err, validation.ErrFailure) {
 			resp.RejectUpload = true
@@ -262,6 +283,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, err
 	}
 
+	rb.SetStatus("success")
 	return resp, nil
 }
 
