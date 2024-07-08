@@ -1,18 +1,30 @@
 package models
 
 type Report struct {
-	UploadID        string `json:"upload_id"`
-	StageName       string `json:"stage_name"`
-	DataStreamID    string `json:"data_stream_id"`
-	DataStreamRoute string `json:"data_stream_route"`
-	ContentType     string `json:"content_type"`
-	DispositionType string `json:"disposition_type"`
-	Content         any    `json:"content"` // TODO: Can we limit this to a specific type (i.e. ReportContent or UploadStatusTYpe type?
+	ReportSchemaVersion string `json:"report_schema_version"`
+	UploadID            string `json:"upload_id"`
+	DataStreamID        string `json:"data_stream_id"`
+	DataStreamRoute     string `json:"data_stream_route"`
+	Jurisdiction        string `json:"jurisdiction"`
+	DexIngestDatetime   string `json:"dex_ingest_datetime"`
+	ContentType         string `json:"content_type"`
+	DispositionType     string `json:"disposition_type"`
+	Content             any    `json:"content"` // TODO: Can we limit this to a specific type (i.e. ReportContent or UploadStatusTYpe type?
+}
+
+type ReportStageInfo struct {
+	Service          string   `json:"service"`
+	Stage            string   `json:"stage"`
+	Version          string   `json:"version"`
+	Status           string   `json:"status"`
+	Issues           []string `json:"issues"`
+	StartProcessTime string   `json:"start_process_time"`
+	EndProcessTime   string   `json:"end_process_time"`
 }
 
 type ReportContent struct {
-	SchemaVersion string `json:"schema_version"`
 	SchemaName    string `json:"schema_name"`
+	SchemaVersion string `json:"schema_version"`
 }
 
 type UploadLifecycleContent struct {
@@ -22,9 +34,9 @@ type UploadLifecycleContent struct {
 
 type MetaDataVerifyContent struct {
 	ReportContent
-	Filename string `json:"filename"`
-	Metadata any    `json:"metadata"`
-	Issues   error  `json:"issues"`
+	Filename  string `json:"filename"`
+	Metadata  any    `json:"metadata"`
+	Timestamp string `json:"timestamp"`
 }
 
 type MetaDataTransformContent struct {
@@ -50,9 +62,9 @@ type UploadStatusContent struct {
 
 type FileCopyContent struct {
 	ReportContent
-	Result           string `json:"result"`
-	Destination      string `json:"destination"`
-	ErrorDescription string `json:"error_description"`
+	FileSourceBlobUrl      string `json:"file_source_blob_url"`
+	FileDestinationBlobUrl string `json:"file_destination_blob_url"`
+	Timestamp              string `json:"timestamp"`
 }
 
 func (r *Report) Identifier() string {
