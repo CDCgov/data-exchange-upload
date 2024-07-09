@@ -30,14 +30,25 @@ They are run by executing the `gradle test` comment with a few gradle properties
 
 `gradle test`
 
+We can run tests with single use case or multiple use cases specified in a single command line argument.
+
 - Run only the test use case:
 
-`gradle test -PuseCases=dextesting-testevent1`
+   A single use case can accept one key-value pair and/or more than one key-value pair, which are separated by a comma (,). Each key-value pair is split by (:) to separate keys from values.
+
+Example: `gradle test -PuseCases=data_stream_id:pulsenet`
+Example: `gradle test -PuseCases=data_stream_id:influenza-vaccination,data_stream_route:csv`
 
 - Run a select few use cases:
 
-`gradle test -PuseCases=aims-celr-csv,aims-celr-hl7`
+  Multiple use cases are separated by a semicolon (;) and the use cases should be wrapped in quotation marks. Each use case has more than one key-value pair, which is separated by a comma (,). Each key-value pair is split by (:) to separate keys from values.
+
+Example: `gradle test -PuseCases="data_stream_id:eicr;data_stream_route:hl7v2"`
+Example: `gradle test -PuseCases="data_stream_id:abcs,data_stream_route:csv;data_stream_id:ed3n,data_stream_route:other"`
 
 ## Future Improvements
 
 - Parallelization for data provided test cases.
+
+
+
