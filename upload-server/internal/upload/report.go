@@ -57,25 +57,36 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload started")
 
-	rcb := reports.NewReportContentBuilder[reports.UploadStatusContent]("1.0.0").SetContent(reports.UploadStatusContent{
+	uploadStartedBuilder := reports.NewReportContentBuilder[reports.UploadLifecycleContent]("1.0.0").SetContent(reports.UploadLifecycleContent{
+		Status: "success",
+	})
+	report := reports.NewBuilder(
+		"1.0.0",
+		"dex-upload-started",
+		uploadId,
+		manifest,
+		"add",
+		uploadStartedBuilder).Build()
+	reports.Publish(event.Context, report)
+
+	uploadStatusBuilder := reports.NewReportContentBuilder[reports.UploadStatusContent]("1.0.0").SetContent(reports.UploadStatusContent{
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,
 		Offset:   strconv.FormatInt(uploadOffset, 10),
 		Size:     strconv.FormatInt(uploadSize, 10),
 	})
 
-	report := reports.NewBuilder(
+	report = reports.NewBuilder(
 		"1.0.0",
 		"upload-status",
 		uploadId,
 		manifest,
 		"replace",
-		rcb).SetStartTime(time.Now().UTC()).Build()
+		uploadStatusBuilder).SetStartTime(time.Now().UTC()).Build()
 
 	logger.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
 
-	// TODO publish upload started
 	return resp, nil
 }
 
@@ -86,6 +97,18 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
 
+	uploadCompletedBuilder := reports.NewReportContentBuilder[reports.UploadLifecycleContent]("1.0.0").SetContent(reports.UploadLifecycleContent{
+		Status: "success",
+	})
+	report := reports.NewBuilder(
+		"1.0.0",
+		"dex-upload-complete",
+		uploadId,
+		manifest,
+		"add",
+		uploadCompletedBuilder).Build()
+	reports.Publish(event.Context, report)
+
 	rcb := reports.NewReportContentBuilder[reports.UploadStatusContent]("1.0.0").SetContent(reports.UploadStatusContent{
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,
@@ -93,9 +116,9 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		Size:     strconv.FormatInt(uploadSize, 10),
 	})
 
-	report := reports.NewBuilder(
+	report = reports.NewBuilder(
 		"1.0.0",
-		"upload-status",
+		"dex-upload-status",
 		uploadId,
 		manifest,
 		"replace",
@@ -103,8 +126,6 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 
 	logger.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
-
-	// TODO report upload complete
 
 	return resp, nil
 }

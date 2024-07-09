@@ -100,7 +100,7 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 	})
 	rb := reports.NewBuilder(
 		"1.0.0",
-		"blob-file-copy",
+		"dex-file-copy",
 		tuid,
 		manifest,
 		"add",
@@ -112,8 +112,6 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 		logger.Error("failed to copy file", "target", target)
 		rb.SetStatus("failed")
 		rb.AppendIssue(err.Error())
-		//content.Result = "failed"
-		//content.ErrorDescription = err.Error()
 	}
 
 	report := rb.Build()
