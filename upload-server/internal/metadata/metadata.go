@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"io"
 	"log/slog"
@@ -111,49 +112,49 @@ func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
 	return configLoc.Path(), nil
 }
 
-func GetFilename(manifest map[string]string) string {
-
-	keys := []string{
-		"filename",
-		"original_filename",
-		"meta_ext_filename",
-		"received_filename",
-	}
-
-	for _, key := range keys {
-		if name, ok := manifest[key]; ok {
-			return name
-		}
-	}
-	return ""
-}
-
-func GetDataStreamID(manifest map[string]string) string {
-	switch manifest["version"] {
-	case "2.0":
-		return manifest["data_stream_id"]
-	default:
-		return manifest["meta_destination_id"]
-	}
-}
-
-func GetDataStreamRoute(manifest map[string]string) string {
-	switch manifest["version"] {
-	case "2.0":
-		return manifest["data_stream_route"]
-	default:
-		return manifest["meta_ext_event"]
-	}
-
-}
-
-func GetJurisdiction(manifest map[string]string) string {
-	return manifest["jurisdiction"]
-}
-
-func GetDexIngestDatetime(manifest map[string]string) string {
-	return manifest["dex_ingest_datetime"]
-}
+//func GetFilename(manifest map[string]string) string {
+//
+//	keys := []string{
+//		"filename",
+//		"original_filename",
+//		"meta_ext_filename",
+//		"received_filename",
+//	}
+//
+//	for _, key := range keys {
+//		if name, ok := manifest[key]; ok {
+//			return name
+//		}
+//	}
+//	return ""
+//}
+//
+//func GetDataStreamID(manifest map[string]string) string {
+//	switch manifest["version"] {
+//	case "2.0":
+//		return manifest["data_stream_id"]
+//	default:
+//		return manifest["meta_destination_id"]
+//	}
+//}
+//
+//func GetDataStreamRoute(manifest map[string]string) string {
+//	switch manifest["version"] {
+//	case "2.0":
+//		return manifest["data_stream_route"]
+//	default:
+//		return manifest["meta_ext_event"]
+//	}
+//
+//}
+//
+//func GetJurisdiction(manifest map[string]string) string {
+//	return manifest["jurisdiction"]
+//}
+//
+//func GetDexIngestDatetime(manifest map[string]string) string {
+//	return manifest["dex_ingest_datetime"]
+//}
 
 func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
 	p := ""
@@ -230,10 +231,8 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	cb := reports.NewMetadataVerifyContentBuilder("1.0.0")
-	// TODO handle error
-	cb.SetContent(&reports.MetaDataVerifyContent{
-		Filename: GetFilename(manifest),
+	cb := reports.NewReportContentBuilder[reports.MetaDataVerifyContent]("1.0.0").SetContent(reports.MetaDataVerifyContent{
+		Filename: metadata.GetFilename(manifest),
 		Metadata: manifest,
 	})
 	rb := reports.NewBuilder(
@@ -242,8 +241,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		tuid,
 		manifest,
 		"add",
-		cb)
-	rb.SetStartTime(time.Now().UTC())
+		cb).SetStartTime(time.Now().UTC())
 
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
@@ -308,34 +306,37 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 		return resp, nil
 	}
 
-	rb := reports.NewBuilder("1.0.0")
-	rb.SetStage("dex-metadata-transform")
-	rb.SetStartTime(time.Now().UTC())
-	rb.SetDispositionType("add")
-	rb.SetUploadId(event.Upload.ID)
-	rb.SetManifest(manifest)
+	rcb := reports.NewReportContentBuilder[reports.BulkMetadataTransformReportContent]("1.0.0")
+
+	rb := reports.NewBuilder[reports.BulkMetadataTransformReportContent](
+		"1.0.0",
+		"dex-metadata-transform",
+		event.Upload.ID,
+		manifest,
+		"add",
+		rcb).SetStartTime(time.Now().UTC())
 
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
-		report, err := rb.Build()
-		if err != nil {
-			logger.Error("error building report", "error", err.Error())
-			return
-		}
+		report := rb.Build()
+		//if err != nil {
+		//	logger.Error("error building report", "error", err.Error())
+		//	return
+		//}
 		logger.Info("Metadata Hydration Report", "report", report)
 		reports.Publish(ctx, report)
-	}
+	}()
 
 	c, err := v.getHydrationConfig(ctx, manifest)
 	if err != nil {
-
-		rb.SetStatus("failed")
-		rb.AppendIssue(err.Error())
+		rb.SetStatus("failed").AppendIssue(err.Error()).SetEndTime(time.Now().UTC())
 		return resp, err
 	}
 
 	v2Manifest, transforms := v1.Hydrate(manifest, c)
-	rb.SetContent(transforms)
+	rcb.SetContent(reports.BulkMetadataTransformReportContent{
+		Transforms: transforms,
+	})
 	resp.ChangeFileInfo.MetaData = v2Manifest
 
 	// Report new metadata
@@ -358,7 +359,7 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	//logger.Info("Metadata Hydration Report", "report", report)
 	//reports.Publish(ctx, report)
 
-	rb.SetStatus("success")
+	rb.SetStatus("success").SetEndTime(time.Now().UTC())
 	return resp, nil
 }
 
@@ -384,13 +385,13 @@ func (fa *FileMetadataAppender) Append(event handler.HookEvent, resp hooks.HookR
 		return resp, errors.New(ErrNoUploadId)
 	}
 
-	metadata := event.Upload.MetaData
+	manifest := event.Upload.MetaData
 
 	if resp.ChangeFileInfo.MetaData != nil {
-		metadata = resp.ChangeFileInfo.MetaData
+		manifest = resp.ChangeFileInfo.MetaData
 	}
 
-	m, err := json.Marshal(metadata)
+	m, err := json.Marshal(manifest)
 	if err != nil {
 		return resp, err
 	}
@@ -408,15 +409,15 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	metadata := event.Upload.MetaData
+	manifest := event.Upload.MetaData
 
 	if resp.ChangeFileInfo.MetaData != nil {
-		metadata = resp.ChangeFileInfo.MetaData
+		manifest = resp.ChangeFileInfo.MetaData
 	}
 
 	// Get blob client.
 	blobClient := aa.ContainerClient.NewBlobClient(aa.TusPrefix + "/" + tuid)
-	_, err := blobClient.SetMetadata(event.Context, storeaz.PointerizeMetadata(metadata), nil)
+	_, err := blobClient.SetMetadata(event.Context, storeaz.PointerizeMetadata(manifest), nil)
 	if err != nil {
 		return resp, err
 	}
@@ -433,26 +434,42 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 	}
 	logger.Info("Generated UUID", "UUID", tuid)
 
-	content := &models.MetaDataTransformContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "metadata-transform",
-		},
-		Action: "update",
-		Field:  "ID",
-		Value:  tuid,
-	}
+	rcb := reports.NewReportContentBuilder[reports.BulkMetadataTransformReportContent]("1.0.0").SetContent(reports.BulkMetadataTransformReportContent{
+		Transforms: []reports.MetadataTransformContent{{
+			Action: "update",
+			Field:  "ID",
+			Value:  tuid,
+		}},
+	})
 
 	manifest := event.Upload.MetaData
-	report := &models.Report{
-		UploadID:        tuid,
-		DataStreamID:    GetDataStreamID(manifest),
-		DataStreamRoute: GetDataStreamRoute(manifest),
-		StageName:       "dex-metadata-transform",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
+	report := reports.NewBuilder(
+		"1.0.0",
+		"dex-metadata-transform",
+		tuid,
+		manifest,
+		"add",
+		rcb).Build()
+
+	//content := &models.MetaDataTransformContent{
+	//	ReportContent: models.ReportContent{
+	//		SchemaVersion: "1.0",
+	//		SchemaName:    "metadata-transform",
+	//	},
+	//	Action: "update",
+	//	Field:  "ID",
+	//	Value:  tuid,
+	//}
+
+	//report := &models.Report{
+	//	UploadID:        tuid,
+	//	DataStreamID:    GetDataStreamID(manifest),
+	//	DataStreamRoute: GetDataStreamRoute(manifest),
+	//	StageName:       "dex-metadata-transform",
+	//	ContentType:     "json",
+	//	DispositionType: "add",
+	//	Content:         content,
+	//}
 
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
 	reports.Publish(event.Context, report)
@@ -483,25 +500,41 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 	manifest[fieldname] = timestamp
 	resp.ChangeFileInfo.MetaData = manifest
 
-	content := &models.MetaDataTransformContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "metadata-transform",
-		},
-		Action: "append",
-		Field:  fieldname,
-		Value:  timestamp,
-	}
+	rcb := reports.NewReportContentBuilder[reports.BulkMetadataTransformReportContent]("1.0.0").SetContent(reports.BulkMetadataTransformReportContent{
+		Transforms: []reports.MetadataTransformContent{{
+			Action: "append",
+			Field:  fieldname,
+			Value:  timestamp,
+		}},
+	})
 
-	report := &models.Report{
-		UploadID:        tguid,
-		DataStreamID:    GetDataStreamID(manifest),
-		DataStreamRoute: GetDataStreamRoute(manifest),
-		StageName:       "dex-metadata-transform",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
+	//content := &models.MetaDataTransformContent{
+	//	ReportContent: models.ReportContent{
+	//		SchemaVersion: "1.0",
+	//		SchemaName:    "metadata-transform",
+	//	},
+	//	Action: "append",
+	//	Field:  fieldname,
+	//	Value:  timestamp,
+	//}
+
+	report := reports.NewBuilder(
+		"1.0.0",
+		"dex-metadata-transform",
+		tguid,
+		manifest,
+		"add",
+		rcb).Build()
+
+	//report := &models.Report{
+	//	UploadID:        tguid,
+	//	DataStreamID:    GetDataStreamID(manifest),
+	//	DataStreamRoute: GetDataStreamRoute(manifest),
+	//	StageName:       "dex-metadata-transform",
+	//	ContentType:     "json",
+	//	DispositionType: "add",
+	//	Content:         content,
+	//}
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
 	reports.Publish(event.Context, report)
 

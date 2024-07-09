@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"io"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -91,32 +93,49 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 		return errors.New("not recoverable, bad target " + target)
 	}
 
-	content := &models.FileCopyContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "0.0.1",
-			SchemaName:    "dex-file-copy",
-		},
-		Destination: target,
-		Result:      "success",
-	}
+	rcb := reports.NewReportContentBuilder[reports.FileCopyContent]("1.0.0").SetContent(reports.FileCopyContent{
+		FileSourceBlobUrl:      "", // TODO
+		FileDestinationBlobUrl: "", // TODO
+		Timestamp:              "", // TODO.  Does PS API do this for us?
+	})
+	rb := reports.NewBuilder(
+		"1.0.0",
+		"blob-file-copy",
+		tuid,
+		manifest,
+		"add",
+		rcb).SetStartTime(time.Now().UTC())
 
-	report := &models.Report{
-		UploadID:        tuid,
-		DataStreamID:    metadata.GetDataStreamID(manifest),
-		DataStreamRoute: metadata.GetDataStreamRoute(manifest),
-		StageName:       "dex-file-copy",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
+	//content := &models.FileCopyContent{
+	//	ReportContent: models.ReportContent{
+	//		SchemaVersion: "0.0.1",
+	//		SchemaName:    "dex-file-copy",
+	//	},
+	//	Destination: target,
+	//	Result:      "success",
+	//}
+	//
+	//report := &models.Report{
+	//	UploadID:        tuid,
+	//	DataStreamID:    metadata.GetDataStreamID(manifest),
+	//	DataStreamRoute: metadata.GetDataStreamRoute(manifest),
+	//	StageName:       "dex-file-copy",
+	//	ContentType:     "json",
+	//	DispositionType: "add",
+	//	Content:         content,
+	//}
 
 	err := d.Deliver(ctx, tuid, manifest)
+	rb.SetEndTime(time.Now().UTC())
 	if err != nil {
 		logger.Error("failed to copy file", "target", target)
-		content.Result = "failed"
-		content.ErrorDescription = err.Error()
+		rb.SetStatus("failed")
+		rb.AppendIssue(err.Error())
+		//content.Result = "failed"
+		//content.ErrorDescription = err.Error()
 	}
 
+	report := rb.Build()
 	logger.Info("File Copy Report", "report", report)
 	reports.Publish(ctx, report)
 
@@ -219,7 +238,7 @@ func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthR
 
 func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
-	filename := metadata.GetFilename(manifest)
+	filename := metadataPkg.GetFilename(manifest)
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 

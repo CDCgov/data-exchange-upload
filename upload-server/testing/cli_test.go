@@ -11,7 +11,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log"
@@ -84,7 +84,7 @@ func TestTus(t *testing.T) {
 					if !ok {
 						t.Error("expected metadata verify report but got none")
 					}
-					if metadataVerifyReport.Reports[0].Content.(models.MetaDataVerifyContent).Issues == nil {
+					if metadataVerifyReport.Reports[0].StageInfo.Issues == nil {
 						t.Error("expected reported issues but got none", name, tuid, metadataVerifyReport.Reports[0])
 					}
 
@@ -92,7 +92,7 @@ func TestTus(t *testing.T) {
 					if !ok {
 						t.Error("expected upload status report but got none")
 					}
-					if uploadStatusReport.Reports[0].Content.(models.UploadStatusContent).Offset != uploadStatusReport.Reports[0].Content.(models.UploadStatusContent).Size {
+					if uploadStatusReport.Reports[0].Content.(reports.UploadStatusContent).Offset != uploadStatusReport.Reports[0].Content.(reports.UploadStatusContent).Size {
 						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, uploadStatusReport.Reports[0])
 					}
 				}
@@ -325,7 +325,7 @@ func TestMain(m *testing.M) {
 }
 
 type ReportSummary struct {
-	Reports []models.Report
+	Reports []reports.Report
 	Count   int
 }
 type ReportFileSummary struct {
@@ -378,19 +378,19 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 	return summary, nil
 }
 
-func unmarshalReport(bytes []byte) (models.Report, error) {
-	var r models.Report
+func unmarshalReport(bytes []byte) (reports.Report, error) {
+	var r reports.Report
 	err := json.Unmarshal(bytes, &r)
 	return r, err
 }
 
-func appendReport(summary ReportFileSummary, r models.Report) ReportFileSummary {
-	stageName := r.StageName
+func appendReport(summary ReportFileSummary, r reports.Report) ReportFileSummary {
+	stageName := r.StageInfo.Stage
 	s, ok := summary.Summaries[stageName]
 	if !ok {
 		summary.Summaries[stageName] = ReportSummary{
 			Count:   1,
-			Reports: []models.Report{r},
+			Reports: []reports.Report{r},
 		}
 		return summary
 	}

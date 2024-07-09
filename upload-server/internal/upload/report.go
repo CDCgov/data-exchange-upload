@@ -1,8 +1,7 @@
 package upload
 
 import (
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -30,25 +29,20 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	rcb := reports.NewUploadStatusContentBuilder("1.0.0")
-	rcb.SetContent(&reports.UploadStatusContent{
-		Filename: metadata.GetFilename(uploadMetadata),
+	rcb := reports.NewReportContentBuilder[reports.UploadStatusContent]("1.0.0").SetContent(reports.UploadStatusContent{
+		Filename: metadataPkg.GetFilename(uploadMetadata),
 		Tguid:    uploadId,
 		Offset:   strconv.FormatInt(uploadOffset, 10),
 		Size:     strconv.FormatInt(uploadSize, 10),
 	})
 
-	rb := reports.NewBuilder(
+	report := reports.NewBuilder(
 		"1.0.0",
-		"upload",
+		"upload-status",
 		uploadId,
 		uploadMetadata,
 		"replace",
-		rcb)
-	rb.SetStartTime(time.Now().UTC())
-	rb.SetEndTime(time.Now().UTC())
-
-	report := rb.Build()
+		rcb).Build()
 
 	logger.Info("REPORT", "report", report)
 	reports.Publish(event.Context, report)
@@ -59,53 +53,58 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	uploadId := event.Upload.ID
 	manifest := event.Upload.MetaData
+	uploadOffset := event.Upload.Offset
+	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload started")
-	content := &models.UploadLifecycleContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "dex-upload-started",
-		},
-		Status: "success",
-	}
 
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    metadata.GetDataStreamID(manifest),
-		DataStreamRoute: metadata.GetDataStreamRoute(manifest),
-		StageName:       "dex-upload-started",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
+	rcb := reports.NewReportContentBuilder[reports.UploadStatusContent]("1.0.0").SetContent(reports.UploadStatusContent{
+		Filename: metadataPkg.GetFilename(manifest),
+		Tguid:    uploadId,
+		Offset:   strconv.FormatInt(uploadOffset, 10),
+		Size:     strconv.FormatInt(uploadSize, 10),
+	})
 
-	logger.Info("REPORT upload-started", "report", report)
+	report := reports.NewBuilder(
+		"1.0.0",
+		"upload-status",
+		uploadId,
+		manifest,
+		"replace",
+		rcb).SetStartTime(time.Now().UTC()).Build()
+
+	logger.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
+
+	// TODO publish upload started
 	return resp, nil
 }
 
 func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	uploadId := event.Upload.ID
 	manifest := event.Upload.MetaData
+	uploadOffset := event.Upload.Offset
+	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
-	content := &models.UploadLifecycleContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "dex-upload-complete",
-		},
-		Status: "success",
-	}
 
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    metadata.GetDataStreamID(manifest),
-		DataStreamRoute: metadata.GetDataStreamRoute(manifest),
-		StageName:       "dex-upload-complete",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
+	rcb := reports.NewReportContentBuilder[reports.UploadStatusContent]("1.0.0").SetContent(reports.UploadStatusContent{
+		Filename: metadataPkg.GetFilename(manifest),
+		Tguid:    uploadId,
+		Offset:   strconv.FormatInt(uploadOffset, 10),
+		Size:     strconv.FormatInt(uploadSize, 10),
+	})
 
-	logger.Info("REPORT upload-completed", "report", report)
+	report := reports.NewBuilder(
+		"1.0.0",
+		"upload-status",
+		uploadId,
+		manifest,
+		"replace",
+		rcb).SetEndTime(time.Now().UTC()).SetStatus("success").Build()
+
+	logger.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
+
+	// TODO report upload complete
+
 	return resp, nil
 }

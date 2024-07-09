@@ -1,8 +1,7 @@
 package reports
 
 import (
-	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"time"
 )
 
@@ -39,6 +38,15 @@ type ReportContent struct {
 	SchemaVersion string `json:"schema_version"`
 }
 
+type IReportContent interface {
+	ReportContent
+}
+
+type BulkMetadataTransformReportContent struct {
+	ReportContent
+	Transforms []MetadataTransformContent `json:"transforms"`
+}
+
 type UploadLifecycleContent struct {
 	ReportContent
 	Status string `json:"status"`
@@ -50,7 +58,19 @@ type MetaDataVerifyContent struct {
 	Metadata any    `json:"metadata"`
 }
 
-// TODO make sure this matches schema
+type MetadataTransformContent struct {
+	Action string `json:"action"` // append, update, remove
+	Field  string `json:"field"`  // Name of the field the action was performed on
+	Value  string `json:"value"`  // Optional; Value given to the appended or updated field.
+}
+
+type FileCopyContent struct {
+	ReportContent
+	FileSourceBlobUrl      string `json:"file_source_blob_url"`
+	FileDestinationBlobUrl string `json:"file_destination_blob_url"`
+	Timestamp              string `json:"timestamp"`
+}
+
 type UploadStatusContent struct {
 	ReportContent
 	Filename string `json:"filename"`
@@ -59,22 +79,21 @@ type UploadStatusContent struct {
 	Size     string `json:"size"`
 }
 
-// TODO return builder interface for chaining
-type Builder interface {
-	SetStage(string)
-	SetUploadId(string)
-	SetManifest(map[string]string)
-	AppendIssue(string)
-	SetStatus(string)
-	SetStartTime(time.Time)
-	SetEndTime(time.Time)
-	SetDispositionType(string)
-	SetContentBuilder(ContentBuilder)
+type Builder[T any] interface {
+	SetStage(string) Builder[T]
+	SetUploadId(string) Builder[T]
+	SetManifest(map[string]string) Builder[T]
+	AppendIssue(string) Builder[T]
+	SetStatus(string) Builder[T]
+	SetStartTime(time.Time) Builder[T]
+	SetEndTime(time.Time) Builder[T]
+	SetDispositionType(string) Builder[T]
+	SetContentBuilder(ContentBuilder[T]) Builder[T]
 	Build() *Report
 }
 
-func NewBuilder(version string, stage string, uploadId string, manifest map[string]string, dispType string, contentBuilder ContentBuilder) Builder {
-	return &ReportBuilder{
+func NewBuilder[T any](version string, stage string, uploadId string, manifest map[string]string, dispType string, contentBuilder ContentBuilder[T]) Builder[T] {
+	return &ReportBuilder[T]{
 		Version:         version,
 		Stage:           stage,
 		UploadId:        uploadId,
@@ -84,8 +103,8 @@ func NewBuilder(version string, stage string, uploadId string, manifest map[stri
 	}
 }
 
-type ReportBuilder struct {
-	Stage           string // TODO maybe init in constructor only
+type ReportBuilder[T any] struct {
+	Stage           string
 	Version         string
 	UploadId        string
 	Manifest        map[string]string
@@ -94,46 +113,55 @@ type ReportBuilder struct {
 	StartTime       time.Time
 	EndTime         time.Time
 	DispositionType string
-	ContentBuilder  ContentBuilder
+	ContentBuilder  ContentBuilder[T]
 }
 
-func (b *ReportBuilder) SetStage(s string) {
+func (b *ReportBuilder[T]) SetStage(s string) Builder[T] {
 	b.Stage = s
+	return b
 }
 
-func (b *ReportBuilder) SetUploadId(id string) {
+func (b *ReportBuilder[T]) SetUploadId(id string) Builder[T] {
 	b.UploadId = id
+	return b
 }
 
-func (b *ReportBuilder) SetManifest(m map[string]string) {
+func (b *ReportBuilder[T]) SetManifest(m map[string]string) Builder[T] {
 	b.Manifest = m
+	return b
 }
 
-func (b *ReportBuilder) SetStatus(s string) {
+func (b *ReportBuilder[T]) SetStatus(s string) Builder[T] {
 	b.Status = s
+	return b
 }
 
-func (b *ReportBuilder) AppendIssue(i string) {
+func (b *ReportBuilder[T]) AppendIssue(i string) Builder[T] {
 	b.Issues = append(b.Issues, i)
+	return b
 }
 
-func (b *ReportBuilder) SetStartTime(t time.Time) {
+func (b *ReportBuilder[T]) SetStartTime(t time.Time) Builder[T] {
 	b.StartTime = t
+	return b
 }
 
-func (b *ReportBuilder) SetEndTime(t time.Time) {
+func (b *ReportBuilder[T]) SetEndTime(t time.Time) Builder[T] {
 	b.EndTime = t
+	return b
 }
 
-func (b *ReportBuilder) SetDispositionType(d string) {
+func (b *ReportBuilder[T]) SetDispositionType(d string) Builder[T] {
 	b.DispositionType = d
+	return b
 }
 
-func (b *ReportBuilder) SetContentBuilder(cb ContentBuilder) {
+func (b *ReportBuilder[T]) SetContentBuilder(cb ContentBuilder[T]) Builder[T] {
 	b.ContentBuilder = cb
+	return b
 }
 
-func (b *ReportBuilder) Build() *Report {
+func (b *ReportBuilder[T]) Build() *Report {
 	switch b.Version {
 	default:
 		return &Report{
@@ -158,70 +186,144 @@ func (b *ReportBuilder) Build() *Report {
 	}
 }
 
-func NewMetadataVerifyContentBuilder(version string) *MetadataVerifyContentBuilder {
-	return &MetadataVerifyContentBuilder{Version: version}
+func NewReportContentBuilder[T any](version string) *ReportContentBuilder[T] {
+	return &ReportContentBuilder[T]{
+		Version: version,
+	}
 }
 
-func NewUploadStatusContentBuilder(version string) *UploadStatusContentBuilder {
-	return &UploadStatusContentBuilder{Version: version}
+//func NewMetadataVerifyContentBuilder(version string) *MetadataVerifyContentBuilder {
+//	return &MetadataVerifyContentBuilder{Version: version}
+//}
+//
+//func NewUploadStatusContentBuilder(version string) *UploadStatusContentBuilder {
+//	return &UploadStatusContentBuilder{Version: version}
+//}
+//
+//func NewBulkMetadataTransformContentBuilder(version string) *MetadataTransformContentBuilder {
+//	return &MetadataTransformContentBuilder{Version: version}
+//}
+//
+//func NewFileCopyContentBuilder(version string) *FileCopyContentBuilder {
+//	return &FileCopyContentBuilder{Version: version}
+//}
+
+type ContentBuilder[T any] interface {
+	SetVersion(string) ContentBuilder[T]
+	SetContent(T) ContentBuilder[T]
+	Build() T
 }
 
-type ContentBuilder interface {
-	SetVersion(string)
-	SetContent(any) error
-	Build() any
-}
+//type BulkContentBuilder interface {
+//	SetVersion(string) BulkContentBuilder
+//	AppendContent(any) (BulkContentBuilder, error)
+//	Build() any
+//}
 
-type MetadataVerifyContentBuilder struct {
+type ReportContentBuilder[T any] struct {
 	Version string
-	Content MetaDataVerifyContent
+	Content T
 }
 
-func (b *MetadataVerifyContentBuilder) SetVersion(v string) {
+func (b *ReportContentBuilder[T]) SetVersion(v string) ContentBuilder[T] {
 	b.Version = v
+	return b
 }
 
-func (b *MetadataVerifyContentBuilder) SetContent(c any) error {
-	mvc, ok := c.(MetaDataVerifyContent)
-	if !ok {
-		return fmt.Errorf("bad content")
-	}
-
-	mvc.SchemaName = "dex-metadata-verify"
-	mvc.SchemaVersion = b.Version
-	b.Content = mvc
-	return nil
+func (b *ReportContentBuilder[T]) SetContent(c T) ContentBuilder[T] {
+	b.Content = c
+	return b
 }
 
-func (b *MetadataVerifyContentBuilder) Build() any {
-	switch b.Version {
-	default:
-		return b.Content
-	}
-}
-
-type UploadStatusContentBuilder struct {
-	Version string
-	Content UploadStatusContent
-}
-
-func (b *UploadStatusContentBuilder) SetVersion(v string) {
-	b.Version = v
-}
-
-func (b *UploadStatusContentBuilder) SetContent(c any) error {
-	usc, ok := c.(UploadStatusContent)
-	if !ok {
-		// TODO make error var
-		return fmt.Errorf("bad content")
-	}
-
-	usc.SchemaName = "upload"
-	usc.SchemaVersion = b.Version
-	b.Content = usc
-	return nil
-}
-
-func (b *UploadStatusContentBuilder) Build() any {
+func (b *ReportContentBuilder[T]) Build() T {
 	return b.Content
 }
+
+//type MetadataVerifyContentBuilder struct {
+//	Version string
+//	Content MetaDataVerifyContent
+//}
+
+//func (b *MetadataVerifyContentBuilder) SetVersion(v string) ContentBuilder {
+//	b.Version = v
+//	return b
+//}
+//
+//func (b *MetadataVerifyContentBuilder) SetContent(c MetaDataVerifyContent) ContentBuilder {
+//	c.SchemaName = "dex-metadata-verify"
+//	c.SchemaVersion = b.Version
+//	b.Content = c
+//	return b
+//}
+//
+//func (b *MetadataVerifyContentBuilder) Build() any {
+//	switch b.Version {
+//	default:
+//		return b.Content
+//	}
+//}
+//
+//type UploadStatusContentBuilder struct {
+//	Version string
+//	Content UploadStatusContent
+//}
+//
+//func (b *UploadStatusContentBuilder) SetVersion(v string) ContentBuilder {
+//	b.Version = v
+//	return b
+//}
+//
+//func (b *UploadStatusContentBuilder) SetContent(c UploadStatusContent) ContentBuilder {
+//	c.SchemaName = "upload"
+//	c.SchemaVersion = b.Version
+//	b.Content = c
+//	return b
+//}
+//
+//func (b *UploadStatusContentBuilder) Build() any {
+//	return b.Content
+//}
+//
+//type MetadataTransformContentBuilder struct {
+//	Version string
+//	Content BulkMetadataTransformReportContent
+//}
+//
+//func (b *MetadataTransformContentBuilder) SetVersion(v string) ContentBuilder {
+//	b.Version = v
+//	return b
+//}
+//
+//func (b *MetadataTransformContentBuilder) SetContent(c BulkMetadataTransformReportContent) ContentBuilder {
+//	c.SchemaName = "metadata-transform"
+//	c.SchemaVersion = b.Version
+//	b.Content = c
+//
+//	return b
+//}
+//
+//func (b *MetadataTransformContentBuilder) Build() any {
+//	return b.Content
+//}
+//
+//type FileCopyContentBuilder struct {
+//	Version string
+//	Content FileCopyContent
+//}
+//
+//func (b *FileCopyContentBuilder) SetVersion(v string) ContentBuilder {
+//	b.Version = v
+//	return b
+//}
+//
+//func (b *FileCopyContentBuilder) SetContent(c FileCopyContent) ContentBuilder {
+//	c.SchemaName = "blob-copy"
+//	c.SchemaVersion = b.Version
+//	b.Content = c
+//
+//	return b
+//}
+//
+//func (b *FileCopyContentBuilder) Build() any {
+//	return b.Content
+//}
