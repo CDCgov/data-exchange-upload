@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"log/slog"
 	"net/http"
 	"os"
@@ -14,11 +13,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/serverdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/uid"
 	"github.com/joho/godotenv"
 ) // .import
 
@@ -117,6 +119,7 @@ func main() {
 	// Start http custom server
 	// ------------------------------------------------------------------
 	httpServer := serverDex.HttpServer()
+	httpServer.Handler = httpLogger(logger, http.DefaultServeMux)
 
 	mainWaitGroup.Add(1)
 	go func() {
@@ -148,3 +151,12 @@ func main() {
 
 	logger.Info("closing server by os signal", "port", appConfig.ServerPort)
 } // .main
+
+func httpLogger(logger *slog.Logger, handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := uid.Uid()
+		logger.Info("Incoming Request", "id", id, "headers", r.Header, "method", r.Method, "url", r.URL, "content-length", r.ContentLength)
+		handler.ServeHTTP(w, r)
+		logger.Info("Outgoing Response", "id", id, "headers", w.Header())
+	})
+}

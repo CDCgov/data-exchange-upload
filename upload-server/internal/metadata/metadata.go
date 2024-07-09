@@ -2,15 +2,9 @@ package metadata
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -19,6 +13,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/uid"
 
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
@@ -174,17 +173,6 @@ func GetFilenameSuffix(ctx context.Context, manifest handler.MetaData, tuid stri
 	}
 
 	return s, nil
-}
-
-func Uid() string {
-	id := make([]byte, 16)
-	_, err := io.ReadFull(rand.Reader, id)
-	if err != nil {
-		// This is probably an appropriate way to handle errors from our source
-		// for random bits.
-		panic(err)
-	}
-	return hex.EncodeToString(id)
 }
 
 type SenderManifestVerification struct {
@@ -393,7 +381,7 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 }
 
 func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	tuid := Uid()
+	tuid := uid.Uid()
 	resp.ChangeFileInfo.ID = tuid
 
 	if sloger.DefaultLogger != nil {
