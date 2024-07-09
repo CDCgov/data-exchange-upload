@@ -14,7 +14,6 @@ import (
 	"net/http"
 	neturl "net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -340,7 +339,7 @@ func runTest(t TestCase, conf *config) error {
 	}
 	log.Println(uploader.Url())
 
-	uploader.SetUrl("https://apidev.cdc.gov/upload/files/" + path.Base(uploader.Url()))
+	//uploader.SetUrl("https://apidev.cdc.gov/upload/files/" + path.Base(uploader.Url()))
 
 	slog.Debug("UploadID", "upload_id", uploader.Url())
 	c := make(chan tus.Upload)

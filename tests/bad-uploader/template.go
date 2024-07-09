@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"io"
 	"log"
 	"log/slog"
@@ -34,7 +35,7 @@ type TemplateGenerator struct {
 	Repeats   int
 	Templates []SubTemplate
 	Manifest  map[string]string
-	r         io.Reader
+	r         *bufio.Reader
 	w         io.WriteCloser
 }
 
@@ -50,7 +51,9 @@ func (tg *TemplateGenerator) next() (err error) {
 		}
 	}
 
-	tg.r, tg.w = io.Pipe()
+	var r io.Reader
+	r, tg.w = io.Pipe()
+	tg.r = bufio.NewReader(r)
 
 	go func() {
 		templates := tg.Templates
@@ -87,20 +90,21 @@ func (tg *TemplateGenerator) Read(p []byte) (int, error) {
 		}
 	}
 	slog.Debug("reading template")
-	log.Println(len(p))
+	log.Println("buf size", len(p))
 	n, err := io.ReadFull(tg.r, p)
-	log.Println(n)
+	log.Println(err)
+	log.Println("bytes written", n)
 	//todo only swallow unexpected eof errors
 	slog.Debug("read template")
-	if err == io.EOF {
+	_, peakErr := tg.r.Peek(len(p))
+	if err == io.ErrUnexpectedEOF || peakErr == io.EOF {
 		if tg.Repeats < 1 {
-			return 0, err
+			return n, io.EOF
 		}
 		tg.Repeats--
 		if err := tg.next(); err != nil {
 			return n, err
 		}
-		return n, nil
 	}
 	return n, nil
 }
