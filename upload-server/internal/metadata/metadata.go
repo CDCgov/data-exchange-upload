@@ -230,37 +230,24 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	rb := reports.NewBuilder("1.0.0")
+	cb := reports.NewMetadataVerifyContentBuilder("1.0.0")
+	// TODO handle error
+	cb.SetContent(&reports.MetaDataVerifyContent{
+		Filename: GetFilename(manifest),
+		Metadata: manifest,
+	})
+	rb := reports.NewBuilder(
+		"1.0.0",
+		"dex-metadata-verify",
+		tuid,
+		manifest,
+		"add",
+		cb)
 	rb.SetStartTime(time.Now().UTC())
-	rb.SetUploadId(tuid)
-	rb.SetManifest(manifest)
-	rb.SetDispositionType("add")
-
-	//content := &models.MetaDataVerifyContent{
-	//	ReportContent: models.ReportContent{
-	//		SchemaVersion: "0.0.1",
-	//		SchemaName:    "dex-metadata-verify",
-	//	},
-	//	Filename: GetFilename(manifest),
-	//	Metadata: manifest,
-	//}
-	//
-	//report := &models.Report{
-	//	UploadID:        tuid,
-	//	DataStreamID:    GetDataStreamID(manifest),
-	//	DataStreamRoute: GetDataStreamRoute(manifest),
-	//	StageName:       "dex-metadata-verify",
-	//	ContentType:     "json",
-	//	DispositionType: "add",
-	//	Content:         content,
-	//}
 
 	defer func() {
-		report, err := rb.Build("dex-metadata-verify")
-		if err != nil {
-			logger.Error("error building report", "error", err.Error())
-			return
-		}
+		rb.SetEndTime(time.Now().UTC())
+		report := rb.Build()
 		logger.Info("REPORT", "report", report)
 		reports.Publish(event.Context, report)
 	}()
@@ -321,34 +308,57 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 		return resp, nil
 	}
 
+	rb := reports.NewBuilder("1.0.0")
+	rb.SetStage("dex-metadata-transform")
+	rb.SetStartTime(time.Now().UTC())
+	rb.SetDispositionType("add")
+	rb.SetUploadId(event.Upload.ID)
+	rb.SetManifest(manifest)
+
+	defer func() {
+		rb.SetEndTime(time.Now().UTC())
+		report, err := rb.Build()
+		if err != nil {
+			logger.Error("error building report", "error", err.Error())
+			return
+		}
+		logger.Info("Metadata Hydration Report", "report", report)
+		reports.Publish(ctx, report)
+	}
+
 	c, err := v.getHydrationConfig(ctx, manifest)
 	if err != nil {
+
+		rb.SetStatus("failed")
+		rb.AppendIssue(err.Error())
 		return resp, err
 	}
 
 	v2Manifest, transforms := v1.Hydrate(manifest, c)
+	rb.SetContent(transforms)
 	resp.ChangeFileInfo.MetaData = v2Manifest
 
 	// Report new metadata
-	content := &models.BulkMetaDataTransformContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "metadata-transform",
-		},
-		Transforms: transforms,
-	}
-	report := &models.Report{
-		UploadID:        event.Upload.ID,
-		DataStreamID:    GetDataStreamID(manifest),
-		DataStreamRoute: GetDataStreamRoute(manifest),
-		StageName:       "dex-metadata-transform",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
-	logger.Info("Metadata Hydration Report", "report", report)
-	reports.Publish(ctx, report)
+	//content := &models.BulkMetaDataTransformContent{
+	//	ReportContent: models.ReportContent{
+	//		SchemaVersion: "1.0",
+	//		SchemaName:    "metadata-transform",
+	//	},
+	//	Transforms: transforms,
+	//}
+	//report := &models.Report{
+	//	UploadID:        event.Upload.ID,
+	//	DataStreamID:    GetDataStreamID(manifest),
+	//	DataStreamRoute: GetDataStreamRoute(manifest),
+	//	StageName:       "dex-metadata-transform",
+	//	ContentType:     "json",
+	//	DispositionType: "add",
+	//	Content:         content,
+	//}
+	//logger.Info("Metadata Hydration Report", "report", report)
+	//reports.Publish(ctx, report)
 
+	rb.SetStatus("success")
 	return resp, nil
 }
 

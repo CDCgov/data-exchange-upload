@@ -49,7 +49,19 @@ type MetaDataVerifyContent struct {
 	Filename string `json:"filename"`
 	Metadata any    `json:"metadata"`
 }
+
+// TODO make sure this matches schema
+type UploadStatusContent struct {
+	ReportContent
+	Filename string `json:"filename"`
+	Tguid    string `json:"tguid"`
+	Offset   string `json:"offset"`
+	Size     string `json:"size"`
+}
+
+// TODO return builder interface for chaining
 type Builder interface {
+	SetStage(string)
 	SetUploadId(string)
 	SetManifest(map[string]string)
 	AppendIssue(string)
@@ -57,17 +69,23 @@ type Builder interface {
 	SetStartTime(time.Time)
 	SetEndTime(time.Time)
 	SetDispositionType(string)
-	Build(stage string) (*Report, error)
+	SetContentBuilder(ContentBuilder)
+	Build() *Report
 }
 
-func NewBuilder(version string) Builder {
-	switch version {
-	default:
-		return &ReportBuilder{}
+func NewBuilder(version string, stage string, uploadId string, manifest map[string]string, dispType string, contentBuilder ContentBuilder) Builder {
+	return &ReportBuilder{
+		Version:         version,
+		Stage:           stage,
+		UploadId:        uploadId,
+		Manifest:        manifest,
+		DispositionType: dispType,
+		ContentBuilder:  contentBuilder,
 	}
 }
 
 type ReportBuilder struct {
+	Stage           string // TODO maybe init in constructor only
 	Version         string
 	UploadId        string
 	Manifest        map[string]string
@@ -76,6 +94,11 @@ type ReportBuilder struct {
 	StartTime       time.Time
 	EndTime         time.Time
 	DispositionType string
+	ContentBuilder  ContentBuilder
+}
+
+func (b *ReportBuilder) SetStage(s string) {
+	b.Stage = s
 }
 
 func (b *ReportBuilder) SetUploadId(id string) {
@@ -106,46 +129,99 @@ func (b *ReportBuilder) SetDispositionType(d string) {
 	b.DispositionType = d
 }
 
-func (b *ReportBuilder) Build(stage string) (*Report, error) {
-	r := &Report{
-		UploadID:          b.UploadId,
-		DataStreamID:      metadata.GetDataStreamID(b.Manifest),
-		DataStreamRoute:   metadata.GetDataStreamRoute(b.Manifest),
-		Jurisdiction:      metadata.GetJurisdiction(b.Manifest),
-		DexIngestDatetime: metadata.GetDexIngestDatetime(b.Manifest),
-		ContentType:       "application/json",
-		DispositionType:   b.DispositionType,
-		StageInfo: ReportStageInfo{
-			Issues:           b.Issues,
-			Stage:            stage,
-			Service:          "", // TODO get from version package
-			Version:          "", // TODO get from version package
-			Status:           b.Status,
-			StartProcessTime: b.StartTime.String(),
-			EndProcessTime:   b.EndTime.String(),
-		},
-	}
-
-	switch stage {
-	case "dex-metadata-verify":
-		c := createMetadataVerifyContent(*b)
-		r.Content = c
-
-		return r, nil
-	}
-
-	return nil, fmt.Errorf("could not build report for stage %s", stage)
+func (b *ReportBuilder) SetContentBuilder(cb ContentBuilder) {
+	b.ContentBuilder = cb
 }
 
-func createMetadataVerifyContent(b ReportBuilder) MetaDataVerifyContent {
-	return MetaDataVerifyContent{
-		ReportContent: ReportContent{
-			SchemaVersion: b.Version,
-			SchemaName:    "dex-metadata-verify",
-		},
-		Filename: metadata.GetFilename(b.Manifest),
-		Metadata: b.Manifest,
+func (b *ReportBuilder) Build() *Report {
+	switch b.Version {
+	default:
+		return &Report{
+			UploadID:          b.UploadId,
+			DataStreamID:      metadata.GetDataStreamID(b.Manifest),
+			DataStreamRoute:   metadata.GetDataStreamRoute(b.Manifest),
+			Jurisdiction:      metadata.GetJurisdiction(b.Manifest),
+			DexIngestDatetime: metadata.GetDexIngestDatetime(b.Manifest),
+			ContentType:       "application/json",
+			DispositionType:   b.DispositionType,
+			StageInfo: ReportStageInfo{
+				Issues:           b.Issues,
+				Stage:            b.Stage,
+				Service:          "", // TODO get from version package
+				Version:          "", // TODO get from version package
+				Status:           b.Status,
+				StartProcessTime: b.StartTime.String(),
+				EndProcessTime:   b.EndTime.String(),
+			},
+			Content: b.ContentBuilder.Build(),
+		}
 	}
 }
 
-// TODO load stage info internally
+func NewMetadataVerifyContentBuilder(version string) *MetadataVerifyContentBuilder {
+	return &MetadataVerifyContentBuilder{Version: version}
+}
+
+func NewUploadStatusContentBuilder(version string) *UploadStatusContentBuilder {
+	return &UploadStatusContentBuilder{Version: version}
+}
+
+type ContentBuilder interface {
+	SetVersion(string)
+	SetContent(any) error
+	Build() any
+}
+
+type MetadataVerifyContentBuilder struct {
+	Version string
+	Content MetaDataVerifyContent
+}
+
+func (b *MetadataVerifyContentBuilder) SetVersion(v string) {
+	b.Version = v
+}
+
+func (b *MetadataVerifyContentBuilder) SetContent(c any) error {
+	mvc, ok := c.(MetaDataVerifyContent)
+	if !ok {
+		return fmt.Errorf("bad content")
+	}
+
+	mvc.SchemaName = "dex-metadata-verify"
+	mvc.SchemaVersion = b.Version
+	b.Content = mvc
+	return nil
+}
+
+func (b *MetadataVerifyContentBuilder) Build() any {
+	switch b.Version {
+	default:
+		return b.Content
+	}
+}
+
+type UploadStatusContentBuilder struct {
+	Version string
+	Content UploadStatusContent
+}
+
+func (b *UploadStatusContentBuilder) SetVersion(v string) {
+	b.Version = v
+}
+
+func (b *UploadStatusContentBuilder) SetContent(c any) error {
+	usc, ok := c.(UploadStatusContent)
+	if !ok {
+		// TODO make error var
+		return fmt.Errorf("bad content")
+	}
+
+	usc.SchemaName = "upload"
+	usc.SchemaVersion = b.Version
+	b.Content = usc
+	return nil
+}
+
+func (b *UploadStatusContentBuilder) Build() any {
+	return b.Content
+}

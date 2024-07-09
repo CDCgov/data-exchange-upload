@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var logger *slog.Logger
@@ -29,26 +30,25 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	content := &models.UploadStatusContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "upload",
-		},
+	rcb := reports.NewUploadStatusContentBuilder("1.0.0")
+	rcb.SetContent(&reports.UploadStatusContent{
 		Filename: metadata.GetFilename(uploadMetadata),
 		Tguid:    uploadId,
 		Offset:   strconv.FormatInt(uploadOffset, 10),
 		Size:     strconv.FormatInt(uploadSize, 10),
-	}
+	})
 
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    metadata.GetDataStreamID(uploadMetadata),
-		DataStreamRoute: metadata.GetDataStreamRoute(uploadMetadata),
-		StageName:       "dex-upload-status",
-		ContentType:     "json",
-		DispositionType: "replace",
-		Content:         content,
-	}
+	rb := reports.NewBuilder(
+		"1.0.0",
+		"upload",
+		uploadId,
+		uploadMetadata,
+		"replace",
+		rcb)
+	rb.SetStartTime(time.Now().UTC())
+	rb.SetEndTime(time.Now().UTC())
+
+	report := rb.Build()
 
 	logger.Info("REPORT", "report", report)
 	reports.Publish(event.Context, report)
