@@ -112,50 +112,6 @@ func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
 	return configLoc.Path(), nil
 }
 
-//func GetFilename(manifest map[string]string) string {
-//
-//	keys := []string{
-//		"filename",
-//		"original_filename",
-//		"meta_ext_filename",
-//		"received_filename",
-//	}
-//
-//	for _, key := range keys {
-//		if name, ok := manifest[key]; ok {
-//			return name
-//		}
-//	}
-//	return ""
-//}
-//
-//func GetDataStreamID(manifest map[string]string) string {
-//	switch manifest["version"] {
-//	case "2.0":
-//		return manifest["data_stream_id"]
-//	default:
-//		return manifest["meta_destination_id"]
-//	}
-//}
-//
-//func GetDataStreamRoute(manifest map[string]string) string {
-//	switch manifest["version"] {
-//	case "2.0":
-//		return manifest["data_stream_route"]
-//	default:
-//		return manifest["meta_ext_event"]
-//	}
-//
-//}
-//
-//func GetJurisdiction(manifest map[string]string) string {
-//	return manifest["jurisdiction"]
-//}
-//
-//func GetDexIngestDatetime(manifest map[string]string) string {
-//	return manifest["dex_ingest_datetime"]
-//}
-
 func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
 	p := ""
 	config, err := GetConfigFromManifest(ctx, manifest)
@@ -319,10 +275,6 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
-		//if err != nil {
-		//	logger.Error("error building report", "error", err.Error())
-		//	return
-		//}
 		logger.Info("Metadata Hydration Report", "report", report)
 		reports.Publish(ctx, report)
 	}()
@@ -339,27 +291,7 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	})
 	resp.ChangeFileInfo.MetaData = v2Manifest
 
-	// Report new metadata
-	//content := &models.BulkMetaDataTransformContent{
-	//	ReportContent: models.ReportContent{
-	//		SchemaVersion: "1.0",
-	//		SchemaName:    "metadata-transform",
-	//	},
-	//	Transforms: transforms,
-	//}
-	//report := &models.Report{
-	//	UploadID:        event.Upload.ID,
-	//	DataStreamID:    GetDataStreamID(manifest),
-	//	DataStreamRoute: GetDataStreamRoute(manifest),
-	//	StageName:       "dex-metadata-transform",
-	//	ContentType:     "json",
-	//	DispositionType: "add",
-	//	Content:         content,
-	//}
-	//logger.Info("Metadata Hydration Report", "report", report)
-	//reports.Publish(ctx, report)
-
-	rb.SetStatus("success").SetEndTime(time.Now().UTC())
+	rb.SetStatus("success")
 	return resp, nil
 }
 
@@ -451,31 +383,10 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 		"add",
 		rcb).Build()
 
-	//content := &models.MetaDataTransformContent{
-	//	ReportContent: models.ReportContent{
-	//		SchemaVersion: "1.0",
-	//		SchemaName:    "metadata-transform",
-	//	},
-	//	Action: "update",
-	//	Field:  "ID",
-	//	Value:  tuid,
-	//}
-
-	//report := &models.Report{
-	//	UploadID:        tuid,
-	//	DataStreamID:    GetDataStreamID(manifest),
-	//	DataStreamRoute: GetDataStreamRoute(manifest),
-	//	StageName:       "dex-metadata-transform",
-	//	ContentType:     "json",
-	//	DispositionType: "add",
-	//	Content:         content,
-	//}
-
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
 	reports.Publish(event.Context, report)
 
 	return resp, nil
-
 }
 
 func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
@@ -508,16 +419,6 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 		}},
 	})
 
-	//content := &models.MetaDataTransformContent{
-	//	ReportContent: models.ReportContent{
-	//		SchemaVersion: "1.0",
-	//		SchemaName:    "metadata-transform",
-	//	},
-	//	Action: "append",
-	//	Field:  fieldname,
-	//	Value:  timestamp,
-	//}
-
 	report := reports.NewBuilder(
 		"1.0.0",
 		"dex-metadata-transform",
@@ -526,15 +427,6 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 		"add",
 		rcb).Build()
 
-	//report := &models.Report{
-	//	UploadID:        tguid,
-	//	DataStreamID:    GetDataStreamID(manifest),
-	//	DataStreamRoute: GetDataStreamRoute(manifest),
-	//	StageName:       "dex-metadata-transform",
-	//	ContentType:     "json",
-	//	DispositionType: "add",
-	//	Content:         content,
-	//}
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
 	reports.Publish(event.Context, report)
 

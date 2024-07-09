@@ -192,33 +192,11 @@ func NewReportContentBuilder[T any](version string) *ReportContentBuilder[T] {
 	}
 }
 
-//func NewMetadataVerifyContentBuilder(version string) *MetadataVerifyContentBuilder {
-//	return &MetadataVerifyContentBuilder{Version: version}
-//}
-//
-//func NewUploadStatusContentBuilder(version string) *UploadStatusContentBuilder {
-//	return &UploadStatusContentBuilder{Version: version}
-//}
-//
-//func NewBulkMetadataTransformContentBuilder(version string) *MetadataTransformContentBuilder {
-//	return &MetadataTransformContentBuilder{Version: version}
-//}
-//
-//func NewFileCopyContentBuilder(version string) *FileCopyContentBuilder {
-//	return &FileCopyContentBuilder{Version: version}
-//}
-
 type ContentBuilder[T any] interface {
 	SetVersion(string) ContentBuilder[T]
 	SetContent(T) ContentBuilder[T]
 	Build() T
 }
-
-//type BulkContentBuilder interface {
-//	SetVersion(string) BulkContentBuilder
-//	AppendContent(any) (BulkContentBuilder, error)
-//	Build() any
-//}
 
 type ReportContentBuilder[T any] struct {
 	Version string
@@ -238,92 +216,3 @@ func (b *ReportContentBuilder[T]) SetContent(c T) ContentBuilder[T] {
 func (b *ReportContentBuilder[T]) Build() T {
 	return b.Content
 }
-
-//type MetadataVerifyContentBuilder struct {
-//	Version string
-//	Content MetaDataVerifyContent
-//}
-
-//func (b *MetadataVerifyContentBuilder) SetVersion(v string) ContentBuilder {
-//	b.Version = v
-//	return b
-//}
-//
-//func (b *MetadataVerifyContentBuilder) SetContent(c MetaDataVerifyContent) ContentBuilder {
-//	c.SchemaName = "dex-metadata-verify"
-//	c.SchemaVersion = b.Version
-//	b.Content = c
-//	return b
-//}
-//
-//func (b *MetadataVerifyContentBuilder) Build() any {
-//	switch b.Version {
-//	default:
-//		return b.Content
-//	}
-//}
-//
-//type UploadStatusContentBuilder struct {
-//	Version string
-//	Content UploadStatusContent
-//}
-//
-//func (b *UploadStatusContentBuilder) SetVersion(v string) ContentBuilder {
-//	b.Version = v
-//	return b
-//}
-//
-//func (b *UploadStatusContentBuilder) SetContent(c UploadStatusContent) ContentBuilder {
-//	c.SchemaName = "upload"
-//	c.SchemaVersion = b.Version
-//	b.Content = c
-//	return b
-//}
-//
-//func (b *UploadStatusContentBuilder) Build() any {
-//	return b.Content
-//}
-//
-//type MetadataTransformContentBuilder struct {
-//	Version string
-//	Content BulkMetadataTransformReportContent
-//}
-//
-//func (b *MetadataTransformContentBuilder) SetVersion(v string) ContentBuilder {
-//	b.Version = v
-//	return b
-//}
-//
-//func (b *MetadataTransformContentBuilder) SetContent(c BulkMetadataTransformReportContent) ContentBuilder {
-//	c.SchemaName = "metadata-transform"
-//	c.SchemaVersion = b.Version
-//	b.Content = c
-//
-//	return b
-//}
-//
-//func (b *MetadataTransformContentBuilder) Build() any {
-//	return b.Content
-//}
-//
-//type FileCopyContentBuilder struct {
-//	Version string
-//	Content FileCopyContent
-//}
-//
-//func (b *FileCopyContentBuilder) SetVersion(v string) ContentBuilder {
-//	b.Version = v
-//	return b
-//}
-//
-//func (b *FileCopyContentBuilder) SetContent(c FileCopyContent) ContentBuilder {
-//	c.SchemaName = "blob-copy"
-//	c.SchemaVersion = b.Version
-//	b.Content = c
-//
-//	return b
-//}
-//
-//func (b *FileCopyContentBuilder) Build() any {
-//	return b.Content
-//}

@@ -106,25 +106,6 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 		"add",
 		rcb).SetStartTime(time.Now().UTC())
 
-	//content := &models.FileCopyContent{
-	//	ReportContent: models.ReportContent{
-	//		SchemaVersion: "0.0.1",
-	//		SchemaName:    "dex-file-copy",
-	//	},
-	//	Destination: target,
-	//	Result:      "success",
-	//}
-	//
-	//report := &models.Report{
-	//	UploadID:        tuid,
-	//	DataStreamID:    metadata.GetDataStreamID(manifest),
-	//	DataStreamRoute: metadata.GetDataStreamRoute(manifest),
-	//	StageName:       "dex-file-copy",
-	//	ContentType:     "json",
-	//	DispositionType: "add",
-	//	Content:         content,
-	//}
-
 	err := d.Deliver(ctx, tuid, manifest)
 	rb.SetEndTime(time.Now().UTC())
 	if err != nil {
