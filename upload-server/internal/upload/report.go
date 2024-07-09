@@ -29,7 +29,11 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	rcb := reports.NewReportContentBuilder[reports.UploadStatusContent]("1.0.0").SetContent(reports.UploadStatusContent{
+	rcb := reports.NewReportContentBuilder[reports.UploadStatusContent]().SetContent(reports.UploadStatusContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadStatus,
+		},
 		Filename: metadataPkg.GetFilename(uploadMetadata),
 		Tguid:    uploadId,
 		Offset:   strconv.FormatInt(uploadOffset, 10),
@@ -38,10 +42,10 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 
 	report := reports.NewBuilder(
 		"1.0.0",
-		"upload-status",
+		reports.StageUploadStatus,
 		uploadId,
 		uploadMetadata,
-		"replace",
+		reports.DispositionTypeReplace,
 		rcb).Build()
 
 	logger.Info("REPORT", "report", report)
@@ -57,19 +61,27 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload started")
 
-	uploadStartedBuilder := reports.NewReportContentBuilder[reports.UploadLifecycleContent]("1.0.0").SetContent(reports.UploadLifecycleContent{
+	uploadStartedBuilder := reports.NewReportContentBuilder[reports.UploadLifecycleContent]().SetContent(reports.UploadLifecycleContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadStarted,
+		},
 		Status: "success",
 	})
 	report := reports.NewBuilder(
 		"1.0.0",
-		"dex-upload-started",
+		reports.StageUploadStarted,
 		uploadId,
 		manifest,
-		"add",
+		reports.DispositionTypeAdd,
 		uploadStartedBuilder).Build()
 	reports.Publish(event.Context, report)
 
-	uploadStatusBuilder := reports.NewReportContentBuilder[reports.UploadStatusContent]("1.0.0").SetContent(reports.UploadStatusContent{
+	uploadStatusBuilder := reports.NewReportContentBuilder[reports.UploadStatusContent]().SetContent(reports.UploadStatusContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadStatus,
+		},
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,
 		Offset:   strconv.FormatInt(uploadOffset, 10),
@@ -78,10 +90,10 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 
 	report = reports.NewBuilder(
 		"1.0.0",
-		"upload-status",
+		reports.StageUploadStatus,
 		uploadId,
 		manifest,
-		"replace",
+		reports.DispositionTypeReplace,
 		uploadStatusBuilder).SetStartTime(time.Now().UTC()).Build()
 
 	logger.Info("REPORT upload-status", "report", report)
@@ -97,19 +109,27 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
 
-	uploadCompletedBuilder := reports.NewReportContentBuilder[reports.UploadLifecycleContent]("1.0.0").SetContent(reports.UploadLifecycleContent{
+	uploadCompletedBuilder := reports.NewReportContentBuilder[reports.UploadLifecycleContent]().SetContent(reports.UploadLifecycleContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadCompleted,
+		},
 		Status: "success",
 	})
 	report := reports.NewBuilder(
 		"1.0.0",
-		"dex-upload-complete",
+		reports.StageUploadCompleted,
 		uploadId,
 		manifest,
-		"add",
+		reports.DispositionTypeAdd,
 		uploadCompletedBuilder).Build()
 	reports.Publish(event.Context, report)
 
-	rcb := reports.NewReportContentBuilder[reports.UploadStatusContent]("1.0.0").SetContent(reports.UploadStatusContent{
+	rcb := reports.NewReportContentBuilder[reports.UploadStatusContent]().SetContent(reports.UploadStatusContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadStatus,
+		},
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,
 		Offset:   strconv.FormatInt(uploadOffset, 10),
@@ -118,10 +138,10 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 
 	report = reports.NewBuilder(
 		"1.0.0",
-		"dex-upload-status",
+		reports.StageUploadStatus,
 		uploadId,
 		manifest,
-		"replace",
+		reports.DispositionTypeReplace,
 		rcb).SetEndTime(time.Now().UTC()).SetStatus("success").Build()
 
 	logger.Info("REPORT upload-status", "report", report)

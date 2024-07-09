@@ -5,7 +5,15 @@ import (
 	"time"
 )
 
-type Type string
+const StageMetadataVerify = "dex-metadata-verify"
+const StageMetadataTransform = "dex-metadata-transform"
+const StageFileCopy = "dex-file-copy"
+const StageUploadStatus = "dex-upload-status"
+const StageUploadStarted = "dex-upload-started"
+const StageUploadCompleted = "dex-upload-completed"
+const DispositionTypeAdd = "add"
+const DispositionTypeReplace = "replace"
+
 type Report struct {
 	ReportSchemaVersion string          `json:"report_schema_version"`
 	UploadID            string          `json:"upload_id"`
@@ -36,10 +44,6 @@ func (r *Report) Identifier() string {
 type ReportContent struct {
 	SchemaName    string `json:"schema_name"`
 	SchemaVersion string `json:"schema_version"`
-}
-
-type IReportContent interface {
-	ReportContent
 }
 
 type BulkMetadataTransformReportContent struct {
@@ -186,26 +190,17 @@ func (b *ReportBuilder[T]) Build() *Report {
 	}
 }
 
-func NewReportContentBuilder[T any](version string) *ReportContentBuilder[T] {
-	return &ReportContentBuilder[T]{
-		Version: version,
-	}
+func NewReportContentBuilder[T any]() *ReportContentBuilder[T] {
+	return &ReportContentBuilder[T]{}
 }
 
 type ContentBuilder[T any] interface {
-	SetVersion(string) ContentBuilder[T]
 	SetContent(T) ContentBuilder[T]
 	Build() T
 }
 
 type ReportContentBuilder[T any] struct {
-	Version string
 	Content T
-}
-
-func (b *ReportContentBuilder[T]) SetVersion(v string) ContentBuilder[T] {
-	b.Version = v
-	return b
 }
 
 func (b *ReportContentBuilder[T]) SetContent(c T) ContentBuilder[T] {

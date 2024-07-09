@@ -93,17 +93,21 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 		return errors.New("not recoverable, bad target " + target)
 	}
 
-	rcb := reports.NewReportContentBuilder[reports.FileCopyContent]("1.0.0").SetContent(reports.FileCopyContent{
+	rcb := reports.NewReportContentBuilder[reports.FileCopyContent]().SetContent(reports.FileCopyContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageFileCopy,
+		},
 		FileSourceBlobUrl:      "", // TODO
 		FileDestinationBlobUrl: "", // TODO
 		Timestamp:              "", // TODO.  Does PS API do this for us?
 	})
 	rb := reports.NewBuilder(
 		"1.0.0",
-		"dex-file-copy",
+		reports.StageFileCopy,
 		tuid,
 		manifest,
-		"add",
+		reports.DispositionTypeAdd,
 		rcb).SetStartTime(time.Now().UTC())
 
 	err := d.Deliver(ctx, tuid, manifest)

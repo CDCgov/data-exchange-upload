@@ -54,33 +54,33 @@ func TestTus(t *testing.T) {
 				if err != nil {
 					t.Error("failed to read report file for", "tuid", tuid)
 				}
-				err = checkReportSummary(reportSummary, "dex-metadata-verify", 1)
+				err = checkReportSummary(reportSummary, reports.StageMetadataVerify, 1)
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, "dex-metadata-transform", expectedMetadataTransformReportCount)
+				err = checkReportSummary(reportSummary, reports.StageMetadataTransform, expectedMetadataTransformReportCount)
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, "dex-upload-status", 1)
+				err = checkReportSummary(reportSummary, reports.StageUploadStatus, 1)
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, "dex-upload-started", 1)
+				err = checkReportSummary(reportSummary, reports.StageUploadStarted, 1)
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, "dex-upload-complete", 1)
+				err = checkReportSummary(reportSummary, reports.StageUploadCompleted, 1)
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, "dex-file-copy", 3)
+				err = checkReportSummary(reportSummary, reports.StageFileCopy, 3)
 				if err != nil {
 					t.Error(err.Error())
 				}
 
 				if c.err != nil {
-					metadataVerifyReport, ok := reportSummary.Summaries["dex-metadata-verify"]
+					metadataVerifyReport, ok := reportSummary.Summaries[reports.StageMetadataVerify]
 					if !ok {
 						t.Error("expected metadata verify report but got none")
 					}
@@ -88,7 +88,7 @@ func TestTus(t *testing.T) {
 						t.Error("expected reported issues but got none", name, tuid, metadataVerifyReport.Reports[0])
 					}
 
-					uploadStatusReport, ok := reportSummary.Summaries["dex-upload-status"]
+					uploadStatusReport, ok := reportSummary.Summaries[reports.StageUploadStatus]
 					if !ok {
 						t.Error("expected upload status report but got none")
 					}
