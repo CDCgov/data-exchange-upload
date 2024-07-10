@@ -1,6 +1,8 @@
 package reports
 
 import (
+	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/version"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"time"
 )
@@ -180,8 +182,8 @@ func (b *ReportBuilder[T]) Build() *Report {
 			StageInfo: ReportStageInfo{
 				Issues:           b.Issues,
 				Stage:            b.Stage,
-				Service:          "", // TODO get from version package
-				Version:          "", // TODO get from version package
+				Service:          "UPLOAD API",
+				Version:          fmt.Sprintf("%s_%s", version.LatestReleaseVersion, version.GitShortSha),
 				Status:           b.Status,
 				StartProcessTime: b.StartTime.String(),
 				EndProcessTime:   b.EndTime.String(),
