@@ -1,5 +1,9 @@
 FROM docker.io/library/golang:1.22.1-alpine AS builder
 
+ARG REPO="cdcgov/data-exchange-upload"
+ARG LATEST_RELEASE_VERSION="unspecified"
+ARG GIT_SHORT_SHA="unspecified"
+
 WORKDIR /app 
 
 COPY go.mod go.sum ./ 
@@ -8,7 +12,9 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o ./dextusd ./cmd/main.go
+RUN go build -ldflags "-X github.com/cdcgov/data-exchange-upload/upload-server/internal/version.GitRepo=${REPO}  \
+    -X github.com/cdcgov/data-exchange-upload/upload-server/internal/version.LatestReleaseVersion=${LATEST_RELEASE_VERSION} \
+    -X github.com/cdcgov/data-exchange-upload/upload-server/internal/version.GitShortSha=${GIT_SHORT_SHA}" -o ./dextusd ./cmd/main.go
 
 #
 

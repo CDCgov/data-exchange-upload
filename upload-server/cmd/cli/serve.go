@@ -98,6 +98,7 @@ func Serve(appConfig appconfig.AppConfig) (http.Handler, error) {
 	setupMetrics()
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
+	http.Handle("/version", &VersionHandler{})
 
 	return http.DefaultServeMux, nil
 }
