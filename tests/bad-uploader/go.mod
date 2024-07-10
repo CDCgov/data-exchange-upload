@@ -2,7 +2,7 @@ module github.com/cdcgov/bad-uploader
 
 go 1.22.1
 
-replace github.com/eventials/go-tus => /home/whytheplatypus/Development/go-tus
+replace github.com/eventials/go-tus => github.com/whytheplatypus/go-tus v0.0.0-20240709121510-b5e0bef51f72
 
 require (
 	github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571

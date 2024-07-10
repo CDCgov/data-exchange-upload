@@ -14,6 +14,7 @@ import (
 	"net/http"
 	neturl "net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -34,6 +35,7 @@ var (
 	password    string
 	samsURL     string
 	verbose     bool
+	patchURL    string
 
 	manifest = JSONVar{
 		"meta_destination_id": "dextesting",
@@ -163,6 +165,7 @@ func init() {
 	flag.StringVar(&templatePath, "template", "", "The path to a template file to use to generate test files")
 	flag.IntVar(&repetitions, "repetitions", 1, "The number of times to repeat a template when building a file")
 	flag.DurationVar(&duration, "duration", 0, "the duration to run load for.")
+	flag.StringVar(&patchURL, "patch-url", "", "Override the base url to use to upload the file itself after upload creation.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
@@ -337,9 +340,10 @@ func runTest(t TestCase, conf *config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create upload: %w, %+v", err, t)
 	}
-	log.Println(uploader.Url())
 
-	//uploader.SetUrl("https://apidev.cdc.gov/upload/files/" + path.Base(uploader.Url()))
+	if patchURL != "" {
+		uploader.SetUrl(path.Join(patchURL, path.Base(uploader.Url())))
+	}
 
 	slog.Debug("UploadID", "upload_id", uploader.Url())
 	c := make(chan tus.Upload)
@@ -353,14 +357,10 @@ func runTest(t TestCase, conf *config) error {
 	for {
 		if err := uploader.UploadChunck(); err != nil {
 			if errors.Is(err, io.EOF) {
-				log.Println("got eof")
 				break
 			}
 			return err
 		}
-		m := &runtime.MemStats{}
-		runtime.ReadMemStats(m)
-		log.Println("sys mem", m.Sys)
 	}
 	return nil
 }
