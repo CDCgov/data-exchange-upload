@@ -93,7 +93,12 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 		return errors.New("not recoverable, bad target " + target)
 	}
 
-	rcb := reports.NewReportContentBuilder[reports.FileCopyContent]().SetContent(reports.FileCopyContent{
+	rb := reports.NewBuilder[reports.FileCopyContent](
+		"1.0.0",
+		reports.StageFileCopy,
+		tuid,
+		manifest,
+		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC()).SetContent(reports.FileCopyContent{
 		ReportContent: reports.ReportContent{
 			SchemaVersion: "1.0.0",
 			SchemaName:    reports.StageFileCopy,
@@ -102,13 +107,6 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 		FileDestinationBlobUrl: "", // TODO
 		Timestamp:              "", // TODO.  Does PS API do this for us?
 	})
-	rb := reports.NewBuilder(
-		"1.0.0",
-		reports.StageFileCopy,
-		tuid,
-		manifest,
-		reports.DispositionTypeAdd,
-		rcb).SetStartTime(time.Now().UTC())
 
 	err := d.Deliver(ctx, tuid, manifest)
 	rb.SetEndTime(time.Now().UTC())
@@ -190,6 +188,7 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 
 	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
 
+	// TODO include src blob metadata
 	_, err = ad.ToClient.UploadStream(ctx, ad.ToContainer, blobName, s.Body, nil)
 	if err != nil {
 		return err

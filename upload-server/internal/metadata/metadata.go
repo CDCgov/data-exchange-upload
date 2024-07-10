@@ -187,7 +187,12 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	cb := reports.NewReportContentBuilder[reports.MetaDataVerifyContent]().SetContent(reports.MetaDataVerifyContent{
+	rb := reports.NewBuilder[reports.MetaDataVerifyContent](
+		"1.0.0",
+		reports.StageMetadataVerify,
+		tuid,
+		manifest,
+		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC()).SetContent(reports.MetaDataVerifyContent{
 		ReportContent: reports.ReportContent{
 			SchemaVersion: "1.0.0",
 			SchemaName:    reports.StageMetadataVerify,
@@ -195,13 +200,6 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		Filename: metadata.GetFilename(manifest),
 		Metadata: manifest,
 	})
-	rb := reports.NewBuilder(
-		"1.0.0",
-		reports.StageMetadataVerify,
-		tuid,
-		manifest,
-		reports.DispositionTypeAdd,
-		cb).SetStartTime(time.Now().UTC())
 
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
@@ -265,15 +263,14 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 		return resp, nil
 	}
 
-	rcb := reports.NewReportContentBuilder[reports.BulkMetadataTransformReportContent]()
+	//rcb := reports.NewReportContentBuilder[reports.BulkMetadataTransformReportContent]()
 
 	rb := reports.NewBuilder[reports.BulkMetadataTransformReportContent](
 		"1.0.0",
 		reports.StageMetadataTransform,
 		event.Upload.ID,
 		manifest,
-		reports.DispositionTypeAdd,
-		rcb).SetStartTime(time.Now().UTC())
+		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
 
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
@@ -289,7 +286,7 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	}
 
 	v2Manifest, transforms := v1.Hydrate(manifest, c)
-	rcb.SetContent(reports.BulkMetadataTransformReportContent{
+	rb.SetContent(reports.BulkMetadataTransformReportContent{
 		ReportContent: reports.ReportContent{
 			SchemaVersion: "1.0.0",
 			SchemaName:    reports.StageMetadataTransform,
@@ -373,7 +370,13 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 	}
 	logger.Info("Generated UUID", "UUID", tuid)
 
-	rcb := reports.NewReportContentBuilder[reports.BulkMetadataTransformReportContent]().SetContent(reports.BulkMetadataTransformReportContent{
+	manifest := event.Upload.MetaData
+	report := reports.NewBuilder[reports.BulkMetadataTransformReportContent](
+		"1.0.0",
+		reports.StageMetadataTransform,
+		tuid,
+		manifest,
+		reports.DispositionTypeAdd).SetContent(reports.BulkMetadataTransformReportContent{
 		ReportContent: reports.ReportContent{
 			SchemaVersion: "1.0.0",
 			SchemaName:    reports.StageMetadataTransform,
@@ -383,16 +386,7 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 			Field:  "ID",
 			Value:  tuid,
 		}},
-	})
-
-	manifest := event.Upload.MetaData
-	report := reports.NewBuilder(
-		"1.0.0",
-		reports.StageMetadataTransform,
-		tuid,
-		manifest,
-		reports.DispositionTypeAdd,
-		rcb).Build()
+	}).Build()
 
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
 	reports.Publish(event.Context, report)
@@ -422,7 +416,12 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 	manifest[fieldname] = timestamp
 	resp.ChangeFileInfo.MetaData = manifest
 
-	rcb := reports.NewReportContentBuilder[reports.BulkMetadataTransformReportContent]().SetContent(reports.BulkMetadataTransformReportContent{
+	report := reports.NewBuilder[reports.BulkMetadataTransformReportContent](
+		"1.0.0",
+		reports.StageMetadataTransform,
+		tguid,
+		manifest,
+		reports.DispositionTypeAdd).SetContent(reports.BulkMetadataTransformReportContent{
 		ReportContent: reports.ReportContent{
 			SchemaVersion: "1.0.0",
 			SchemaName:    reports.StageMetadataTransform,
@@ -432,15 +431,7 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 			Field:  fieldname,
 			Value:  timestamp,
 		}},
-	})
-
-	report := reports.NewBuilder(
-		"1.0.0",
-		reports.StageMetadataTransform,
-		tguid,
-		manifest,
-		reports.DispositionTypeAdd,
-		rcb).Build()
+	}).Build()
 
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
 	reports.Publish(event.Context, report)

@@ -92,18 +92,19 @@ type Builder[T any] interface {
 	SetStartTime(time.Time) Builder[T]
 	SetEndTime(time.Time) Builder[T]
 	SetDispositionType(string) Builder[T]
-	SetContentBuilder(ContentBuilder[T]) Builder[T]
+	//SetContentBuilder(ContentBuilder[T]) Builder[T]
+	SetContent(T) Builder[T]
 	Build() *Report
 }
 
-func NewBuilder[T any](version string, stage string, uploadId string, manifest map[string]string, dispType string, contentBuilder ContentBuilder[T]) Builder[T] {
+func NewBuilder[T any](version string, stage string, uploadId string, manifest map[string]string, dispType string) Builder[T] {
 	return &ReportBuilder[T]{
 		Version:         version,
 		Stage:           stage,
 		UploadId:        uploadId,
 		Manifest:        manifest,
 		DispositionType: dispType,
-		ContentBuilder:  contentBuilder,
+		//ContentBuilder:  contentBuilder,
 	}
 }
 
@@ -117,7 +118,7 @@ type ReportBuilder[T any] struct {
 	StartTime       time.Time
 	EndTime         time.Time
 	DispositionType string
-	ContentBuilder  ContentBuilder[T]
+	Content         T
 }
 
 func (b *ReportBuilder[T]) SetStage(s string) Builder[T] {
@@ -160,8 +161,8 @@ func (b *ReportBuilder[T]) SetDispositionType(d string) Builder[T] {
 	return b
 }
 
-func (b *ReportBuilder[T]) SetContentBuilder(cb ContentBuilder[T]) Builder[T] {
-	b.ContentBuilder = cb
+func (b *ReportBuilder[T]) SetContent(c T) Builder[T] {
+	b.Content = c
 	return b
 }
 
@@ -185,29 +186,7 @@ func (b *ReportBuilder[T]) Build() *Report {
 				StartProcessTime: b.StartTime.String(),
 				EndProcessTime:   b.EndTime.String(),
 			},
-			Content: b.ContentBuilder.Build(),
+			Content: b.Content,
 		}
 	}
-}
-
-func NewReportContentBuilder[T any]() *ReportContentBuilder[T] {
-	return &ReportContentBuilder[T]{}
-}
-
-type ContentBuilder[T any] interface {
-	SetContent(T) ContentBuilder[T]
-	Build() T
-}
-
-type ReportContentBuilder[T any] struct {
-	Content T
-}
-
-func (b *ReportContentBuilder[T]) SetContent(c T) ContentBuilder[T] {
-	b.Content = c
-	return b
-}
-
-func (b *ReportContentBuilder[T]) Build() T {
-	return b.Content
 }
