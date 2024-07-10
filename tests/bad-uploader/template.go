@@ -59,7 +59,6 @@ func (tg *TemplateGenerator) next() (err error) {
 		templates := tg.Templates
 		for _, t := range templates {
 			slog.Debug("writing template")
-			// ok we know this generates the whole template, so it can be a memory issue
 			if t.Args == nil {
 				t.Args = map[string]any{}
 			}
