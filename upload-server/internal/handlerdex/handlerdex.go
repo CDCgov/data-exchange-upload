@@ -51,9 +51,6 @@ func (hd HandlerDex) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/health":
 		health.Handler().ServeHTTP(w, r)
 
-	case "/version":
-		hd.version(w, r)
-
 	// all other non-specified routes
 	default:
 		http.NotFound(w, r)

@@ -124,6 +124,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	setupMetrics()
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
+	http.Handle("/version", &VersionHandler{})
 
 	return http.DefaultServeMux, nil
 }
