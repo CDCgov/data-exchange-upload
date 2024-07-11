@@ -2,7 +2,7 @@ package v1
 
 import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/tus/tusd/v2/pkg/handler"
 
 	"errors"
@@ -36,15 +36,15 @@ func NewFromManifest(manifest handler.MetaData) (validation.ConfigLocation, erro
 	}, nil
 }
 
-func Hydrate(m map[string]string, config *validation.ManifestConfig) (map[string]string, []models.MetaDataTransformContent) {
-	transforms := make([]models.MetaDataTransformContent, len(config.Metadata.Fields))
+func Hydrate(m map[string]string, config *validation.ManifestConfig) (map[string]string, []reports.MetadataTransformContent) {
+	transforms := make([]reports.MetadataTransformContent, len(config.Metadata.Fields))
 	for _, field := range config.Metadata.Fields {
 		if field.CompatFieldName == "" {
 			continue
 		}
 		if v, ok := m[field.FieldName]; ok {
 			m[field.CompatFieldName] = v
-			transforms = append(transforms, models.MetaDataTransformContent{
+			transforms = append(transforms, reports.MetadataTransformContent{
 				Action: "append",
 				Field:  field.FieldName,
 				Value:  v,
