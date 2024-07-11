@@ -172,13 +172,14 @@ func (b *ReportBuilder[T]) Build() *Report {
 	switch b.Version {
 	default:
 		return &Report{
-			UploadID:          b.UploadId,
-			DataStreamID:      metadata.GetDataStreamID(b.Manifest),
-			DataStreamRoute:   metadata.GetDataStreamRoute(b.Manifest),
-			Jurisdiction:      metadata.GetJurisdiction(b.Manifest),
-			DexIngestDatetime: metadata.GetDexIngestDatetime(b.Manifest),
-			ContentType:       "application/json",
-			DispositionType:   b.DispositionType,
+			ReportSchemaVersion: b.Version,
+			UploadID:            b.UploadId,
+			DataStreamID:        metadata.GetDataStreamID(b.Manifest),
+			DataStreamRoute:     metadata.GetDataStreamRoute(b.Manifest),
+			Jurisdiction:        metadata.GetJurisdiction(b.Manifest),
+			DexIngestDatetime:   metadata.GetDexIngestDatetime(b.Manifest),
+			ContentType:         "application/json",
+			DispositionType:     b.DispositionType,
 			StageInfo: ReportStageInfo{
 				Issues:           b.Issues,
 				Stage:            b.Stage,
