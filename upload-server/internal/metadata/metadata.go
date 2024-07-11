@@ -211,8 +211,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	if err := v.verify(event.Context, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
-		rb.SetStatus("failed")
-		rb.AppendIssue(err.Error())
+		rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error())
 
 		if errors.Is(err, validation.ErrFailure) {
 			resp.RejectUpload = true
@@ -225,7 +224,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, err
 	}
 
-	rb.SetStatus("success")
+	rb.SetStatus(reports.StatusSuccess)
 	return resp, nil
 }
 
@@ -263,8 +262,6 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 		return resp, nil
 	}
 
-	//rcb := reports.NewReportContentBuilder[reports.BulkMetadataTransformReportContent]()
-
 	rb := reports.NewBuilder[reports.BulkMetadataTransformReportContent](
 		"1.0.0",
 		reports.StageMetadataTransform,
@@ -281,7 +278,7 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 
 	c, err := v.getHydrationConfig(ctx, manifest)
 	if err != nil {
-		rb.SetStatus("failed").AppendIssue(err.Error()).SetEndTime(time.Now().UTC())
+		rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error()).SetEndTime(time.Now().UTC())
 		return resp, err
 	}
 
@@ -295,7 +292,7 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	})
 	resp.ChangeFileInfo.MetaData = v2Manifest
 
-	rb.SetStatus("success")
+	rb.SetStatus(reports.StatusSuccess)
 	return resp, nil
 }
 

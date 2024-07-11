@@ -15,6 +15,8 @@ const StageUploadStarted = "dex-upload-started"
 const StageUploadCompleted = "dex-upload-completed"
 const DispositionTypeAdd = "add"
 const DispositionTypeReplace = "replace"
+const StatusSuccess = "success"
+const StatusFailed = "failed"
 
 type Report struct {
 	ReportSchemaVersion string          `json:"report_schema_version"`
@@ -94,7 +96,6 @@ type Builder[T any] interface {
 	SetStartTime(time.Time) Builder[T]
 	SetEndTime(time.Time) Builder[T]
 	SetDispositionType(string) Builder[T]
-	//SetContentBuilder(ContentBuilder[T]) Builder[T]
 	SetContent(T) Builder[T]
 	Build() *Report
 }
@@ -106,7 +107,9 @@ func NewBuilder[T any](version string, stage string, uploadId string, manifest m
 		UploadId:        uploadId,
 		Manifest:        manifest,
 		DispositionType: dispType,
-		//ContentBuilder:  contentBuilder,
+		Status:          StatusSuccess,
+		StartTime:       time.Now().UTC(),
+		EndTime:         time.Now().UTC(),
 	}
 }
 
