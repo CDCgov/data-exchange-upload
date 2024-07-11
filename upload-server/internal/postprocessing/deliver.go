@@ -188,8 +188,9 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 
 	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
 
-	// TODO include src blob metadata
-	_, err = ad.ToClient.UploadStream(ctx, ad.ToContainer, blobName, s.Body, nil)
+	_, err = ad.ToClient.UploadStream(ctx, ad.ToContainer, blobName, s.Body, &azblob.UploadStreamOptions{
+		Metadata: storeaz.PointerizeMetadata(manifest),
+	})
 	if err != nil {
 		return err
 	}
