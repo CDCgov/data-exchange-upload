@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"io"
 	"log"
 	"log/slog"
@@ -96,7 +97,7 @@ func (tg *TemplateGenerator) Read(p []byte) (int, error) {
 	//todo only swallow unexpected eof errors
 	slog.Debug("read template")
 	_, peakErr := tg.r.Peek(len(p))
-	if err == io.ErrUnexpectedEOF || peakErr == io.EOF {
+	if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(peakErr, io.EOF) {
 		if tg.Repeats < 1 {
 			return n, io.EOF
 		}

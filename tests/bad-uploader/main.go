@@ -38,9 +38,12 @@ var (
 	patchURL    string
 
 	manifest = JSONVar{
-		"meta_destination_id": "dextesting",
-		"meta_ext_event":      "testevent1",
-		"filename":            "test",
+		"data_stream_id":    "dextesting",
+		"data_stream_route": "testevent1",
+		"received_filename": "test",
+		"sender_id":         "dex simulation harness",
+		"data_producer_id":  "dex simulation harness",
+		"juristiction":      "test",
 	}
 
 	testcase TestCase
