@@ -185,8 +185,8 @@ func (b *ReportBuilder[T]) Build() *Report {
 				Service:          "UPLOAD API",
 				Version:          fmt.Sprintf("%s_%s", version.LatestReleaseVersion, version.GitShortSha),
 				Status:           b.Status,
-				StartProcessTime: b.StartTime.String(),
-				EndProcessTime:   b.EndTime.String(),
+				StartProcessTime: b.StartTime.Format(time.RFC3339),
+				EndProcessTime:   b.EndTime.Format(time.RFC3339),
 			},
 			Content: b.Content,
 		}
