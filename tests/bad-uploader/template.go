@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"io"
 	"log"
 	"log/slog"
@@ -18,30 +20,28 @@ func randSeq(n int) string {
 	return string(b)
 }
 
+func repeat(n int) []int {
+	return make([]int, n)
+}
+
 var funcs = template.FuncMap{
 	"RandomString": randSeq,
 	"RandomInt":    rand.Intn,
+	"Repeat":       repeat,
 }
 
 type TemplateGenerator struct {
-	t        *template.Template
-	Path     string
-	Repeats  int
-	Manifest map[string]string
-	r        io.Reader
-	w        io.WriteCloser
+	t         *template.Template
+	Path      string
+	Repeats   int
+	Templates []SubTemplate
+	Manifest  map[string]string
+	r         *bufio.Reader
+	w         io.WriteCloser
 }
 
 func (tg *TemplateGenerator) Size() int64 {
-	if err := tg.next(); err != nil {
-		log.Fatal(err)
-	}
-	b, err := io.ReadAll(tg.r)
-	if err != nil {
-		log.Fatal(err)
-	}
-	size := len(b)
-	return int64(size) * int64(tg.Repeats)
+	return 1
 }
 
 func (tg *TemplateGenerator) next() (err error) {
@@ -52,12 +52,23 @@ func (tg *TemplateGenerator) next() (err error) {
 		}
 	}
 
-	tg.r, tg.w = io.Pipe()
+	var r io.Reader
+	r, tg.w = io.Pipe()
+	tg.r = bufio.NewReader(r)
 
 	go func() {
-		slog.Debug("writing template")
-		if err := tg.t.Execute(tg.w, nil); err != nil {
-			slog.Error("failed to execute template", "error", err)
+		templates := tg.Templates
+		for _, t := range templates {
+			slog.Debug("writing template")
+			if t.Args == nil {
+				t.Args = map[string]any{}
+			}
+			for i := range t.Repetitions {
+				t.Args["Index"] = i
+				if err := tg.t.ExecuteTemplate(tg.w, t.Name, t.Args); err != nil {
+					slog.Error("failed to execute template", "error", err)
+				}
+			}
 		}
 		tg.w.Close()
 	}()
@@ -79,19 +90,23 @@ func (tg *TemplateGenerator) Read(p []byte) (int, error) {
 		}
 	}
 	slog.Debug("reading template")
-	n, err := tg.r.Read(p)
+	log.Println("buf size", len(p))
+	n, err := io.ReadFull(tg.r, p)
+	log.Println(err)
+	log.Println("bytes written", n)
+	//todo only swallow unexpected eof errors
 	slog.Debug("read template")
-	if err == io.EOF {
+	_, peakErr := tg.r.Peek(len(p))
+	if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(peakErr, io.EOF) {
 		if tg.Repeats < 1 {
-			return 0, err
+			return n, io.EOF
 		}
 		tg.Repeats--
 		if err := tg.next(); err != nil {
 			return n, err
 		}
-		return n, nil
 	}
-	return n, err
+	return n, nil
 }
 
 func (tg *TemplateGenerator) Seek(offset int64, whence int) (int64, error) {

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	neturl "net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -34,11 +35,16 @@ var (
 	password    string
 	samsURL     string
 	verbose     bool
+	patchURL    string
 
 	manifest = JSONVar{
-		"meta_destination_id": "dextesting",
-		"meta_ext_event":      "testevent1",
-		"filename":            "test",
+		"version":           "2.0",
+		"data_stream_id":    "dextesting",
+		"data_stream_route": "testevent1",
+		"received_filename": "test",
+		"sender_id":         "dex simulation harness",
+		"data_producer_id":  "dex simulation harness",
+		"jurisdiction":      "test",
 	}
 
 	testcase TestCase
@@ -65,12 +71,19 @@ func (f *JSONVar) Set(s string) error {
 	return json.Unmarshal([]byte(s), f)
 }
 
-type TestCase struct {
-	Chunk       float64
-	Size        float64
-	Manifest    map[string]string
-	Template    string
+type SubTemplate struct {
+	Name        string
 	Repetitions int
+	Args        map[string]any
+}
+
+type TestCase struct {
+	Chunk        float64
+	Size         float64
+	Manifest     map[string]string
+	TemplateFile string
+	Templates    []SubTemplate
+	Repetitions  int
 }
 
 func (t *TestCase) String() string {
@@ -102,7 +115,7 @@ func (t *TestCase) Set(s string) error {
 		return fmt.Errorf("chunk size must be > 1 byte")
 	}
 
-	if t.Size < 1 && t.Template == "" {
+	if t.Size < 1 && t.TemplateFile == "" {
 		return fmt.Errorf("size of file must be > 1 byte")
 	}
 	return nil
@@ -156,6 +169,7 @@ func init() {
 	flag.StringVar(&templatePath, "template", "", "The path to a template file to use to generate test files")
 	flag.IntVar(&repetitions, "repetitions", 1, "The number of times to repeat a template when building a file")
 	flag.DurationVar(&duration, "duration", 0, "the duration to run load for.")
+	flag.StringVar(&patchURL, "patch-url", "", "Override the base url to use to upload the file itself after upload creation.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
@@ -175,7 +189,7 @@ func init() {
 			Manifest: manifest,
 		}
 		if templatePath != "" {
-			testcase.Template = templatePath
+			testcase.TemplateFile = templatePath
 			testcase.Repetitions = repetitions
 		}
 	}
@@ -293,11 +307,12 @@ type uploadable interface {
 func runTest(t TestCase, conf *config) error {
 
 	var f uploadable
-	if t.Template != "" {
+	if t.TemplateFile != "" {
 		f = &TemplateGenerator{
-			Repeats:  t.Repetitions,
-			Path:     t.Template,
-			Manifest: t.Manifest,
+			Repeats:   t.Repetitions,
+			Path:      t.TemplateFile,
+			Templates: t.Templates,
+			Manifest:  t.Manifest,
 		}
 	} else {
 		f = &BadFile{
@@ -329,6 +344,15 @@ func runTest(t TestCase, conf *config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create upload: %w, %+v", err, t)
 	}
+
+	if patchURL != "" {
+		p, err := neturl.JoinPath(patchURL, path.Base(uploader.Url()))
+		if err != nil {
+			return err
+		}
+		uploader.SetUrl(p)
+	}
+
 	slog.Debug("UploadID", "upload_id", uploader.Url())
 	c := make(chan tus.Upload)
 	uploader.NotifyUploadProgress(c)
@@ -380,21 +404,23 @@ func (b *BadFile) Fingerprint() string {
 
 func (b *BadFile) Read(p []byte) (int, error) {
 
-	if b.offset > b.FileSize {
-		return 0, io.EOF
-	}
 	// needs to limit size read to size eventually
 	i, err := b.DummyGenerator.Read(p)
 	if err != nil {
 		return i, err
 	}
+	log.Println("reading", b.offset, b.FileSize)
 
 	if b.offset+i > b.FileSize {
-		n := (b.offset + 1) - b.FileSize
-		b.offset += i
-		return n, nil
+		i = b.FileSize - b.offset
 	}
+
 	b.offset += i
+
+	if b.offset >= b.FileSize {
+		return i, io.EOF
+	}
+	log.Println("read", b.offset, b.FileSize)
 	return i, nil
 }
 
