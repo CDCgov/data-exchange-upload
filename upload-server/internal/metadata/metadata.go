@@ -281,7 +281,7 @@ func (v *HookEventHandler) WithTimestamp(event handler.HookEvent, resp hooks.Hoo
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	timestamp := time.Now().Format(time.RFC3339)
+	timestamp := time.Now().UTC().Format(time.RFC3339)
 	logger.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
