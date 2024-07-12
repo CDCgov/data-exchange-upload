@@ -112,8 +112,7 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 	rb.SetEndTime(time.Now().UTC())
 	if err != nil {
 		logger.Error("failed to copy file", "target", target)
-		rb.SetStatus("failed")
-		rb.AppendIssue(err.Error())
+		rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error())
 	}
 
 	report := rb.Build()
