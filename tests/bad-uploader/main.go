@@ -38,12 +38,13 @@ var (
 	patchURL    string
 
 	manifest = JSONVar{
+		"version":           "2.0",
 		"data_stream_id":    "dextesting",
 		"data_stream_route": "testevent1",
 		"received_filename": "test",
 		"sender_id":         "dex simulation harness",
 		"data_producer_id":  "dex simulation harness",
-		"juristiction":      "test",
+		"jurisdiction":      "test",
 	}
 
 	testcase TestCase
@@ -345,7 +346,11 @@ func runTest(t TestCase, conf *config) error {
 	}
 
 	if patchURL != "" {
-		uploader.SetUrl(path.Join(patchURL, path.Base(uploader.Url())))
+		p, err := neturl.JoinPath(patchURL, path.Base(uploader.Url()))
+		if err != nil {
+			return err
+		}
+		uploader.SetUrl(p)
 	}
 
 	slog.Debug("UploadID", "upload_id", uploader.Url())
