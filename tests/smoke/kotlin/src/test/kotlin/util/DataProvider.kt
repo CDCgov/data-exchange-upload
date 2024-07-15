@@ -47,14 +47,14 @@ class DataProvider {
 
         private fun loadAndFilterManifests(manifestFiles: Array<String>): Array<Array<Map<String, String>>> {
             val manifestFilter: String? = System.getProperty("manifestFilter")
-            val pairs = manifestFilter?.split(";")
+            val fields = manifestFilter?.split(";")
 
             val manifestFilters = mutableMapOf<String, String>()
 
-            if (pairs != null) {
-                for (pair in pairs) {
-                    val delimiter = if (pair.contains(":")) ":" else "="
-                    val keyValue = pair.split(delimiter)
+            if (fields != null) {
+                for (field in fields)  {
+                    val delimiter = if (field.contains(":")) ":" else "="
+                    val keyValue = field.split(delimiter)
                     if (keyValue.size == 2) {
                         manifestFilters[keyValue[0]] = keyValue[1]
                     }
