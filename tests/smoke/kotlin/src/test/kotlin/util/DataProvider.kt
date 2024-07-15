@@ -53,7 +53,7 @@ class DataProvider {
 
             if (fields != null) {
                 for (field in fields) {
-                    val keyValue = field.split(":")
+                    val keyValue = field.split("=")
                     if (keyValue.size == 2) {
                         manifestFilters[keyValue[0]] = keyValue[1]
                     }
@@ -61,18 +61,23 @@ class DataProvider {
             }
 
             val manifests = arrayListOf<Map<String, String>>()
+            var totalManifests = 0
 
             manifestFiles.forEach { manifestFile ->
                 val jsonBytes = TestFile.getResourceFile(manifestFile).readBytes()
                 val manifestJsons: List<Map<String, String>> = objectMapper.readValue(jsonBytes)
+                totalManifests += manifestJsons.size
 
                 if (manifestFilters.isNotEmpty()) {
                     val filtered = filterManifestJsons(manifestJsons, manifestFilters)
+                    println("Filtered manifests: $filtered")
                     manifests.addAll(filtered)
                 } else {
                     manifests.addAll(manifestJsons)
                 }
             }
+            println("Total number of manifests: $totalManifests, Number of filtered manifests: ${manifests.size}")
+            println("Final Manifest: $manifests")
             return manifests.map { arrayOf(it) }.toTypedArray()
         }
 
