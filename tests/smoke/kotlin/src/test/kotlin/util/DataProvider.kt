@@ -89,7 +89,6 @@ class DataProvider {
                 manifestFilters.all { (key, value) ->
                     val filterValues = parseFilterValues(value)
                     json[key]?.let { it in filterValues } ?: false
-                    json[key]?.let { it in filterValues } ?: false
                 }
             }
         }
