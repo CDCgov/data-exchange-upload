@@ -52,8 +52,7 @@ class DataProvider {
             val manifestFilters = mutableMapOf<String, String>()
 
             if (fields != null) {
-                for (field in fields)  {
-                    //val delimiter = if (field.contains(":")) ":" else "="
+                for (field in fields) {
                     val keyValue = field.split(":")
                     if (keyValue.size == 2) {
                         manifestFilters[keyValue[0]] = keyValue[1]
@@ -78,7 +77,19 @@ class DataProvider {
         }
 
         private fun parseFilterValues(filter: String): List<String> {
-            return filter.split(",")
+            try {
+                val values = filter.split(",")
+                if (values.size != 2) {
+                    if (values.size == 1) {
+                        return values
+                    } else {
+                        throw IllegalArgumentException("Filter values must contain exactly two elements.")
+                    }
+                }
+                return values
+            } catch (e: Exception) {
+                throw RuntimeException("An error occurred while parsing filter values.", e)
+            }
         }
 
         private fun filterManifestJsons(
