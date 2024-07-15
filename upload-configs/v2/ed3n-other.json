@@ -112,6 +112,12 @@
             "required": false,
             "allowed_values": null,
             "description": "The reagent kit used for the sequencing"
+        },
+        {
+            "field_name": "uploaded_by",
+            "required": true,
+            "allowed_values": null,
+            "description": "The identity of the uploader"
         }
       ]
     },
