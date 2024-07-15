@@ -41,8 +41,8 @@ tasks.test {
 
     useTestNG {
         // This is needed otherwise System.getProperty returns null for the custom properties.
-        if (project.hasProperty("useCases")) {
-            systemProperties["useCases"] = project.properties["useCases"]
+        if (project.hasProperty("manifestFilter")) {
+            systemProperties["manifestFilter"] = project.properties["manifestFilter"]
         }
     }
 }

@@ -29,7 +29,8 @@ class FileCopy {
     private val routingBlobClient = Azure.getBlobServiceClient(EnvConfig.ROUTING_STORAGE_CONNECTION_STRING)
     private val bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
     private val edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
-    private val routingContainerClient = routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
+    private val routingContainerClient =
+        routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
     private lateinit var authToken: String
     private lateinit var testContext: ITestContext
     private lateinit var uploadClient: UploadClient
@@ -45,11 +46,16 @@ class FileCopy {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
-    @Test(groups = [Constants.Groups.FILE_COPY], dataProvider = "validManifestAllProvider", dataProviderClass = DataProvider::class)
+    @Test(
+        groups = [Constants.Groups.FILE_COPY],
+        dataProvider = "validManifestAllProvider",
+        dataProviderClass = DataProvider::class
+    )
     fun shouldUploadFile(manifest: HashMap<String, String>) {
-        val uid = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
+        val uid = uploadClient.uploadFile(testFile, manifest)
+            ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
-        Thread.sleep(1000)
+        Thread.sleep(2000)
 
         // First, check bulk upload and .info file.
         val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid")
@@ -83,7 +89,11 @@ class FileCopy {
         }
     }
 
-    @Test(groups = [Constants.Groups.FILE_COPY], dataProvider = "validManifestV1Provider", dataProviderClass = DataProvider::class)
+    @Test(
+        groups = [Constants.Groups.FILE_COPY],
+        dataProvider = "validManifestV1Provider",
+        dataProviderClass = DataProvider::class
+    )
     fun shouldTranslateMetadataGivenV1SenderManifest(manifest: HashMap<String, String>) {
         val useCase = Metadata.getUseCaseFromManifest(manifest)
         val dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
@@ -93,7 +103,8 @@ class FileCopy {
         val metadataMapping = v2Config.metadataConfig.fields.filter { it.compatFieldName != null }
             .associate { it.compatFieldName to it.fieldName }
 
-        val uid = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
+        val uid = uploadClient.uploadFile(testFile, manifest)
+            ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
         Thread.sleep(1000)
 
@@ -104,10 +115,13 @@ class FileCopy {
         val blobMetadata = expectedBlobClient.properties.metadata
 
         metadataMapping.forEach { (v1Key, v2Key) ->
-            Assert.assertTrue(blobMetadata.containsKey(v2Key), "Mismatch: Blob metadata does not contain expected V2 key: $v2Key which should map from V1 key: $v1Key")
+            Assert.assertTrue(
+                blobMetadata.containsKey(v2Key),
+                "Mismatch: Blob metadata does not contain expected V2 key: $v2Key which should map from V1 key: $v1Key"
+            )
         }
 
-        metadataMapping.forEach{ (v1Key, v2Key) ->
+        metadataMapping.forEach { (v1Key, v2Key) ->
             val v1Val = manifest[v1Key] ?: ""
             val v2Val = blobMetadata[v2Key] ?: ""
             Assert.assertEquals(v1Val, v2Val, "Expected V1 value: $v1Val does not match with actual V2 value: $v2Val")

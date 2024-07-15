@@ -19,67 +19,78 @@ class DataProvider {
 
         @JvmStatic
         @DataProvider(name = "validManifestAllProvider")
-        fun validManifestAllProvider(): Array<Array<HashMap<String, String>>> {
+        fun validManifestAllProvider(): Array<Array<Map<String, String>>> {
             val validManifests = arrayOf("valid_manifests_v1.json", "valid_manifests_v2.json")
             return loadAndFilterManifests(validManifests)
         }
 
         @JvmStatic
         @DataProvider(name = "validManifestV1Provider")
-        fun validManifestV1Provider(): Array<Array<HashMap<String, String>>> {
+        fun validManifestV1Provider(): Array<Array<Map<String, String>>> {
             val validManifests = arrayOf("valid_manifests_v1.json")
             return loadAndFilterManifests(validManifests)
         }
 
         @JvmStatic
         @DataProvider(name = "invalidManifestRequiredFieldsProvider")
-        fun invalidManifestRequiredFieldsProvider(): Array<Array<HashMap<String, String>>> {
+        fun invalidManifestRequiredFieldsProvider(): Array<Array<Map<String, String>>> {
             val invalidManifests = arrayOf("invalid_manifests_required_fields.json")
             return loadAndFilterManifests(invalidManifests)
         }
 
         @JvmStatic
         @DataProvider(name = "invalidManifestInvalidValueProvider")
-        fun invalidManifestInvalidValueProvider(): Array<Array<HashMap<String, String>>> {
+        fun invalidManifestInvalidValueProvider(): Array<Array<Map<String, String>>> {
             val invalidManifests = arrayOf("invalid_manifests_invalid_value.json")
             return loadAndFilterManifests(invalidManifests)
         }
 
-        private fun loadAndFilterManifests(manifestFiles: Array<String>): Array<Array<HashMap<String, String>>> {
-            val useCases: String? = System.getProperty("useCases")
-            val useCaseFilters: List<Map<String, String>> = useCases?.split(";")?.map { useCase ->
-                useCase.split(",").associate {
-                    val (key, value) = it.split(":")
-                    key to value
-                }
-            } ?: listOf()
+        private fun loadAndFilterManifests(manifestFiles: Array<String>): Array<Array<Map<String, String>>> {
+            val manifestFilter: String? = System.getProperty("manifestFilter")
+            val pairs = manifestFilter?.split(";")
 
-            val manifests = arrayListOf<HashMap<String, String>>()
+            val manifestFilters = mutableMapOf<String, String>()
 
-            manifestFiles.forEach { manifestFile ->
-                val jsonBytes = TestFile.getResourceFile(manifestFile).readBytes()
-                val manifestJsons: List<HashMap<String, String>> = objectMapper.readValue(jsonBytes)
-                useCaseFilters.forEach { manifestFilter ->
-                    val filtered = filterByUseCases(manifestJsons, manifestFilter)
-                    manifests.addAll(filtered)
+            if (pairs != null) {
+                for (pair in pairs) {
+                    val delimiter = if (pair.contains(":")) ":" else "="
+                    val keyValue = pair.split(delimiter)
+                    if (keyValue.size == 2) {
+                        manifestFilters[keyValue[0]] = keyValue[1]
+                    }
                 }
             }
 
+            val manifests = arrayListOf<Map<String, String>>()
+
+            manifestFiles.forEach { manifestFile ->
+                val jsonBytes = TestFile.getResourceFile(manifestFile).readBytes()
+                val manifestJsons: List<Map<String, String>> = objectMapper.readValue(jsonBytes)
+
+                if (manifestFilters.isNotEmpty()) {
+                    val filtered = filterManifestJsons(manifestJsons, manifestFilters)
+                    manifests.addAll(filtered)
+                } else {
+                    manifests.addAll(manifestJsons)
+                }
+            }
             return manifests.map { arrayOf(it) }.toTypedArray()
         }
 
-        private fun filterByUseCases(
-            manifests: List<HashMap<String, String>>,
-            manifestFilter: Map<String, String>
-        ): List<HashMap<String, String>> {
-            return if (manifestFilter.isNotEmpty()) {
-                manifests.filter { manifest ->
-                    manifestFilter.all { (key, value) ->
-                        manifest[key] == value
-                    }
+        private fun parseFilterValues(filter: String): List<String> {
+            return filter.split(",")
+        }
+
+        private fun filterManifestJsons(
+            manifestJsons: List<Map<String, String>>,
+            manifestFilters: Map<String, String>
+        ): List<Map<String, String>> {
+            return manifestJsons.filter { json ->
+                manifestFilters.all { (key, value) ->
+                    val filterValues = parseFilterValues(value)
+                    json[key]?.let { it in filterValues } ?: false
+                    json[key]?.let { it in filterValues } ?: false
                 }
-            } else {
-                manifests
             }
         }
     }

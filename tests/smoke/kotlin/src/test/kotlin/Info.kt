@@ -10,6 +10,7 @@ import org.testng.annotations.Test
 import tus.UploadClient
 import util.*
 
+
 @Listeners(UploadIdTestListener::class)
 @Test()
 class Info {
@@ -30,9 +31,14 @@ class Info {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
-    @Test(groups = [Constants.Groups.FILE_INFO], dataProvider = "validManifestAllProvider", dataProviderClass = DataProvider::class)
+    @Test(
+        groups = [Constants.Groups.FILE_INFO],
+        dataProvider = "validManifestAllProvider",
+        dataProviderClass = DataProvider::class
+    )
     fun shouldGetFileInfo(manifest: HashMap<String, String>) {
-        val uid: String = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file given manifest $manifest")
+        val uid: String = uploadClient.uploadFile(testFile, manifest)
+            ?: throw TestNGException("Error uploading file given manifest $manifest")
         testContext.setAttribute("uploadId", uid)
 
         val fileInfo = dexUploadClient.getFileInfo(uid, authToken)
@@ -51,7 +57,8 @@ class Info {
     @Test(
         groups = [Constants.Groups.FILE_INFO],
         expectedExceptions = [IOException::class],
-        expectedExceptionsMessageRegExp = "Error getting file info.*")
+        expectedExceptionsMessageRegExp = "Error getting file info.*"
+    )
     fun shouldReturnNotFoundGivenInvalidId() {
         dexUploadClient.getFileInfo("blah", authToken)
     }
