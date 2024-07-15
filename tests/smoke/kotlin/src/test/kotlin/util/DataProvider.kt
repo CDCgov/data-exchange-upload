@@ -53,8 +53,8 @@ class DataProvider {
 
             if (fields != null) {
                 for (field in fields)  {
-                    val delimiter = if (field.contains(":")) ":" else "="
-                    val keyValue = field.split(delimiter)
+                    //val delimiter = if (field.contains(":")) ":" else "="
+                    val keyValue = field.split(":")
                     if (keyValue.size == 2) {
                         manifestFilters[keyValue[0]] = keyValue[1]
                     }
