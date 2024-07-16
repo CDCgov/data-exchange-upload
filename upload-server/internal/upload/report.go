@@ -1,8 +1,7 @@
 package upload
 
 import (
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -11,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var logger *slog.Logger
@@ -29,26 +29,21 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	content := &models.UploadStatusContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "upload",
+	report := reports.NewBuilder[reports.UploadStatusContent](
+		"1.0.0",
+		reports.StageUploadStatus,
+		uploadId,
+		uploadMetadata,
+		reports.DispositionTypeReplace).SetContent(reports.UploadStatusContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadStatus,
 		},
-		Filename: metadata.GetFilename(uploadMetadata),
+		Filename: metadataPkg.GetFilename(uploadMetadata),
 		Tguid:    uploadId,
 		Offset:   strconv.FormatInt(uploadOffset, 10),
 		Size:     strconv.FormatInt(uploadSize, 10),
-	}
-
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    metadata.GetDataStreamID(uploadMetadata),
-		DataStreamRoute: metadata.GetDataStreamRoute(uploadMetadata),
-		StageName:       "dex-upload-status",
-		ContentType:     "json",
-		DispositionType: "replace",
-		Content:         content,
-	}
+	}).Build()
 
 	logger.Info("REPORT", "report", report)
 	reports.Publish(event.Context, report)
@@ -59,53 +54,83 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	uploadId := event.Upload.ID
 	manifest := event.Upload.MetaData
+	uploadOffset := event.Upload.Offset
+	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload started")
-	content := &models.UploadLifecycleContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "dex-upload-started",
+
+	report := reports.NewBuilder[reports.UploadLifecycleContent](
+		"1.0.0",
+		reports.StageUploadStarted,
+		uploadId,
+		manifest,
+		reports.DispositionTypeAdd).SetContent(reports.UploadLifecycleContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadStarted,
 		},
-		Status: "success",
-	}
-
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    metadata.GetDataStreamID(manifest),
-		DataStreamRoute: metadata.GetDataStreamRoute(manifest),
-		StageName:       "dex-upload-started",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
-
-	logger.Info("REPORT upload-started", "report", report)
+	}).Build()
 	reports.Publish(event.Context, report)
+
+	report = reports.NewBuilder[reports.UploadStatusContent](
+		"1.0.0",
+		reports.StageUploadStatus,
+		uploadId,
+		manifest,
+		reports.DispositionTypeReplace).SetStartTime(time.Now().UTC()).SetContent(reports.UploadStatusContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadStatus,
+		},
+		Filename: metadataPkg.GetFilename(manifest),
+		Tguid:    uploadId,
+		Offset:   strconv.FormatInt(uploadOffset, 10),
+		Size:     strconv.FormatInt(uploadSize, 10),
+	}).Build()
+
+	logger.Info("REPORT upload-status", "report", report)
+	reports.Publish(event.Context, report)
+
 	return resp, nil
 }
 
 func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	uploadId := event.Upload.ID
 	manifest := event.Upload.MetaData
+	uploadOffset := event.Upload.Offset
+	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
-	content := &models.UploadLifecycleContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "1.0",
-			SchemaName:    "dex-upload-complete",
+
+	report := reports.NewBuilder[reports.UploadLifecycleContent](
+		"1.0.0",
+		reports.StageUploadCompleted,
+		uploadId,
+		manifest,
+		reports.DispositionTypeAdd).SetContent(reports.UploadLifecycleContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadCompleted,
 		},
-		Status: "success",
-	}
-
-	report := &models.Report{
-		UploadID:        uploadId,
-		DataStreamID:    metadata.GetDataStreamID(manifest),
-		DataStreamRoute: metadata.GetDataStreamRoute(manifest),
-		StageName:       "dex-upload-complete",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
-
-	logger.Info("REPORT upload-completed", "report", report)
+	}).Build()
 	reports.Publish(event.Context, report)
+
+	report = reports.NewBuilder[reports.UploadStatusContent](
+		"1.0.0",
+		reports.StageUploadStatus,
+		uploadId,
+		manifest,
+		reports.DispositionTypeReplace).SetEndTime(time.Now().UTC()).SetStatus("success").SetContent(reports.UploadStatusContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageUploadStatus,
+		},
+		Filename: metadataPkg.GetFilename(manifest),
+		Tguid:    uploadId,
+		Offset:   strconv.FormatInt(uploadOffset, 10),
+		Size:     strconv.FormatInt(uploadSize, 10),
+	}).Build()
+
+	logger.Info("REPORT upload-status", "report", report)
+	reports.Publish(event.Context, report)
+
 	return resp, nil
 }

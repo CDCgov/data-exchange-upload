@@ -8,3 +8,4 @@ rm -rf testing/test/uploads
 rm -rf testing/test/dex
 rm -rf testing/test/edav
 rm -rf testing/test/routing
+rm -rf testing/test/events

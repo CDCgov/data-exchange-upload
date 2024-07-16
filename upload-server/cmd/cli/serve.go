@@ -2,11 +2,13 @@ package cli
 
 import (
 	"context"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
@@ -18,7 +20,7 @@ import (
 	"strings"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan chan postprocessing.Event) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -66,8 +68,28 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan ch
 	// initialize event reporter
 	err = InitReporters(appConfig)
 
+	var fileReadyPublisher event.Publisher
+	fileReadyPublisher = &event.MemoryPublisher{
+		Dir: appConfig.LocalEventsFolder,
+	}
+
+	if appConfig.PublisherConnection != nil {
+		cred := azcore.NewKeyCredential(appConfig.PublisherConnection.AccessKey)
+		client, err := aznamespaces.NewSenderClientWithSharedKeyCredential(appConfig.PublisherConnection.Endpoint, appConfig.PublisherConnection.Topic, cred, nil)
+		if err != nil {
+			logger.Error("failed to connect to azure event grid")
+		}
+
+		fileReadyPublisher = &event.AzurePublisher{
+			Client: client,
+			Config: *appConfig.PublisherConnection,
+		}
+
+		health.Register(fileReadyPublisher)
+	}
+
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(ctx, appConfig, processingChan)
+	hookHandler, err := GetHookHandler(ctx, appConfig, fileReadyPublisher)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
@@ -102,6 +124,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, processingChan ch
 	setupMetrics()
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
+	http.Handle("/version", &VersionHandler{})
 
 	return http.DefaultServeMux, nil
 }

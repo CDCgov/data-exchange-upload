@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
 	"os"
@@ -17,16 +18,16 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
 
-func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig, c chan postprocessing.Event) (tusHooks.HookHandler, error) {
+func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig, p event.Publisher) (tusHooks.HookHandler, error) {
 	if Flags.FileHooksDir != "" {
 		return &file.FileHook{
 			Directory: Flags.FileHooksDir,
 		}, nil
 	}
-	return PrebuiltHooks(ctx, appConfig, c)
+	return PrebuiltHooks(ctx, appConfig, p)
 }
 
-func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan postprocessing.Event) (tusHooks.HookHandler, error) {
+func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, p event.Publisher) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	metadata.Cache = &metadata.ConfigCache{
@@ -40,7 +41,6 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan po
 	}
 
 	var metadataAppender metadata.Appender
-	var dexDeliverer postprocessing.Deliverer
 	var edavDeliverer postprocessing.Deliverer
 	var routingDeliverer postprocessing.Deliverer
 
@@ -64,13 +64,6 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan po
 			TusPrefix:       appConfig.TusUploadPrefix,
 		}
 
-		dexDeliverer, err = postprocessing.NewAzureDeliverer(ctx, "dex", &appConfig)
-		if err != nil {
-			logger.Error("failed to connect to dex deliverer target", "error", err.Error())
-		} else {
-			postprocessing.RegisterTarget("dex", dexDeliverer)
-			health.Register(dexDeliverer)
-		}
 		if appConfig.EdavConnection != nil {
 			edavDeliverer, err = postprocessing.NewAzureDeliverer(ctx, "edav", &appConfig)
 			if err != nil {
@@ -94,12 +87,6 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan po
 			Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
 		}
 
-		dexDeliverer, err := postprocessing.NewFileDeliverer(ctx, "dex", &appConfig)
-		if err != nil {
-			return nil, err
-		}
-		postprocessing.RegisterTarget("dex", dexDeliverer)
-		health.Register(dexDeliverer)
 		edavDeliverer, err := postprocessing.NewFileDeliverer(ctx, "edav", &appConfig)
 		if err != nil {
 			return nil, err
@@ -115,11 +102,12 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, c chan po
 	}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
-	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
 	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
+	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
+	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
-	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, manifestValidator.Hydrate, metadataAppender.Append, postprocessing.RouteAndDeliverHook(c))
+	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook(p))
 
 	return handler, nil
 }

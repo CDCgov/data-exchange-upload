@@ -17,12 +17,23 @@ class Health {
 
     @Test(groups = [Constants.Groups.HEALTH_CHECK])
     fun shouldGetHealthCheck() {
-        val expectedDependentServices = arrayOf("Azure Service Bus", "Tus storage", "Redis Locker")
+
+        val expectedDependentServices = arrayOf(
+            "Azure Service Bus",
+            "Tus storage",
+            "Redis Locker",
+            "Azure deliver target edav",
+            "Azure deliver target routing"
+        )
         val healthCheck = dexUploadClient.getHealth(authToken)
 
         Assert.assertNotNull(healthCheck)
         Assert.assertEquals(healthCheck.status, "UP")
-        Assert.assertEquals(healthCheck.services.size, expectedDependentServices.size, "Unexpected number of dependent services: ${healthCheck.services}")
+        Assert.assertEquals(
+            healthCheck.services.size,
+            expectedDependentServices.size,
+            "Unexpected number of dependent services: ${healthCheck.services}"
+        )
 
         healthCheck.services.forEach {
             Assert.assertTrue(expectedDependentServices.contains(it.service))

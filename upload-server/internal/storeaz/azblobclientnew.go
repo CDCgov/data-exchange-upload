@@ -22,11 +22,18 @@ var (
 
 // NewTusAzBlobClient returns a azure blob client
 func NewBlobClient(conf appconfig.AzureStorageConfig) (*azblob.Client, error) {
+	if canUseStorageKey(conf) {
+		return newAzBlobClient(
+			conf.StorageName,
+			conf.StorageKey,
+			conf.ContainerEndpoint)
+	}
 
-	return newAzBlobClient(
-		conf.StorageName,
-		conf.StorageKey,
-		conf.ContainerEndpoint)
+	if canUseServicePrinciple() {
+		return newAzBlobClientByServicePrinciple(conf)
+	}
+
+	return nil, errors.New("not enough information given to connect to storage account " + conf.StorageName)
 } // .NewTusAzBlobClient
 
 func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string) (*container.Client, error) {
@@ -97,7 +104,18 @@ func newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint string) (*
 	return client, nil
 } // .newAzBlobClient
 
-// TODO helper for getting credential via service principle or key
+func newAzBlobClientByServicePrinciple(conf appconfig.AzureStorageConfig) (*azblob.Client, error) {
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, err
+	}
+	client, err := azblob.NewClient(conf.ContainerEndpoint, cred, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
 
 func canUseStorageKey(conf appconfig.AzureStorageConfig) bool {
 	return conf.StorageKey != ""

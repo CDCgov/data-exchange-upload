@@ -17,8 +17,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
-github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571 h1:0i+Y7klNNqXwzAQ2qlIWeZyiMtDB/rf5fSaFzIW7lsk=
-github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571/go.mod h1:XYuK1S5+kS6FGhlIUFuZFPvWiSrOIoLk6+ro33Xce3Y=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/go-kit/kit v0.8.0/go.mod h1:xBxKIO96dXMWWy0MnWVtmwkA9/13aqxPnvrjFYMA2as=
 github.com/go-logfmt/logfmt v0.3.0/go.mod h1:Qt1PoO58o5twSAckw1HlFXLmHsOX5/0LbT9GBnD5lWE=
@@ -88,6 +86,8 @@ github.com/syndtr/goleveldb v1.0.0/go.mod h1:ZVVdQEZoIme9iO1Ch2Jdy24qqXrMMOU6lpP
 github.com/tus/tusd v1.1.0 h1:y2oBFGeOyqlGgyqD0CloH8FuBrjDk0Tq1IQWvAZnyG8=
 github.com/tus/tusd v1.1.0/go.mod h1:3DWPOdeCnjBwKtv98y5dSws3itPqfce5TVa0s59LRiA=
 github.com/vimeo/go-util v1.2.0/go.mod h1:s13SMDTSO7AjH1nbgp707mfN5JFIWUFDU5MDDuRRtKs=
+github.com/whytheplatypus/go-tus v0.0.0-20240709121510-b5e0bef51f72 h1:vHLyT0ESH5hhmXUxKDZby6GK1/TSNHb7tLpB56EFyjk=
+github.com/whytheplatypus/go-tus v0.0.0-20240709121510-b5e0bef51f72/go.mod h1:XYuK1S5+kS6FGhlIUFuZFPvWiSrOIoLk6+ro33Xce3Y=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=

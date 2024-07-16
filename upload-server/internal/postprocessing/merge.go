@@ -1,12 +1,13 @@
 package postprocessing
 
 import (
+	evt "github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func RouteAndDeliverHook(c chan Event) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
+func RouteAndDeliverHook(p evt.Publisher) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
 	return func(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 		id := event.Upload.ID
 		//put a message on a queue system
@@ -15,9 +16,7 @@ func RouteAndDeliverHook(c chan Event) func(handler.HookEvent, hooks.HookRespons
 
 		// should eventually take a tuid and that's it
 		// why don't we just do this n times, once internal, once to edav, once to routing (whatever the number of targets is?)
-		targets := []string{
-			"dex",
-		}
+		var targets []string
 		meta := event.Upload.MetaData
 		if resp.ChangeFileInfo.MetaData != nil {
 			meta = resp.ChangeFileInfo.MetaData
@@ -35,13 +34,12 @@ func RouteAndDeliverHook(c chan Event) func(handler.HookEvent, hooks.HookRespons
 		targets = append(targets, config.Copy.Targets...)
 
 		for _, target := range targets {
-			// fan out command
-			// send an event for each thing to be copied
-			c <- Event{
-				ID:       id,
-				Manifest: meta,
-				Target:   target,
+			e := evt.NewFileReadyEvent(id, meta, target)
+			err := p.Publish(event.Context, e)
+			if err != nil {
+				return resp, err
 			}
+			logger.Info("published event", "event", e)
 		}
 		return resp, nil
 	}

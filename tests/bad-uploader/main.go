@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	neturl "net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"sync"
@@ -33,15 +35,25 @@ var (
 	password    string
 	samsURL     string
 	verbose     bool
+	patchURL    string
 
 	manifest = JSONVar{
-		"meta_destination_id": "dextesting",
-		"meta_ext_event":      "testevent1",
-		"filename":            "test",
+		"version":           "2.0",
+		"data_stream_id":    "dextesting",
+		"data_stream_route": "testevent1",
+		"received_filename": "test",
+		"sender_id":         "dex simulation harness",
+		"data_producer_id":  "dex simulation harness",
+		"jurisdiction":      "test",
 	}
 
 	testcase TestCase
 	cases    TestCases
+
+	templatePath string
+	repetitions  int
+
+	duration time.Duration
 )
 
 type JSONVar map[string]string
@@ -59,10 +71,19 @@ func (f *JSONVar) Set(s string) error {
 	return json.Unmarshal([]byte(s), f)
 }
 
+type SubTemplate struct {
+	Name        string
+	Repetitions int
+	Args        map[string]any
+}
+
 type TestCase struct {
-	Chunk    float64
-	Size     float64
-	Manifest map[string]string
+	Chunk        float64
+	Size         float64
+	Manifest     map[string]string
+	TemplateFile string
+	Templates    []SubTemplate
+	Repetitions  int
 }
 
 func (t *TestCase) String() string {
@@ -94,7 +115,7 @@ func (t *TestCase) Set(s string) error {
 		return fmt.Errorf("chunk size must be > 1 byte")
 	}
 
-	if t.Size < 1 {
+	if t.Size < 1 && t.TemplateFile == "" {
 		return fmt.Errorf("size of file must be > 1 byte")
 	}
 	return nil
@@ -145,6 +166,10 @@ func init() {
 	flag.Var(&manifest, "manifest", "The manifest to use for the load test.")
 	flag.Var(&testcase, "case-file", "A json file describing the test case to use.")
 	flag.Var(&cases, "case-dir", "A directory of test cases.")
+	flag.StringVar(&templatePath, "template", "", "The path to a template file to use to generate test files")
+	flag.IntVar(&repetitions, "repetitions", 1, "The number of times to repeat a template when building a file")
+	flag.DurationVar(&duration, "duration", 0, "the duration to run load for.")
+	flag.StringVar(&patchURL, "patch-url", "", "Override the base url to use to upload the file itself after upload creation.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
@@ -162,6 +187,10 @@ func init() {
 			Chunk:    chunk,
 			Size:     size,
 			Manifest: manifest,
+		}
+		if templatePath != "" {
+			testcase.TemplateFile = templatePath
+			testcase.Repetitions = repetitions
 		}
 	}
 	if !flagset["case-dir"] {
@@ -216,7 +245,20 @@ func main() {
 	}
 
 	tStart := time.Now()
-	if load > 0 {
+	if duration > 0 {
+		slog.Info("Running duration test", "duration", duration)
+		i := 0
+		for {
+			if time.Since(tStart) > duration {
+				break
+			}
+			wg.Add(1)
+			c <- cases.Next()
+			i++
+		}
+		slog.Info("uploads over time", "uploads", i, "duration", duration)
+		slog.Info("roughly in 24 hours", "uploads", int((24*time.Hour)/duration)*i)
+	} else if load > 0 {
 		slog.Info("Running load test", "uploads", load)
 		for i := 0; i < load; i++ {
 			wg.Add(1)
@@ -224,21 +266,12 @@ func main() {
 		}
 	} else {
 		slog.Info("Running benchmark")
-		result := testing.Benchmark(asPallelBenchmark(c, cases.Next))
+		result := testing.Benchmark(asParallelBenchmark(c, cases.Next))
 		defer fmt.Printf("Benchmarking results: %f seconds/op\n", float64(result.NsPerOp())/float64(time.Second))
 	}
 	wg.Wait()
 	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
 }
-
-/*
-type uploadable interface {
-	io.ReadSeekCloser
-	Size() int64
-	Metadata() map[string]string
-	Fingerprint() string
-}
-*/
 
 type config struct {
 	url         string
@@ -254,7 +287,7 @@ func worker(c <-chan TestCase, conf *config) {
 	}
 }
 
-func asPallelBenchmark(c chan TestCase, next func() TestCase) func(*testing.B) {
+func asParallelBenchmark(c chan TestCase, next func() TestCase) func(*testing.B) {
 	return func(b *testing.B) {
 		slog.Info("benchmarking", "runs", b.N)
 		for i := 0; i < b.N; i++ {
@@ -264,20 +297,40 @@ func asPallelBenchmark(c chan TestCase, next func() TestCase) func(*testing.B) {
 	}
 }
 
+type uploadable interface {
+	io.ReadSeekCloser
+	Size() int64
+	Metadata() map[string]string
+	Fingerprint() string
+}
+
 func runTest(t TestCase, conf *config) error {
 
-	f := &BadFile{
-		FileSize:       int(t.Size),
-		DummyGenerator: &RandomBytesReader{},
-		Manifest:       t.Manifest,
+	var f uploadable
+	if t.TemplateFile != "" {
+		f = &TemplateGenerator{
+			Repeats:   t.Repetitions,
+			Path:      t.TemplateFile,
+			Templates: t.Templates,
+			Manifest:  t.Manifest,
+		}
+	} else {
+		f = &BadFile{
+			FileSize:       int(t.Size),
+			Manifest:       t.Manifest,
+			DummyGenerator: &RandomBytesReader{},
+		}
 	}
 
 	// create the tus client.
 	tusConf := tus.DefaultConfig()
 	tusConf.ChunkSize = int64(t.Chunk)
+	tusConf.HttpClient = &http.Client{}
 	if conf.tokenSource != nil {
 		tusConf.HttpClient = oauth2.NewClient(context.TODO(), conf.tokenSource)
 	}
+	tusConf.Header.Set("Upload-Defer-Length", "1")
+	tusConf.Header.Set("Upload-Length", "")
 	client, err := tus.NewClient(conf.url, tusConf)
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w, %+v", err, t)
@@ -291,7 +344,16 @@ func runTest(t TestCase, conf *config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create upload: %w, %+v", err, t)
 	}
-	slog.Info("UploadID", "upload_id", uploader.Url())
+
+	if patchURL != "" {
+		p, err := neturl.JoinPath(patchURL, path.Base(uploader.Url()))
+		if err != nil {
+			return err
+		}
+		uploader.SetUrl(p)
+	}
+
+	slog.Debug("UploadID", "upload_id", uploader.Url())
 	c := make(chan tus.Upload)
 	uploader.NotifyUploadProgress(c)
 	go func(c chan tus.Upload, url string) {
@@ -300,7 +362,15 @@ func runTest(t TestCase, conf *config) error {
 		}
 	}(c, uploader.Url())
 
-	return uploader.Upload()
+	for {
+		if err := uploader.UploadChunck(); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return err
+		}
+	}
+	return nil
 }
 
 type Generator interface {
@@ -339,11 +409,18 @@ func (b *BadFile) Read(p []byte) (int, error) {
 	if err != nil {
 		return i, err
 	}
+	log.Println("reading", b.offset, b.FileSize)
 
 	if b.offset+i > b.FileSize {
-		return b.FileSize - b.offset, nil
+		i = b.FileSize - b.offset
 	}
+
 	b.offset += i
+
+	if b.offset >= b.FileSize {
+		return i, io.EOF
+	}
+	log.Println("read", b.offset, b.FileSize)
 	return i, nil
 }
 

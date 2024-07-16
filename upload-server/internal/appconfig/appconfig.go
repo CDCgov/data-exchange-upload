@@ -47,6 +47,7 @@ type AppConfig struct {
 
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
+	LocalEventsFolder     string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
 	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
 	LocalEDAVFolder       string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
 	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
@@ -60,6 +61,8 @@ type AppConfig struct {
 	AzureConnection            *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	EdavConnection             *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
 	RoutingConnection          *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
+	PublisherConnection        *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
+	SubscriberConnection       *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
 	ServiceBusConnectionString string              `env:"SERVICE_BUS_CONNECTION_STR"`
 	ReportQueueName            string              `env:"REPORT_QUEUE_NAME, default=processing-status-cosmos-db-queue"`
 
@@ -103,6 +106,13 @@ type AzureStorageConfig struct {
 type AzureContainerConfig struct {
 	AzureStorageConfig
 	ContainerName string
+}
+
+type AzureQueueConfig struct {
+	Endpoint     string `env:"ENDPOINT"`
+	AccessKey    string `env:"ACCESS_KEY"`
+	Topic        string `env:"TOPIC"`
+	Subscription string `env:"SUBSCRIPTION"`
 }
 
 type LocalStorageConfig struct {

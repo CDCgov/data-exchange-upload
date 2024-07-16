@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"io"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -65,6 +67,10 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 	if err != nil {
 		return nil, err
 	}
+	checkpointClient, err := storeaz.NewBlobClient(config.AzureStorageConfig)
+	if err != nil {
+		return nil, err
+	}
 	err = storeaz.CreateContainerIfNotExists(ctx, checkpointContainerClient)
 	if err != nil {
 		return nil, err
@@ -72,6 +78,8 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 
 	return &AzureDeliverer{
 		FromContainerClient: tusContainerClient,
+		ToClient:            checkpointClient,
+		ToContainer:         config.ContainerName,
 		ToContainerClient:   checkpointContainerClient,
 		TusPrefix:           appConfig.TusUploadPrefix,
 		Target:              target,
@@ -85,32 +93,29 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 		return errors.New("not recoverable, bad target " + target)
 	}
 
-	content := &models.FileCopyContent{
-		ReportContent: models.ReportContent{
-			SchemaVersion: "0.0.1",
-			SchemaName:    "dex-file-copy",
+	rb := reports.NewBuilder[reports.FileCopyContent](
+		"1.0.0",
+		reports.StageFileCopy,
+		tuid,
+		manifest,
+		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC()).SetContent(reports.FileCopyContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageFileCopy,
 		},
-		Destination: target,
-		Result:      "success",
-	}
-
-	report := &models.Report{
-		UploadID:        tuid,
-		DataStreamID:    metadata.GetDataStreamID(manifest),
-		DataStreamRoute: metadata.GetDataStreamRoute(manifest),
-		StageName:       "dex-file-copy",
-		ContentType:     "json",
-		DispositionType: "add",
-		Content:         content,
-	}
+		FileSourceBlobUrl:      "", // TODO
+		FileDestinationBlobUrl: "", // TODO
+		Timestamp:              "", // TODO.  Does PS API do this for us?
+	})
 
 	err := d.Deliver(ctx, tuid, manifest)
+	rb.SetEndTime(time.Now().UTC())
 	if err != nil {
 		logger.Error("failed to copy file", "target", target)
-		content.Result = "failed"
-		content.ErrorDescription = err.Error()
+		rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error())
 	}
 
+	report := rb.Build()
 	logger.Info("File Copy Report", "report", report)
 	reports.Publish(ctx, report)
 
@@ -125,11 +130,13 @@ type FileDeliverer struct {
 type AzureDeliverer struct {
 	FromContainerClient *container.Client
 	ToContainerClient   *container.Client
+	ToClient            *azblob.Client
+	ToContainer         string
 	TusPrefix           string
 	Target              string
 }
 
-func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, manifest map[string]string) error {
+func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, _ map[string]string) error {
 	f, err := fd.FromPath.Open(tuid)
 	if err != nil {
 		return err
@@ -172,29 +179,22 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
 
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
-	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
-	resp, err := destBlobClient.StartCopyFromURL(ctx, srcBlobClient.URL(), nil)
+	s, err := srcBlobClient.DownloadStream(ctx, nil)
+	defer s.Body.Close()
 	if err != nil {
 		return err
 	}
 
-	status := *resp.CopyStatus
-	var statusDescription string
-	for status == blob.CopyStatusTypePending {
-		getPropResp, err := destBlobClient.GetProperties(ctx, nil)
-		if err != nil {
-			return err
-		}
-		status = *getPropResp.CopyStatus
-		statusDescription = *getPropResp.CopyStatusDescription
-		logger.Info("Copy progress", "status", fmt.Sprintf("%s", status))
+	logger.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
+
+	_, err = ad.ToClient.UploadStream(ctx, ad.ToContainer, blobName, s.Body, &azblob.UploadStreamOptions{
+		Metadata: storeaz.PointerizeMetadata(manifest),
+	})
+	if err != nil {
+		return err
 	}
 
-	if status != blob.CopyStatusTypeSuccess {
-		return fmt.Errorf("copy to target %s unsuccessful with status %s and description %s", ad.Target, status, statusDescription)
-	}
-
-	logger.Info("Copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL(), "status", status)
+	logger.Info("successful copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
 
 	return nil
 }
@@ -220,7 +220,7 @@ func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthR
 
 func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
-	filename := metadata.GetFilename(manifest)
+	filename := metadataPkg.GetFilename(manifest)
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 

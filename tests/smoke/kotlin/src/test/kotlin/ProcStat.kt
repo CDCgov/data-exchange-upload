@@ -38,10 +38,15 @@ class ProcStat {
         uploadClient = UploadClient(EnvConfig.UPLOAD_URL, authToken)
     }
 
-    @Test(groups = [Constants.Groups.PROC_STAT], dataProvider = "validManifestAllProvider", dataProviderClass = DataProvider::class)
+    @Test(
+        groups = [Constants.Groups.PROC_STAT],
+        dataProvider = "validManifestAllProvider",
+        dataProviderClass = DataProvider::class
+    )
     fun shouldHaveReportsForSuccessfulFileUpload(manifest: HashMap<String, String>) {
         val config = ConfigLoader.loadUploadConfig(dexBlobClient, manifest)
-        val uid = uploadClient.uploadFile(testFile, manifest) ?: throw TestNGException("Error uploading file ${testFile.name}")
+        val uid = uploadClient.uploadFile(testFile, manifest)
+            ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
         Thread.sleep(2000)
 
@@ -50,22 +55,26 @@ class ProcStat {
             .statusCode(200)
 
         // Metadata Verify
-        reportResponse.
-            body("upload_id", equalTo(uid))
-                .body("reports.stage_name",
-                    hasItem("dex-metadata-verify")).body("reports.content.schema_name",
-                    hasItem("dex-metadata-verify"))
+        reportResponse.body("upload_id", equalTo(uid))
+            .body(
+                "reports.stage_name",
+                hasItem("dex-metadata-verify")
+            ).body(
+                "reports.content.schema_name",
+                hasItem("dex-metadata-verify")
+            )
 
         var jsonPath = reportResponse.extract().jsonPath()
-        val metadataVerifyReport = jsonPath.getList("reports", Report::class.java).find { it.stageName == "dex-metadata-verify" }
+        val metadataVerifyReport =
+            jsonPath.getList("reports", Report::class.java).find { it.stageName == "dex-metadata-verify" }
         assertNotNull(metadataVerifyReport)
         assertNull(metadataVerifyReport?.issues)
 
         // Upload
         reportResponse
             .body("upload_id", equalTo(uid))
-                .body("reports.stage_name", hasItem(Constants.UPLOAD_STATUS_REPORT_STAGE_NAME))
-                    .body("reports.content.schema_name", hasItem("upload"))
+            .body("reports.stage_name", hasItem(Constants.UPLOAD_STATUS_REPORT_STAGE_NAME))
+            .body("reports.content.schema_name", hasItem("upload"))
 
         jsonPath = reportResponse.extract().jsonPath()
         val reports = jsonPath.getList("reports", Report::class.java)
@@ -81,7 +90,9 @@ class ProcStat {
 
         // Post Processing
         expectedDestinations.forEach { dest ->
-            assert(destinations.any { dest.trim().contains(it.trim()) }) { "Destination $dest was not found in copy reports" }
+            assert(destinations.any {
+                dest.trim().contains(it.trim())
+            }) { "Destination $dest was not found in copy reports" }
         }
     }
 }

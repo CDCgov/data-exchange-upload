@@ -155,7 +155,8 @@
     "patient_ethnicity": "Hispanic",
     "patient_sex": "M",
     "instrument": "test instrument",
-    "variant_caller": "test variant caller"
+    "variant_caller": "test variant caller",
+    "uploaded_by": "jdoe"
   },
   {
     "version": "2.0",
