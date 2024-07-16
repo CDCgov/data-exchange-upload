@@ -219,7 +219,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 				StatusCode: http.StatusBadRequest,
 				Body:       err.Error(),
 			})
-			return resp, nil
+			return resp, nil // Should return err here?
 		}
 		return resp, err
 	}
