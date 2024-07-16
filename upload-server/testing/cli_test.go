@@ -34,8 +34,13 @@ var (
 func BenchmarkTus(b *testing.B) {
 	c := testCase{
 		tus.Metadata{
-			"meta_destination_id": "dextesting",
-			"meta_ext_event":      "testevent1",
+			"version":           "2.0",
+			"data_stream_id":    "dextesting",
+			"data_stream_route": "testevent1",
+			"sender_id":         "test",
+			"data_producer_id":  "test",
+			"jurisdiction":      "test",
+			"received_filename": "test",
 		},
 		nil,
 	}
