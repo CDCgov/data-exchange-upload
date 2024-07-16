@@ -6,13 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log"
 	"net/http/httptest"
@@ -22,12 +15,42 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/eventials/go-tus"
+	"github.com/tus/tusd/v2/pkg/handler"
 )
 
 var (
 	ts          *httptest.Server
 	testContext context.Context
 )
+
+func BenchmarkTus(b *testing.B) {
+	c := testCase{
+		tus.Metadata{
+			"version":           "2.0",
+			"data_stream_id":    "dextesting",
+			"data_stream_route": "testevent1",
+			"sender_id":         "test",
+			"data_producer_id":  "test",
+			"jurisdiction":      "test",
+			"received_filename": "test",
+		},
+		nil,
+	}
+	for i := 0; i < b.N; i++ {
+		_, err := RunTusTestCase(ts.URL, "test/test.txt", c)
+		if err != nil {
+			b.Fail()
+		}
+	}
+}
 
 func TestTus(t *testing.T) {
 	url := ts.URL
