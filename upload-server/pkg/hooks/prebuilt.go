@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"fmt"
 	"github.com/tus/tusd/v2/pkg/handler"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
 )
@@ -26,18 +25,6 @@ func (ph *PrebuiltHook) InvokeHook(req tusHooks.HookRequest) (res tusHooks.HookR
 	resp := tusHooks.HookResponse{}
 	for _, hf := range hookFuncs {
 		resp, err = hf(req.Event, resp)
-
-		// Maybe should add upload ID for all response bodies.  Not just rejected ones.  Probs unnecessary though.
-		if resp.RejectUpload {
-			tuid := req.Event.Upload.ID
-			if tuid == "" {
-				tuid = resp.ChangeFileInfo.ID
-			}
-
-			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
-				Body: fmt.Sprintf("error for upload ID %s. %s", tuid, resp.HTTPResponse.Body),
-			})
-		}
 
 		// Return early if we got an error.
 		if err != nil {
