@@ -40,6 +40,13 @@ var registeredVersions = map[string]func(handler.MetaData) (validation.ConfigLoc
 	"2.0": v2.NewFromManifest,
 }
 
+type PreCreateResponse struct {
+	UploadId         string   `json:"upload_id"`
+	ValidationErrors []string `json:"validation_errors"`
+}
+
+var Cache *ConfigCache
+
 type ConfigCache struct {
 	sync.Map
 	Loader validation.ConfigLoader
@@ -205,9 +212,18 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 
 		if errors.Is(err, validation.ErrFailure) {
 			resp.RejectUpload = true
+
+			respBody := PreCreateResponse{
+				UploadId:         tuid,
+				ValidationErrors: strings.Split(err.Error(), "\n"),
+			}
+			b, err := json.Marshal(respBody)
+			if err != nil {
+				return resp, err
+			}
 			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       err.Error(),
+				Body:       string(b),
 			})
 			return resp, nil
 		}
