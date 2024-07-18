@@ -17,11 +17,13 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/eventials/go-tus"
+	"github.com/hasura/go-graphql-client"
 	"golang.org/x/oauth2"
 )
 
@@ -52,6 +54,8 @@ var (
 
 	templatePath string
 	repetitions  int
+
+	reportsURL string
 
 	duration time.Duration
 )
@@ -156,6 +160,7 @@ func (t *TestCases) String() string {
 func init() {
 	flag.Float64Var(&size, "size", 5, "the size of the file to upload, in MB")
 	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
+	flag.StringVar(&reportsURL, "reports-url", "", "the url for the reports graphql server")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", 0, "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
 	flag.Float64Var(&chunk, "chunk", 2, "set the chunk size to use when uploading files in MB")
@@ -273,6 +278,65 @@ func main() {
 	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
 }
 
+type Reports []struct {
+	ID        string
+	UploadId  string
+	StageName string
+	Timestamp time.Time
+}
+
+func (r Reports) Len() int           { return len(r) }
+func (r Reports) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
+func (r Reports) Less(i, j int) bool { return r[i].Timestamp.Before(r[j].Timestamp) }
+
+func Check(c TestCase, upload string) error {
+	serverUrl, _ := path.Split(url)
+	infoUrl, err := neturl.JoinPath(serverUrl, "info", path.Base(upload))
+	if err != nil {
+		return err
+	}
+	resp, err := http.Get(infoUrl)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to check upload: %d", resp.StatusCode)
+	}
+
+	client := graphql.NewClient(reportsURL, nil)
+
+	var q struct {
+		GetReports Reports `graphql:"getReports(uploadId: $id)"`
+	}
+
+	variables := map[string]interface{}{
+		"id": path.Base(upload),
+	}
+
+	if err := client.Query(context.Background(), &q, variables); err != nil {
+		return err
+	}
+	reports := q.GetReports
+	sort.Sort(reports)
+	expectedReports := []string{
+		"dex-metadata-transform",
+		"dex-metadata-transform",
+		"dex-upload-started",
+		"dex-upload-complete",
+	}
+
+	var errs error
+	for i, expected := range expectedReports {
+		if reports[i].StageName != expected {
+			errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, expected))
+		}
+	}
+
+	slog.Info("validated upload", "reports", reports)
+
+	return errs
+}
+
 type config struct {
 	url         string
 	tokenSource *SAMSTokenSource
@@ -370,7 +434,7 @@ func runTest(t TestCase, conf *config) error {
 			return err
 		}
 	}
-	return nil
+	return Check(t, uploader.Url())
 }
 
 type Generator interface {
@@ -409,7 +473,6 @@ func (b *BadFile) Read(p []byte) (int, error) {
 	if err != nil {
 		return i, err
 	}
-	log.Println("reading", b.offset, b.FileSize)
 
 	if b.offset+i > b.FileSize {
 		i = b.FileSize - b.offset
@@ -420,7 +483,6 @@ func (b *BadFile) Read(p []byte) (int, error) {
 	if b.offset >= b.FileSize {
 		return i, io.EOF
 	}
-	log.Println("read", b.offset, b.FileSize)
 	return i, nil
 }
 

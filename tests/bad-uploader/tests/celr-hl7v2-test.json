@@ -1,0 +1,29 @@
+{
+    "Chunk": 5,
+    "Manifest": {
+		"version": "2.0",
+		"sender_id": "APHL",
+		"data_producer_id":      "simulation_test",
+		"received_filename":            "test",
+        "jurisdiction": "test",
+        "data_stream_id": "celr",
+        "data_stream_route": "hl7v2",
+		"meta_ext_objectkey": "test",
+		"meta_ext_file_timestamp": "test",
+		"meta_ext_filestatus": "test",
+		"meta_ext_uploadid": "test",
+		"meta_ext_source": "test"
+	},
+	"templatefile": "examples/test.hl7",
+	"templates": [
+		{
+			"name": "header",
+			"repetitions": 1
+		},
+		{
+			"name": "obx",
+			"repetitions": 12
+		}
+	],
+	"repetitions": 2
+}
