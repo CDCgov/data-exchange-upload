@@ -71,7 +71,7 @@ class DataProvider {
                 return toTypedMatrix(manifests)
             }
 
-            val fields = manifestFilter.split(";")
+            val fields = manifestFilter.split("&")
             val manifestFilters = mutableMapOf<String, List<String>>()
 
             for (field in fields) {

@@ -64,8 +64,8 @@ library to read and filter JSON manifests based on criteria specified through sy
 To filter specific key-value pairs in the JSON manifests, use the `manifestFilter` system property.
 Here are the example commands to run the tests with manifest filters:
 
-`gradle test -PmanifestFilter='meta_destination_id=ndlp;meta_ext_source=IZGW'`
-`gradle test -PmanifestFilter='jurisdiction=AKA,CA;data_stream_route=csv,other;sender_id=CA-ABCs,IZGW'`
+`gradle test -PmanifestFilter='meta_destination_id=ndlp&meta_ext_source=IZGW'`
+`gradle test -PmanifestFilter='jurisdiction=AKA,CA;data_stream_route=csv,other&sender_id=CA-ABCs,IZGW'`
 
 We can run tests for specified manifest in a single command line argument.
 
