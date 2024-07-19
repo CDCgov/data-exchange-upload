@@ -242,9 +242,10 @@ func main() {
 
 	conf := resultOrFatal(buildConfig())
 	var wg sync.WaitGroup
+	var cwg sync.WaitGroup
 
 	c := make(chan TestCase, parallelism)
-	o := make(chan Result)
+	o := make(chan *Result)
 	slog.Info("Starting threads", "parallelism", parallelism)
 	for i := 0; i < parallelism; i++ {
 		wg.Add(1)
@@ -252,9 +253,9 @@ func main() {
 			defer wg.Done()
 			worker(c, o, conf)
 		}()
-		wg.Add(1)
+		cwg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer cwg.Done()
 			for r := range o {
 				if err := Check(r.testCase, r.url, conf); err != nil {
 					slog.Error("failed check", "error", err, "test case", r.testCase)
@@ -287,8 +288,9 @@ func main() {
 		defer fmt.Printf("Benchmarking results: %f seconds/op\n", float64(result.NsPerOp())/float64(time.Second))
 	}
 	close(c)
-	close(o)
 	wg.Wait()
+	close(o)
+	cwg.Wait()
 	fmt.Println("Total run took ", time.Since(tStart).Seconds(), " seconds")
 }
 
@@ -318,6 +320,7 @@ func Check(c TestCase, upload string, conf *config) error {
 	if resp.StatusCode != http.StatusOK {
 		errs = errors.Join(errs, fmt.Errorf("failed to check upload: %d", resp.StatusCode))
 	}
+	slog.Info("verified upload", "upload", infoUrl)
 
 	if reportsURL != "" {
 
@@ -358,15 +361,15 @@ type Result struct {
 	url      string
 }
 
-func worker(c <-chan TestCase, o chan<- Result, conf *config) {
+func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
 	for e := range c {
 		res, err := runTest(e, conf)
 		if err != nil {
 			slog.Error("ERROR: ", "error", err, "case", e)
 		}
-		go func(res Result) {
+		go func(res *Result) {
 			o <- res
-		}(*res)
+		}(res)
 	}
 }
 
