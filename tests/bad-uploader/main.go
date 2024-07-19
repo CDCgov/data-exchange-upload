@@ -255,7 +255,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			for r := range o {
-				if err := Check(r.testCase, r.url); err != nil {
+				if err := Check(r.testCase, r.url, conf); err != nil {
 					slog.Error("failed check", "error", err, "test case", r.testCase)
 				}
 			}
@@ -302,13 +302,14 @@ func (r Reports) Len() int           { return len(r) }
 func (r Reports) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r Reports) Less(i, j int) bool { return r[i].Timestamp.Before(r[j].Timestamp) }
 
-func Check(c TestCase, upload string) error {
+func Check(c TestCase, upload string, conf *config) error {
 	serverUrl, _ := path.Split(url)
 	infoUrl, err := neturl.JoinPath(serverUrl, "info", path.Base(upload))
 	if err != nil {
 		return err
 	}
-	resp, err := http.Get(infoUrl)
+	httpClient := oauth2.NewClient(context.TODO(), conf.tokenSource)
+	resp, err := httpClient.Get(infoUrl)
 	if err != nil {
 		return err
 	}
