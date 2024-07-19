@@ -82,12 +82,13 @@ type SubTemplate struct {
 }
 
 type TestCase struct {
-	Chunk        float64
-	Size         float64
-	Manifest     map[string]string
-	TemplateFile string
-	Templates    []SubTemplate
-	Repetitions  int
+	Chunk           float64
+	Size            float64
+	Manifest        map[string]string
+	TemplateFile    string
+	Templates       []SubTemplate
+	Repetitions     int
+	ExpectedReports []string
 }
 
 func (t *TestCase) String() string {
@@ -335,14 +336,8 @@ func Check(c TestCase, upload string, conf *config) error {
 		}
 		reports := q.GetReports
 		sort.Sort(reports)
-		expectedReports := []string{
-			"dex-metadata-transform",
-			"dex-metadata-transform",
-			"dex-upload-started",
-			"dex-upload-complete",
-		}
 
-		for i, expected := range expectedReports {
+		for i, expected := range c.ExpectedReports {
 			if reports[i].StageName != expected {
 				errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, expected))
 			}
