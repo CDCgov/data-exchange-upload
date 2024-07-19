@@ -175,5 +175,14 @@
     "sender_id" : "PulseNet-App",
     "data_producer_id": "test-producer-id",
     "jurisdiction": "test-jurisdiction"
+  },
+  {
+    "version": "2.0",
+    "data_stream_id": "dextesting",
+    "data_stream_route": "testevent1",
+    "received_filename": "dex-smoke-test",
+    "sender_id" : "test sender",
+    "data_producer_id": "test-producer-id",
+    "jurisdiction": "test-jurisdiction"
   }
 ]

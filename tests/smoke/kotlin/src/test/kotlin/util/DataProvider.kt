@@ -21,6 +21,7 @@ class DataProvider {
         @DataProvider(name = "validManifestAllProvider")
         fun validManifestAllProvider(): Array<Array<Map<String, String>>> {
             val validManifests = arrayOf("valid_manifests_v1.json", "valid_manifests_v2.json")
+            logger<util.DataProvider>().info("Filtering all valid manifests")
             return loadAndFilterManifests(validManifests)
         }
 
@@ -28,6 +29,7 @@ class DataProvider {
         @DataProvider(name = "validManifestV1Provider")
         fun validManifestV1Provider(): Array<Array<Map<String, String>>> {
             val validManifests = arrayOf("valid_manifests_v1.json")
+            logger<util.DataProvider>().info("Filtering V1 valid manifests")
             return loadAndFilterManifests(validManifests)
         }
 
@@ -35,6 +37,7 @@ class DataProvider {
         @DataProvider(name = "invalidManifestRequiredFieldsProvider")
         fun invalidManifestRequiredFieldsProvider(): Array<Array<Map<String, String>>> {
             val invalidManifests = arrayOf("invalid_manifests_required_fields.json")
+            logger<util.DataProvider>().info("Filtering invalid required field manifests")
             return loadAndFilterManifests(invalidManifests)
         }
 
@@ -42,6 +45,7 @@ class DataProvider {
         @DataProvider(name = "invalidManifestInvalidValueProvider")
         fun invalidManifestInvalidValueProvider(): Array<Array<Map<String, String>>> {
             val invalidManifests = arrayOf("invalid_manifests_invalid_value.json")
+            logger<util.DataProvider>().info("Filtering invalid value manifests")
             return loadAndFilterManifests(invalidManifests)
         }
 
@@ -70,14 +74,14 @@ class DataProvider {
 
                 if (manifestFilters.isNotEmpty()) {
                     val filtered = filterManifestJsons(manifestJsons, manifestFilters)
-                    println("Filtered manifests: $filtered")
+                    logger<util.DataProvider>().debug("Filtered manifests: {}", filtered)
                     manifests.addAll(filtered)
                 } else {
                     manifests.addAll(manifestJsons)
                 }
             }
-            println("Total number of manifests: $totalManifests, Number of filtered manifests: ${manifests.size}")
-            println("Final Manifest: $manifests")
+            logger<util.DataProvider>().info("Total number of manifests: $totalManifests, Number of filtered manifests: ${manifests.size}")
+            logger<util.DataProvider>().info("Final Manifest: $manifests")
             return manifests.map { arrayOf(it) }.toTypedArray()
         }
 
