@@ -179,7 +179,7 @@ func init() {
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
 	programLevel := new(slog.LevelVar) // Info by default
-	h := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
+	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
 	slog.SetDefault(slog.New(h))
 	if verbose {
 		programLevel.Set(slog.LevelDebug)
@@ -229,8 +229,6 @@ func resultOrFatal[T any](v T, err error) T {
 	return v
 }
 
-var wg sync.WaitGroup
-
 /*
 so we need to be able to create an arbirary number of test uploads
 should have a context on them
@@ -242,11 +240,26 @@ this will cover a use case for a single bad sender, so only one cred needed
 func main() {
 
 	conf := resultOrFatal(buildConfig())
+	var wg sync.WaitGroup
 
 	c := make(chan TestCase, parallelism)
+	o := make(chan Result)
 	slog.Info("Starting threads", "parallelism", parallelism)
 	for i := 0; i < parallelism; i++ {
-		go worker(c, conf)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			worker(c, o, conf)
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for r := range o {
+				if err := Check(r.testCase, r.url); err != nil {
+					slog.Error("failed check", "error", err, "test case", r.testCase)
+				}
+			}
+		}()
 	}
 
 	tStart := time.Now()
@@ -257,7 +270,6 @@ func main() {
 			if time.Since(tStart) > duration {
 				break
 			}
-			wg.Add(1)
 			c <- cases.Next()
 			i++
 		}
@@ -266,7 +278,6 @@ func main() {
 	} else if load > 0 {
 		slog.Info("Running load test", "uploads", load)
 		for i := 0; i < load; i++ {
-			wg.Add(1)
 			c <- cases.Next()
 		}
 	} else {
@@ -274,8 +285,10 @@ func main() {
 		result := testing.Benchmark(asParallelBenchmark(c, cases.Next))
 		defer fmt.Printf("Benchmarking results: %f seconds/op\n", float64(result.NsPerOp())/float64(time.Second))
 	}
+	close(c)
+	close(o)
 	wg.Wait()
-	fmt.Println("Benchmarking took ", time.Since(tStart).Seconds(), " seconds")
+	fmt.Println("Total run took ", time.Since(tStart).Seconds(), " seconds")
 }
 
 type Reports []struct {
@@ -299,40 +312,42 @@ func Check(c TestCase, upload string) error {
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to check upload: %d", resp.StatusCode)
-	}
-
-	client := graphql.NewClient(reportsURL, nil)
-
-	var q struct {
-		GetReports Reports `graphql:"getReports(uploadId: $id)"`
-	}
-
-	variables := map[string]interface{}{
-		"id": path.Base(upload),
-	}
-
-	if err := client.Query(context.Background(), &q, variables); err != nil {
-		return err
-	}
-	reports := q.GetReports
-	sort.Sort(reports)
-	expectedReports := []string{
-		"dex-metadata-transform",
-		"dex-metadata-transform",
-		"dex-upload-started",
-		"dex-upload-complete",
-	}
-
 	var errs error
-	for i, expected := range expectedReports {
-		if reports[i].StageName != expected {
-			errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, expected))
-		}
+	if resp.StatusCode != http.StatusOK {
+		errs = errors.Join(errs, fmt.Errorf("failed to check upload: %d", resp.StatusCode))
 	}
 
-	slog.Info("validated upload", "reports", reports)
+	if reportsURL != "" {
+
+		client := graphql.NewClient(reportsURL, nil)
+
+		var q struct {
+			GetReports Reports `graphql:"getReports(uploadId: $id)"`
+		}
+
+		variables := map[string]interface{}{
+			"id": path.Base(upload),
+		}
+
+		if err := client.Query(context.Background(), &q, variables); err != nil {
+			return err
+		}
+		reports := q.GetReports
+		sort.Sort(reports)
+		expectedReports := []string{
+			"dex-metadata-transform",
+			"dex-metadata-transform",
+			"dex-upload-started",
+			"dex-upload-complete",
+		}
+
+		for i, expected := range expectedReports {
+			if reports[i].StageName != expected {
+				errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, expected))
+			}
+		}
+		slog.Info("validated run", "reports", reports)
+	}
 
 	return errs
 }
@@ -342,12 +357,20 @@ type config struct {
 	tokenSource *SAMSTokenSource
 }
 
-func worker(c <-chan TestCase, conf *config) {
+type Result struct {
+	testCase TestCase
+	url      string
+}
+
+func worker(c <-chan TestCase, o chan<- Result, conf *config) {
 	for e := range c {
-		if err := runTest(e, conf); err != nil {
+		res, err := runTest(e, conf)
+		if err != nil {
 			slog.Error("ERROR: ", "error", err, "case", e)
 		}
-		wg.Done()
+		go func(res Result) {
+			o <- res
+		}(*res)
 	}
 }
 
@@ -355,7 +378,6 @@ func asParallelBenchmark(c chan TestCase, next func() TestCase) func(*testing.B)
 	return func(b *testing.B) {
 		slog.Info("benchmarking", "runs", b.N)
 		for i := 0; i < b.N; i++ {
-			wg.Add(1)
 			c <- next()
 		}
 	}
@@ -368,7 +390,7 @@ type uploadable interface {
 	Fingerprint() string
 }
 
-func runTest(t TestCase, conf *config) error {
+func runTest(t TestCase, conf *config) (*Result, error) {
 
 	var f uploadable
 	if t.TemplateFile != "" {
@@ -397,7 +419,7 @@ func runTest(t TestCase, conf *config) error {
 	tusConf.Header.Set("Upload-Length", "")
 	client, err := tus.NewClient(conf.url, tusConf)
 	if err != nil {
-		return fmt.Errorf("failed to create client: %w, %+v", err, t)
+		return nil, fmt.Errorf("failed to create client: %w, %+v", err, t)
 	}
 
 	// create an upload from a file.
@@ -406,13 +428,13 @@ func runTest(t TestCase, conf *config) error {
 	// create the uploader.
 	uploader, err := client.CreateUpload(upload)
 	if err != nil {
-		return fmt.Errorf("failed to create upload: %w, %+v", err, t)
+		return nil, fmt.Errorf("failed to create upload: %w, %+v", err, t)
 	}
 
 	if patchURL != "" {
 		p, err := neturl.JoinPath(patchURL, path.Base(uploader.Url()))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		uploader.SetUrl(p)
 	}
@@ -431,10 +453,13 @@ func runTest(t TestCase, conf *config) error {
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return err
+			return nil, err
 		}
 	}
-	return Check(t, uploader.Url())
+	return &Result{
+		testCase: t,
+		url:      uploader.Url(),
+	}, nil
 }
 
 type Generator interface {
