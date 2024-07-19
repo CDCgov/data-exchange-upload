@@ -21,96 +21,80 @@ class DataProvider {
         @DataProvider(name = "validManifestAllProvider")
         fun validManifestAllProvider(): Array<Array<Map<String, String>>> {
             val validManifests = arrayOf("valid_manifests_v1.json", "valid_manifests_v2.json")
+            val manifests = loadManifests(validManifests)
             logger<util.DataProvider>().info("Filtering all valid manifests")
-            return loadAndFilterManifests(validManifests)
+            return filterManifests(manifests)
         }
 
         @JvmStatic
         @DataProvider(name = "validManifestV1Provider")
         fun validManifestV1Provider(): Array<Array<Map<String, String>>> {
             val validManifests = arrayOf("valid_manifests_v1.json")
+            val manifests = loadManifests(validManifests)
             logger<util.DataProvider>().info("Filtering V1 valid manifests")
-            return loadAndFilterManifests(validManifests)
+            return filterManifests(manifests)
         }
 
         @JvmStatic
         @DataProvider(name = "invalidManifestRequiredFieldsProvider")
         fun invalidManifestRequiredFieldsProvider(): Array<Array<Map<String, String>>> {
             val invalidManifests = arrayOf("invalid_manifests_required_fields.json")
+            val manifests = loadManifests(invalidManifests)
             logger<util.DataProvider>().info("Filtering invalid required field manifests")
-            return loadAndFilterManifests(invalidManifests)
+            return filterManifests(manifests)
         }
 
         @JvmStatic
         @DataProvider(name = "invalidManifestInvalidValueProvider")
         fun invalidManifestInvalidValueProvider(): Array<Array<Map<String, String>>> {
             val invalidManifests = arrayOf("invalid_manifests_invalid_value.json")
+            val manifests = loadManifests(invalidManifests)
             logger<util.DataProvider>().info("Filtering invalid value manifests")
-            return loadAndFilterManifests(invalidManifests)
+            return filterManifests(manifests)
         }
 
-        private fun loadAndFilterManifests(manifestFiles: Array<String>): Array<Array<Map<String, String>>> {
-            val manifestFilter: String? = System.getProperty("manifestFilter")
-            val fields = manifestFilter?.split(";")
-
-            val manifestFilters = mutableMapOf<String, String>()
-
-            if (fields != null) {
-                for (field in fields) {
-                    val keyValue = field.split("=")
-                    if (keyValue.size == 2) {
-                        manifestFilters[keyValue[0]] = keyValue[1]
-                    }
-                }
-            }
-
+        private fun loadManifests(manifestFiles: Array<String>): List<Map<String, String>> {
             val manifests = arrayListOf<Map<String, String>>()
-            var totalManifests = 0
 
             manifestFiles.forEach { manifestFile ->
                 val jsonBytes = TestFile.getResourceFile(manifestFile).readBytes()
                 val manifestJsons: List<Map<String, String>> = objectMapper.readValue(jsonBytes)
-                totalManifests += manifestJsons.size
+                manifests.addAll(manifestJsons)
+            }
 
-                if (manifestFilters.isNotEmpty()) {
-                    val filtered = filterManifestJsons(manifestJsons, manifestFilters)
-                    logger<util.DataProvider>().debug("Filtered manifests: {}", filtered)
-                    manifests.addAll(filtered)
-                } else {
-                    manifests.addAll(manifestJsons)
+            return manifests
+        }
+
+        private fun filterManifests(manifests: List<Map<String, String>>): Array<Array<Map<String, String>>> {
+            val manifestFilter: String? = System.getProperty("manifestFilter")
+            if (manifestFilter.isNullOrEmpty()) {
+                return toTypedMatrix(manifests)
+            }
+
+            val fields = manifestFilter.split(";")
+            val manifestFilters = mutableMapOf<String, List<String>>()
+
+            for (field in fields) {
+                val filterTokens = field.split("=")
+                if (filterTokens.size != 2) {
+                    logger<util.DataProvider>().error("Failed to parse filter for field $field.  Skipping.")
+                    continue
+                }
+                manifestFilters[filterTokens[0]] = filterTokens[1].split(',')
+            }
+
+            val filtered = manifests.filter { manifest ->
+                manifestFilters.all{ (field, allowedVals) ->
+                    manifest[field]?.let { it in allowedVals } ?: false
                 }
             }
-            logger<util.DataProvider>().info("Total number of manifests: $totalManifests, Number of filtered manifests: ${manifests.size}")
-            logger<util.DataProvider>().info("Final Manifest: $manifests")
+
+            logger<util.DataProvider>().info("Found ${filtered.size} manifests out of ${manifests.size}")
+            return toTypedMatrix(filtered)
+        }
+
+        private fun toTypedMatrix(manifests: List<Map<String, String>>): Array<Array<Map<String, String>>> {
             return manifests.map { arrayOf(it) }.toTypedArray()
-        }
-
-        private fun parseFilterValues(filter: String): List<String> {
-            try {
-                val values = filter.split(",")
-                if (values.size != 2) {
-                    if (values.size == 1) {
-                        return values
-                    } else {
-                        throw IllegalArgumentException("Filter values must contain exactly two elements.")
-                    }
-                }
-                return values
-            } catch (e: Exception) {
-                throw RuntimeException("An error occurred while parsing filter values.", e)
-            }
-        }
-
-        private fun filterManifestJsons(
-            manifestJsons: List<Map<String, String>>,
-            manifestFilters: Map<String, String>
-        ): List<Map<String, String>> {
-            return manifestJsons.filter { json ->
-                manifestFilters.all { (key, value) ->
-                    val filterValues = parseFilterValues(value)
-                    json[key]?.let { it in filterValues } ?: false
-                }
-            }
         }
     }
 }
