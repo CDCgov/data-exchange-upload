@@ -1,0 +1,22 @@
+name: Lint OpenAPI Spec File
+
+on:
+  pull_request:
+    paths:
+      - docs/openapi.yml
+
+jobs:
+  lint:
+    name: "lint"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Redocly CLi
+        run: npm install @redocly/cli -g
+      - name: Lint
+        run: redocly lint docs/openapi.yml

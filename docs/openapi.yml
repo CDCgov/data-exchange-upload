@@ -8,6 +8,8 @@ info:
 servers:
   - url: 'https://apidev.cdc.gov'
     description: Development server
+  - url: 'https://apitst.cdc.gov'
+    description: Test server
   - url: 'https://apistg.cdc.gov'
     description: Staging server
   - url: 'https://api.cdc.gov'
@@ -17,7 +19,6 @@ paths:
   /oauth:
     get:
       summary: This GET request goes to SAMS to validate a supplied token by the client.
-      description:
       security:
         - bearerAuth: []
       responses:
@@ -30,7 +31,6 @@ paths:
         
     post:
       summary: This POST request goes to SAMS to obtain a session token for authentication.
-      description:
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -53,7 +53,6 @@ paths:
   /oauth/refresh:
     post:
       summary: This POST request goes to SAMS to generate a valid refresh token.
-      description:
       parameters:
         - name: Content-Type
           in: header
@@ -516,6 +515,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
 
+  /upload/info/{tguid}:
+    get:
+      summary: Gets information about a file that was uploaded.
+      parameters:
+        - in: path
+          name: tguid
+          schema:
+            type: string
+          required: true
+          description: UUID given to the file that was uploaded by the TUS server.
+      responses:
+        200:
+          description: JSON object containing the upload file info.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Info-Response'
+        404:
+          description: Info file or upload file not found.
+
+  /upload/health:
+    get:
+      summary: Gets the health status of the Upload API to determine of the service is up, down, or degraded.
+      responses:
+        200:
+          description: JSON object containing health status and list of dependent services with their respected health statuses.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health-Response'
+
+
 components:
   securitySchemes:
       bearerAuth:
@@ -622,6 +653,49 @@ components:
           The header MUST consist of the name of the used checksum algorithm and the
           Base64 encoded checksum separated by a space.
       type: string
+    Info-Response:
+      type: object
+      properties:
+        manifest:
+          type: object
+          description: Set of key-value pairs that were attached to the file during upload.
+        file_info:
+          type: object
+          description: Information about the file that was uploaded.
+          properties:
+            updated_at:
+              type: string
+              description: Timestamp of the most recent time the file was changed.
+            size_bytes:
+              type: integer
+              description: Current size of the file in bytes.
+    Health-Response:
+      type: object
+      properties:
+        status:
+          type: string
+          description: UP, DOWN, or DEGRADED
+        services:
+          type: array
+          description: List of dependent services and their health status.
+          items:
+            type: object
+            properties:
+              schema:
+                $ref: '#/components/schemas/Health-Response-Item'
+    Health-Response-Item:
+      type: object
+      properties:
+        status:
+          type: string
+          description: UP, DOWN, or DEGRADED.
+        service:
+          type: string
+          description: Name of the service.
+        health_issue:
+          type: string
+          description: Message containing more details as to the issue with the service.  Provided when the status is not UP.
+
 
 security:
   - {}
