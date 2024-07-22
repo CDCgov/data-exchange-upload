@@ -515,7 +515,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
 
-  /info/{tguid}:
+  /upload/info/{tguid}:
     get:
       summary: Gets information about a file that was uploaded.
       parameters:
