@@ -89,7 +89,7 @@ type TestCase struct {
 	TemplateFile    string
 	Templates       []SubTemplate
 	Repetitions     int
-	ExpectedReports []string
+	ExpectedReports []Report
 }
 
 func (t *TestCase) String() string {
@@ -254,6 +254,8 @@ this will cover a use case for a single bad sender, so only one cred needed
 */
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	conf := resultOrFatal(buildConfig())
 	var wg sync.WaitGroup
@@ -276,8 +278,10 @@ func main() {
 			if r != nil {
 				cwg.Add(1)
 				go func(r *Result) {
+					cctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+					defer cancel()
 					defer cwg.Done()
-					if err := Check(r.testCase, r.url, conf); err != nil {
+					if err := Check(cctx, r.testCase, r.url, conf); err != nil {
 						slog.Error("failed check", "error", err, "test case", r.testCase)
 					}
 				}(r)
@@ -315,18 +319,21 @@ func main() {
 	fmt.Println("Total run took ", time.Since(tStart).Seconds(), " seconds")
 }
 
-type Reports []struct {
+type Report struct {
 	ID        string
 	UploadId  string
 	StageName string
 	Timestamp time.Time
+	Content   map[string]any
 }
+
+type Reports []Report
 
 func (r Reports) Len() int           { return len(r) }
 func (r Reports) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r Reports) Less(i, j int) bool { return r[i].Timestamp.Before(r[j].Timestamp) }
 
-func Check(c TestCase, upload string, conf *config) error {
+func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
 	serverUrl, _ := path.Split(url)
 	infoUrl, err := neturl.JoinPath(serverUrl, "info", path.Base(upload))
 	if err != nil {
@@ -340,49 +347,65 @@ func Check(c TestCase, upload string, conf *config) error {
 	if err != nil {
 		return err
 	}
-	var errs error
 	if resp.StatusCode != http.StatusOK {
-		errs = errors.Join(errs, fmt.Errorf("failed to check upload: %d", resp.StatusCode))
+		return fmt.Errorf("failed to check upload: %d", resp.StatusCode)
 	}
 	slog.Info("verified upload", "upload", infoUrl)
 
 	if reportsURL != "" {
+		timer := time.NewTicker(1 * time.Second)
+		for {
+			var errs error
+			select {
+			case <-timer.C:
 
-		client := graphql.NewClient(reportsURL, nil)
+				client := graphql.NewClient(reportsURL, nil)
 
-		var q struct {
-			GetReports Reports `graphql:"getReports(uploadId: $id)"`
-		}
+				var q struct {
+					GetReports Reports `graphql:"getReports(uploadId: $id)"`
+				}
 
-		variables := map[string]interface{}{
-			"id": path.Base(upload),
-		}
+				variables := map[string]interface{}{
+					"id": path.Base(upload),
+				}
 
-		if err := client.Query(context.Background(), &q, variables); err != nil {
-			return err
-		}
-		reports := q.GetReports
-		sort.Sort(reports)
+				if err := client.Query(context.Background(), &q, variables); err != nil {
+					return err
+				}
+				reports := q.GetReports
+				sort.Sort(reports)
 
-		for i, expected := range c.ExpectedReports {
-			if reports[i].StageName != expected {
-				errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, expected))
+				if len(reports) != len(c.ExpectedReports) {
+					errs = errors.Join(fmt.Errorf("not the right number of reports %d %d", len(reports), len(c.ExpectedReports)))
+				}
+
+				for i, expected := range c.ExpectedReports {
+					if reports[i].StageName != expected.StageName {
+						errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, expected))
+					}
+				}
+				slog.Debug("validated run", "reports", reports)
+				// If the file doesn't exist, create it, or append to the file
+				f, err := os.OpenFile(path.Base(upload)+".reports", os.O_CREATE|os.O_WRONLY, 0644)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+				je := json.NewEncoder(f)
+				if err := je.Encode(reports); err != nil {
+					return err
+				}
+
+				if errs == nil {
+					return nil
+				}
+			case <-ctx.Done():
+				return errs
 			}
-		}
-		slog.Debug("validated run", "reports", reports)
-		// If the file doesn't exist, create it, or append to the file
-		f, err := os.OpenFile(path.Base(upload)+".reports", os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		je := json.NewEncoder(f)
-		if err := je.Encode(reports); err != nil {
-			return err
 		}
 	}
 
-	return errs
+	return nil
 }
 
 type config struct {
