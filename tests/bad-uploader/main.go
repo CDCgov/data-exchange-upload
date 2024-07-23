@@ -348,7 +348,7 @@ func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to check upload: %d", resp.StatusCode)
+		return fmt.Errorf("failed to check upload: %d, %s", resp.StatusCode, infoUrl)
 	}
 	slog.Info("verified upload", "upload", infoUrl)
 

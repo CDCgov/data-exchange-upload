@@ -18,10 +18,10 @@
   "templates": [
     {
       "name": "message",
-      "repetitions": 10
+      "repetitions": 2
     }
   ],
-  "repetitions": 1,
+  "repetitions": 2,
   "expected_reports": [
     {
       "stageName": "dex-metadata-transform"

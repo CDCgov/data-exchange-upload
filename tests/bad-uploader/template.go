@@ -57,15 +57,16 @@ func (tg *TemplateGenerator) next() (err error) {
 
 	go func() {
 		templates := tg.Templates
-		for _, t := range templates {
-			slog.Debug("writing template")
-			if t.Args == nil {
-				t.Args = map[string]any{}
-			}
-			for i := range t.Repetitions {
-				t.Args["Index"] = i
-				if err := tg.t.ExecuteTemplate(tg.w, t.Name, t.Args); err != nil {
-					slog.Error("failed to execute template", "error", err)
+		for range tg.Repeats {
+			for _, t := range templates {
+				if t.Args == nil {
+					t.Args = map[string]any{}
+				}
+				for i := range t.Repetitions {
+					t.Args["Index"] = i
+					if err := tg.t.ExecuteTemplate(tg.w, t.Name, t.Args); err != nil {
+						slog.Error("failed to execute template", "error", err)
+					}
 				}
 			}
 		}
@@ -88,19 +89,11 @@ func (tg *TemplateGenerator) Read(p []byte) (int, error) {
 			return 0, err
 		}
 	}
-	slog.Debug("reading template")
 	n, err := io.ReadFull(tg.r, p)
 	//todo only swallow unexpected eof errors
-	slog.Debug("read template")
-	_, peakErr := tg.r.Peek(len(p))
-	if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(peakErr, io.EOF) {
-		if tg.Repeats < 1 {
-			return n, io.EOF
-		}
-		tg.Repeats--
-		if err := tg.next(); err != nil {
-			return n, err
-		}
+	slog.Debug("read template", "n", n, "p", len(p))
+	if errors.Is(err, io.EOF) {
+		return n, io.EOF
 	}
 	return n, nil
 }
