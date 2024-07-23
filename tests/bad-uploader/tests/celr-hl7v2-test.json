@@ -17,15 +17,11 @@
   "templatefile": "examples/test.hl7",
   "templates": [
     {
-      "name": "header",
-      "repetitions": 1
-    },
-    {
-      "name": "obx",
-      "repetitions": 12
+      "name": "message",
+      "repetitions": 10
     }
   ],
-  "repetitions": 2,
+  "repetitions": 1,
   "expected_reports": [
     "dex-metadata-transform",
     "dex-metadata-transform",

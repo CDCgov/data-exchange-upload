@@ -332,7 +332,10 @@ func Check(c TestCase, upload string, conf *config) error {
 	if err != nil {
 		return err
 	}
-	httpClient := oauth2.NewClient(context.TODO(), conf.tokenSource)
+	httpClient := &http.Client{}
+	if conf.tokenSource != nil {
+		httpClient = oauth2.NewClient(context.TODO(), conf.tokenSource)
+	}
 	resp, err := httpClient.Get(infoUrl)
 	if err != nil {
 		return err
