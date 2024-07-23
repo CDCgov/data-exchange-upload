@@ -253,16 +253,22 @@ func main() {
 			defer wg.Done()
 			worker(c, o, conf)
 		}()
-		cwg.Add(1)
-		go func() {
-			defer cwg.Done()
-			for r := range o {
-				if err := Check(r.testCase, r.url, conf); err != nil {
-					slog.Error("failed check", "error", err, "test case", r.testCase)
-				}
-			}
-		}()
 	}
+	cwg.Add(1)
+	go func() {
+		defer cwg.Done()
+		for r := range o {
+			if r != nil {
+				cwg.Add(1)
+				go func(r *Result) {
+					defer cwg.Done()
+					if err := Check(r.testCase, r.url, conf); err != nil {
+						slog.Error("failed check", "error", err, "test case", r.testCase)
+					}
+				}(r)
+			}
+		}
+	}()
 
 	tStart := time.Now()
 	if duration > 0 {
@@ -367,9 +373,7 @@ func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
 		if err != nil {
 			slog.Error("ERROR: ", "error", err, "case", e)
 		}
-		go func(res *Result) {
-			o <- res
-		}(res)
+		o <- res
 	}
 }
 
