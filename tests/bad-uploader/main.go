@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -158,16 +159,30 @@ func (t *TestCases) String() string {
 	return ""
 }
 
+func fromEnv[T any](key string, backup T, conv func(string) (T, error)) T {
+	if val, ok := os.LookupEnv(key); ok {
+		result, err := conv(val)
+		if err != nil {
+			return result
+		}
+		slog.Error("Failed to convert env var, falling back to default", "error", err, "env", key)
+	}
+	return backup
+}
+func passthroughString(s string) (string, error) {
+	return s, nil
+}
+
 func init() {
 	flag.Float64Var(&size, "size", 5, "the size of the file to upload, in MB")
-	flag.StringVar(&url, "url", "http://localhost:8080/files/", "the upload url for the tus server")
-	flag.StringVar(&reportsURL, "reports-url", "", "the url for the reports graphql server")
-	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
-	flag.IntVar(&load, "load", 0, "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
+	flag.StringVar(&url, "url", fromEnv("UPLOAD_URL", "http://localhost:8080/files/", passthroughString), "the upload url for the tus server")
+	flag.StringVar(&reportsURL, "reports-url", fromEnv("DEX_REPORTS_URL", "", passthroughString), "the url for the reports graphql server")
+	flag.IntVar(&parallelism, "parallelism", fromEnv("UPLOAD_PARALLELISM", runtime.NumCPU(), strconv.Atoi), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
+	flag.IntVar(&load, "load", fromEnv("UPLOAD_LOAD", 0, strconv.Atoi), "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
 	flag.Float64Var(&chunk, "chunk", 2, "set the chunk size to use when uploading files in MB")
-	flag.StringVar(&samsURL, "sams-url", "", "use sams to authenticate to the upload server")
-	flag.StringVar(&username, "username", "", "username for sams")
-	flag.StringVar(&password, "password", "", "password for sams")
+	flag.StringVar(&samsURL, "sams-url", fromEnv("UPLOAD_SAMS_OAUTH", "", passthroughString), "use sams to authenticate to the upload server")
+	flag.StringVar(&username, "username", fromEnv("UPLOAD_USERNAME", "", passthroughString), "username for sams")
+	flag.StringVar(&password, "password", fromEnv("UPLOAD_PASSWORD", "", passthroughString), "password for sams")
 	flag.BoolVar(&verbose, "v", false, "turn on debug logs")
 	flag.Var(&manifest, "manifest", "The manifest to use for the load test.")
 	flag.Var(&testcase, "case-file", "A json file describing the test case to use.")
@@ -351,7 +366,17 @@ func Check(c TestCase, upload string, conf *config) error {
 				errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, expected))
 			}
 		}
-		slog.Info("validated run", "reports", reports)
+		slog.Debug("validated run", "reports", reports)
+		// If the file doesn't exist, create it, or append to the file
+		f, err := os.OpenFile(path.Base(upload)+".reports", os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		je := json.NewEncoder(f)
+		if err := je.Encode(reports); err != nil {
+			return err
+		}
 	}
 
 	return errs
