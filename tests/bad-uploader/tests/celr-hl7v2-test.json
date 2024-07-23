@@ -23,9 +23,17 @@
   ],
   "repetitions": 1,
   "expected_reports": [
-    "dex-metadata-transform",
-    "dex-metadata-transform",
-    "dex-upload-started",
-    "dex-upload-complete"
+    {
+      "stageName": "dex-metadata-transform"
+    },
+    {
+      "stageName": "dex-metadata-transform"
+    },
+    {
+      "stageName": "dex-upload-started"
+    },
+    {
+      "stageName": "dex-upload-complete"
+    }
   ]
 }
