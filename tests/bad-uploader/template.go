@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"log"
 	"log/slog"
 	"math/rand"
 	"text/template"
@@ -90,10 +89,7 @@ func (tg *TemplateGenerator) Read(p []byte) (int, error) {
 		}
 	}
 	slog.Debug("reading template")
-	log.Println("buf size", len(p))
 	n, err := io.ReadFull(tg.r, p)
-	log.Println(err)
-	log.Println("bytes written", n)
 	//todo only swallow unexpected eof errors
 	slog.Debug("read template")
 	_, peakErr := tg.r.Peek(len(p))
