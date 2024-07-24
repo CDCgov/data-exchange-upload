@@ -109,7 +109,8 @@
 					"HH2",
 					"HR2",
 					"DV3",
-					"FD3"
+					"FD3",
+					"XXA"
 				],
 				"description": "This field is the identifier for the data producer."
 			},
@@ -211,7 +212,8 @@
 					"HH2",
 					"HR2",
 					"DV3",
-					"FD3"
+					"FD3",
+					"XXA"
 				],
 				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
 				"compat_field_name": "meta_ext_entity"
