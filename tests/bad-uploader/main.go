@@ -324,7 +324,7 @@ type Report struct {
 	UploadId  string
 	StageName string
 	Timestamp time.Time
-	Content   map[string]any
+	Content   json.RawMessage
 }
 
 type Reports []Report
@@ -384,7 +384,6 @@ func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
 						errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, expected))
 					}
 				}
-				slog.Debug("validated run", "reports", reports)
 				// If the file doesn't exist, create it, or append to the file
 				f, err := os.OpenFile(path.Base(upload)+".reports", os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
@@ -397,6 +396,7 @@ func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
 				}
 
 				if errs == nil {
+					slog.Debug("validated run", "reports", reports)
 					return nil
 				}
 			case <-ctx.Done():

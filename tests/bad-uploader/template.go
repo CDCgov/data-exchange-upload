@@ -89,11 +89,19 @@ func (tg *TemplateGenerator) Read(p []byte) (int, error) {
 			return 0, err
 		}
 	}
+
+	_, peakErr := tg.r.Peek(1)
+
 	n, err := io.ReadFull(tg.r, p)
+
 	//todo only swallow unexpected eof errors
 	slog.Debug("read template", "n", n, "p", len(p))
-	if errors.Is(err, io.EOF) {
-		return n, io.EOF
+
+	if err != nil || peakErr != nil {
+		if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(peakErr, io.EOF) {
+			return n, io.EOF
+		}
+		slog.Error("template read error", "error", err, "peak error", peakErr)
 	}
 	return n, nil
 }

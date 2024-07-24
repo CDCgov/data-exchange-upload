@@ -21,7 +21,7 @@
       "repetitions": 2
     }
   ],
-  "repetitions": 2,
+  "repetitions": 100000,
   "expected_reports": [
     {
       "stageName": "dex-metadata-transform"
