@@ -21,7 +21,6 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	conf := resultOrFatal(buildConfig())
 	var wg sync.WaitGroup
 	var cwg sync.WaitGroup
 

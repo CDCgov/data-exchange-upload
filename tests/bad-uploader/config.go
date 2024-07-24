@@ -46,6 +46,7 @@ var (
 	reportsURL string
 
 	duration time.Duration
+	conf     *config
 )
 
 type JSONVar map[string]string
@@ -205,6 +206,7 @@ func init() {
 		cases = TestCases{cases: []TestCase{testcase}}
 	}
 	slog.Debug("testing with cases", "cases", cases)
+	conf = resultOrFatal(buildConfig())
 }
 
 func buildConfig() (*config, error) {
