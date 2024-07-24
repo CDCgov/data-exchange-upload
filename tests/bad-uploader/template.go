@@ -57,12 +57,14 @@ func (tg *TemplateGenerator) next() (err error) {
 
 	go func() {
 		templates := tg.Templates
-		for range tg.Repeats {
+		for j := range tg.Repeats {
+			slog.Debug("generating template", "num", j, "of", tg.Repeats)
 			for _, t := range templates {
 				if t.Args == nil {
 					t.Args = map[string]any{}
 				}
 				for i := range t.Repetitions {
+					slog.Debug("generating sub template", "name", t.Name, "num", i, "of", t.Repetitions)
 					t.Args["Index"] = i
 					if err := tg.t.ExecuteTemplate(tg.w, t.Name, t.Args); err != nil {
 						slog.Error("failed to execute template", "error", err)
