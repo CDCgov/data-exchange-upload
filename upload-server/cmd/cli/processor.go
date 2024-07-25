@@ -8,6 +8,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"net"
+	"nhooyr.io/websocket"
 	"sync"
 )
 
@@ -16,8 +18,18 @@ func NewEventSubscriber(appConfig appconfig.AppConfig) event.Subscribable {
 	sub = &event.MemorySubscriber{}
 
 	if appConfig.SubscriberConnection != nil {
-		// TODO may need to revisit for AMQP and websockets
-		client, err := azservicebus.NewClientFromConnectionString(appConfig.SubscriberConnection.ConnectionString, nil)
+		newWebSocketConnFn := func(ctx context.Context, args azservicebus.NewWebSocketConnArgs) (net.Conn, error) {
+			opts := &websocket.DialOptions{Subprotocols: []string{"amqp"}}
+			wssConn, _, err := websocket.Dial(ctx, args.Host, opts)
+			if err != nil {
+				return nil, err
+			}
+
+			return websocket.NetConn(ctx, wssConn, websocket.MessageBinary), nil
+		}
+		client, err := azservicebus.NewClientFromConnectionString(appConfig.SubscriberConnection.ConnectionString, &azservicebus.ClientOptions{
+			NewWebSocketConn: newWebSocketConnFn, // Setting this option so messages are sent to port 443.
+		})
 		if err != nil {
 			logger.Error("failed to connect to event service bus", "error", err)
 		}

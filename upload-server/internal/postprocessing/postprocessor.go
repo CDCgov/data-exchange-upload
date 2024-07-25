@@ -24,5 +24,5 @@ type PostProcessor struct {
 }
 
 func ProcessFileReadyEvent(ctx context.Context, e event.FileReady) error {
-	return Deliver(ctx, e.ID, e.Metadata, e.DestinationTarget)
+	return Deliver(ctx, e.Event.ID, e.Metadata, e.DestinationTarget)
 }

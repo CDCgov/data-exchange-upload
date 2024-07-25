@@ -16,7 +16,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
+	"net"
 	"net/http"
+	"nhooyr.io/websocket"
 	"strings"
 )
 
@@ -76,7 +78,18 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	if appConfig.PublisherConnection != nil {
 		//cred := azcore.NewKeyCredential(appConfig.PublisherConnection.AccessKey)
 		//client, err := aznamespaces.NewSenderClientWithSharedKeyCredential(appConfig.PublisherConnection.Endpoint, appConfig.PublisherConnection.Topic, cred, nil)
-		client, err := azservicebus.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, nil)
+		newWebSocketConnFn := func(ctx context.Context, args azservicebus.NewWebSocketConnArgs) (net.Conn, error) {
+			opts := &websocket.DialOptions{Subprotocols: []string{"amqp"}}
+			wssConn, _, err := websocket.Dial(ctx, args.Host, opts)
+			if err != nil {
+				return nil, err
+			}
+
+			return websocket.NetConn(ctx, wssConn, websocket.MessageBinary), nil
+		}
+		client, err := azservicebus.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, &azservicebus.ClientOptions{
+			NewWebSocketConn: newWebSocketConnFn, // Setting this option so messages are sent to port 443.
+		})
 		if err != nil {
 			logger.Error("failed to connect to event service bus", "error", err)
 		}
