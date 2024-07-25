@@ -2,8 +2,8 @@ package cli
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
@@ -74,15 +74,27 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	}
 
 	if appConfig.PublisherConnection != nil {
-		cred := azcore.NewKeyCredential(appConfig.PublisherConnection.AccessKey)
-		client, err := aznamespaces.NewSenderClientWithSharedKeyCredential(appConfig.PublisherConnection.Endpoint, appConfig.PublisherConnection.Topic, cred, nil)
+		//cred := azcore.NewKeyCredential(appConfig.PublisherConnection.AccessKey)
+		//client, err := aznamespaces.NewSenderClientWithSharedKeyCredential(appConfig.PublisherConnection.Endpoint, appConfig.PublisherConnection.Topic, cred, nil)
+		client, err := azservicebus.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, nil)
 		if err != nil {
-			logger.Error("failed to connect to azure event grid")
+			logger.Error("failed to connect to event service bus", "error", err)
+		}
+		sender, err := client.NewSender(appConfig.PublisherConnection.Topic, nil)
+		if err != nil {
+			logger.Error("failed to configure event publisher", "error", err)
+		}
+		adminClient, err := admin.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, nil)
+		if err != nil {
+			logger.Error("failed to connect to service bus admin client", "error", err)
 		}
 
 		fileReadyPublisher = &event.AzurePublisher{
-			Client: client,
-			Config: *appConfig.PublisherConnection,
+			//Client: client,
+			EventType:   event.FileReadyEventType,
+			Sender:      sender,
+			Config:      *appConfig.PublisherConnection,
+			AdminClient: adminClient,
 		}
 
 		health.Register(fileReadyPublisher)

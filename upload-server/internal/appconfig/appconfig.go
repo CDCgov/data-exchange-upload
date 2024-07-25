@@ -109,10 +109,9 @@ type AzureContainerConfig struct {
 }
 
 type AzureQueueConfig struct {
-	Endpoint     string `env:"ENDPOINT"`
-	AccessKey    string `env:"ACCESS_KEY"`
-	Topic        string `env:"TOPIC"`
-	Subscription string `env:"SUBSCRIPTION"`
+	ConnectionString string `env:"CONNECTION_STRING"`
+	Topic            string `env:"TOPIC"`
+	Subscription     string `env:"SUBSCRIPTION"`
 }
 
 type LocalStorageConfig struct {

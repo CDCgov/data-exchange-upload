@@ -36,9 +36,9 @@ type MemoryPublisher struct {
 
 type AzurePublisher struct {
 	EventType   string
-	Sender      azservicebus.Sender
+	Sender      *azservicebus.Sender
 	Config      appconfig.AzureQueueConfig
-	AdminClient admin.Client
+	AdminClient *admin.Client
 }
 
 func (mp *MemoryPublisher) Publish(_ context.Context, event FileReady) error {

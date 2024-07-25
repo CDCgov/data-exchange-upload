@@ -14,9 +14,9 @@ type MemorySubscriber struct{}
 
 type AzureSubscriber struct {
 	EventType   string
-	Receiver    azservicebus.Receiver
+	Receiver    *azservicebus.Receiver
 	Config      appconfig.AzureQueueConfig
-	AdminClient admin.Client
+	AdminClient *admin.Client
 }
 
 type Subscribable interface {
