@@ -12,7 +12,7 @@ type FileReporter struct {
 	Dir string
 }
 
-func (fr *FileReporter) Publish(ctx context.Context, r reporters.Identifiable) error {
+func (fr *FileReporter) Publish(_ context.Context, r reporters.Identifiable) error {
 	if fr.Dir != "" {
 		err := os.Mkdir(fr.Dir, 0750)
 		if err != nil && !os.IsExist(err) {

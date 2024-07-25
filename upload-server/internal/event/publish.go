@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/messaging"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/eventgrid/armeventgrid/v2"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
@@ -37,8 +35,10 @@ type MemoryPublisher struct {
 }
 
 type AzurePublisher struct {
-	Client *aznamespaces.SenderClient
-	Config appconfig.AzureQueueConfig
+	EventType   string
+	Sender      azservicebus.Sender
+	Config      appconfig.AzureQueueConfig
+	AdminClient admin.Client
 }
 
 func (mp *MemoryPublisher) Publish(_ context.Context, event FileReady) error {
@@ -73,37 +73,55 @@ func (mp *MemoryPublisher) Health(_ context.Context) (rsp models.ServiceHealthRe
 }
 
 func (ap *AzurePublisher) Publish(ctx context.Context, event FileReady) error {
-	evt, err := messaging.NewCloudEvent("upload", FileReadyEventType, event, nil)
+	//evt, err := messaging.NewCloudEvent("upload", FileReadyEventType, event, nil)
+	//if err != nil {
+	//	return err
+	//}
+
+	b, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
 
-	_, err = ap.Client.SendEvent(ctx, &evt, nil)
-	return err
+	return ap.Sender.SendMessage(ctx, &azservicebus.Message{
+		Body: b,
+	}, nil)
+
+	//_, err = ap.Client.SendEvent(ctx, &evt, nil)
+	//return err
 }
 
-func (ap *AzurePublisher) Health(_ context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "Azure Event Publisher"
+func (ap *AzurePublisher) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = fmt.Sprintf("%s Event Publishing", ap.EventType)
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 
-	if ap.Client == nil {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = "Azure event publisher not configured"
-		return rsp
+	topicResp, err := ap.AdminClient.GetTopic(ctx, ap.Config.Topic, nil)
+	if err != nil {
+		return rsp.BuildErrorResponse(err)
 	}
 
-	// Check via management API
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
-	if err != nil {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = "Failed to authenticate to Azure"
+	if *topicResp.Status != admin.EntityStatusActive {
+		return rsp.BuildErrorResponse(fmt.Errorf("service bus topic %s status: %s", ap.Config.Topic, *topicResp.Status))
 	}
-	_, err = armeventgrid.NewClientFactory(ap.Config.Subscription, cred, nil)
-	if err != nil {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = fmt.Sprintf("Failed to connect to namespace %s", ap.Config.Endpoint)
-	}
+
+	//if ap.Client == nil {
+	//	rsp.Status = models.STATUS_DOWN
+	//	rsp.HealthIssue = "Azure event publisher not configured"
+	//	return rsp
+	//}
+	//
+	//// Check via management API
+	//cred, err := azidentity.NewDefaultAzureCredential(nil)
+	//if err != nil {
+	//	rsp.Status = models.STATUS_DOWN
+	//	rsp.HealthIssue = "Failed to authenticate to Azure"
+	//}
+	//_, err = armeventgrid.NewClientFactory(ap.Config.Subscription, cred, nil)
+	//if err != nil {
+	//	rsp.Status = models.STATUS_DOWN
+	//	rsp.HealthIssue = fmt.Sprintf("Failed to connect to namespace %s", ap.Config.Endpoint)
+	//}
 
 	return rsp
 }
