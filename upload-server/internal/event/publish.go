@@ -47,7 +47,7 @@ func (mp *MemoryPublisher) Publish(_ context.Context, event FileReady) error {
 		return err
 	}
 
-	filename := mp.Dir + "/" + event.ID
+	filename := mp.Dir + "/" + event.UploadId
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err

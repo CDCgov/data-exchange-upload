@@ -42,18 +42,6 @@ func NewFileReadyEvent(uploadId string, metadata map[string]string, target strin
 	}
 }
 
-//func NewFileReadyEventFromCloudEvent(event messaging.CloudEvent, lockToken string) (FileReady, error) {
-//	var fre FileReady
-//	err := json.Unmarshal(event.Data.([]byte), &fre)
-//	if err != nil {
-//		return fre, err
-//	}
-//
-//	fre.LockToken = lockToken
-//
-//	return fre, nil
-//}
-
 func NewFileReadyEventFromServiceBusMessage(m azservicebus.ReceivedMessage) (FileReady, error) {
 	var fre FileReady
 	err := json.Unmarshal(m.Body, &fre)
