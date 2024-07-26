@@ -16,6 +16,7 @@ type Event struct {
 
 type FileReady struct {
 	Event
+	UploadId          string `json:"upload_id"`
 	SrcUrl            string `json:"src_url"`
 	DestinationTarget string `json:"deliver_target"`
 	Metadata          map[string]string
@@ -30,12 +31,12 @@ func CloseFileReadyChannel() {
 	close(fileReadyChan)
 }
 
-func NewFileReadyEvent(id string, metadata map[string]string, target string) FileReady {
+func NewFileReadyEvent(uploadId string, metadata map[string]string, target string) FileReady {
 	return FileReady{
 		Event: Event{
-			ID:   id,
 			Type: FileReadyEventType,
 		},
+		UploadId:          uploadId,
 		Metadata:          metadata,
 		DestinationTarget: target,
 	}

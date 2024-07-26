@@ -176,7 +176,6 @@ func (fd *FileDeliverer) Health(_ context.Context) (rsp models.ServiceHealthResp
 func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
 	// Get blob src blob client.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
-	logger.Info("*****", "srcblob", srcBlobClient.URL())
 	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
 
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
