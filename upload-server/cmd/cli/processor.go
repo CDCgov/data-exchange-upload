@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-func NewEventSubscriber(appConfig appconfig.AppConfig) event.Subscribable {
+func NewEventSubscriber(ctx context.Context, appConfig appconfig.AppConfig) event.Subscribable {
 	var sub event.Subscribable
 	sub = &event.MemorySubscriber{}
 
@@ -28,6 +28,7 @@ func NewEventSubscriber(appConfig appconfig.AppConfig) event.Subscribable {
 			logger.Error("failed to connect to service bus admin client", "error", err)
 		}
 		sub = &event.AzureSubscriber{
+			Context:     ctx,
 			EventType:   event.FileReadyEventType,
 			Receiver:    receiver,
 			Config:      *appConfig.SubscriberConnection,

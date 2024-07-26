@@ -8,11 +8,13 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"io"
 )
 
 type MemorySubscriber struct{}
 
 type AzureSubscriber struct {
+	Context     context.Context
 	EventType   string
 	Receiver    *azservicebus.Receiver
 	Config      appconfig.AzureQueueConfig
@@ -21,6 +23,7 @@ type AzureSubscriber struct {
 
 type Subscribable interface {
 	health.Checkable
+	io.Closer
 	GetBatch(ctx context.Context, max int) ([]FileReady, error)
 	HandleSuccess(ctx context.Context, event FileReady) error
 	HandleError(ctx context.Context, event FileReady, handlerError error)
@@ -44,6 +47,11 @@ func (ms *MemorySubscriber) HandleError(_ context.Context, e FileReady, err erro
 	logger.Error("failed to deliver file to target", "target", e.DestinationTarget, "error", err.Error())
 }
 
+func (ms *MemorySubscriber) Close() error {
+	logger.Info("closing in-memory subscriber")
+	return nil
+}
+
 func (ms *MemorySubscriber) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "Memory Subscriber"
 	rsp.Status = models.STATUS_UP
@@ -56,11 +64,6 @@ func (as *AzureSubscriber) GetBatch(ctx context.Context, max int) ([]FileReady, 
 	if err != nil {
 		return nil, err
 	}
-
-	//resp, _ := as.Client.ReceiveEvents(ctx, &aznamespaces.ReceiveEventsOptions{
-	//	MaxEvents:   to.Ptr(int32(max)),
-	//	MaxWaitTime: to.Ptr[int32](60),
-	//})
 
 	var fileReadyEvents []FileReady
 	for _, m := range msgs {
@@ -91,18 +94,10 @@ func (as *AzureSubscriber) HandleSuccess(ctx context.Context, e FileReady) error
 func (as *AzureSubscriber) HandleError(_ context.Context, e FileReady, handlerError error) {
 	logger.Error("failed to handle event", "event ID", e.ID, "event type", e.Type, "error", handlerError.Error())
 	// TODO dead letter message
-	//resp, err := as.Client.RejectEvents(ctx, []string{e.Event.LockToken}, nil)
-	//if err != nil {
-	//	// TODO need to handle this better
-	//	logger.Error("failed to reject events", "error", err.Error())
-	//	for _, t := range resp.FailedLockTokens {
-	//		logger.Error("failed to dead letter event with lock token", "token", t)
-	//	}
-	//}
-	//
-	//for _, t := range resp.SucceededLockTokens {
-	//	logger.Info("successfully dead lettered event with lock token", "token", t)
-	//}
+}
+
+func (as *AzureSubscriber) Close() error {
+	return as.Receiver.Close(as.Context)
 }
 
 func (as *AzureSubscriber) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
@@ -118,24 +113,6 @@ func (as *AzureSubscriber) Health(ctx context.Context) (rsp models.ServiceHealth
 	if *subResp.Status != admin.EntityStatusActive {
 		return rsp.BuildErrorResponse(fmt.Errorf("service bus subscription %s status: %s", as.Config.Subscription, *subResp.Status))
 	}
-
-	//if as.Client == nil {
-	//	rsp.Status = models.STATUS_DOWN
-	//	rsp.HealthIssue = "Azure event subscriber not configured"
-	//	return rsp
-	//}
-	//
-	//// Check via management API
-	//cred, err := azidentity.NewDefaultAzureCredential(nil)
-	//if err != nil {
-	//	rsp.Status = models.STATUS_DOWN
-	//	rsp.HealthIssue = "Failed to authenticate to Azure"
-	//}
-	//_, err = armeventgrid.NewClientFactory(as.Config.Subscription, cred, nil)
-	//if err != nil {
-	//	rsp.Status = models.STATUS_DOWN
-	//	rsp.HealthIssue = fmt.Sprintf("Failed to connect to namespace %s", as.Config.Endpoint)
-	//}
 
 	return rsp
 }

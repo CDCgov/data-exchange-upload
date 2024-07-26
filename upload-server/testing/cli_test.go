@@ -302,10 +302,9 @@ func TestMain(m *testing.M) {
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
-	//postProcessingChannel := make(chan event.FileReady)
 	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
-	testListener := cli.NewEventSubscriber(appConfig)
+	testListener := cli.NewEventSubscriber(testContext, appConfig)
 	go func() {
 		cli.SubscribeToEvents(testContext, testListener)
 		testWaitGroup.Done()

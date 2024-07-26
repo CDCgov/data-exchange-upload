@@ -11,6 +11,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -65,7 +66,8 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	}
 
 	// initialize event reporter
-	err = InitReporters(appConfig)
+	err = InitReporters(ctx, appConfig)
+	defer reports.DefaultReporter.Close()
 
 	var fileReadyPublisher event.Publisher
 	fileReadyPublisher = &event.MemoryPublisher{
@@ -87,11 +89,13 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		}
 
 		fileReadyPublisher = &event.AzurePublisher{
+			Context:     ctx,
 			EventType:   event.FileReadyEventType,
 			Sender:      sender,
 			Config:      *appConfig.PublisherConnection,
 			AdminClient: adminClient,
 		}
+		defer fileReadyPublisher.Close()
 
 		health.Register(fileReadyPublisher)
 	}

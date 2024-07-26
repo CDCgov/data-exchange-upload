@@ -35,3 +35,7 @@ func (fr *FileReporter) Publish(_ context.Context, r reporters.Identifiable) err
 
 	return nil
 }
+
+func (fr *FileReporter) Close() error {
+	return nil
+}
