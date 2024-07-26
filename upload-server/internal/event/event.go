@@ -62,7 +62,6 @@ func NewFileReadyEventFromServiceBusMessage(m azservicebus.ReceivedMessage) (Fil
 	}
 
 	fre.ID = m.MessageID
-	fre.Type = FileReadyEventType
 	fre.OriginalMessage = m
 
 	return fre, nil

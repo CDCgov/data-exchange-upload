@@ -84,12 +84,12 @@ func (as *AzureSubscriber) HandleSuccess(ctx context.Context, e FileReady) error
 		logger.Error("failed to ack event", "error", err)
 		return err
 	}
-	logger.Info("successfully handled event", "event", e)
+	logger.Info("successfully handled event", "event ID", e.ID, "event type", e.Type)
 	return nil
 }
 
 func (as *AzureSubscriber) HandleError(_ context.Context, e FileReady, handlerError error) {
-	logger.Error("failed to handle event", "event", e, "error", handlerError.Error())
+	logger.Error("failed to handle event", "event ID", e.ID, "event type", e.Type, "error", handlerError.Error())
 	// TODO dead letter message
 	//resp, err := as.Client.RejectEvents(ctx, []string{e.Event.LockToken}, nil)
 	//if err != nil {
