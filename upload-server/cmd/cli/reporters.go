@@ -16,17 +16,17 @@ func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
 		Dir: appConfig.LocalReportsFolder,
 	}
 
-	if appConfig.AzureConnection != nil && appConfig.ServiceBusConnectionString != "" {
-		sbClient, err := event.NewAMQPServiceBusClient(appConfig.ServiceBusConnectionString)
+	if appConfig.ReporterConnection.ConnectionString != "" {
+		sbClient, err := event.NewAMQPServiceBusClient(appConfig.ReporterConnection.ConnectionString)
 		if err != nil {
 			return err
 		}
-		sender, err := sbClient.NewSender(appConfig.ReportQueueName, nil)
+		sender, err := sbClient.NewSender(appConfig.ReporterConnection.Queue, nil)
 		if err != nil {
 			logger.Error("failed to configure report publisher", "error", err)
 			return err
 		}
-		adminClient, err := admin.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, nil)
+		adminClient, err := admin.NewClientFromConnectionString(appConfig.ReporterConnection.ConnectionString, nil)
 		if err != nil {
 			logger.Error("failed to connect to service bus admin client", "error", err)
 			return err
@@ -36,7 +36,7 @@ func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
 			Context:     ctx,
 			Sender:      sender,
 			AdminClient: adminClient,
-			QueueName:   appConfig.ReportQueueName,
+			QueueName:   appConfig.ReporterConnection.Queue,
 		}
 
 		reports.DefaultReporter = r

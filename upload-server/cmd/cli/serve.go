@@ -9,7 +9,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
@@ -25,13 +24,13 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		logger = sloger.DefaultLogger
 	}
 	// initialize processing status health checker
-	sbHealth, err := sbhealth.New(appConfig)
-	if err != nil {
-		logger.Error("error initializing service bus health check", "error", err)
-	}
-	if sbHealth != nil {
-		health.Register(sbHealth)
-	}
+	//sbHealth, err := sbhealth.New(appConfig)
+	//if err != nil {
+	//	logger.Error("error initializing service bus health check", "error", err)
+	//}
+	//if sbHealth != nil {
+	//	health.Register(sbHealth)
+	//}
 
 	// create and register data store
 	store, storeHealthCheck, err := GetDataStore(appConfig)
