@@ -7,7 +7,17 @@ import (
 
 const FileReadyEventType = "FileReady"
 
-var fileReadyChan chan FileReady
+var FileReadyChan chan FileReady
+
+// TODO better name for this interface would be Subscribable or Queueable or similar
+type Identifiable interface {
+	Identifier() string
+	Type() string
+	OrigMessage() *azservicebus.ReceivedMessage
+	SetIdentifier(id string)
+	SetType(t string)
+	SetOrigMessage(m azservicebus.ReceivedMessage)
+}
 
 type Event struct {
 	ID   string `json:"id"`
@@ -23,12 +33,36 @@ type FileReady struct {
 	OriginalMessage   azservicebus.ReceivedMessage
 }
 
+func (fr FileReady) Type() string {
+	return fr.Event.Type
+}
+
+func (fr FileReady) OrigMessage() *azservicebus.ReceivedMessage {
+	return &fr.OriginalMessage
+}
+
+func (fr FileReady) SetIdentifier(id string) {
+	fr.ID = id
+}
+
+func (fr FileReady) SetType(t string) {
+	fr.Event.Type = t
+}
+
+func (fr FileReady) SetOrigMessage(m azservicebus.ReceivedMessage) {
+	fr.OriginalMessage = m
+}
+
+func (fr FileReady) Identifier() string {
+	return fr.UploadId
+}
+
 func InitFileReadyChannel() {
-	fileReadyChan = make(chan FileReady)
+	FileReadyChan = make(chan FileReady)
 }
 
 func CloseFileReadyChannel() {
-	close(fileReadyChan)
+	close(FileReadyChan)
 }
 
 func NewFileReadyEvent(uploadId string, metadata map[string]string, target string) FileReady {
@@ -42,15 +76,19 @@ func NewFileReadyEvent(uploadId string, metadata map[string]string, target strin
 	}
 }
 
-func NewFileReadyEventFromServiceBusMessage(m azservicebus.ReceivedMessage) (FileReady, error) {
-	var fre FileReady
-	err := json.Unmarshal(m.Body, &fre)
+func NewEventFromServiceBusMessage[T Identifiable](m azservicebus.ReceivedMessage) (T, error) {
+	var e T
+	err := json.Unmarshal(m.Body, &e)
 	if err != nil {
-		return fre, err
+		return e, err
 	}
 
-	fre.ID = m.MessageID
-	fre.OriginalMessage = m
+	e.SetIdentifier(m.MessageID)
+	switch any(e).(type) {
+	case FileReady:
+		e.SetType(FileReadyEventType)
+	}
+	e.SetOrigMessage(m)
 
-	return fre, nil
+	return e, nil
 }

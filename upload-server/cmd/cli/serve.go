@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
@@ -71,34 +70,16 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	}
 	defer reports.DefaultReporter.Close()
 
-	var fileReadyPublisher event.Publisher
-	fileReadyPublisher = &event.MemoryPublisher{
-		Dir: appConfig.LocalEventsFolder,
+	var fileReadyPublisher event.Publisher[event.FileReady]
+	fileReadyPublisher = &event.MemoryPublisher[event.FileReady]{
+		Dir:  appConfig.LocalEventsFolder,
+		Chan: event.FileReadyChan,
 	}
 
 	if appConfig.PublisherConnection != nil {
-		client, err := event.NewAMQPServiceBusClient(appConfig.PublisherConnection.ConnectionString)
+		fileReadyPublisher, err = event.NewAzurePublisher[event.FileReady](ctx, *appConfig.PublisherConnection, event.FileReadyEventType)
 		if err != nil {
-			logger.Error("failed to connect to event service bus", "error", err)
 			return nil, err
-		}
-		sender, err := client.NewSender(appConfig.PublisherConnection.Topic, nil)
-		if err != nil {
-			logger.Error("failed to configure event publisher", "error", err)
-			return nil, err
-		}
-		adminClient, err := admin.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, nil)
-		if err != nil {
-			logger.Error("failed to connect to service bus admin client", "error", err)
-			return nil, err
-		}
-
-		fileReadyPublisher = &event.AzurePublisher{
-			Context:     ctx,
-			EventType:   event.FileReadyEventType,
-			Sender:      sender,
-			Config:      *appConfig.PublisherConnection,
-			AdminClient: adminClient,
 		}
 		defer fileReadyPublisher.Close()
 

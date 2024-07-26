@@ -26,17 +26,18 @@ func init() {
 	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
 }
 
-type Publisher interface {
+type Publisher[T Identifiable] interface {
 	health.Checkable
 	io.Closer
-	Publish(ctx context.Context, event FileReady) error
+	Publish(ctx context.Context, event T) error
 }
 
-type MemoryPublisher struct {
-	Dir string
+type MemoryPublisher[T Identifiable] struct {
+	Dir  string
+	Chan chan T
 }
 
-type AzurePublisher struct {
+type AzurePublisher[T Identifiable] struct {
 	Context     context.Context
 	EventType   string
 	Sender      *azservicebus.Sender
@@ -44,13 +45,13 @@ type AzurePublisher struct {
 	AdminClient *admin.Client
 }
 
-func (mp *MemoryPublisher) Publish(_ context.Context, event FileReady) error {
+func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 	err := os.Mkdir(mp.Dir, 0750)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
 
-	filename := mp.Dir + "/" + event.UploadId
+	filename := mp.Dir + "/" + event.Identifier()
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -64,23 +65,25 @@ func (mp *MemoryPublisher) Publish(_ context.Context, event FileReady) error {
 		return err
 	}
 
-	fileReadyChan <- event
+	if mp.Chan != nil {
+		mp.Chan <- event
+	}
 	return nil
 }
 
-func (mp *MemoryPublisher) Close() error {
+func (mp *MemoryPublisher[T]) Close() error {
 	logger.Info("closing in-memory publisher")
 	return nil
 }
 
-func (mp *MemoryPublisher) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+func (mp *MemoryPublisher[T]) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "Memory Publisher"
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 	return rsp
 }
 
-func (ap *AzurePublisher) Publish(ctx context.Context, event FileReady) error {
+func (ap *AzurePublisher[T]) Publish(ctx context.Context, event T) error {
 	b, err := json.Marshal(event)
 	if err != nil {
 		return err
@@ -91,11 +94,11 @@ func (ap *AzurePublisher) Publish(ctx context.Context, event FileReady) error {
 	}, nil)
 }
 
-func (ap *AzurePublisher) Close() error {
+func (ap *AzurePublisher[T]) Close() error {
 	return ap.Sender.Close(ap.Context)
 }
 
-func (ap *AzurePublisher) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+func (ap *AzurePublisher[T]) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = fmt.Sprintf("%s Event Publishing", ap.EventType)
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE

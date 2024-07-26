@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -10,32 +9,16 @@ import (
 	"sync"
 )
 
-func NewEventSubscriber(ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable, error) {
-	var sub event.Subscribable
-	sub = &event.MemorySubscriber{}
+func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig, memChan chan T) (event.Subscribable[T], error) {
+	var sub event.Subscribable[T]
+	sub = &event.MemorySubscriber[T]{
+		Chan: memChan,
+	}
 
 	if appConfig.SubscriberConnection != nil {
-		client, err := event.NewAMQPServiceBusClient(appConfig.SubscriberConnection.ConnectionString)
+		sub, err := event.NewAzureSubscriber[event.FileReady](ctx, *appConfig.SubscriberConnection, event.FileReadyEventType)
 		if err != nil {
-			logger.Error("failed to connect to event service bus", "error", err)
 			return nil, err
-		}
-		receiver, err := client.NewReceiverForSubscription(appConfig.SubscriberConnection.Topic, appConfig.SubscriberConnection.Subscription, nil)
-		if err != nil {
-			logger.Error("failed to configure event subscriber", "error", err)
-			return nil, err
-		}
-		adminClient, err := admin.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, nil)
-		if err != nil {
-			logger.Error("failed to connect to service bus admin client", "error", err)
-			return nil, err
-		}
-		sub = &event.AzureSubscriber{
-			Context:     ctx,
-			EventType:   event.FileReadyEventType,
-			Receiver:    receiver,
-			Config:      *appConfig.SubscriberConnection,
-			AdminClient: adminClient,
 		}
 
 		health.Register(sub)
@@ -44,7 +27,7 @@ func NewEventSubscriber(ctx context.Context, appConfig appconfig.AppConfig) (eve
 	return sub, nil
 }
 
-func SubscribeToEvents(ctx context.Context, sub event.Subscribable) {
+func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subscribable[T]) {
 	for {
 		var wg sync.WaitGroup
 		events, err := sub.GetBatch(ctx, 5)
@@ -58,9 +41,12 @@ func SubscribeToEvents(ctx context.Context, sub event.Subscribable) {
 		default:
 			for _, e := range events {
 				wg.Add(1)
-				go func(e event.FileReady) {
+				go func(e T) {
 					defer wg.Done()
-					err := postprocessing.ProcessFileReadyEvent(ctx, e)
+					if e, ok := event.Identifiable(e).(event.FileReady); ok {
+						err = postprocessing.ProcessFileReadyEvent(ctx, e)
+					}
+
 					if err != nil {
 						logger.Error("failed to process event", "event", e, "error", err)
 						sub.HandleError(ctx, e, err)

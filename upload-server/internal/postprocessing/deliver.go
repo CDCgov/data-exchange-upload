@@ -117,7 +117,7 @@ func Deliver(ctx context.Context, tuid string, manifest map[string]string, targe
 
 	report := rb.Build()
 	logger.Info("File Copy Report", "report", report)
-	reports.Publish(ctx, report)
+	reports.Publish(ctx, *report)
 
 	return err
 }

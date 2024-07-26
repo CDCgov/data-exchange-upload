@@ -88,7 +88,7 @@ func main() {
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
 	mainWaitGroup.Add(1)
-	subscriber, err := cli.NewEventSubscriber(ctx, appConfig)
+	subscriber, err := cli.NewEventSubscriber(ctx, appConfig, event.FileReadyChan)
 	defer subscriber.Close()
 	go func() {
 		cli.SubscribeToEvents(ctx, subscriber)
