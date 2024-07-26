@@ -17,12 +17,7 @@ func NewAMQPServiceBusClient(connString string) (*azservicebus.Client, error) {
 
 		return websocket.NetConn(ctx, wssConn, websocket.MessageBinary), nil
 	}
-	client, err := azservicebus.NewClientFromConnectionString(connString, &azservicebus.ClientOptions{
+	return azservicebus.NewClientFromConnectionString(connString, &azservicebus.ClientOptions{
 		NewWebSocketConn: newWebSocketConnFn, // Setting this option so messages are sent to port 443.
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
 }

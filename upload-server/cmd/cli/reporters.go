@@ -24,10 +24,12 @@ func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
 		sender, err := sbClient.NewSender(appConfig.ReportQueueName, nil)
 		if err != nil {
 			logger.Error("failed to configure report publisher", "error", err)
+			return err
 		}
 		adminClient, err := admin.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, nil)
 		if err != nil {
 			logger.Error("failed to connect to service bus admin client", "error", err)
+			return err
 		}
 
 		r := &azurereporters.ServiceBusReporter{

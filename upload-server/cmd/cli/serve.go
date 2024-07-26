@@ -67,6 +67,9 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 
 	// initialize event reporter
 	err = InitReporters(ctx, appConfig)
+	if err != nil {
+		return nil, err
+	}
 	defer reports.DefaultReporter.Close()
 
 	var fileReadyPublisher event.Publisher
@@ -78,14 +81,17 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		client, err := event.NewAMQPServiceBusClient(appConfig.PublisherConnection.ConnectionString)
 		if err != nil {
 			logger.Error("failed to connect to event service bus", "error", err)
+			return nil, err
 		}
 		sender, err := client.NewSender(appConfig.PublisherConnection.Topic, nil)
 		if err != nil {
 			logger.Error("failed to configure event publisher", "error", err)
+			return nil, err
 		}
 		adminClient, err := admin.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, nil)
 		if err != nil {
 			logger.Error("failed to connect to service bus admin client", "error", err)
+			return nil, err
 		}
 
 		fileReadyPublisher = &event.AzurePublisher{

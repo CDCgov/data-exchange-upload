@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-func NewEventSubscriber(ctx context.Context, appConfig appconfig.AppConfig) event.Subscribable {
+func NewEventSubscriber(ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable, error) {
 	var sub event.Subscribable
 	sub = &event.MemorySubscriber{}
 
@@ -18,14 +18,17 @@ func NewEventSubscriber(ctx context.Context, appConfig appconfig.AppConfig) even
 		client, err := event.NewAMQPServiceBusClient(appConfig.SubscriberConnection.ConnectionString)
 		if err != nil {
 			logger.Error("failed to connect to event service bus", "error", err)
+			return nil, err
 		}
 		receiver, err := client.NewReceiverForSubscription(appConfig.SubscriberConnection.Topic, appConfig.SubscriberConnection.Subscription, nil)
 		if err != nil {
 			logger.Error("failed to configure event subscriber", "error", err)
+			return nil, err
 		}
 		adminClient, err := admin.NewClientFromConnectionString(appConfig.PublisherConnection.ConnectionString, nil)
 		if err != nil {
 			logger.Error("failed to connect to service bus admin client", "error", err)
+			return nil, err
 		}
 		sub = &event.AzureSubscriber{
 			Context:     ctx,
@@ -38,7 +41,7 @@ func NewEventSubscriber(ctx context.Context, appConfig appconfig.AppConfig) even
 		health.Register(sub)
 	}
 
-	return sub
+	return sub, nil
 }
 
 func SubscribeToEvents(ctx context.Context, sub event.Subscribable) {
