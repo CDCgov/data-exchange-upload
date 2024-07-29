@@ -32,23 +32,23 @@ type Report struct {
 	Content             any             `json:"content"` // TODO: Can we limit this to a specific type (i.e. ReportContent or UploadStatusTYpe type?
 }
 
-func (r Report) Type() string {
+func (r *Report) Type() string {
 	return "Report"
 }
 
-func (r Report) OrigMessage() *azservicebus.ReceivedMessage {
+func (r *Report) OrigMessage() *azservicebus.ReceivedMessage {
 	return nil
 }
 
-func (r Report) SetIdentifier(id string) {
+func (r *Report) SetIdentifier(id string) {
 	r.UploadID = id
 }
 
-func (r Report) SetType(t string) {
+func (r *Report) SetType(t string) {
 	r.StageInfo.Stage = t
 }
 
-func (r Report) SetOrigMessage(_ *azservicebus.ReceivedMessage) {
+func (r *Report) SetOrigMessage(_ *azservicebus.ReceivedMessage) {
 	// no-op
 }
 
@@ -62,7 +62,7 @@ type ReportStageInfo struct {
 	EndProcessTime   string   `json:"end_process_time"`
 }
 
-func (r Report) Identifier() string {
+func (r *Report) Identifier() string {
 	return r.UploadID
 }
 

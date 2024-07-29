@@ -15,7 +15,6 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	}
 
 	if appConfig.SubscriberConnection != nil {
-		logger.Info("making azure subscriber***")
 		sub, err := event.NewAzureSubscriber[T](ctx, *appConfig.SubscriberConnection, event.FileReadyEventType)
 		if err != nil {
 			return nil, err
