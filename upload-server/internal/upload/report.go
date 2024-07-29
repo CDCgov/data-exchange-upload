@@ -46,7 +46,7 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	}).Build()
 
 	logger.Info("REPORT", "report", report)
-	reports.Publish(event.Context, *report)
+	reports.Publish(event.Context, report)
 
 	return resp, nil
 }
@@ -69,7 +69,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 			SchemaName:    reports.StageUploadStarted,
 		},
 	}).Build()
-	reports.Publish(event.Context, *report)
+	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilder[reports.UploadStatusContent](
 		"1.0.0",
@@ -88,7 +88,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	}).Build()
 
 	logger.Info("REPORT upload-status", "report", report)
-	reports.Publish(event.Context, *report)
+	reports.Publish(event.Context, report)
 
 	return resp, nil
 }
@@ -111,7 +111,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 			SchemaName:    reports.StageUploadCompleted,
 		},
 	}).Build()
-	reports.Publish(event.Context, *report)
+	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilder[reports.UploadStatusContent](
 		"1.0.0",
@@ -130,7 +130,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	}).Build()
 
 	logger.Info("REPORT upload-status", "report", report)
-	reports.Publish(event.Context, *report)
+	reports.Publish(event.Context, report)
 
 	return resp, nil
 }

@@ -10,7 +10,7 @@ import (
 )
 
 var logger *slog.Logger
-var DefaultReporter event.Publisher[Report]
+var DefaultReporter event.Publisher[*Report]
 
 func init() {
 	type Empty struct{}
@@ -19,7 +19,7 @@ func init() {
 	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
 }
 
-func Publish(ctx context.Context, r Report) {
+func Publish(ctx context.Context, r *Report) {
 	if err := DefaultReporter.Publish(ctx, r); err != nil {
 		logger.Error("Failed to report", "report", r, "reporter", DefaultReporter, "err", err)
 	}

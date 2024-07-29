@@ -210,7 +210,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
 		logger.Info("REPORT", "report", report)
-		reports.Publish(event.Context, *report)
+		reports.Publish(event.Context, report)
 	}()
 
 	if err := v.verify(event.Context, manifest); err != nil {
@@ -287,7 +287,7 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
 		logger.Info("Metadata Hydration Report", "report", report)
-		reports.Publish(ctx, *report)
+		reports.Publish(ctx, report)
 	}()
 
 	c, err := v.getHydrationConfig(ctx, manifest)
@@ -400,7 +400,7 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 	}).Build()
 
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
-	reports.Publish(event.Context, *report)
+	reports.Publish(event.Context, report)
 
 	return resp, nil
 }
@@ -445,7 +445,7 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 	}).Build()
 
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
-	reports.Publish(event.Context, *report)
+	reports.Publish(event.Context, report)
 
 	return resp, nil
 }
