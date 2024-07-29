@@ -5,7 +5,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"sync"
 )
 
@@ -27,7 +26,7 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	return sub, nil
 }
 
-func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subscribable[T]) {
+func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subscribable[T], process func(context.Context, T) error) {
 	for {
 		var wg sync.WaitGroup
 		events, err := sub.GetBatch(ctx, 5)
@@ -43,9 +42,8 @@ func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subs
 				wg.Add(1)
 				go func(e T) {
 					defer wg.Done()
-					if e, ok := event.Identifiable(e).(event.FileReady); ok {
-						err = postprocessing.ProcessFileReadyEvent(ctx, e)
-					}
+
+					err = process(ctx, e)
 
 					if err != nil {
 						logger.Error("failed to process event", "event", e, "error", err)

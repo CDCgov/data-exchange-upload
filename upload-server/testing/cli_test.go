@@ -11,6 +11,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
@@ -306,7 +307,7 @@ func TestMain(m *testing.M) {
 	testWaitGroup.Add(1)
 	testListener, err := cli.NewEventSubscriber[event.FileReady](testContext, appConfig, event.FileReadyChan)
 	go func() {
-		cli.SubscribeToEvents(testContext, testListener)
+		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"log/slog"
 	"net/http"
 	"os"
@@ -91,7 +92,7 @@ func main() {
 	subscriber, err := cli.NewEventSubscriber(ctx, appConfig, event.FileReadyChan)
 	defer subscriber.Close()
 	go func() {
-		cli.SubscribeToEvents(ctx, subscriber)
+		cli.SubscribeToEvents(ctx, subscriber, postprocessing.ProcessFileReadyEvent)
 		mainWaitGroup.Done()
 	}()
 
