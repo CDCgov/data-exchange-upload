@@ -112,7 +112,7 @@ type AzureContainerConfig struct {
 type AzureQueueConfig struct {
 	ConnectionString string `env:"CONNECTION_STRING"`
 	Topic            string `env:"TOPIC"`
-	Queue            string `env:"QUEUE, default=processing-status-cosmos-db-queue"`
+	Queue            string `env:"QUEUE"`
 	Subscription     string `env:"SUBSCRIPTION"`
 }
 
