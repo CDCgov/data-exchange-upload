@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -70,6 +71,36 @@ type SubTemplate struct {
 	Args        map[string]any
 }
 
+type Duration time.Duration
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).String())
+}
+
+func (d *Duration) UnmarshalJSON(b []byte) error {
+
+	var v interface{}
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch value := v.(type) {
+	case float64:
+		dd := Duration(time.Duration(value))
+		*d = dd
+		return nil
+	case string:
+		var err error
+		dd, err := time.ParseDuration(value)
+		if err != nil {
+			return err
+		}
+		*d = Duration(dd)
+		return nil
+	default:
+		return errors.New("invalid duration")
+	}
+}
+
 type TestCase struct {
 	Chunk           float64
 	Size            float64
@@ -77,7 +108,8 @@ type TestCase struct {
 	TemplateFile    string
 	Templates       []SubTemplate
 	Repetitions     int
-	ExpectedReports []Report
+	TimeLimit       Duration `json:"time_limit"`
+	ExpectedReports []Report `json:"expected_reports"`
 }
 
 func (t *TestCase) String() string {
@@ -193,9 +225,10 @@ func init() {
 	flag.Visit(func(f *flag.Flag) { flagset[f.Name] = true })
 	if !flagset["case-file"] {
 		testcase = TestCase{
-			Chunk:    chunk,
-			Size:     size,
-			Manifest: manifest,
+			Chunk:     chunk,
+			Size:      size,
+			Manifest:  manifest,
+			TimeLimit: Duration(time.Duration(1 * time.Minute)),
 		}
 		if templatePath != "" {
 			testcase.TemplateFile = templatePath
