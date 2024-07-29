@@ -22,6 +22,7 @@ const StatusFailed = "failed"
 type Report struct {
 	ReportSchemaVersion string          `json:"report_schema_version"`
 	UploadID            string          `json:"upload_id"`
+	SenderID            string          `json:"sender_id"`
 	DataStreamID        string          `json:"data_stream_id"`
 	DataStreamRoute     string          `json:"data_stream_route"`
 	Jurisdiction        string          `json:"jurisdiction"`
@@ -198,6 +199,7 @@ func (b *ReportBuilder[T]) Build() *Report {
 		return &Report{
 			ReportSchemaVersion: b.Version,
 			UploadID:            b.UploadId,
+			SenderID:            metadata.GetSenderId(b.Manifest),
 			DataStreamID:        metadata.GetDataStreamID(b.Manifest),
 			DataStreamRoute:     metadata.GetDataStreamRoute(b.Manifest),
 			Jurisdiction:        metadata.GetJurisdiction(b.Manifest),
