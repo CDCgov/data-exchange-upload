@@ -60,7 +60,7 @@ func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
 				client := graphql.NewClient(reportsURL, nil)
 
 				var q struct {
-					GetReports Reports `graphql:"getReports(uploadId: $id)"`
+					GetReports Reports `graphql:"getReports(uploadId: $id, reportsSortedBy: null, sortOrder: null)"`
 				}
 
 				variables := map[string]interface{}{
@@ -72,16 +72,9 @@ func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
 				}
 				reports := q.GetReports
 				sort.Sort(reports)
+				slog.Debug("Expecting", "reports", c.ExpectedReports)
 
-				if len(reports) != len(c.ExpectedReports) {
-					errs = errors.Join(fmt.Errorf("not the right number of reports %d %d", len(reports), len(c.ExpectedReports)))
-				}
-
-				for i, expected := range c.ExpectedReports {
-					if reports[i].StageName != expected.StageName {
-						errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, expected))
-					}
-				}
+				errs = errors.Join(errs, compareReports(reports, c.ExpectedReports))
 				// If the file doesn't exist, create it, or append to the file
 				f, err := os.OpenFile(path.Base(upload)+".reports", os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
@@ -104,4 +97,18 @@ func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
 	}
 
 	return nil
+}
+
+func compareReports(actual []Report, expected []Report) error {
+	if len(actual) != len(expected) {
+		return fmt.Errorf("not the right number of reports %d %d", len(actual), len(expected))
+	}
+
+	var errs error
+	for i, e := range expected {
+		if actual[i].StageName != e.StageName {
+			errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, e))
+		}
+	}
+	return errs
 }

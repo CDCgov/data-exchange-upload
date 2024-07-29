@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -15,7 +16,9 @@ func main() {
 	tStart := time.Now()
 	c := InitiateTests(getExecutor())
 	o := StartWorkers(c)
-	ValidateResults(ctx, o)
+	if err := ValidateResults(ctx, o); err != nil {
+		fmt.Println("validation failed:", err)
+	}
 	fmt.Println("Total run took ", time.Since(tStart).Seconds(), " seconds")
 }
 
@@ -37,23 +40,30 @@ func StartWorkers(c <-chan TestCase) <-chan *Result {
 	return o
 }
 
-func ValidateResults(ctx context.Context, o <-chan *Result) {
+func ValidateResults(ctx context.Context, o <-chan *Result) error {
 	var wg sync.WaitGroup
 
+	var errs error
 	for r := range o {
 		if r != nil {
 			wg.Add(1)
 			go func(r *Result) {
 				defer wg.Done()
-				cctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+				limit := time.Duration(r.testCase.TimeLimit)
+				if limit == time.Duration(0*time.Second) {
+					limit = time.Duration(1 * time.Minute)
+				}
+				cctx, cancel := context.WithTimeout(ctx, limit)
 				defer cancel()
 				if err := Check(cctx, r.testCase, r.url, conf); err != nil {
 					slog.Error("failed check", "error", err, "test case", r.testCase)
+					errs = errors.Join(errs, err)
 				}
 			}(r)
 		}
 	}
 	wg.Wait()
+	return errs
 }
 
 func InitiateTests(e Executor) <-chan TestCase {

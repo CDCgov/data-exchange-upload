@@ -1,9 +1,0 @@
-{
-    "Chunk": 0.5,
-    "Size": 10,
-    "Manifest": {
-		"meta_destination_id": "dextesting",
-		"meta_ext_event":      "testevent1",
-		"filename":            "test"
-	}
-}
