@@ -305,13 +305,20 @@ func TestMain(m *testing.M) {
 	defer testWaitGroup.Wait()
 	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
-	testListener, err := cli.NewEventSubscriber[event.FileReady](testContext, appConfig, event.FileReadyChan)
+	err := cli.InitReporters(testContext, appConfig)
+	defer reports.DefaultReporter.Close()
+	var fileReadyPublisher event.Publisher[*event.FileReady]
+	fileReadyPublisher = &event.MemoryPublisher[*event.FileReady]{
+		Dir:  appConfig.LocalEventsFolder,
+		Chan: event.FileReadyChan,
+	}
+	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig, event.FileReadyChan)
 	go func() {
 		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig)
+	serveHandler, err := cli.Serve(testContext, appConfig, fileReadyPublisher)
 	if err != nil {
 		log.Fatal(err)
 	}

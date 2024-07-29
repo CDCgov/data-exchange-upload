@@ -72,7 +72,6 @@ func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 }
 
 func (mp *MemoryPublisher[T]) Close() error {
-	logger.Info("closing in-memory publisher")
 	return nil
 }
 

@@ -15,12 +15,14 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	}
 
 	if appConfig.SubscriberConnection != nil {
-		sub, err := event.NewAzureSubscriber[event.FileReady](ctx, *appConfig.SubscriberConnection, event.FileReadyEventType)
+		logger.Info("making azure subscriber***")
+		sub, err := event.NewAzureSubscriber[T](ctx, *appConfig.SubscriberConnection, event.FileReadyEventType)
 		if err != nil {
 			return nil, err
 		}
 
 		health.Register(sub)
+		return sub, nil
 	}
 
 	return sub, nil
@@ -28,6 +30,7 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 
 func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subscribable[T], process func(context.Context, T) error) {
 	for {
+		logger.Info("listening for events...")
 		var wg sync.WaitGroup
 		events, err := sub.GetBatch(ctx, 5)
 		if err != nil {
@@ -42,7 +45,7 @@ func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subs
 				wg.Add(1)
 				go func(e T) {
 					defer wg.Done()
-
+					logger.Info("processing event***", "event", e)
 					err = process(ctx, e)
 
 					if err != nil {

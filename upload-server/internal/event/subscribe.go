@@ -72,7 +72,7 @@ func (as *AzureSubscriber[T]) GetBatch(ctx context.Context, max int) ([]T, error
 		logger.Info("received event", "event", m.Body)
 
 		var e T
-		e, err := NewEventFromServiceBusMessage[T](*m)
+		e, err := NewEventFromServiceBusMessage[T](m)
 		if err != nil {
 			return nil, err
 		}
@@ -83,6 +83,9 @@ func (as *AzureSubscriber[T]) GetBatch(ctx context.Context, max int) ([]T, error
 }
 
 func (as *AzureSubscriber[T]) HandleSuccess(ctx context.Context, e T) error {
+	if e.OrigMessage() == nil {
+		return fmt.Errorf("malformed event %+v", e)
+	}
 	err := as.Receiver.CompleteMessage(ctx, e.OrigMessage(), nil)
 	if err != nil {
 		logger.Error("failed to ack event", "error", err)

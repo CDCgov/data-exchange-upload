@@ -9,7 +9,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -18,18 +17,10 @@ import (
 	"strings"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyPublisher event.Publisher[*event.FileReady]) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
-	// initialize processing status health checker
-	//sbHealth, err := sbhealth.New(appConfig)
-	//if err != nil {
-	//	logger.Error("error initializing service bus health check", "error", err)
-	//}
-	//if sbHealth != nil {
-	//	health.Register(sbHealth)
-	//}
 
 	// create and register data store
 	store, storeHealthCheck, err := GetDataStore(appConfig)
@@ -61,29 +52,6 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		} else {
 			health.Register(redisLockerHealth)
 		}
-	}
-
-	// initialize event reporter
-	err = InitReporters(ctx, appConfig)
-	if err != nil {
-		return nil, err
-	}
-	defer reports.DefaultReporter.Close()
-
-	var fileReadyPublisher event.Publisher[event.FileReady]
-	fileReadyPublisher = &event.MemoryPublisher[event.FileReady]{
-		Dir:  appConfig.LocalEventsFolder,
-		Chan: event.FileReadyChan,
-	}
-
-	if appConfig.PublisherConnection != nil {
-		fileReadyPublisher, err = event.NewAzurePublisher[event.FileReady](ctx, *appConfig.PublisherConnection, event.FileReadyEventType)
-		if err != nil {
-			return nil, err
-		}
-		defer fileReadyPublisher.Close()
-
-		health.Register(fileReadyPublisher)
 	}
 
 	// get and initialize tusd hook handlers

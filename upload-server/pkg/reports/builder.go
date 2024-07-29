@@ -48,7 +48,7 @@ func (r Report) SetType(t string) {
 	r.StageInfo.Stage = t
 }
 
-func (r Report) SetOrigMessage(_ azservicebus.ReceivedMessage) {
+func (r Report) SetOrigMessage(_ *azservicebus.ReceivedMessage) {
 	// no-op
 }
 
