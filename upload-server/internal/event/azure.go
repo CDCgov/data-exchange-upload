@@ -30,7 +30,11 @@ func NewAzurePublisher[T Identifiable](ctx context.Context, pubConn appconfig.Az
 		logger.Error("failed to connect to event service bus", "error", err)
 		return nil, err
 	}
-	sender, err := client.NewSender(pubConn.Topic, nil)
+	queueOrTopic := pubConn.Queue
+	if queueOrTopic == "" {
+		queueOrTopic = pubConn.Topic
+	}
+	sender, err := client.NewSender(queueOrTopic, nil)
 	if err != nil {
 		logger.Error("failed to configure event publisher", "error", err)
 		return nil, err

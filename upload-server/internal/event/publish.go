@@ -103,13 +103,24 @@ func (ap *AzurePublisher[T]) Health(ctx context.Context) (rsp models.ServiceHeal
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 
-	topicResp, err := ap.AdminClient.GetTopic(ctx, ap.Config.Topic, nil)
-	if err != nil {
-		return rsp.BuildErrorResponse(err)
+	if ap.Config.Queue != "" {
+		queueResp, err := ap.AdminClient.GetQueue(ctx, ap.Config.Queue, nil)
+		if err != nil {
+			return rsp.BuildErrorResponse(err)
+		}
+		if *queueResp.Status != admin.EntityStatusActive {
+			return rsp.BuildErrorResponse(fmt.Errorf("service bus queue %s status: %s", ap.Config.Queue, *queueResp.Status))
+		}
 	}
 
-	if *topicResp.Status != admin.EntityStatusActive {
-		return rsp.BuildErrorResponse(fmt.Errorf("service bus topic %s status: %s", ap.Config.Topic, *topicResp.Status))
+	if ap.Config.Topic != "" {
+		topicResp, err := ap.AdminClient.GetTopic(ctx, ap.Config.Topic, nil)
+		if err != nil {
+			return rsp.BuildErrorResponse(err)
+		}
+		if *topicResp.Status != admin.EntityStatusActive {
+			return rsp.BuildErrorResponse(fmt.Errorf("service bus topic %s status: %s", ap.Config.Topic, *topicResp.Status))
+		}
 	}
 
 	return rsp
