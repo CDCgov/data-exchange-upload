@@ -183,7 +183,7 @@ func init() {
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
 	programLevel := new(slog.LevelVar) // Info by default
-	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
+	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel, AddSource: true})
 	slog.SetDefault(slog.New(h))
 	if verbose {
 		programLevel.Set(slog.LevelDebug)
@@ -225,6 +225,20 @@ func buildConfig() (*config, error) {
 		url:         url,
 		tokenSource: tokenSource,
 	}, nil
+}
+
+func getExecutor() Executor {
+	if duration > 0 {
+		return DurationExecutor{
+			Duration: duration,
+		}
+	}
+	if load > 0 {
+		return SimpleLoadExecutor{
+			Load: load,
+		}
+	}
+	return BenchmarkExecutor{}
 }
 
 func resultOrFatal[T any](v T, err error) T {
