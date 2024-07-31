@@ -51,13 +51,19 @@ func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subs
 
 					if err != nil {
 						logger.Error("failed to process event", "event", e, "error", err)
-						sub.HandleError(ctx, e, err)
+						err = sub.HandleError(ctx, e, err)
+						if err != nil {
+							logger.Error("failed to handle event error", "event", e, "error", err)
+						}
 						return
 					}
 					err = sub.HandleSuccess(ctx, e)
 					if err != nil {
 						logger.Error("failed to acknowledge event", "event", e, "error", err)
-						sub.HandleError(ctx, e, err)
+						err = sub.HandleError(ctx, e, err)
+						if err != nil {
+							logger.Error("failed to handle event error", "event", e, "error", err)
+						}
 						return
 					}
 

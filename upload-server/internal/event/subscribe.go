@@ -27,7 +27,7 @@ type Subscribable[T Identifiable] interface {
 	io.Closer
 	GetBatch(ctx context.Context, max int) ([]T, error)
 	HandleSuccess(ctx context.Context, event T) error
-	HandleError(ctx context.Context, event T, handlerError error)
+	HandleError(ctx context.Context, event T, handlerError error) error
 }
 
 func (ms *MemorySubscriber[T]) GetBatch(ctx context.Context, _ int) ([]T, error) {
@@ -44,8 +44,9 @@ func (ms *MemorySubscriber[T]) HandleSuccess(_ context.Context, e T) error {
 	return nil
 }
 
-func (ms *MemorySubscriber[T]) HandleError(_ context.Context, e T, err error) {
+func (ms *MemorySubscriber[T]) HandleError(_ context.Context, e T, err error) error {
 	logger.Error("failed to handle event", "event", e, "error", err.Error())
+	return nil
 }
 
 func (ms *MemorySubscriber[T]) Close() error {
@@ -94,9 +95,9 @@ func (as *AzureSubscriber[T]) HandleSuccess(ctx context.Context, e T) error {
 	return nil
 }
 
-func (as *AzureSubscriber[T]) HandleError(_ context.Context, e T, handlerError error) {
+func (as *AzureSubscriber[T]) HandleError(ctx context.Context, e T, handlerError error) error {
 	logger.Error("failed to handle event", "event ID", e.Identifier(), "event type", e.Type(), "error", handlerError.Error())
-	// TODO dead letter message
+	return as.Receiver.DeadLetterMessage(ctx, e.OrigMessage(), nil)
 }
 
 func (as *AzureSubscriber[T]) Close() error {
