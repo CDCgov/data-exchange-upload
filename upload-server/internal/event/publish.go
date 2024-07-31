@@ -97,11 +97,11 @@ func (ap *AzurePublisher[T]) Close() error {
 }
 
 func (ap *AzurePublisher[T]) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = fmt.Sprintf("Event Publishing")
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 
 	if ap.Config.Queue != "" {
+		rsp.Service = fmt.Sprintf("Event Publishing %s", ap.Config.Queue)
 		queueResp, err := ap.AdminClient.GetQueue(ctx, ap.Config.Queue, nil)
 		if err != nil {
 			return rsp.BuildErrorResponse(err)
@@ -115,6 +115,7 @@ func (ap *AzurePublisher[T]) Health(ctx context.Context) (rsp models.ServiceHeal
 	}
 
 	if ap.Config.Topic != "" {
+		rsp.Service = fmt.Sprintf("Event Publishing %s", ap.Config.Topic)
 		topicResp, err := ap.AdminClient.GetTopic(ctx, ap.Config.Topic, nil)
 		if err != nil {
 			return rsp.BuildErrorResponse(err)
