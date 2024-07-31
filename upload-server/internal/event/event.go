@@ -2,6 +2,7 @@ package event
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 )
 
@@ -65,6 +66,14 @@ func CloseFileReadyChannel() {
 	close(FileReadyChan)
 }
 
+func GetChannel[T Identifiable]() (chan T, error) {
+	if r, ok := any(FileReadyChan).(chan T); ok {
+		return r, nil
+	}
+
+	return nil, fmt.Errorf("channel not found")
+}
+
 func NewFileReadyEvent(uploadId string, metadata map[string]string, target string) *FileReady {
 	return &FileReady{
 		Event: Event{
@@ -77,7 +86,6 @@ func NewFileReadyEvent(uploadId string, metadata map[string]string, target strin
 }
 
 func NewEventFromServiceBusMessage[T Identifiable](m *azservicebus.ReceivedMessage) (T, error) {
-	logger.Info("casting event ***", "event", m)
 	var e T
 	err := json.Unmarshal(m.Body, &e)
 	if err != nil {

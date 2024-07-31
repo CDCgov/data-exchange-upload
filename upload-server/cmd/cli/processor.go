@@ -8,10 +8,14 @@ import (
 	"sync"
 )
 
-func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig, memChan chan T) (event.Subscribable[T], error) {
+func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable[T], error) {
 	var sub event.Subscribable[T]
+	c, err := event.GetChannel[T]()
+	if err != nil {
+		return nil, err
+	}
 	sub = &event.MemorySubscriber[T]{
-		Chan: memChan,
+		Chan: c,
 	}
 
 	if appConfig.SubscriberConnection != nil {

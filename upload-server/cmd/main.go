@@ -108,7 +108,7 @@ func main() {
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
 	mainWaitGroup.Add(1)
-	subscriber, err := cli.NewEventSubscriber(ctx, appConfig, event.FileReadyChan)
+	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
 	if err != nil {
 		logger.Error("error subscribing to file ready", "error", err)
 		os.Exit(appMainExitCode)
