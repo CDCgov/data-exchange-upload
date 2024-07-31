@@ -17,7 +17,6 @@ type MemorySubscriber[T Identifiable] struct {
 
 type AzureSubscriber[T Identifiable] struct {
 	Context     context.Context
-	EventType   string
 	Receiver    *azservicebus.Receiver
 	Config      appconfig.AzureQueueConfig
 	AdminClient *admin.Client
@@ -105,7 +104,7 @@ func (as *AzureSubscriber[T]) Close() error {
 }
 
 func (as *AzureSubscriber[T]) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = fmt.Sprintf("%s Event Subscriber", as.EventType)
+	rsp.Service = fmt.Sprintf("%s Event Subscriber", as.Config.Subscription)
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 

@@ -312,7 +312,7 @@ func TestMain(m *testing.M) {
 		Dir:  appConfig.LocalEventsFolder,
 		Chan: event.FileReadyChan,
 	}
-	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig, event.FileReadyChan)
+	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
 		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()

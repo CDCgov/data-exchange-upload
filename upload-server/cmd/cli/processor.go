@@ -19,7 +19,7 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	}
 
 	if appConfig.SubscriberConnection != nil {
-		sub, err := event.NewAzureSubscriber[T](ctx, *appConfig.SubscriberConnection, event.FileReadyEventType)
+		sub, err := event.NewAzureSubscriber[T](ctx, *appConfig.SubscriberConnection)
 		if err != nil {
 			return nil, err
 		}

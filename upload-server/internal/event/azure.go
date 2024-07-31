@@ -47,14 +47,13 @@ func NewAzurePublisher[T Identifiable](ctx context.Context, pubConn appconfig.Az
 
 	return &AzurePublisher[T]{
 		Context:     ctx,
-		EventType:   eventType,
 		Sender:      sender,
 		Config:      pubConn,
 		AdminClient: adminClient,
 	}, nil
 }
 
-func NewAzureSubscriber[T Identifiable](ctx context.Context, subConn appconfig.AzureQueueConfig, eventType string) (*AzureSubscriber[T], error) {
+func NewAzureSubscriber[T Identifiable](ctx context.Context, subConn appconfig.AzureQueueConfig) (*AzureSubscriber[T], error) {
 	client, err := NewAMQPServiceBusClient(subConn.ConnectionString)
 	if err != nil {
 		logger.Error("failed to connect to event service bus", "error", err)
@@ -72,7 +71,6 @@ func NewAzureSubscriber[T Identifiable](ctx context.Context, subConn appconfig.A
 	}
 	return &AzureSubscriber[T]{
 		Context:     ctx,
-		EventType:   eventType,
 		Receiver:    receiver,
 		Config:      subConn,
 		AdminClient: adminClient,
