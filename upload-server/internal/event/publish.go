@@ -37,14 +37,6 @@ type MemoryPublisher[T Identifiable] struct {
 	Chan chan T
 }
 
-type AzurePublisher[T Identifiable] struct {
-	Context     context.Context
-	EventType   string
-	Sender      *azservicebus.Sender
-	Config      appconfig.AzureQueueConfig
-	AdminClient *admin.Client
-}
-
 func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 	err := os.Mkdir(mp.Dir, 0750)
 	if err != nil && !os.IsExist(err) {
@@ -82,6 +74,13 @@ func (mp *MemoryPublisher[T]) Health(_ context.Context) (rsp models.ServiceHealt
 	return rsp
 }
 
+type AzurePublisher[T Identifiable] struct {
+	Context     context.Context
+	Sender      *azservicebus.Sender
+	Config      appconfig.AzureQueueConfig
+	AdminClient *admin.Client
+}
+
 func (ap *AzurePublisher[T]) Publish(ctx context.Context, event T) error {
 	b, err := json.Marshal(event)
 	if err != nil {
@@ -98,7 +97,7 @@ func (ap *AzurePublisher[T]) Close() error {
 }
 
 func (ap *AzurePublisher[T]) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = fmt.Sprintf("%s Event Publishing", ap.EventType)
+	rsp.Service = fmt.Sprintf("Event Publishing")
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 
@@ -106,6 +105,9 @@ func (ap *AzurePublisher[T]) Health(ctx context.Context) (rsp models.ServiceHeal
 		queueResp, err := ap.AdminClient.GetQueue(ctx, ap.Config.Queue, nil)
 		if err != nil {
 			return rsp.BuildErrorResponse(err)
+		}
+		if queueResp == nil {
+			return rsp.BuildErrorResponse(fmt.Errorf("nil queue response"))
 		}
 		if *queueResp.Status != admin.EntityStatusActive {
 			return rsp.BuildErrorResponse(fmt.Errorf("service bus queue %s status: %s", ap.Config.Queue, *queueResp.Status))

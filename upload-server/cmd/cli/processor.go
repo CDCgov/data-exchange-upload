@@ -43,7 +43,7 @@ func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subs
 				wg.Add(1)
 				go func(e T) {
 					defer wg.Done()
-					err = process(ctx, e)
+					err := process(ctx, e)
 
 					if err != nil {
 						logger.Error("failed to process event", "event", e, "error", err)
