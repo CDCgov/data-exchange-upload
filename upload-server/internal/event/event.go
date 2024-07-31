@@ -85,10 +85,6 @@ func NewEventFromServiceBusMessage[T Identifiable](m *azservicebus.ReceivedMessa
 	}
 
 	e.SetIdentifier(m.MessageID)
-	switch any(e).(type) {
-	case FileReady:
-		e.SetType(FileReadyEventType)
-	}
 	e.SetOrigMessage(m)
 
 	return e, nil
