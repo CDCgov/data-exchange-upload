@@ -2,8 +2,6 @@ package metadata
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +9,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"io"
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 	"os"
@@ -147,14 +145,7 @@ func GetFilenameSuffix(ctx context.Context, manifest handler.MetaData, tuid stri
 }
 
 func Uid() string {
-	id := make([]byte, 16)
-	_, err := io.ReadFull(rand.Reader, id)
-	if err != nil {
-		// This is probably an appropriate way to handle errors from our source
-		// for random bits.
-		panic(err)
-	}
-	return hex.EncodeToString(id)
+	return uuid.NewString()
 }
 
 type SenderManifestVerification struct {

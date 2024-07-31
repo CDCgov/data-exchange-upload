@@ -18,7 +18,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
 
-func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig, p event.Publisher) (tusHooks.HookHandler, error) {
+func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig, p event.Publisher[*event.FileReady]) (tusHooks.HookHandler, error) {
 	if Flags.FileHooksDir != "" {
 		return &file.FileHook{
 			Directory: Flags.FileHooksDir,
@@ -27,7 +27,7 @@ func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig, p event.
 	return PrebuiltHooks(ctx, appConfig, p)
 }
 
-func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, p event.Publisher) (tusHooks.HookHandler, error) {
+func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, p event.Publisher[*event.FileReady]) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	metadata.Cache = &metadata.ConfigCache{

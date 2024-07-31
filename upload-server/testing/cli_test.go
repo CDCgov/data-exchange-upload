@@ -11,6 +11,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
@@ -302,16 +303,22 @@ func TestMain(m *testing.M) {
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
-	//postProcessingChannel := make(chan event.FileReady)
 	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
-	testListener := cli.MakeEventSubscriber(appConfig)
+	err := cli.InitReporters(testContext, appConfig)
+	defer reports.DefaultReporter.Close()
+	var fileReadyPublisher event.Publisher[*event.FileReady]
+	fileReadyPublisher = &event.MemoryPublisher[*event.FileReady]{
+		Dir:  appConfig.LocalEventsFolder,
+		Chan: event.FileReadyChan,
+	}
+	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
-		cli.SubscribeToEvents(testContext, testListener)
+		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig)
+	serveHandler, err := cli.Serve(testContext, appConfig, fileReadyPublisher)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"log/slog"
 	"net/http"
 	"os"
@@ -85,17 +88,39 @@ func main() {
 	logger.Info("starting app")
 
 	// Pub Sub
+	// initialize event reporter
+	err := cli.InitReporters(ctx, appConfig)
+	defer reports.DefaultReporter.Close()
+
+	var fileReadyPublisher event.Publisher[*event.FileReady]
+	fileReadyPublisher = &event.MemoryPublisher[*event.FileReady]{
+		Dir:  appConfig.LocalEventsFolder,
+		Chan: event.FileReadyChan,
+	}
+
+	if appConfig.PublisherConnection != nil {
+		fileReadyPublisher, err = event.NewAzurePublisher[*event.FileReady](ctx, *appConfig.PublisherConnection, event.FileReadyEventType)
+		defer fileReadyPublisher.Close()
+
+		health.Register(fileReadyPublisher)
+	}
+
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
 	mainWaitGroup.Add(1)
-	subscriber := cli.MakeEventSubscriber(appConfig)
+	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
+	if err != nil {
+		logger.Error("error subscribing to file ready", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	defer subscriber.Close()
 	go func() {
-		cli.SubscribeToEvents(ctx, subscriber)
+		cli.SubscribeToEvents(ctx, subscriber, postprocessing.ProcessFileReadyEvent)
 		mainWaitGroup.Done()
 	}()
 
 	// start serving the app
-	_, err := cli.Serve(ctx, appConfig)
+	_, err = cli.Serve(ctx, appConfig, fileReadyPublisher)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)

@@ -7,15 +7,9 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func RouteAndDeliverHook(p evt.Publisher) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
+func RouteAndDeliverHook(p evt.Publisher[*evt.FileReady]) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
 	return func(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 		id := event.Upload.ID
-		//put a message on a queue system
-		//the message should have the tuid and the manifest
-		//a deliverer writes the file with the manifest as the files metadata
-
-		// should eventually take a tuid and that's it
-		// why don't we just do this n times, once internal, once to edav, once to routing (whatever the number of targets is?)
 		var targets []string
 		meta := event.Upload.MetaData
 		if resp.ChangeFileInfo.MetaData != nil {

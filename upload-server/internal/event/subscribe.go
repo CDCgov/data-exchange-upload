@@ -3,122 +3,120 @@ package event
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/eventgrid/armeventgrid/v2"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"io"
 )
 
-type MemorySubscriber struct{}
-
-type AzureSubscriber struct {
-	Client *aznamespaces.ReceiverClient
-	Config appconfig.AzureQueueConfig
+type MemorySubscriber[T Identifiable] struct {
+	Chan chan T
 }
 
-type Subscribable interface {
+type AzureSubscriber[T Identifiable] struct {
+	Context     context.Context
+	Receiver    *azservicebus.Receiver
+	Config      appconfig.AzureQueueConfig
+	AdminClient *admin.Client
+}
+
+type Subscribable[T Identifiable] interface {
 	health.Checkable
-	GetBatch(ctx context.Context, max int) ([]FileReady, error)
-	HandleSuccess(ctx context.Context, event FileReady) error
-	HandleError(ctx context.Context, event FileReady, handlerError error)
+	io.Closer
+	GetBatch(ctx context.Context, max int) ([]T, error)
+	HandleSuccess(ctx context.Context, event T) error
+	HandleError(ctx context.Context, event T, handlerError error) error
 }
 
-func (ms *MemorySubscriber) GetBatch(ctx context.Context, _ int) ([]FileReady, error) {
+func (ms *MemorySubscriber[T]) GetBatch(ctx context.Context, _ int) ([]T, error) {
 	select {
 	case <-ctx.Done():
 		return nil, nil
-	case evt := <-fileReadyChan:
-		return []FileReady{evt}, nil
+	case evt := <-ms.Chan:
+		return []T{evt}, nil
 	}
 }
 
-func (ms *MemorySubscriber) HandleSuccess(_ context.Context, e FileReady) error {
-	logger.Info("successfully delivered file to target", "target", e.DeliverTarget)
+func (ms *MemorySubscriber[T]) HandleSuccess(_ context.Context, e T) error {
+	logger.Info("successfully handled event", "event", e)
 	return nil
 }
 
-func (ms *MemorySubscriber) HandleError(_ context.Context, e FileReady, err error) {
-	logger.Error("failed to deliver file to target", "target", e.DeliverTarget, "error", err.Error())
+func (ms *MemorySubscriber[T]) HandleError(_ context.Context, e T, err error) error {
+	logger.Error("failed to handle event", "event", e, "error", err.Error())
+	ms.Chan <- e
+	return nil
 }
 
-func (ms *MemorySubscriber) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+func (ms *MemorySubscriber[T]) Close() error {
+	logger.Info("closing in-memory subscriber")
+	return nil
+}
+
+func (ms *MemorySubscriber[T]) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "Memory Subscriber"
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 	return rsp
 }
 
-func (as *AzureSubscriber) GetBatch(ctx context.Context, max int) ([]FileReady, error) {
-	resp, _ := as.Client.ReceiveEvents(ctx, &aznamespaces.ReceiveEventsOptions{
-		MaxEvents:   to.Ptr(int32(max)),
-		MaxWaitTime: to.Ptr[int32](60),
-	})
+func (as *AzureSubscriber[T]) GetBatch(ctx context.Context, max int) ([]T, error) {
+	msgs, err := as.Receiver.ReceiveMessages(ctx, max, nil)
+	if err != nil {
+		return nil, err
+	}
 
-	var fileReadyEvents []FileReady
-	for _, e := range resp.Details {
-		logger.Info("received event", "event", e.Event.Data)
+	var batch []T
+	for _, m := range msgs {
+		logger.Info("received event", "event", m.Body)
 
-		var fre FileReady
-		fre, err := NewFileReadyEventFromCloudEvent(e.Event, *e.BrokerProperties.LockToken)
+		var e T
+		e, err := NewEventFromServiceBusMessage[T](m)
 		if err != nil {
 			return nil, err
 		}
-		fileReadyEvents = append(fileReadyEvents, fre)
+		batch = append(batch, e)
 	}
 
-	return fileReadyEvents, nil
+	return batch, nil
 }
 
-func (as *AzureSubscriber) HandleSuccess(ctx context.Context, e FileReady) error {
-	_, err := as.Client.AcknowledgeEvents(ctx, []string{e.Event.LockToken}, nil)
+func (as *AzureSubscriber[T]) HandleSuccess(ctx context.Context, e T) error {
+	if e.OrigMessage() == nil {
+		return fmt.Errorf("malformed event %+v", e)
+	}
+	err := as.Receiver.CompleteMessage(ctx, e.OrigMessage(), nil)
 	if err != nil {
 		logger.Error("failed to ack event", "error", err)
 		return err
 	}
-	logger.Info("successfully handled event", "event", e)
+	logger.Info("successfully handled event", "event ID", e.Identifier(), "event type", e.Type())
 	return nil
 }
 
-func (as *AzureSubscriber) HandleError(ctx context.Context, e FileReady, handlerError error) {
-	logger.Error("failed to handle event", "event", e, "error", handlerError.Error())
-	resp, err := as.Client.RejectEvents(ctx, []string{e.Event.LockToken}, nil)
-	if err != nil {
-		// TODO need to handle this better
-		logger.Error("failed to reject events", "error", err.Error())
-		for _, t := range resp.FailedLockTokens {
-			logger.Error("failed to dead letter event with lock token", "token", t)
-		}
-	}
-
-	for _, t := range resp.SucceededLockTokens {
-		logger.Info("successfully dead lettered event with lock token", "token", t)
-	}
+func (as *AzureSubscriber[T]) HandleError(ctx context.Context, e T, handlerError error) error {
+	logger.Error("failed to handle event", "event ID", e.Identifier(), "event type", e.Type(), "error", handlerError.Error())
+	return as.Receiver.DeadLetterMessage(ctx, e.OrigMessage(), nil)
 }
 
-func (as *AzureSubscriber) Health(_ context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "Azure Event Subscriber"
+func (as *AzureSubscriber[T]) Close() error {
+	return as.Receiver.Close(as.Context)
+}
+
+func (as *AzureSubscriber[T]) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = fmt.Sprintf("%s Event Subscriber", as.Config.Subscription)
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 
-	if as.Client == nil {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = "Azure event subscriber not configured"
-		return rsp
+	subResp, err := as.AdminClient.GetSubscription(ctx, as.Config.Topic, as.Config.Subscription, nil)
+	if err != nil {
+		return rsp.BuildErrorResponse(err)
 	}
 
-	// Check via management API
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
-	if err != nil {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = "Failed to authenticate to Azure"
-	}
-	_, err = armeventgrid.NewClientFactory(as.Config.Subscription, cred, nil)
-	if err != nil {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = fmt.Sprintf("Failed to connect to namespace %s", as.Config.Endpoint)
+	if *subResp.Status != admin.EntityStatusActive {
+		return rsp.BuildErrorResponse(fmt.Errorf("service bus subscription %s status: %s", as.Config.Subscription, *subResp.Status))
 	}
 
 	return rsp

@@ -2,37 +2,36 @@ package cli
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"sync"
 )
 
-func MakeEventSubscriber(appConfig appconfig.AppConfig) event.Subscribable {
-	var sub event.Subscribable
-	sub = &event.MemorySubscriber{}
+func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable[T], error) {
+	var sub event.Subscribable[T]
+	c, err := event.GetChannel[T]()
+	if err != nil {
+		return nil, err
+	}
+	sub = &event.MemorySubscriber[T]{
+		Chan: c,
+	}
 
 	if appConfig.SubscriberConnection != nil {
-		cred := azcore.NewKeyCredential(appConfig.SubscriberConnection.AccessKey)
-		client, err := aznamespaces.NewReceiverClientWithSharedKeyCredential(appConfig.PublisherConnection.Endpoint, appConfig.PublisherConnection.Topic, appConfig.PublisherConnection.Subscription, cred, nil)
+		sub, err := event.NewAzureSubscriber[T](ctx, *appConfig.SubscriberConnection)
 		if err != nil {
-			logger.Error("failed to configure azure receiver", "error", err)
-		}
-		sub = &event.AzureSubscriber{
-			Client: client,
-			Config: *appConfig.SubscriberConnection,
+			return nil, err
 		}
 
 		health.Register(sub)
+		return sub, nil
 	}
 
-	return sub
+	return sub, nil
 }
 
-func SubscribeToEvents(ctx context.Context, sub event.Subscribable) {
+func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subscribable[T], process func(context.Context, T) error) {
 	for {
 		var wg sync.WaitGroup
 		events, err := sub.GetBatch(ctx, 5)
@@ -46,18 +45,25 @@ func SubscribeToEvents(ctx context.Context, sub event.Subscribable) {
 		default:
 			for _, e := range events {
 				wg.Add(1)
-				go func(e event.FileReady) {
+				go func(e T) {
 					defer wg.Done()
-					err := postprocessing.ProcessFileReadyEvent(ctx, e)
+					err := process(ctx, e)
+
 					if err != nil {
 						logger.Error("failed to process event", "event", e, "error", err)
-						sub.HandleError(ctx, e, err)
+						err = sub.HandleError(ctx, e, err)
+						if err != nil {
+							logger.Error("failed to handle event error", "event", e, "error", err)
+						}
 						return
 					}
 					err = sub.HandleSuccess(ctx, e)
 					if err != nil {
 						logger.Error("failed to acknowledge event", "event", e, "error", err)
-						sub.HandleError(ctx, e, err)
+						err = sub.HandleError(ctx, e, err)
+						if err != nil {
+							logger.Error("failed to handle event error", "event", e, "error", err)
+						}
 						return
 					}
 
