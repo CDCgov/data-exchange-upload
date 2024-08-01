@@ -2,6 +2,7 @@ package testing
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -297,6 +298,49 @@ func TestRouteBadRequest(t *testing.T) {
 	}
 	if resp.StatusCode != 400 {
 		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestRouteInvalidBody(t *testing.T) {
+	client := ts.Client()
+	b := []byte("blah")
+	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestRouteInvalidTarget(t *testing.T) {
+	client := ts.Client()
+	b := []byte(`{
+		"target": "blah"
+	}`)
+	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestRouteFileNotFound(t *testing.T) {
+	client := ts.Client()
+	b := []byte(`{
+		"target": "edav"
+	}`)
+	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 404 {
+		t.Error("Expected 404 but got", resp.StatusCode)
 	}
 }
 

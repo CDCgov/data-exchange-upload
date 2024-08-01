@@ -2,7 +2,6 @@ package postprocessing
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
@@ -22,6 +21,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 )
+
+var ErrBadTarget = fmt.Errorf("bad delivery target")
 
 var targets = map[string]Deliverer{}
 
@@ -90,7 +91,7 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 func Deliver(ctx context.Context, tuid string, manifest map[string]string, target string) error {
 	d, ok := targets[target]
 	if !ok {
-		return errors.New("not recoverable, bad target " + target)
+		return ErrBadTarget
 	}
 
 	rb := reports.NewBuilder[reports.FileCopyContent](
