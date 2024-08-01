@@ -32,6 +32,26 @@ type Publisher[T Identifiable] interface {
 	Publish(ctx context.Context, event T) error
 }
 
+func NewEventPublisher[T Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (Publisher[T], error) {
+	var p Publisher[T]
+	c, err := GetChannel[T]()
+	if err != nil {
+		return nil, err
+	}
+
+	p = &MemoryPublisher[T]{
+		Dir:  appConfig.LocalEventsFolder,
+		Chan: c,
+	}
+
+	if appConfig.PublisherConnection != nil {
+		p, err = NewAzurePublisher[T](ctx, *appConfig.PublisherConnection)
+		health.Register(p)
+	}
+
+	return p, nil
+}
+
 type MemoryPublisher[T Identifiable] struct {
 	Dir  string
 	Chan chan T
