@@ -91,6 +91,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyPublishe
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
 	http.Handle("/version", &VersionHandler{})
+	http.Handle("/route/{UploadID}", &Router{})
 
 	return http.DefaultServeMux, nil
 }
