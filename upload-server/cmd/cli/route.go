@@ -32,9 +32,21 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	err = postprocessing.Deliver(r.Context(), id, nil, body.Target)
-	if err != nil && errors.Is(err, postprocessing.ErrBadTarget) {
-		rw.WriteHeader(400)
-		rw.Write([]byte(err.Error() + " " + body.Target))
+	if err != nil {
+		if errors.Is(err, postprocessing.ErrBadTarget) {
+			rw.WriteHeader(400)
+			rw.Write([]byte(err.Error() + " " + body.Target))
+			return
+		}
+		if errors.Is(err, postprocessing.ErrSrcFileNotExist) {
+			rw.WriteHeader(404)
+			rw.Write([]byte(err.Error()))
+			return
+		}
+
+		// Unhandled error occurred
+		rw.WriteHeader(500)
+		rw.Write([]byte(err.Error()))
 		return
 	}
 

@@ -2,10 +2,12 @@ package postprocessing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,6 +25,7 @@ import (
 )
 
 var ErrBadTarget = fmt.Errorf("bad delivery target")
+var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
 var targets = map[string]Deliverer{}
 
@@ -140,6 +143,9 @@ type AzureDeliverer struct {
 func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, _ map[string]string) error {
 	f, err := fd.FromPath.Open(tuid)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return ErrSrcFileNotExist
+		}
 		return err
 	}
 	defer f.Close()
