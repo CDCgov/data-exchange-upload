@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"log/slog"
@@ -92,21 +91,16 @@ func main() {
 	err := cli.InitReporters(ctx, appConfig)
 	defer reports.DefaultReporter.Close()
 
-	var fileReadyPublisher event.Publisher[*event.FileReady]
-	fileReadyPublisher = &event.MemoryPublisher[*event.FileReady]{
-		Dir:  appConfig.LocalEventsFolder,
-		Chan: event.FileReadyChan,
-	}
-
-	if appConfig.PublisherConnection != nil {
-		fileReadyPublisher, err = event.NewAzurePublisher[*event.FileReady](ctx, *appConfig.PublisherConnection, event.FileReadyEventType)
-		defer fileReadyPublisher.Close()
-
-		health.Register(fileReadyPublisher)
-	}
-
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
+
+	fileReadyPublisher, err := event.NewEventPublisher[*event.FileReady](ctx, appConfig)
+	if err != nil {
+		logger.Error("error creating file ready publisher", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	defer fileReadyPublisher.Close()
+
 	mainWaitGroup.Add(1)
 	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
 	if err != nil {

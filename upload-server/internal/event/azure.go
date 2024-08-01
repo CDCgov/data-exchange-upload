@@ -24,7 +24,7 @@ func NewAMQPServiceBusClient(connString string) (*azservicebus.Client, error) {
 	})
 }
 
-func NewAzurePublisher[T Identifiable](ctx context.Context, pubConn appconfig.AzureQueueConfig, eventType string) (*AzurePublisher[T], error) {
+func NewAzurePublisher[T Identifiable](ctx context.Context, pubConn appconfig.AzureQueueConfig) (*AzurePublisher[T], error) {
 	client, err := NewAMQPServiceBusClient(pubConn.ConnectionString)
 	if err != nil {
 		logger.Error("failed to connect to event service bus", "error", err)
