@@ -29,7 +29,7 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	report := reports.NewBuilder[reports.UploadStatusContent](
+	report := reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
 		reports.StageUploadStatus,
 		uploadId,
@@ -58,7 +58,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload started")
 
-	report := reports.NewBuilder[reports.UploadLifecycleContent](
+	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
 		reports.StageUploadStarted,
 		uploadId,
@@ -71,7 +71,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	}).Build()
 	reports.Publish(event.Context, report)
 
-	report = reports.NewBuilder[reports.UploadStatusContent](
+	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
 		reports.StageUploadStatus,
 		uploadId,
@@ -100,7 +100,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
 
-	report := reports.NewBuilder[reports.UploadLifecycleContent](
+	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
 		reports.StageUploadCompleted,
 		uploadId,
@@ -113,7 +113,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	}).Build()
 	reports.Publish(event.Context, report)
 
-	report = reports.NewBuilder[reports.UploadStatusContent](
+	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
 		reports.StageUploadStatus,
 		uploadId,

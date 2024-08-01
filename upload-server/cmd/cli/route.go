@@ -31,7 +31,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = postprocessing.Deliver(r.Context(), id, nil, body.Target)
+	err = postprocessing.Deliver(r.Context(), id, body.Target)
 	if err != nil {
 		if errors.Is(err, postprocessing.ErrBadTarget) {
 			rw.WriteHeader(400)

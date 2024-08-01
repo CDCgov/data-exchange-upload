@@ -51,3 +51,13 @@ func PointerizeMetadata(metadata map[string]string) map[string]*string {
 
 	return p
 }
+
+func DepointerizeMetadata(metadata map[string]*string) map[string]string {
+	p := make(map[string]string)
+	for k, v := range metadata {
+		value := v
+		p[k] = *value
+	}
+
+	return p
+}
