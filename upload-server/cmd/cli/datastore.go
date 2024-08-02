@@ -3,6 +3,10 @@ package cli
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
+	"github.com/tus/tusd/v2/pkg/s3store"
 	"os"
 	"path/filepath"
 
@@ -52,6 +56,22 @@ func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Chec
 		store.Container = appConfig.AzureUploadContainer
 		return store, hc, nil
 	} // .if
+
+	if appConfig.S3Connection != nil {
+		cfg, err := config.LoadDefaultConfig(context.TODO())
+		if err != nil {
+			return nil, nil, err
+		}
+		client := s3.NewFromConfig(cfg)
+		hc, err := stores3.NewS3HealthCheck()
+		if err != nil {
+			return nil, nil, err
+		}
+		store := s3store.New(appConfig.S3Connection.BucketUrl, client)
+		store.ObjectPrefix = appConfig.TusUploadPrefix
+
+		return store, hc, nil
+	}
 
 	// Create a new FileStore instance which is responsible for
 	// storing the uploaded file on disk in the specified directory.
