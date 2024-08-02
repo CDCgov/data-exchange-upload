@@ -17,6 +17,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"slices"
@@ -117,6 +118,26 @@ func TestTus(t *testing.T) {
 					// Check that the file exists in the target checkpoint folders.
 					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
 						t.Error("file was not copied to edav checkpoint for file", tuid)
+					}
+
+					// Remove and re-route the file
+					// TODO probably best if this was in its own test but this is at least good for happy path test for now
+					err = os.Remove("./test/edav/" + tuid)
+					if err != nil {
+						t.Error("failed to remove edav file for "+tuid, err.Error())
+					}
+					b := []byte(`{
+						"target": "edav"
+					}`)
+					resp, err := http.Post(url+"/route/"+tuid, "application/json", bytes.NewBuffer(b))
+					if err != nil {
+						t.Error("failed to retry routing")
+					}
+					if resp.StatusCode != http.StatusOK {
+						t.Error("expected 200 when retrying route but got", resp.StatusCode)
+					}
+					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
+						t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
 					}
 				}
 
@@ -343,6 +364,37 @@ func TestRouteFileNotFound(t *testing.T) {
 		t.Error("Expected 404 but got", resp.StatusCode)
 	}
 }
+
+//func TestRouteFileSuccess(t *testing.T) {
+//	// First, write a file to the upload dir
+//	err := os.Mkdir("./test/uploads", 0755)
+//	if err != nil {
+//		t.Fatal(err.Error())
+//	}
+//	defer os.RemoveAll("./test/uploads")
+//	err = os.WriteFile("./test/uploads/test", []byte("hello"), 0644)
+//	if err != nil {
+//		t.Fatal(err.Error())
+//	}
+//	err = os.WriteFile("./test/uploads/test.meta", []byte("test meta"), 0644)
+//	if err != nil {
+//		t.Fatal(err.Error())
+//	}
+//	// Next, send a post to the route endpoint
+//	client := ts.Client()
+//	b := []byte(`{
+//		"target": "edav"
+//	}`)
+//	resp, err := client.Post(ts.URL+"/route/test", "application/json", bytes.NewBuffer(b))
+//	if err != nil {
+//		t.Fatal(err.Error())
+//	}
+//	if resp.StatusCode != 200 {
+//		t.Error("Expected 200 but got", resp.StatusCode)
+//	}
+//	// Then, assert that the file was copied to the target
+//	// TODO might need to wait a few milliseconds before checking
+//}
 
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
