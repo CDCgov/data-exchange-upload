@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"io"
 	"io/fs"
@@ -247,7 +248,6 @@ func (fd *FileDeliverer) Health(_ context.Context) (rsp models.ServiceHealthResp
 
 func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
 	// Get blob src blob client.
-	// TODO Handle invalid blob client better.  Currently panics if blob client url doesn't exist or is not accessible.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
 	if err != nil {
@@ -256,6 +256,9 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
 	s, err := srcBlobClient.DownloadStream(ctx, nil)
 	defer s.Body.Close()
+	if *s.ErrorCode == string(bloberror.BlobNotFound) {
+		return ErrSrcFileNotExist
+	}
 	if err != nil {
 		return err
 	}
@@ -276,17 +279,18 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 
 func (ad *AzureDeliverer) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
 	// Get blob src blob client.
-	// TODO Handle invalid blob client better.  Currently panics if blob client url doesn't exist or is not accessible.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	resp, err := srcBlobClient.GetProperties(ctx, nil)
 	if err != nil {
+		if err.Error() == string(bloberror.BlobNotFound) {
+			return nil, ErrSrcFileNotExist
+		}
 		return nil, err
 	}
 	return storeaz.DepointerizeMetadata(resp.Metadata), nil
 }
 
 func (ad *AzureDeliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
-	// TODO Handle invalid blob client better.  Currently panics if blob client url doesn't exist or is not accessible.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	return srcBlobClient.URL(), nil
 }
