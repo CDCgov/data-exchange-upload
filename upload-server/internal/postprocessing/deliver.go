@@ -282,9 +282,6 @@ func (ad *AzureDeliverer) GetMetadata(ctx context.Context, tuid string) (map[str
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	resp, err := srcBlobClient.GetProperties(ctx, nil)
 	if err != nil {
-		if err.Error() == string(bloberror.BlobNotFound) {
-			return nil, ErrSrcFileNotExist
-		}
 		return nil, err
 	}
 	return storeaz.DepointerizeMetadata(resp.Metadata), nil
@@ -300,7 +297,6 @@ func (ad *AzureDeliverer) GetDestUrl(ctx context.Context, tuid string, manifest 
 	if err != nil {
 		return "", err
 	}
-	// TODO Handle invalid blob client better.  Currently panics if blob client url doesn't exist or is not accessible.
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
 	return destBlobClient.URL(), nil
 }
