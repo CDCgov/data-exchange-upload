@@ -45,6 +45,8 @@ type Deliverer interface {
 	health.Checkable
 	Deliver(ctx context.Context, tuid string, metadata map[string]string) error
 	GetMetadata(ctx context.Context, tuid string) (map[string]string, error)
+	GetSrcUrl(ctx context.Context, tuid string) (string, error)
+	GetDestUrl(ctx context.Context, tuid string, manifest map[string]string) (string, error)
 }
 
 func NewFileDeliverer(_ context.Context, target string, appConfig *appconfig.AppConfig) (*FileDeliverer, error) {
@@ -103,21 +105,31 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 		"1.0.0",
 		reports.StageFileCopy,
 		tuid,
-		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC()).SetContent(reports.FileCopyContent{
-		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageFileCopy,
-		},
-		FileSourceBlobUrl:      "", // TODO
-		FileDestinationBlobUrl: "", // TODO
-		Timestamp:              "", // TODO.  Does PS API do this for us?
-	})
+		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
 
 	manifest, err := d.GetMetadata(ctx, tuid)
 	if err != nil {
 		return err
 	}
 	rb.SetManifest(manifest)
+
+	srcUrl, err := d.GetSrcUrl(ctx, tuid)
+	if err != nil {
+		return err
+	}
+	destUrl, err := d.GetDestUrl(ctx, tuid, manifest)
+	if err != nil {
+		return err
+	}
+	rb.SetContent(reports.FileCopyContent{
+		ReportContent: reports.ReportContent{
+			SchemaVersion: "1.0.0",
+			SchemaName:    reports.StageFileCopy,
+		},
+		FileSourceBlobUrl:      srcUrl,
+		FileDestinationBlobUrl: destUrl,
+		Timestamp:              "", // TODO.  Does PS API do this for us?
+	})
 
 	defer func() {
 		if err != nil {
@@ -197,6 +209,14 @@ func (fd *FileDeliverer) GetMetadata(_ context.Context, tuid string) (map[string
 	return m, nil
 }
 
+func (fd *FileDeliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
+	return fd.FromPathStr + tuid, nil
+}
+
+func (fd *FileDeliverer) GetDestUrl(_ context.Context, tuid string, _ map[string]string) (string, error) {
+	return fd.ToPath + "/" + tuid, nil
+}
+
 func (fd *FileDeliverer) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "File Deliver Target " + fd.Target
 	info, err := os.Stat(fd.ToPath)
@@ -220,7 +240,9 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 	// TODO Handle invalid blob client better.  Currently panics if blob client url doesn't exist or is not accessible.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
-
+	if err != nil {
+		return err
+	}
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
 	s, err := srcBlobClient.DownloadStream(ctx, nil)
 	defer s.Body.Close()
@@ -251,6 +273,22 @@ func (ad *AzureDeliverer) GetMetadata(ctx context.Context, tuid string) (map[str
 		return nil, err
 	}
 	return storeaz.DepointerizeMetadata(resp.Metadata), nil
+}
+
+func (ad *AzureDeliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
+	// TODO Handle invalid blob client better.  Currently panics if blob client url doesn't exist or is not accessible.
+	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
+	return srcBlobClient.URL(), nil
+}
+
+func (ad *AzureDeliverer) GetDestUrl(ctx context.Context, tuid string, manifest map[string]string) (string, error) {
+	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
+	if err != nil {
+		return "", err
+	}
+	// TODO Handle invalid blob client better.  Currently panics if blob client url doesn't exist or is not accessible.
+	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
+	return destBlobClient.URL(), nil
 }
 
 func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
