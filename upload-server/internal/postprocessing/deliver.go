@@ -41,6 +41,11 @@ func RegisterTarget(name string, d Deliverer) {
 	targets[name] = d
 }
 
+func GetTarget(name string) (Deliverer, bool) {
+	d, ok := targets[name]
+	return d, ok
+}
+
 type Deliverer interface {
 	health.Checkable
 	Deliver(ctx context.Context, tuid string, metadata map[string]string) error
@@ -208,6 +213,13 @@ func (fd *FileDeliverer) GetMetadata(_ context.Context, tuid string) (map[string
 }
 
 func (fd *FileDeliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
+	_, err := fs.Stat(fd.FromPath, tuid)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return "", ErrSrcFileNotExist
+		}
+		return "", err
+	}
 	return fd.FromPathStr + tuid, nil
 }
 

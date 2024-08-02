@@ -18,12 +18,19 @@ import (
 )
 
 var logger *slog.Logger
+var FileReadyPublisher Publisher[*FileReady]
 
 func init() {
 	type Empty struct{}
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
 	// add package name to app logger
 	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
+}
+
+func InitFileReadyPublisher(ctx context.Context, appConfig appconfig.AppConfig) error {
+	p, err := NewEventPublisher[*FileReady](ctx, appConfig)
+	FileReadyPublisher = p
+	return err
 }
 
 type Publisher[T Identifiable] interface {

@@ -136,6 +136,7 @@ func TestTus(t *testing.T) {
 					if resp.StatusCode != http.StatusOK {
 						t.Error("expected 200 when retrying route but got", resp.StatusCode)
 					}
+					time.Sleep(100 * time.Millisecond)
 					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
 						t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
 					}
@@ -415,18 +416,15 @@ func TestMain(m *testing.M) {
 	testWaitGroup.Add(1)
 	err := cli.InitReporters(testContext, appConfig)
 	defer reports.DefaultReporter.Close()
-	var fileReadyPublisher event.Publisher[*event.FileReady]
-	fileReadyPublisher = &event.MemoryPublisher[*event.FileReady]{
-		Dir:  appConfig.LocalEventsFolder,
-		Chan: event.FileReadyChan,
-	}
+	err = event.InitFileReadyPublisher(testContext, appConfig)
+	defer event.FileReadyPublisher.Close()
 	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
 		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig, fileReadyPublisher)
+	serveHandler, err := cli.Serve(testContext, appConfig)
 	if err != nil {
 		log.Fatal(err)
 	}

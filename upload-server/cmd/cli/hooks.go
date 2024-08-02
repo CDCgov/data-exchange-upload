@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
 	"os"
@@ -18,16 +17,16 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
 
-func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig, p event.Publisher[*event.FileReady]) (tusHooks.HookHandler, error) {
+func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	if Flags.FileHooksDir != "" {
 		return &file.FileHook{
 			Directory: Flags.FileHooksDir,
 		}, nil
 	}
-	return PrebuiltHooks(ctx, appConfig, p)
+	return PrebuiltHooks(ctx, appConfig)
 }
 
-func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, p event.Publisher[*event.FileReady]) (tusHooks.HookHandler, error) {
+func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	metadata.Cache = &metadata.ConfigCache{
@@ -107,7 +106,7 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, p event.P
 	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
-	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook(p))
+	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook())
 
 	return handler, nil
 }
