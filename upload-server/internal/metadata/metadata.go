@@ -359,7 +359,6 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 	if err != nil {
 		return resp, err
 	}
-
 	return resp, nil
 }
 

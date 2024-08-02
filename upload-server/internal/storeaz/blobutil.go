@@ -56,7 +56,7 @@ func DepointerizeMetadata(metadata map[string]*string) map[string]string {
 	p := make(map[string]string)
 	for k, v := range metadata {
 		value := v
-		p[k] = *value
+		p[strings.ToLower(k)] = *value // For some reason, Azure blob sdk uses uppercase key names when pulling metadata from a blob
 	}
 
 	return p

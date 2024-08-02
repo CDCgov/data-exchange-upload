@@ -46,7 +46,8 @@ func (ms *MemorySubscriber[T]) HandleSuccess(_ context.Context, e T) error {
 
 func (ms *MemorySubscriber[T]) HandleError(_ context.Context, e T, err error) error {
 	logger.Error("failed to handle event", "event", e, "error", err.Error())
-	ms.Chan <- e
+	// TODO simple retry
+	//ms.Chan <- e
 	return nil
 }
 

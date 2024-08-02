@@ -106,7 +106,6 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 		reports.StageFileCopy,
 		tuid,
 		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
-
 	manifest, err := d.GetMetadata(ctx, tuid)
 	if err != nil {
 		return err
@@ -140,7 +139,6 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 		logger.Info("File Copy Report", "report", report)
 		reports.Publish(ctx, report)
 	}()
-
 	err = d.Deliver(ctx, tuid, manifest)
 	rb.SetEndTime(time.Now().UTC())
 	if err != nil {
@@ -317,6 +315,9 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 
 	suffix, err := metadata.GetFilenameSuffix(ctx, manifest, tuid)
+	if err != nil {
+		return "", err
+	}
 	blobName := filenameWithoutExtension + suffix + extension
 
 	// Next, need to set the filename prefix based on config and target.
