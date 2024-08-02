@@ -136,7 +136,7 @@ func TestTus(t *testing.T) {
 					if resp.StatusCode != http.StatusOK {
 						t.Error("expected 200 when retrying route but got", resp.StatusCode)
 					}
-					time.Sleep(100 * time.Millisecond)
+					time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
 					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
 						t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
 					}
@@ -365,37 +365,6 @@ func TestRouteFileNotFound(t *testing.T) {
 		t.Error("Expected 404 but got", resp.StatusCode)
 	}
 }
-
-//func TestRouteFileSuccess(t *testing.T) {
-//	// First, write a file to the upload dir
-//	err := os.Mkdir("./test/uploads", 0755)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	defer os.RemoveAll("./test/uploads")
-//	err = os.WriteFile("./test/uploads/test", []byte("hello"), 0644)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	err = os.WriteFile("./test/uploads/test.meta", []byte("test meta"), 0644)
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	// Next, send a post to the route endpoint
-//	client := ts.Client()
-//	b := []byte(`{
-//		"target": "edav"
-//	}`)
-//	resp, err := client.Post(ts.URL+"/route/test", "application/json", bytes.NewBuffer(b))
-//	if err != nil {
-//		t.Fatal(err.Error())
-//	}
-//	if resp.StatusCode != 200 {
-//		t.Error("Expected 200 but got", resp.StatusCode)
-//	}
-//	// Then, assert that the file was copied to the target
-//	// TODO might need to wait a few milliseconds before checking
-//}
 
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
