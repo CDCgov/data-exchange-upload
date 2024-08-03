@@ -58,13 +58,14 @@ type AppConfig struct {
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
-	AzureConnection            *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
-	EdavConnection             *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
-	RoutingConnection          *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
-	PublisherConnection        *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
-	SubscriberConnection       *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
-	ServiceBusConnectionString string              `env:"SERVICE_BUS_CONNECTION_STR"`
-	ReportQueueName            string              `env:"REPORT_QUEUE_NAME, default=processing-status-cosmos-db-queue"`
+	AzureConnection      *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
+	EdavConnection       *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
+	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
+	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
+	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
+
+	// Reporting
+	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
 
 	// Azure TUS Upload storage
 	TusRedisLockURI              string `env:"REDIS_CONNECTION_STRING"`
@@ -109,10 +110,10 @@ type AzureContainerConfig struct {
 }
 
 type AzureQueueConfig struct {
-	Endpoint     string `env:"ENDPOINT"`
-	AccessKey    string `env:"ACCESS_KEY"`
-	Topic        string `env:"TOPIC"`
-	Subscription string `env:"SUBSCRIPTION"`
+	ConnectionString string `env:"CONNECTION_STRING"`
+	Topic            string `env:"TOPIC"`
+	Queue            string `env:"QUEUE"`
+	Subscription     string `env:"SUBSCRIPTION"`
 }
 
 type LocalStorageConfig struct {

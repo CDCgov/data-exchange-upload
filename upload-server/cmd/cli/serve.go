@@ -2,15 +2,12 @@ package cli
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -20,17 +17,9 @@ import (
 	"strings"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyPublisher event.Publisher[*event.FileReady]) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
-	}
-	// initialize processing status health checker
-	sbHealth, err := sbhealth.New(appConfig)
-	if err != nil {
-		logger.Error("error initializing service bus health check", "error", err)
-	}
-	if sbHealth != nil {
-		health.Register(sbHealth)
 	}
 
 	// create and register data store
@@ -63,29 +52,6 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		} else {
 			health.Register(redisLockerHealth)
 		}
-	}
-
-	// initialize event reporter
-	err = InitReporters(appConfig)
-
-	var fileReadyPublisher event.Publisher
-	fileReadyPublisher = &event.MemoryPublisher{
-		Dir: appConfig.LocalEventsFolder,
-	}
-
-	if appConfig.PublisherConnection != nil {
-		cred := azcore.NewKeyCredential(appConfig.PublisherConnection.AccessKey)
-		client, err := aznamespaces.NewSenderClientWithSharedKeyCredential(appConfig.PublisherConnection.Endpoint, appConfig.PublisherConnection.Topic, cred, nil)
-		if err != nil {
-			logger.Error("failed to connect to azure event grid")
-		}
-
-		fileReadyPublisher = &event.AzurePublisher{
-			Client: client,
-			Config: *appConfig.PublisherConnection,
-		}
-
-		health.Register(fileReadyPublisher)
 	}
 
 	// get and initialize tusd hook handlers

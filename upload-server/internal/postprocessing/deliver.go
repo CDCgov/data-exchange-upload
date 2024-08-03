@@ -175,6 +175,7 @@ func (fd *FileDeliverer) Health(_ context.Context) (rsp models.ServiceHealthResp
 
 func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
 	// Get blob src blob client.
+	// TODO Handle invalid blob client better.  Currently panics if blob client url doesn't exist or is not accessible.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
 

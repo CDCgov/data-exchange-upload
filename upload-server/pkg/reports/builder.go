@@ -2,6 +2,7 @@ package reports
 
 import (
 	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/version"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"time"
@@ -21,6 +22,7 @@ const StatusFailed = "failed"
 type Report struct {
 	ReportSchemaVersion string          `json:"report_schema_version"`
 	UploadID            string          `json:"upload_id"`
+	SenderID            string          `json:"sender_id"`
 	DataStreamID        string          `json:"data_stream_id"`
 	DataStreamRoute     string          `json:"data_stream_route"`
 	Jurisdiction        string          `json:"jurisdiction"`
@@ -29,6 +31,26 @@ type Report struct {
 	DispositionType     string          `json:"disposition_type"`
 	StageInfo           ReportStageInfo `json:"stage_info"`
 	Content             any             `json:"content"` // TODO: Can we limit this to a specific type (i.e. ReportContent or UploadStatusTYpe type?
+}
+
+func (r *Report) Type() string {
+	return "Report"
+}
+
+func (r *Report) OrigMessage() *azservicebus.ReceivedMessage {
+	return nil
+}
+
+func (r *Report) SetIdentifier(id string) {
+	r.UploadID = id
+}
+
+func (r *Report) SetType(t string) {
+	r.StageInfo.Stage = t
+}
+
+func (r *Report) SetOrigMessage(_ *azservicebus.ReceivedMessage) {
+	// no-op
 }
 
 type ReportStageInfo struct {
@@ -177,6 +199,7 @@ func (b *ReportBuilder[T]) Build() *Report {
 		return &Report{
 			ReportSchemaVersion: b.Version,
 			UploadID:            b.UploadId,
+			SenderID:            metadata.GetSenderId(b.Manifest),
 			DataStreamID:        metadata.GetDataStreamID(b.Manifest),
 			DataStreamRoute:     metadata.GetDataStreamRoute(b.Manifest),
 			Jurisdiction:        metadata.GetJurisdiction(b.Manifest),

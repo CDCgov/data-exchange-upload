@@ -34,7 +34,7 @@ class MetadataVerify {
         dataProvider = "invalidManifestRequiredFieldsProvider",
         dataProviderClass = DataProvider::class,
         expectedExceptions = [ProtocolException::class],
-        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*field .* was missing"
+        expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*field .* was missing.*"
     )
     fun shouldReturnErrorWhenMissingRequiredField(manifest: Map<String, String>) {
         uploadClient.uploadFile(testFile, manifest)

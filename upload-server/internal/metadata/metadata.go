@@ -2,8 +2,6 @@ package metadata
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +9,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"io"
+	"github.com/google/uuid"
 	"log/slog"
 	"net/http"
 	"os"
@@ -47,6 +45,11 @@ func init() {
 var registeredVersions = map[string]func(handler.MetaData) (validation.ConfigLocation, error){
 	"1.0": v1.NewFromManifest,
 	"2.0": v2.NewFromManifest,
+}
+
+type PreCreateResponse struct {
+	UploadId         string   `json:"upload_id"`
+	ValidationErrors []string `json:"validation_errors"`
 }
 
 var Cache *ConfigCache
@@ -142,14 +145,7 @@ func GetFilenameSuffix(ctx context.Context, manifest handler.MetaData, tuid stri
 }
 
 func Uid() string {
-	id := make([]byte, 16)
-	_, err := io.ReadFull(rand.Reader, id)
-	if err != nil {
-		// This is probably an appropriate way to handle errors from our source
-		// for random bits.
-		panic(err)
-	}
-	return hex.EncodeToString(id)
+	return uuid.NewString()
 }
 
 type SenderManifestVerification struct {
@@ -215,9 +211,18 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 
 		if errors.Is(err, validation.ErrFailure) {
 			resp.RejectUpload = true
+
+			respBody := PreCreateResponse{
+				UploadId:         tuid,
+				ValidationErrors: strings.Split(err.Error(), "\n"),
+			}
+			b, err := json.Marshal(respBody)
+			if err != nil {
+				return resp, err
+			}
 			resp.HTTPResponse = resp.HTTPResponse.MergeWith(handler.HTTPResponse{
 				StatusCode: http.StatusBadRequest,
-				Body:       err.Error(),
+				Body:       string(b),
 			})
 			return resp, nil
 		}

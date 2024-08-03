@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"log/slog"
 	"net/http"
 	"os"
@@ -85,17 +87,34 @@ func main() {
 	logger.Info("starting app")
 
 	// Pub Sub
+	// initialize event reporter
+	err := cli.InitReporters(ctx, appConfig)
+	defer reports.DefaultReporter.Close()
+
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
+
+	fileReadyPublisher, err := event.NewEventPublisher[*event.FileReady](ctx, appConfig)
+	if err != nil {
+		logger.Error("error creating file ready publisher", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	defer fileReadyPublisher.Close()
+
 	mainWaitGroup.Add(1)
-	subscriber := cli.MakeEventSubscriber(appConfig)
+	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
+	if err != nil {
+		logger.Error("error subscribing to file ready", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	defer subscriber.Close()
 	go func() {
-		cli.SubscribeToEvents(ctx, subscriber)
+		cli.SubscribeToEvents(ctx, subscriber, postprocessing.ProcessFileReadyEvent)
 		mainWaitGroup.Done()
 	}()
 
 	// start serving the app
-	_, err := cli.Serve(ctx, appConfig)
+	_, err = cli.Serve(ctx, appConfig, fileReadyPublisher)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)

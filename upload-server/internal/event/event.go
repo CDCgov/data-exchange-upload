@@ -2,52 +2,98 @@ package event
 
 import (
 	"encoding/json"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/messaging"
+	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 )
 
 const FileReadyEventType = "FileReady"
 
-var fileReadyChan chan FileReady
+var FileReadyChan chan *FileReady
+
+// TODO better name for this interface would be Subscribable or Queueable or similar
+type Identifiable interface {
+	Identifier() string
+	Type() string
+	OrigMessage() *azservicebus.ReceivedMessage
+	SetIdentifier(id string)
+	SetType(t string)
+	SetOrigMessage(m *azservicebus.ReceivedMessage)
+}
 
 type Event struct {
-	ID        string `json:"id"`
-	Type      string `json:"type"`
-	LockToken string `json:"lock_token"`
+	ID   string `json:"id"`
+	Type string `json:"type"`
 }
 
 type FileReady struct {
 	Event
-	Manifest      map[string]string `json:"manifest"`
-	DeliverTarget string            `json:"deliver_target"`
+	UploadId          string `json:"upload_id"`
+	SrcUrl            string `json:"src_url"`
+	DestinationTarget string `json:"deliver_target"`
+	Metadata          map[string]string
+	OriginalMessage   *azservicebus.ReceivedMessage `json:"-"`
+}
+
+func (fr *FileReady) Type() string {
+	return fr.Event.Type
+}
+
+func (fr *FileReady) OrigMessage() *azservicebus.ReceivedMessage {
+	return fr.OriginalMessage
+}
+
+func (fr *FileReady) SetIdentifier(id string) {
+	fr.ID = id
+}
+
+func (fr *FileReady) SetType(t string) {
+	fr.Event.Type = t
+}
+
+func (fr *FileReady) SetOrigMessage(m *azservicebus.ReceivedMessage) {
+	fr.OriginalMessage = m
+}
+
+func (fr *FileReady) Identifier() string {
+	return fr.UploadId
 }
 
 func InitFileReadyChannel() {
-	fileReadyChan = make(chan FileReady)
+	FileReadyChan = make(chan *FileReady)
 }
 
 func CloseFileReadyChannel() {
-	close(fileReadyChan)
+	close(FileReadyChan)
 }
 
-func NewFileReadyEvent(id string, manifest map[string]string, target string) FileReady {
-	return FileReady{
+func GetChannel[T Identifiable]() (chan T, error) {
+	if r, ok := any(FileReadyChan).(chan T); ok {
+		return r, nil
+	}
+
+	return nil, fmt.Errorf("channel not found")
+}
+
+func NewFileReadyEvent(uploadId string, metadata map[string]string, target string) *FileReady {
+	return &FileReady{
 		Event: Event{
-			ID:   id,
 			Type: FileReadyEventType,
 		},
-		Manifest:      manifest,
-		DeliverTarget: target,
+		UploadId:          uploadId,
+		Metadata:          metadata,
+		DestinationTarget: target,
 	}
 }
 
-func NewFileReadyEventFromCloudEvent(event messaging.CloudEvent, lockToken string) (FileReady, error) {
-	var fre FileReady
-	err := json.Unmarshal(event.Data.([]byte), &fre)
+func NewEventFromServiceBusMessage[T Identifiable](m *azservicebus.ReceivedMessage) (T, error) {
+	var e T
+	err := json.Unmarshal(m.Body, &e)
 	if err != nil {
-		return fre, err
+		return e, err
 	}
 
-	fre.LockToken = lockToken
+	e.SetIdentifier(m.MessageID)
+	e.SetOrigMessage(m)
 
-	return fre, nil
+	return e, nil
 }

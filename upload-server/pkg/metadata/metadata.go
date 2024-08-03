@@ -17,6 +17,15 @@ func GetFilename(manifest map[string]string) string {
 	return ""
 }
 
+func GetSenderId(manifest map[string]string) string {
+	switch manifest["version"] {
+	case "2.0":
+		return manifest["sender_id"]
+	default:
+		return manifest["meta_ext_source"]
+	}
+}
+
 func GetDataStreamID(manifest map[string]string) string {
 	switch manifest["version"] {
 	case "2.0":
