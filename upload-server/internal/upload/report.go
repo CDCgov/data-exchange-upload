@@ -36,8 +36,8 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 		uploadMetadata,
 		reports.DispositionTypeReplace).SetContent(reports.UploadStatusContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadStatus,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadStatus,
 		},
 		Filename: metadataPkg.GetFilename(uploadMetadata),
 		Tguid:    uploadId,
@@ -65,8 +65,8 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		manifest,
 		reports.DispositionTypeAdd).SetContent(reports.UploadLifecycleContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadStarted,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadStarted,
 		},
 	}).Build()
 	reports.Publish(event.Context, report)
@@ -78,8 +78,8 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		manifest,
 		reports.DispositionTypeReplace).SetStartTime(time.Now().UTC()).SetContent(reports.UploadStatusContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadStatus,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadStatus,
 		},
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,
@@ -107,8 +107,8 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		manifest,
 		reports.DispositionTypeAdd).SetContent(reports.UploadLifecycleContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadCompleted,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadCompleted,
 		},
 	}).Build()
 	reports.Publish(event.Context, report)
@@ -120,8 +120,8 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		manifest,
 		reports.DispositionTypeReplace).SetEndTime(time.Now().UTC()).SetStatus("success").SetContent(reports.UploadStatusContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadStatus,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadStatus,
 		},
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,

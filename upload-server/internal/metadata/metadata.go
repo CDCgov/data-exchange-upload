@@ -195,8 +195,8 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		manifest,
 		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC()).SetContent(reports.MetaDataVerifyContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageMetadataVerify,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageMetadataVerify,
 		},
 		Filename: metadata.GetFilename(manifest),
 		Metadata: manifest,
@@ -295,8 +295,8 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 	v2Manifest, transforms := v1.Hydrate(manifest, c)
 	rb.SetContent(reports.BulkMetadataTransformReportContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageMetadataTransform,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageMetadataTransform,
 		},
 		Transforms: transforms,
 	})
@@ -384,8 +384,8 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 		manifest,
 		reports.DispositionTypeAdd).SetContent(reports.BulkMetadataTransformReportContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageMetadataTransform,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageMetadataTransform,
 		},
 		Transforms: []reports.MetadataTransformContent{{
 			Action: "update",
@@ -429,8 +429,8 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 		manifest,
 		reports.DispositionTypeAdd).SetContent(reports.BulkMetadataTransformReportContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageMetadataTransform,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageMetadataTransform,
 		},
 		Transforms: []reports.MetadataTransformContent{{
 			Action: "append",
