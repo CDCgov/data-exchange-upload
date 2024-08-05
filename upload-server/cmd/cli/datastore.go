@@ -59,17 +59,22 @@ func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Chec
 
 	if appConfig.S3Connection != nil {
 		cfg, err := config.LoadDefaultConfig(context.TODO())
+
 		if err != nil {
 			return nil, nil, err
 		}
-		client := s3.NewFromConfig(cfg)
+		client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+			o.UsePathStyle = true
+			o.BaseEndpoint = &appConfig.S3Connection.Endpoint
+		})
 		hc, err := stores3.NewS3HealthCheck()
 		if err != nil {
 			return nil, nil, err
 		}
-		store := s3store.New(appConfig.S3Connection.BucketUrl, client)
+		store := s3store.New("test-bucket", client)
 		store.ObjectPrefix = appConfig.TusUploadPrefix
 
+		logger.Info("using S3 endpoint", "endpoint", appConfig.S3Connection.Endpoint)
 		return store, hc, nil
 	}
 

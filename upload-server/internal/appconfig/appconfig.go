@@ -106,7 +106,7 @@ type AzureStorageConfig struct {
 } // .AzureStorageConfig
 
 type S3StorageConfig struct {
-	BucketUrl string `env:"BUCKET_URL"`
+	Endpoint string `env:"S3_ENDPOINT"`
 }
 
 type AzureContainerConfig struct {
