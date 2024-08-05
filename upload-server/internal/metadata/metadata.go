@@ -183,7 +183,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	rb := reports.NewBuilder[reports.MetaDataVerifyContent](
+	rb := reports.NewBuilderWithManifest[reports.MetaDataVerifyContent](
 		"1.0.0",
 		reports.StageMetadataVerify,
 		tuid,
@@ -267,7 +267,7 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 		return resp, nil
 	}
 
-	rb := reports.NewBuilder[reports.BulkMetadataTransformReportContent](
+	rb := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
 		"1.0.0",
 		reports.StageMetadataTransform,
 		event.Upload.ID,
@@ -359,7 +359,6 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 	if err != nil {
 		return resp, err
 	}
-
 	return resp, nil
 }
 
@@ -373,7 +372,7 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 	logger.Info("Generated UUID", "UUID", tuid)
 
 	manifest := event.Upload.MetaData
-	report := reports.NewBuilder[reports.BulkMetadataTransformReportContent](
+	report := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
 		"1.0.0",
 		reports.StageMetadataTransform,
 		tuid,
@@ -418,7 +417,7 @@ func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.Hook
 	manifest[fieldname] = timestamp
 	resp.ChangeFileInfo.MetaData = manifest
 
-	report := reports.NewBuilder[reports.BulkMetadataTransformReportContent](
+	report := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
 		"1.0.0",
 		reports.StageMetadataTransform,
 		tguid,

@@ -7,7 +7,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func RouteAndDeliverHook(p evt.Publisher[*evt.FileReady]) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
+func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
 	return func(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 		id := event.Upload.ID
 		var targets []string
@@ -29,7 +29,7 @@ func RouteAndDeliverHook(p evt.Publisher[*evt.FileReady]) func(handler.HookEvent
 
 		for _, target := range targets {
 			e := evt.NewFileReadyEvent(id, meta, target)
-			err := p.Publish(event.Context, e)
+			err := evt.FileReadyPublisher.Publish(event.Context, e)
 			if err != nil {
 				return resp, err
 			}

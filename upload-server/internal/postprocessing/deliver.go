@@ -2,11 +2,14 @@ package postprocessing
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,6 +26,9 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 )
 
+var ErrBadTarget = fmt.Errorf("bad delivery target")
+var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
+
 var targets = map[string]Deliverer{}
 
 func init() {
@@ -36,9 +42,17 @@ func RegisterTarget(name string, d Deliverer) {
 	targets[name] = d
 }
 
+func GetTarget(name string) (Deliverer, bool) {
+	d, ok := targets[name]
+	return d, ok
+}
+
 type Deliverer interface {
 	health.Checkable
 	Deliver(ctx context.Context, tuid string, metadata map[string]string) error
+	GetMetadata(ctx context.Context, tuid string) (map[string]string, error)
+	GetSrcUrl(ctx context.Context, tuid string) (string, error)
+	GetDestUrl(ctx context.Context, tuid string, manifest map[string]string) (string, error)
 }
 
 func NewFileDeliverer(_ context.Context, target string, appConfig *appconfig.AppConfig) (*FileDeliverer, error) {
@@ -87,39 +101,57 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 }
 
 // target may end up being a type
-func Deliver(ctx context.Context, tuid string, manifest map[string]string, target string) error {
+func Deliver(ctx context.Context, tuid string, target string) error {
 	d, ok := targets[target]
 	if !ok {
-		return errors.New("not recoverable, bad target " + target)
+		return ErrBadTarget
 	}
 
 	rb := reports.NewBuilder[reports.FileCopyContent](
 		"1.0.0",
 		reports.StageFileCopy,
 		tuid,
-		manifest,
-		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC()).SetContent(reports.FileCopyContent{
+		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
+	manifest, err := d.GetMetadata(ctx, tuid)
+	if err != nil {
+		return err
+	}
+	rb.SetManifest(manifest)
+
+	srcUrl, err := d.GetSrcUrl(ctx, tuid)
+	if err != nil {
+		return err
+	}
+	destUrl, err := d.GetDestUrl(ctx, tuid, manifest)
+	if err != nil {
+		return err
+	}
+	rb.SetContent(reports.FileCopyContent{
 		ReportContent: reports.ReportContent{
 			SchemaVersion: "1.0.0",
 			SchemaName:    reports.StageFileCopy,
 		},
-		FileSourceBlobUrl:      "", // TODO
-		FileDestinationBlobUrl: "", // TODO
+		FileSourceBlobUrl:      srcUrl,
+		FileDestinationBlobUrl: destUrl,
 		Timestamp:              "", // TODO.  Does PS API do this for us?
 	})
 
-	err := d.Deliver(ctx, tuid, manifest)
+	defer func() {
+		if err != nil {
+			logger.Error("failed to copy file", "target", target)
+			rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error())
+		}
+		report := rb.Build()
+		logger.Info("File Copy Report", "report", report)
+		reports.Publish(ctx, report)
+	}()
+	err = d.Deliver(ctx, tuid, manifest)
 	rb.SetEndTime(time.Now().UTC())
 	if err != nil {
-		logger.Error("failed to copy file", "target", target)
-		rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error())
+		return err
 	}
 
-	report := rb.Build()
-	logger.Info("File Copy Report", "report", report)
-	reports.Publish(ctx, report)
-
-	return err
+	return nil
 }
 
 type FileDeliverer struct {
@@ -139,6 +171,9 @@ type AzureDeliverer struct {
 func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, _ map[string]string) error {
 	f, err := fd.FromPath.Open(tuid)
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return ErrSrcFileNotExist
+		}
 		return err
 	}
 	defer f.Close()
@@ -153,6 +188,44 @@ func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, _ map[string]st
 	}
 
 	return err
+}
+
+func (fd *FileDeliverer) GetMetadata(_ context.Context, tuid string) (map[string]string, error) {
+	f, err := fd.FromPath.Open(tuid + ".meta")
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, ErrSrcFileNotExist
+		}
+		return nil, err
+	}
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+
+	var m map[string]string
+	err = json.Unmarshal(b, &m)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
+func (fd *FileDeliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
+	_, err := fs.Stat(fd.FromPath, tuid)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return "", ErrSrcFileNotExist
+		}
+		return "", err
+	}
+	return fd.FromPathStr + tuid, nil
+}
+
+func (fd *FileDeliverer) GetDestUrl(_ context.Context, tuid string, _ map[string]string) (string, error) {
+	return fd.ToPath + "/" + tuid, nil
 }
 
 func (fd *FileDeliverer) Health(_ context.Context) (rsp models.ServiceHealthResp) {
@@ -175,13 +248,17 @@ func (fd *FileDeliverer) Health(_ context.Context) (rsp models.ServiceHealthResp
 
 func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
 	// Get blob src blob client.
-	// TODO Handle invalid blob client better.  Currently panics if blob client url doesn't exist or is not accessible.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
 	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
-
+	if err != nil {
+		return err
+	}
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
 	s, err := srcBlobClient.DownloadStream(ctx, nil)
 	defer s.Body.Close()
+	if *s.ErrorCode == string(bloberror.BlobNotFound) {
+		return ErrSrcFileNotExist
+	}
 	if err != nil {
 		return err
 	}
@@ -198,6 +275,30 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 	logger.Info("successful copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
 
 	return nil
+}
+
+func (ad *AzureDeliverer) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
+	// Get blob src blob client.
+	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
+	resp, err := srcBlobClient.GetProperties(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return storeaz.DepointerizeMetadata(resp.Metadata), nil
+}
+
+func (ad *AzureDeliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
+	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
+	return srcBlobClient.URL(), nil
+}
+
+func (ad *AzureDeliverer) GetDestUrl(ctx context.Context, tuid string, manifest map[string]string) (string, error) {
+	blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
+	if err != nil {
+		return "", err
+	}
+	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
+	return destBlobClient.URL(), nil
 }
 
 func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
@@ -226,6 +327,9 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 
 	suffix, err := metadata.GetFilenameSuffix(ctx, manifest, tuid)
+	if err != nil {
+		return "", err
+	}
 	blobName := filenameWithoutExtension + suffix + extension
 
 	// Next, need to set the filename prefix based on config and target.

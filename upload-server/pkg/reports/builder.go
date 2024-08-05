@@ -122,7 +122,19 @@ type Builder[T any] interface {
 	Build() *Report
 }
 
-func NewBuilder[T any](version string, stage string, uploadId string, manifest map[string]string, dispType string) Builder[T] {
+func NewBuilder[T any](version string, stage string, uploadId string, dispType string) Builder[T] {
+	return &ReportBuilder[T]{
+		Version:         version,
+		Stage:           stage,
+		UploadId:        uploadId,
+		DispositionType: dispType,
+		Status:          StatusSuccess,
+		StartTime:       time.Now().UTC(),
+		EndTime:         time.Now().UTC(),
+	}
+}
+
+func NewBuilderWithManifest[T any](version string, stage string, uploadId string, manifest map[string]string, dispType string) Builder[T] {
 	return &ReportBuilder[T]{
 		Version:         version,
 		Stage:           stage,

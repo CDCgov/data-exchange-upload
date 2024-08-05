@@ -2,6 +2,7 @@ package testing
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"slices"
@@ -116,6 +118,27 @@ func TestTus(t *testing.T) {
 					// Check that the file exists in the target checkpoint folders.
 					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
 						t.Error("file was not copied to edav checkpoint for file", tuid)
+					}
+
+					// Remove and re-route the file
+					// TODO probably best if this was in its own test function but this is at least good for happy path test for now
+					err = os.Remove("./test/edav/" + tuid)
+					if err != nil {
+						t.Error("failed to remove edav file for "+tuid, err.Error())
+					}
+					b := []byte(`{
+						"target": "edav"
+					}`)
+					resp, err := http.Post(url+"/route/"+tuid, "application/json", bytes.NewBuffer(b))
+					if err != nil {
+						t.Error("failed to retry routing")
+					}
+					if resp.StatusCode != http.StatusOK {
+						t.Error("expected 200 when retrying route but got", resp.StatusCode)
+					}
+					time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
+					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
+						t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
 					}
 				}
 
@@ -288,6 +311,61 @@ func TestFileInfoNotFound(t *testing.T) {
 	}
 }
 
+func TestRouteBadRequest(t *testing.T) {
+	client := ts.Client()
+	resp, err := client.Get(ts.URL + "/route/1234")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestRouteInvalidBody(t *testing.T) {
+	client := ts.Client()
+	b := []byte("blah")
+	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestRouteInvalidTarget(t *testing.T) {
+	client := ts.Client()
+	b := []byte(`{
+		"target": "blah"
+	}`)
+	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestRouteFileNotFound(t *testing.T) {
+	client := ts.Client()
+	b := []byte(`{
+		"target": "edav"
+	}`)
+	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 404 {
+		t.Error("Expected 404 but got", resp.StatusCode)
+	}
+}
+
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
@@ -307,18 +385,15 @@ func TestMain(m *testing.M) {
 	testWaitGroup.Add(1)
 	err := cli.InitReporters(testContext, appConfig)
 	defer reports.DefaultReporter.Close()
-	var fileReadyPublisher event.Publisher[*event.FileReady]
-	fileReadyPublisher = &event.MemoryPublisher[*event.FileReady]{
-		Dir:  appConfig.LocalEventsFolder,
-		Chan: event.FileReadyChan,
-	}
+	err = event.InitFileReadyPublisher(testContext, appConfig)
+	defer event.FileReadyPublisher.Close()
 	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
 		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig, fileReadyPublisher)
+	serveHandler, err := cli.Serve(testContext, appConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
