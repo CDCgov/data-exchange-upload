@@ -22,7 +22,6 @@ import (
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -367,16 +366,18 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 	return resp, nil
 }
 
-func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
-	if sloger.DefaultLogger != nil {
-		logger = sloger.DefaultLogger.With(models.TGUID_KEY, tuid)
-	}
-	logger.Info("Generated UUID", "UUID", tuid)
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+	logger.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
+	fieldname := "dex_ingest_datetime"
+	manifest[fieldname] = timestamp
+	resp.ChangeFileInfo.MetaData = manifest
+
 	report := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
 		"1.0.0",
 		reports.StageMetadataTransform,
@@ -387,11 +388,14 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 			ContentSchemaVersion: "1.0.0",
 			ContentSchemaName:    reports.StageMetadataTransform,
 		},
-		Transforms: []reports.MetadataTransformContent{{
-			Action: "update",
-			Field:  "ID",
-			Value:  tuid,
-		}},
+		Transforms: []reports.MetadataTransformContent{
+			{Action: "update",
+				Field: "ID",
+				Value: tuid}, {
+				Action: "append",
+				Field:  fieldname,
+				Value:  timestamp,
+			}},
 	}).Build()
 
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)
@@ -400,47 +404,80 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 	return resp, nil
 }
 
-func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	tguid := event.Upload.ID
-	if resp.ChangeFileInfo.ID != "" {
-		tguid = resp.ChangeFileInfo.ID
-	}
-	if tguid == "" {
-		return resp, errors.New("no Upload ID defined")
-	}
+//func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+//	tuid := Uid()
+//	resp.ChangeFileInfo.ID = tuid
+//
+//	if sloger.DefaultLogger != nil {
+//		logger = sloger.DefaultLogger.With(models.TGUID_KEY, tuid)
+//	}
+//	logger.Info("Generated UUID", "UUID", tuid)
+//
+//	manifest := event.Upload.MetaData
+//	report := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
+//		"1.0.0",
+//		reports.StageMetadataTransform,
+//		tuid,
+//		manifest,
+//		reports.DispositionTypeAdd).SetContent(reports.BulkMetadataTransformReportContent{
+//		ReportContent: reports.ReportContent{
+//			ContentSchemaVersion: "1.0.0",
+//			ContentSchemaName:    reports.StageMetadataTransform,
+//		},
+//		Transforms: []reports.MetadataTransformContent{{
+//			Action: "update",
+//			Field:  "ID",
+//			Value:  tuid,
+//		}},
+//	}).Build()
+//
+//	logger.Info("METADATA TRANSFORM REPORT", "report", report)
+//	reports.Publish(event.Context, report)
+//
+//	return resp, nil
+//}
 
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-	logger.Info("adding global timestamp", "timestamp", timestamp)
-
-	manifest := event.Upload.MetaData
-
-	if resp.ChangeFileInfo.MetaData != nil {
-		manifest = resp.ChangeFileInfo.MetaData
-	}
-
-	fieldname := "dex_ingest_datetime"
-	manifest[fieldname] = timestamp
-	resp.ChangeFileInfo.MetaData = manifest
-
-	report := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
-		"1.0.0",
-		reports.StageMetadataTransform,
-		tguid,
-		manifest,
-		reports.DispositionTypeAdd).SetContent(reports.BulkMetadataTransformReportContent{
-		ReportContent: reports.ReportContent{
-			ContentSchemaVersion: "1.0.0",
-			ContentSchemaName:    reports.StageMetadataTransform,
-		},
-		Transforms: []reports.MetadataTransformContent{{
-			Action: "append",
-			Field:  fieldname,
-			Value:  timestamp,
-		}},
-	}).Build()
-
-	logger.Info("METADATA TRANSFORM REPORT", "report", report)
-	reports.Publish(event.Context, report)
-
-	return resp, nil
-}
+//func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+//	tguid := event.Upload.ID
+//	if resp.ChangeFileInfo.ID != "" {
+//		tguid = resp.ChangeFileInfo.ID
+//	}
+//	if tguid == "" {
+//		return resp, errors.New("no Upload ID defined")
+//	}
+//
+//	timestamp := time.Now().UTC().Format(time.RFC3339)
+//	logger.Info("adding global timestamp", "timestamp", timestamp)
+//
+//	manifest := event.Upload.MetaData
+//
+//	if resp.ChangeFileInfo.MetaData != nil {
+//		manifest = resp.ChangeFileInfo.MetaData
+//	}
+//
+//	fieldname := "dex_ingest_datetime"
+//	manifest[fieldname] = timestamp
+//	resp.ChangeFileInfo.MetaData = manifest
+//
+//	report := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
+//		"1.0.0",
+//		reports.StageMetadataTransform,
+//		tguid,
+//		manifest,
+//		reports.DispositionTypeAdd).SetContent(reports.BulkMetadataTransformReportContent{
+//		ReportContent: reports.ReportContent{
+//			ContentSchemaVersion: "1.0.0",
+//			ContentSchemaName:    reports.StageMetadataTransform,
+//		},
+//		Transforms: []reports.MetadataTransformContent{{
+//			Action: "append",
+//			Field:  fieldname,
+//			Value:  timestamp,
+//		}},
+//	}).Build()
+//
+//	logger.Info("METADATA TRANSFORM REPORT", "report", report)
+//	reports.Publish(event.Context, report)
+//
+//	return resp, nil
+//}
