@@ -78,8 +78,8 @@ func (r *Report) Identifier() string {
 }
 
 type ReportContent struct {
-	SchemaName    string `json:"schema_name"`
-	SchemaVersion string `json:"schema_version"`
+	ContentSchemaName    string `json:"content_schema_name"`
+	ContentSchemaVersion string `json:"content_schema_version"`
 }
 
 type BulkMetadataTransformReportContent struct {

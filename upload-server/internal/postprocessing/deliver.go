@@ -128,8 +128,8 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 	}
 	rb.SetContent(reports.FileCopyContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageFileCopy,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageFileCopy,
 		},
 		FileSourceBlobUrl:      srcUrl,
 		FileDestinationBlobUrl: destUrl,
