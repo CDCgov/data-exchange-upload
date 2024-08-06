@@ -64,8 +64,11 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 			return nil, nil, err
 		}
 		client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-			o.UsePathStyle = true
-			o.BaseEndpoint = &appConfig.S3Connection.Endpoint
+			// For non-AWS S3 backends
+			if appConfig.S3Connection.Endpoint != "" {
+				o.UsePathStyle = true
+				o.BaseEndpoint = &appConfig.S3Connection.Endpoint
+			}
 		})
 		hc := &stores3.S3HealthCheck{
 			Client: client,
@@ -73,7 +76,7 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 		store := s3store.New(appConfig.S3Connection.BucketName, client)
 		store.ObjectPrefix = appConfig.TusUploadPrefix
 
-		logger.Info("using S3 endpoint", "endpoint", appConfig.S3Connection.Endpoint)
+		logger.Info("using S3 bucket", "bucket", appConfig.S3Connection.BucketName)
 		return store, hc, nil
 	}
 
