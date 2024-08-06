@@ -19,7 +19,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/filestore"
 )
 
-func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Checkable, error) {
+func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertusd.Store, health.Checkable, error) {
 	// ------------------------------------------------------------------
 	// Load Az dependencies, needed for the DEX handler paths
 	// ------------------------------------------------------------------
@@ -58,7 +58,7 @@ func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Chec
 	} // .if
 
 	if appConfig.S3Connection != nil {
-		cfg, err := config.LoadDefaultConfig(context.TODO())
+		cfg, err := config.LoadDefaultConfig(ctx)
 
 		if err != nil {
 			return nil, nil, err
@@ -67,11 +67,10 @@ func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Chec
 			o.UsePathStyle = true
 			o.BaseEndpoint = &appConfig.S3Connection.Endpoint
 		})
-		hc, err := stores3.NewS3HealthCheck()
-		if err != nil {
-			return nil, nil, err
+		hc := &stores3.S3HealthCheck{
+			Client: client,
 		}
-		store := s3store.New("test-bucket", client)
+		store := s3store.New(appConfig.S3Connection.BucketName, client)
 		store.ObjectPrefix = appConfig.TusUploadPrefix
 
 		logger.Info("using S3 endpoint", "endpoint", appConfig.S3Connection.Endpoint)

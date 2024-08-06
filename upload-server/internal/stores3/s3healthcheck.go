@@ -12,17 +12,6 @@ type S3HealthCheck struct {
 	Client *s3.Client
 }
 
-func NewS3HealthCheck() (*S3HealthCheck, error) {
-	client, err := NewS3Client()
-	if err != nil {
-		return nil, err
-	}
-
-	return &S3HealthCheck{
-		Client: client,
-	}, nil
-}
-
 func (c *S3HealthCheck) Health(ctx context.Context) models.ServiceHealthResp {
 	var shr models.ServiceHealthResp
 	shr.Service = models.TUS_STORAGE_HEALTH_PREFIX

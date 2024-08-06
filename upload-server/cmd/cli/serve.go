@@ -23,7 +23,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyPublishe
 	}
 
 	// create and register data store
-	store, storeHealthCheck, err := GetDataStore(appConfig)
+	store, storeHealthCheck, err := GetDataStore(ctx, appConfig)
 	if err != nil {
 		logger.Error("error starting app, error configuring storage", "error", err)
 		return nil, err
