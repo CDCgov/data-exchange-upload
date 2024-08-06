@@ -8,19 +8,37 @@ Repo is structured (as feasible) based on the [golang-standards/project-layout](
 - Based on the [tus](https://tus.io/) open protocol for resumable file uploads
 - Based on the [tusd](https://github.com/tus/tusd) official reference implementation
 
-## Running and Building
+## Usage
 
-### Running locally
+### Configuring the storage backend
+This service currently supports local file system, Azure, and AWS as storage backends.  Configuring a storage backend
+for your setup is done via environment variables.  Environment variables can be set at the system level, or via a `.env` file
+located within the `configs/local/` directory.  Here are some examples for configuring the different storage backends
+that this service supports.
+
+### Local file system
+By default, this service uses the file system of the host machine it is running on as a storage backend.  Therefore, no
+environment variables are necessary to set.  To run, simply execute
 ```go
 go run ./cmd/main.go
 ```
+This will start the HTTP server at http://localhost:8080.  With a Tus client, you can upload files to http://localhost:8080/files,
+and they will show up in the `uploads/` directory.
 
-### Building
+You can configure this behavior with the following environment variables:
+- `SERVER_PORT` - Sets the port that the server runs on.  Default is 8080.
+- `LOCAL_FOLDER_UPLOADS_TUS` - Relative path to the folder where tus will upload files to.  Default is `./uploads`.
+- `TUSD_HANDLER_BASE_PATH` - URL path for the file upload endpoint.  Default is `/files` or `/files/`.
+- `TUS_UPLOAD_PREFIX` - Sub folder to drop files into within the local or cloud folder.  Defaults to `tus-prefix`.
+
+
+
+## Building the source
 ```go
 go build ./cmd/main.go -o <binary name>
 ```
 
-### Unit Testing
+## Unit Testing
 Before running unit tests, make sure to clean the file system with the `clean.sh` script.  This removes any temparary upload and report files that the tests generated.
 
 ```go
