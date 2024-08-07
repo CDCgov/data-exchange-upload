@@ -337,8 +337,7 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	prefix := ""
 
 	switch target {
-	case "edav":
-	case "routing":
+	case "routing", "edav":
 		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
 		if err != nil {
 			return "", err
