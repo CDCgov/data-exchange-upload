@@ -225,9 +225,13 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dateTokens := strings.Split(p, "/")
-	if len(dateTokens) != 4 {
-		t.Error("date prefix not properly formatted", p)
+	prefixTokens := strings.Split(p, "/")
+	if len(prefixTokens) != 5 {
+		t.Error("prefix not properly formatted", p)
+	}
+	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
+	if prefixTokens[0] != expectedFolderPrefix {
+		t.Error("prefix folder not properly formatted")
 	}
 }
 
@@ -248,8 +252,10 @@ func TestGetFileDeliveryPrefixRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p != "" {
-		t.Error("expected file delivery prefix to be empty but was", p)
+	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
+
+	if p != expectedFolderPrefix {
+		t.Error("expected file delivery prefix to be folder prefix but was", p)
 	}
 }
 

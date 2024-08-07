@@ -116,16 +116,21 @@ func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
 }
 
 func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
-	p := ""
 	config, err := GetConfigFromManifest(ctx, manifest)
 	if err != nil {
-		return p, err
+		return "", err
 	}
+
+	ds := metadata.GetDataStreamID(manifest)
+	r := metadata.GetDataStreamRoute(manifest)
+
+	p := ds + "-" + r
 
 	if config.Copy.FolderStructure == FolderStructureDate {
 		// Get UTC year, month, and day
 		t := time.Now().UTC()
-		p = fmt.Sprintf("%d/%02d/%02d/", t.Year(), t.Month(), t.Day())
+		datePrefix := fmt.Sprintf("%d/%02d/%02d/", t.Year(), t.Month(), t.Day())
+		p = p + "/" + datePrefix
 	}
 
 	return p, nil
