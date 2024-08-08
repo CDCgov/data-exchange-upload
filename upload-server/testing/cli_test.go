@@ -473,7 +473,7 @@ func unmarshalReport(bytes []byte) (reports.Report, error) {
 }
 
 func appendReport(summary ReportFileSummary, r reports.Report) ReportFileSummary {
-	stageName := r.StageInfo.Stage
+	stageName := r.StageInfo.Action
 	s, ok := summary.Summaries[stageName]
 	if !ok {
 		summary.Summaries[stageName] = ReportSummary{

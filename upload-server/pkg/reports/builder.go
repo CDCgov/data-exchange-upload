@@ -2,11 +2,12 @@ package reports
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/version"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
-	"time"
 )
 
 const StageMetadataVerify = "metadata-verify"
@@ -67,7 +68,7 @@ func (r *Report) SetOrigMessage(_ *azservicebus.ReceivedMessage) {
 
 type ReportStageInfo struct {
 	Service          string        `json:"service"`
-	Stage            string        `json:"stage"`
+	Action           string        `json:"action"`
 	Version          string        `json:"version"`
 	Status           string        `json:"status"`
 	Issues           []ReportIssue `json:"issues"`
@@ -126,7 +127,7 @@ type UploadStatusContent struct {
 }
 
 type Builder[T any] interface {
-	SetStage(string) Builder[T]
+	SetAction(string) Builder[T]
 	SetUploadId(string) Builder[T]
 	SetManifest(map[string]string) Builder[T]
 	AppendIssue(ReportIssue) Builder[T]
@@ -138,10 +139,10 @@ type Builder[T any] interface {
 	Build() *Report
 }
 
-func NewBuilder[T any](version string, stage string, uploadId string, dispType string) Builder[T] {
+func NewBuilder[T any](version string, action string, uploadId string, dispType string) Builder[T] {
 	return &ReportBuilder[T]{
 		Version:         version,
-		Stage:           stage,
+		Action:          action,
 		UploadId:        uploadId,
 		DispositionType: dispType,
 		Status:          StatusSuccess,
@@ -150,10 +151,10 @@ func NewBuilder[T any](version string, stage string, uploadId string, dispType s
 	}
 }
 
-func NewBuilderWithManifest[T any](version string, stage string, uploadId string, manifest map[string]string, dispType string) Builder[T] {
+func NewBuilderWithManifest[T any](version string, action string, uploadId string, manifest map[string]string, dispType string) Builder[T] {
 	return &ReportBuilder[T]{
 		Version:         version,
-		Stage:           stage,
+		Action:          action,
 		UploadId:        uploadId,
 		Manifest:        manifest,
 		DispositionType: dispType,
@@ -164,7 +165,7 @@ func NewBuilderWithManifest[T any](version string, stage string, uploadId string
 }
 
 type ReportBuilder[T any] struct {
-	Stage           string
+	Action          string
 	Version         string
 	UploadId        string
 	Manifest        map[string]string
@@ -176,8 +177,8 @@ type ReportBuilder[T any] struct {
 	Content         T
 }
 
-func (b *ReportBuilder[T]) SetStage(s string) Builder[T] {
-	b.Stage = s
+func (b *ReportBuilder[T]) SetAction(s string) Builder[T] {
+	b.Action = s
 	return b
 }
 
@@ -240,7 +241,7 @@ func (b *ReportBuilder[T]) Build() *Report {
 			DispositionType:     b.DispositionType,
 			StageInfo: ReportStageInfo{
 				Issues:           b.Issues,
-				Stage:            b.Stage,
+				Action:           b.Action,
 				Service:          "UPLOAD API",
 				Version:          fmt.Sprintf("%s_%s", version.LatestReleaseVersion, version.GitShortSha),
 				Status:           b.Status,
