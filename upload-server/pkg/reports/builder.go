@@ -98,7 +98,6 @@ type FileCopyContent struct {
 	ReportContent
 	FileSourceBlobUrl      string `json:"file_source_blob_url"`
 	FileDestinationBlobUrl string `json:"file_destination_blob_url"`
-	Timestamp              string `json:"timestamp"`
 }
 
 type UploadStatusContent struct {

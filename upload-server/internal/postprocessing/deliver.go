@@ -133,7 +133,6 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 		},
 		FileSourceBlobUrl:      srcUrl,
 		FileDestinationBlobUrl: destUrl,
-		Timestamp:              "", // TODO.  Does PS API do this for us?
 	})
 
 	defer func() {
