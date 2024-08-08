@@ -119,7 +119,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		reports.StageUploadStatus,
 		uploadId,
 		manifest,
-		reports.DispositionTypeReplace).SetEndTime(time.Now().UTC()).SetStatus("success").SetContent(reports.UploadStatusContent{
+		reports.DispositionTypeReplace).SetEndTime(time.Now().UTC()).SetContent(reports.UploadStatusContent{
 		ReportContent: reports.ReportContent{
 			ContentSchemaVersion: "1.0.0",
 			ContentSchemaName:    reports.StageUploadStatus,
