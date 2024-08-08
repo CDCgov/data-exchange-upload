@@ -68,6 +68,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 			ContentSchemaVersion: "1.0.0",
 			ContentSchemaName:    reports.StageUploadStarted,
 		},
+		Status: reports.StatusSuccess,
 	}).Build()
 	reports.Publish(event.Context, report)
 
@@ -110,6 +111,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 			ContentSchemaVersion: "1.0.0",
 			ContentSchemaName:    reports.StageUploadCompleted,
 		},
+		Status: reports.StatusSuccess,
 	}).Build()
 	reports.Publish(event.Context, report)
 
