@@ -8,16 +8,18 @@ import (
 	"time"
 )
 
-const StageMetadataVerify = "dex-metadata-verify"
-const StageMetadataTransform = "dex-metadata-transform"
-const StageFileCopy = "dex-file-copy"
-const StageUploadStatus = "dex-upload-status"
-const StageUploadStarted = "dex-upload-started"
-const StageUploadCompleted = "dex-upload-completed"
+const StageMetadataVerify = "metadata-verify"
+const StageMetadataTransform = "metadata-transform"
+const StageFileCopy = "blob-file-copy"
+const StageUploadStatus = "upload-status"
+const StageUploadStarted = "upload-started"
+const StageUploadCompleted = "upload-completed"
 const DispositionTypeAdd = "add"
 const DispositionTypeReplace = "replace"
-const StatusSuccess = "success"
-const StatusFailed = "failed"
+const StatusSuccess = "SUCCESS"
+const StatusFailed = "FAILURE"
+const IssueLevelWarning = "WARNING"
+const IssueLevelError = "ERROR"
 
 type Report struct {
 	ReportSchemaVersion string          `json:"report_schema_version"`
@@ -46,7 +48,7 @@ func (r *Report) SetIdentifier(id string) {
 }
 
 func (r *Report) SetType(t string) {
-	r.StageInfo.Stage = t
+	r.StageInfo.Action = t
 }
 
 func (r *Report) SetOrigMessage(_ *azservicebus.ReceivedMessage) {
@@ -54,13 +56,18 @@ func (r *Report) SetOrigMessage(_ *azservicebus.ReceivedMessage) {
 }
 
 type ReportStageInfo struct {
-	Service          string   `json:"service"`
-	Stage            string   `json:"stage"`
-	Version          string   `json:"version"`
-	Status           string   `json:"status"`
-	Issues           []string `json:"issues"`
-	StartProcessTime string   `json:"start_process_time"`
-	EndProcessTime   string   `json:"end_process_time"`
+	Service          string        `json:"service"`
+	Action           string        `json:"action"`
+	Version          string        `json:"version"`
+	Status           string        `json:"status"`
+	Issues           []ReportIssue `json:"issues"`
+	StartProcessTime string        `json:"start_processing_time"`
+	EndProcessTime   string        `json:"end_processing_time"`
+}
+
+type ReportIssue struct {
+	Level   string `json:"level"`
+	Message string `json:"message"`
 }
 
 func (r *Report) Identifier() string {
@@ -68,8 +75,8 @@ func (r *Report) Identifier() string {
 }
 
 type ReportContent struct {
-	SchemaName    string `json:"schema_name"`
-	SchemaVersion string `json:"schema_version"`
+	ContentSchemaName    string `json:"content_schema_name"`
+	ContentSchemaVersion string `json:"content_schema_version"`
 }
 
 type BulkMetadataTransformReportContent struct {
@@ -98,22 +105,21 @@ type FileCopyContent struct {
 	ReportContent
 	FileSourceBlobUrl      string `json:"file_source_blob_url"`
 	FileDestinationBlobUrl string `json:"file_destination_blob_url"`
-	Timestamp              string `json:"timestamp"`
 }
 
 type UploadStatusContent struct {
 	ReportContent
 	Filename string `json:"filename"`
 	Tguid    string `json:"tguid"`
-	Offset   string `json:"offset"`
-	Size     string `json:"size"`
+	Offset   int64  `json:"offset"`
+	Size     int64  `json:"size"`
 }
 
 type Builder[T any] interface {
-	SetStage(string) Builder[T]
+	SetAction(string) Builder[T]
 	SetUploadId(string) Builder[T]
 	SetManifest(map[string]string) Builder[T]
-	AppendIssue(string) Builder[T]
+	AppendIssue(ReportIssue) Builder[T]
 	SetStatus(string) Builder[T]
 	SetStartTime(time.Time) Builder[T]
 	SetEndTime(time.Time) Builder[T]
@@ -122,10 +128,10 @@ type Builder[T any] interface {
 	Build() *Report
 }
 
-func NewBuilder[T any](version string, stage string, uploadId string, dispType string) Builder[T] {
+func NewBuilder[T any](version string, action string, uploadId string, dispType string) Builder[T] {
 	return &ReportBuilder[T]{
 		Version:         version,
-		Stage:           stage,
+		Action:          action,
 		UploadId:        uploadId,
 		DispositionType: dispType,
 		Status:          StatusSuccess,
@@ -134,10 +140,10 @@ func NewBuilder[T any](version string, stage string, uploadId string, dispType s
 	}
 }
 
-func NewBuilderWithManifest[T any](version string, stage string, uploadId string, manifest map[string]string, dispType string) Builder[T] {
+func NewBuilderWithManifest[T any](version string, action string, uploadId string, manifest map[string]string, dispType string) Builder[T] {
 	return &ReportBuilder[T]{
 		Version:         version,
-		Stage:           stage,
+		Action:          action,
 		UploadId:        uploadId,
 		Manifest:        manifest,
 		DispositionType: dispType,
@@ -148,11 +154,11 @@ func NewBuilderWithManifest[T any](version string, stage string, uploadId string
 }
 
 type ReportBuilder[T any] struct {
-	Stage           string
+	Action          string
 	Version         string
 	UploadId        string
 	Manifest        map[string]string
-	Issues          []string
+	Issues          []ReportIssue
 	Status          string
 	StartTime       time.Time
 	EndTime         time.Time
@@ -160,8 +166,8 @@ type ReportBuilder[T any] struct {
 	Content         T
 }
 
-func (b *ReportBuilder[T]) SetStage(s string) Builder[T] {
-	b.Stage = s
+func (b *ReportBuilder[T]) SetAction(s string) Builder[T] {
+	b.Action = s
 	return b
 }
 
@@ -180,7 +186,7 @@ func (b *ReportBuilder[T]) SetStatus(s string) Builder[T] {
 	return b
 }
 
-func (b *ReportBuilder[T]) AppendIssue(i string) Builder[T] {
+func (b *ReportBuilder[T]) AppendIssue(i ReportIssue) Builder[T] {
 	b.Issues = append(b.Issues, i)
 	return b
 }
@@ -220,7 +226,7 @@ func (b *ReportBuilder[T]) Build() *Report {
 			DispositionType:     b.DispositionType,
 			StageInfo: ReportStageInfo{
 				Issues:           b.Issues,
-				Stage:            b.Stage,
+				Action:           b.Action,
 				Service:          "UPLOAD API",
 				Version:          fmt.Sprintf("%s_%s", version.LatestReleaseVersion, version.GitShortSha),
 				Status:           b.Status,

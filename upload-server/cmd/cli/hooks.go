@@ -100,7 +100,7 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 		health.Register(routingDeliverer)
 	}
 
-	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadID, metadata.WithTimestamp, manifestValidator.Verify)
+	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, manifestValidator.Verify)
 	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
 	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
 	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append)
