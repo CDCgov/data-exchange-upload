@@ -138,7 +138,10 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 	defer func() {
 		if err != nil {
 			logger.Error("failed to copy file", "target", target)
-			rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error())
+			rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
+				Level:   reports.IssueLevelError,
+				Message: err.Error(),
+			})
 		}
 		report := rb.Build()
 		logger.Info("File Copy Report", "report", report)
