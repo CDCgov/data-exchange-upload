@@ -18,6 +18,8 @@ const DispositionTypeAdd = "add"
 const DispositionTypeReplace = "replace"
 const StatusSuccess = "SUCCESS"
 const StatusFailed = "FAILURE"
+const IssueLevelWarning = "WARNING"
+const IssueLevelError = "ERROR"
 
 type Report struct {
 	ReportSchemaVersion string          `json:"report_schema_version"`
@@ -54,13 +56,18 @@ func (r *Report) SetOrigMessage(_ *azservicebus.ReceivedMessage) {
 }
 
 type ReportStageInfo struct {
-	Service          string   `json:"service"`
-	Stage            string   `json:"stage"`
-	Version          string   `json:"version"`
-	Status           string   `json:"status"`
-	Issues           []string `json:"issues"`
-	StartProcessTime string   `json:"start_processing_time"`
-	EndProcessTime   string   `json:"end_processing_time"`
+	Service          string        `json:"service"`
+	Stage            string        `json:"stage"`
+	Version          string        `json:"version"`
+	Status           string        `json:"status"`
+	Issues           []ReportIssue `json:"issues"`
+	StartProcessTime string        `json:"start_processing_time"`
+	EndProcessTime   string        `json:"end_processing_time"`
+}
+
+type ReportIssue struct {
+	Level   string `json:"level"`
+	Message string `json:"message"`
 }
 
 func (r *Report) Identifier() string {
@@ -112,7 +119,7 @@ type Builder[T any] interface {
 	SetStage(string) Builder[T]
 	SetUploadId(string) Builder[T]
 	SetManifest(map[string]string) Builder[T]
-	AppendIssue(string) Builder[T]
+	AppendIssue(ReportIssue) Builder[T]
 	SetStatus(string) Builder[T]
 	SetStartTime(time.Time) Builder[T]
 	SetEndTime(time.Time) Builder[T]
@@ -151,7 +158,7 @@ type ReportBuilder[T any] struct {
 	Version         string
 	UploadId        string
 	Manifest        map[string]string
-	Issues          []string
+	Issues          []ReportIssue
 	Status          string
 	StartTime       time.Time
 	EndTime         time.Time
@@ -179,7 +186,7 @@ func (b *ReportBuilder[T]) SetStatus(s string) Builder[T] {
 	return b
 }
 
-func (b *ReportBuilder[T]) AppendIssue(i string) Builder[T] {
+func (b *ReportBuilder[T]) AppendIssue(i ReportIssue) Builder[T] {
 	b.Issues = append(b.Issues, i)
 	return b
 }
