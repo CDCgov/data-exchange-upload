@@ -10,14 +10,14 @@ import (
 
 const StageMetadataVerify = "metadata-verify"
 const StageMetadataTransform = "metadata-transform"
-const StageFileCopy = "file-copy"
+const StageFileCopy = "blob-file-copy"
 const StageUploadStatus = "upload-status"
 const StageUploadStarted = "upload-started"
 const StageUploadCompleted = "upload-completed"
 const DispositionTypeAdd = "add"
 const DispositionTypeReplace = "replace"
-const StatusSuccess = "success"
-const StatusFailed = "failed"
+const StatusSuccess = "SUCCESS"
+const StatusFailed = "FAILURE"
 
 type Report struct {
 	ReportSchemaVersion string          `json:"report_schema_version"`
@@ -59,8 +59,8 @@ type ReportStageInfo struct {
 	Version          string   `json:"version"`
 	Status           string   `json:"status"`
 	Issues           []string `json:"issues"`
-	StartProcessTime string   `json:"start_process_time"`
-	EndProcessTime   string   `json:"end_process_time"`
+	StartProcessTime string   `json:"start_processing_time"`
+	EndProcessTime   string   `json:"end_processing_time"`
 }
 
 func (r *Report) Identifier() string {
