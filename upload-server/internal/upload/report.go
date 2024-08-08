@@ -8,7 +8,6 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"log/slog"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -41,8 +40,8 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 		},
 		Filename: metadataPkg.GetFilename(uploadMetadata),
 		Tguid:    uploadId,
-		Offset:   strconv.FormatInt(uploadOffset, 10),
-		Size:     strconv.FormatInt(uploadSize, 10),
+		Offset:   uploadOffset,
+		Size:     uploadSize,
 	}).Build()
 
 	logger.Info("REPORT", "report", report)
@@ -84,8 +83,8 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		},
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,
-		Offset:   strconv.FormatInt(uploadOffset, 10),
-		Size:     strconv.FormatInt(uploadSize, 10),
+		Offset:   uploadOffset,
+		Size:     uploadSize,
 	}).Build()
 
 	logger.Info("REPORT upload-status", "report", report)
@@ -127,8 +126,8 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		},
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,
-		Offset:   strconv.FormatInt(uploadOffset, 10),
-		Size:     strconv.FormatInt(uploadSize, 10),
+		Offset:   uploadOffset,
+		Size:     uploadSize,
 	}).Build()
 
 	logger.Info("REPORT upload-status", "report", report)

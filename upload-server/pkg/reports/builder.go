@@ -122,8 +122,8 @@ type UploadStatusContent struct {
 	ReportContent
 	Filename string `json:"filename"`
 	Tguid    string `json:"tguid"`
-	Offset   string `json:"offset"`
-	Size     string `json:"size"`
+	Offset   int64  `json:"offset"`
+	Size     int64  `json:"size"`
 }
 
 type Builder[T any] interface {
