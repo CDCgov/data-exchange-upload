@@ -9,12 +9,12 @@ import (
 	"time"
 )
 
-const StageMetadataVerify = "dex-metadata-verify"
-const StageMetadataTransform = "dex-metadata-transform"
-const StageFileCopy = "dex-file-copy"
-const StageUploadStatus = "dex-upload-status"
-const StageUploadStarted = "dex-upload-started"
-const StageUploadCompleted = "dex-upload-completed"
+const StageMetadataVerify = "metadata-verify"
+const StageMetadataTransform = "metadata-transform"
+const StageFileCopy = "file-copy"
+const StageUploadStatus = "upload-status"
+const StageUploadStarted = "upload-started"
+const StageUploadCompleted = "upload-completed"
 const DispositionTypeAdd = "add"
 const DispositionTypeReplace = "replace"
 const StatusSuccess = "success"
