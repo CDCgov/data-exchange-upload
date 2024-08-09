@@ -7,8 +7,8 @@ import (
 )
 
 const FileReadyEventType = "FileReady"
-const MaxRetries = 3
 
+var MaxRetries int
 var FileReadyChan chan *FileReady
 
 type Retryable interface {
