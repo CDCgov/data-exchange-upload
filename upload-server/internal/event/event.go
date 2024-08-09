@@ -7,11 +7,18 @@ import (
 )
 
 const FileReadyEventType = "FileReady"
+const MaxRetries = 3
 
 var FileReadyChan chan *FileReady
 
+type Retryable interface {
+	RetryCount() int
+	IncrementRetryCount()
+}
+
 // TODO better name for this interface would be Subscribable or Queueable or similar
 type Identifiable interface {
+	Retryable
 	Identifier() string
 	Type() string
 	OrigMessage() *azservicebus.ReceivedMessage
@@ -21,8 +28,9 @@ type Identifiable interface {
 }
 
 type Event struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
+	ID         string `json:"id"`
+	Type       string `json:"type"`
+	RetryCount int    `json:"retry_count"`
 }
 
 type FileReady struct {
@@ -32,6 +40,14 @@ type FileReady struct {
 	DestinationTarget string `json:"deliver_target"`
 	Metadata          map[string]string
 	OriginalMessage   *azservicebus.ReceivedMessage `json:"-"`
+}
+
+func (fr *FileReady) RetryCount() int {
+	return fr.Event.RetryCount
+}
+
+func (fr *FileReady) IncrementRetryCount() {
+	fr.Event.RetryCount++
 }
 
 func (fr *FileReady) Type() string {
