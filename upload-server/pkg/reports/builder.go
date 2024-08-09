@@ -3,6 +3,7 @@ package reports
 import (
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/version"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"time"
@@ -20,6 +21,7 @@ const StatusSuccess = "success"
 const StatusFailed = "failed"
 
 type Report struct {
+	Event               event.Event     `json:"-"`
 	ReportSchemaVersion string          `json:"report_schema_version"`
 	UploadID            string          `json:"upload_id"`
 	SenderID            string          `json:"sender_id"`
@@ -33,8 +35,16 @@ type Report struct {
 	Content             any             `json:"content"` // TODO: Can we limit this to a specific type (i.e. ReportContent or UploadStatusTYpe type?
 }
 
+func (r *Report) RetryCount() int {
+	return r.Event.RetryCount
+}
+
+func (r *Report) IncrementRetryCount() {
+	r.Event.RetryCount++
+}
+
 func (r *Report) Type() string {
-	return "Report"
+	return r.Event.Type
 }
 
 func (r *Report) OrigMessage() *azservicebus.ReceivedMessage {
@@ -42,11 +52,11 @@ func (r *Report) OrigMessage() *azservicebus.ReceivedMessage {
 }
 
 func (r *Report) SetIdentifier(id string) {
-	r.UploadID = id
+	r.Event.ID = id
 }
 
 func (r *Report) SetType(t string) {
-	r.StageInfo.Stage = t
+	r.Event.Type = t
 }
 
 func (r *Report) SetOrigMessage(_ *azservicebus.ReceivedMessage) {
@@ -209,6 +219,10 @@ func (b *ReportBuilder[T]) Build() *Report {
 	switch b.Version {
 	default:
 		return &Report{
+			Event: event.Event{
+				Type: "Report",
+				ID:   b.UploadId,
+			},
 			ReportSchemaVersion: b.Version,
 			UploadID:            b.UploadId,
 			SenderID:            metadata.GetSenderId(b.Manifest),

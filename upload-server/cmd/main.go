@@ -87,6 +87,7 @@ func main() {
 	logger.Info("starting app")
 
 	// Pub Sub
+	event.MaxRetries = appConfig.EventMaxRetryCount
 	// initialize event reporter
 	err := cli.InitReporters(ctx, appConfig)
 	defer reports.DefaultReporter.Close()

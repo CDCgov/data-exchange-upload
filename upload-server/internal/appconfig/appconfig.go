@@ -41,7 +41,8 @@ type AppConfig struct {
 	// Server
 	ServerPort string `env:"SERVER_PORT, default=8080"`
 	//QUESTION: this is arbitrary so is it useful?
-	Environment string `env:"ENVIRONMENT, default=DEV"`
+	Environment        string `env:"ENVIRONMENT, default=DEV"`
+	EventMaxRetryCount int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
 
 	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
 
