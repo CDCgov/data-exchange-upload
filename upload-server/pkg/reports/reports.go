@@ -20,7 +20,12 @@ func init() {
 }
 
 func Publish(ctx context.Context, r *Report) {
-	if err := DefaultReporter.Publish(ctx, r); err != nil {
+	err := DefaultReporter.Publish(ctx, r)
+	if err != nil {
 		logger.Error("Failed to report", "report", r, "reporter", DefaultReporter, "err", err)
+		if r.RetryCount() < event.MaxRetries {
+			r.IncrementRetryCount()
+			Publish(ctx, r)
+		}
 	}
 }
