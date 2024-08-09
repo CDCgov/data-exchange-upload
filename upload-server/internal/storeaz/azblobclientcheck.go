@@ -3,7 +3,6 @@ package storeaz
 import (
 	"context"
 	"errors"
-
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
@@ -27,7 +26,7 @@ func NewAzureHealthCheck(conf *azurestore.AzConfig) (*AzureBlobHealthCheck, erro
 
 // TODO Health check that uses service principle.  Maybe don't need this if lower function handles it.
 
-func (c *AzureBlobHealthCheck) Health(ctx context.Context) models.ServiceHealthResp {
+func (c *AzureBlobHealthCheck) Health(_ context.Context) models.ServiceHealthResp {
 	return checkAzBlobClient(tusPrefix, c.client)
 }
 
