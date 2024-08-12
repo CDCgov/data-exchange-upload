@@ -252,7 +252,7 @@ func TestGetFileDeliveryPrefixRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
+	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"] + "/"
 
 	if p != expectedFolderPrefix {
 		t.Error("expected file delivery prefix to be folder prefix but was", p)
