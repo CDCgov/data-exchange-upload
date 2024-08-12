@@ -128,18 +128,20 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 	}
 	rb.SetContent(reports.FileCopyContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageFileCopy,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageFileCopy,
 		},
 		FileSourceBlobUrl:      srcUrl,
 		FileDestinationBlobUrl: destUrl,
-		Timestamp:              "", // TODO.  Does PS API do this for us?
 	})
 
 	defer func() {
 		if err != nil {
 			logger.Error("failed to copy file", "target", target)
-			rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error())
+			rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
+				Level:   reports.IssueLevelError,
+				Message: err.Error(),
+			})
 		}
 		report := rb.Build()
 		logger.Info("File Copy Report", "report", report)

@@ -438,12 +438,12 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 	}
 
 	trackedStages := []string{
-		"dex-metadata-verify",
-		"dex-metadata-transform",
-		"dex-upload-status",
-		"dex-upload-started",
-		"dex-upload-complete",
-		"dex-file-copy",
+		reports.StageMetadataVerify,
+		reports.StageMetadataTransform,
+		reports.StageUploadCompleted,
+		reports.StageUploadStarted,
+		reports.StageUploadStatus,
+		reports.StageFileCopy,
 	}
 
 	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
@@ -473,7 +473,7 @@ func unmarshalReport(bytes []byte) (reports.Report, error) {
 }
 
 func appendReport(summary ReportFileSummary, r reports.Report) ReportFileSummary {
-	stageName := r.StageInfo.Stage
+	stageName := r.StageInfo.Action
 	s, ok := summary.Summaries[stageName]
 	if !ok {
 		summary.Summaries[stageName] = ReportSummary{
