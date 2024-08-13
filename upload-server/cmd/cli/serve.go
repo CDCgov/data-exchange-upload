@@ -36,26 +36,22 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	}
 
 	// initialize locker
-	var locker handlertusd.Locker
+	var locker handlertusd.Locker = memorylocker.New()
 	if appConfig.TusRedisLockURI != "" {
 		var err error
 		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))
 		if err != nil {
 			logger.Error("failed to configure Redis locker, defaulting to in-memory locker", "error", err)
+			return nil, err
 		}
 
 		// configure redislocker health check
 		redisLockerHealth, err := redislockerhealth.New(appConfig.TusRedisLockURI)
 		if err != nil {
 			logger.Error("failed to configure Redis locker health check, skipping check", "error", err)
-		} else {
-			health.Register(redisLockerHealth)
+			return nil, err
 		}
-	}
-
-	if locker == nil {
-		logger.Info("using in memory file locker")
-		locker = memorylocker.New()
+		health.Register(redisLockerHealth)
 	}
 
 	// get and initialize tusd hook handlers
