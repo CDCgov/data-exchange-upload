@@ -344,5 +344,5 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 		}
 	}
 
-	return prefix + blobName, nil
+	return filepath.Join(prefix, blobName), nil
 }

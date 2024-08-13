@@ -20,6 +20,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -225,8 +226,8 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	prefixTokens := strings.Split(p, "/")
-	if len(prefixTokens) != 5 {
+	prefixTokens := strings.Split(p, string(filepath.Separator))
+	if len(prefixTokens) != 4 {
 		t.Error("prefix not properly formatted", p)
 	}
 	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
@@ -252,7 +253,7 @@ func TestGetFileDeliveryPrefixRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"] + "/"
+	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
 
 	if p != expectedFolderPrefix {
 		t.Error("expected file delivery prefix to be folder prefix but was", p)

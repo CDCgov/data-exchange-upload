@@ -124,13 +124,13 @@ func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, 
 	ds := metadata.GetDataStreamID(manifest)
 	r := metadata.GetDataStreamRoute(manifest)
 
-	p := ds + "-" + r + "/"
+	p := ds + "-" + r
 
 	if config.Copy.FolderStructure == FolderStructureDate {
 		// Get UTC year, month, and day
 		t := time.Now().UTC()
-		datePrefix := fmt.Sprintf("%d/%02d/%02d/", t.Year(), t.Month(), t.Day())
-		p = p + datePrefix
+		datePrefix := fmt.Sprintf("%d/%02d/%02d", t.Year(), t.Month(), t.Day())
+		p = filepath.Join(p, datePrefix)
 	}
 
 	return p, nil
