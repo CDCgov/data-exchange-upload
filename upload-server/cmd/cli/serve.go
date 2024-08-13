@@ -36,7 +36,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	}
 
 	// initialize locker
-	var locker handlertusd.Locker = memorylocker.New()
+	var locker handlertusd.Locker
 	if appConfig.TusRedisLockURI != "" {
 		var err error
 		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))
@@ -51,6 +51,11 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		} else {
 			health.Register(redisLockerHealth)
 		}
+	}
+
+	if locker == nil {
+		logger.Info("using in memory file locker")
+		locker = memorylocker.New()
 	}
 
 	// get and initialize tusd hook handlers
