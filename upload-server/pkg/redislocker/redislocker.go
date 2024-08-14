@@ -58,13 +58,8 @@ func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
 	}
 	client := redis.NewClient(connection)
 
-	rsm := &RedSyncMutex{
-		conn: connection,
-	}
-
 	locker := &RedisLocker{
-		CreateMutex: rsm.CreateMutex,
-		redis:       client,
+		redis: client,
 	}
 
 	for _, option := range defaultOpts {
@@ -73,6 +68,10 @@ func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
 
 	for _, option := range lockerOptions {
 		option(locker)
+	}
+
+	if locker.CreateMutex == nil || locker.logger == nil {
+		return nil, fmt.Errorf("missing required properties for locker %v", *locker)
 	}
 
 	return locker, nil
