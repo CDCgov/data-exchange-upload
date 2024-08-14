@@ -125,7 +125,6 @@ func (locker *RedisLocker) UseIn(composer *handler.StoreComposer) {
 }
 
 func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {
-	//mutex := locker.rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
 	mutex := locker.CreateMutex(id)
 	return &redisLock{
 		id:    id,
