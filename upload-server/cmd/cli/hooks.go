@@ -2,9 +2,12 @@ package cli
 
 import (
 	"context"
+	"errors"
+	"os"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
-	"os"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	azureloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/azure"
@@ -13,6 +16,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
+	"github.com/tus/tusd/v2/pkg/handler"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
@@ -103,10 +107,40 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, manifestValidator.Verify)
 	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
 	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
-	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append)
+	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append, ManifestCounter)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
 	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook())
 
 	return handler, nil
+}
+
+func ManifestCounter(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error) {
+	key := "data_stream_id"
+	val, ok := event.Upload.MetaData[key]
+	if !ok {
+		val, ok = resp.ChangeFileInfo.MetaData[key]
+		if !ok {
+			// no op.. should be something else
+			return resp, nil
+		}
+	}
+	reqCounter := prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "files_uploaded_for",
+		Name:      val + "_count",
+		Help:      "The total number of requests served.",
+	})
+	if err := prometheus.Register(reqCounter); err != nil {
+		are := &prometheus.AlreadyRegisteredError{}
+		if errors.As(err, are) {
+			// A counter for that metric has been registered before.
+			// Use the old counter from now on.
+			reqCounter = are.ExistingCollector.(prometheus.Counter)
+		} else {
+			// Something else went wrong!
+			return resp, nil
+		}
+	}
+	reqCounter.Inc()
+	return resp, nil
 }
