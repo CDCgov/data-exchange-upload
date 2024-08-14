@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -110,9 +109,23 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append, ManifestCounter)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
+
 	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook())
 
 	return handler, nil
+}
+
+// todo: structure this to make it work with a config for manifest fields
+var httpReqs = prometheus.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "uploads_by_datastream",
+		Help: "How many uploads were completed for a datastream",
+	},
+	[]string{"data_stream"},
+)
+
+func init() {
+	prometheus.MustRegister(httpReqs)
 }
 
 func ManifestCounter(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error) {
@@ -125,22 +138,6 @@ func ManifestCounter(event handler.HookEvent, resp tusHooks.HookResponse) (tusHo
 			return resp, nil
 		}
 	}
-	reqCounter := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "files_uploaded_for",
-		Name:      val + "_count",
-		Help:      "The total number of requests served.",
-	})
-	if err := prometheus.Register(reqCounter); err != nil {
-		are := &prometheus.AlreadyRegisteredError{}
-		if errors.As(err, are) {
-			// A counter for that metric has been registered before.
-			// Use the old counter from now on.
-			reqCounter = are.ExistingCollector.(prometheus.Counter)
-		} else {
-			// Something else went wrong!
-			return resp, nil
-		}
-	}
-	reqCounter.Inc()
+	httpReqs.WithLabelValues(val).Add(1)
 	return resp, nil
 }
