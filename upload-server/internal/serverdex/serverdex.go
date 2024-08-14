@@ -17,6 +17,19 @@ var metricsOpenConnections = prometheus.NewGauge(prometheus.GaugeOpts{
 	Help: "Current number of server open connections.",
 }) // .metricsOpenConnections
 
+var httpReqs = prometheus.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "http_requests_total",
+		Help: "How many HTTP requests processed, partitioned by status code and HTTP method.",
+	},
+	[]string{"code", "method"},
+)
+
+func init() {
+	prometheus.MustRegister(metricsOpenConnections)
+	prometheus.MustRegister(httpReqs)
+}
+
 // ServerDex, main Upload Api server, handles requests to both tusd handler and dex handler
 type ServerDex struct {
 	AppConfig appconfig.AppConfig
@@ -43,7 +56,6 @@ func New(appConfig appconfig.AppConfig) (ServerDex, error) {
 // HttpServer, adds the routes for the tusd and dex handlers and can customize the server with port address
 func (sd *ServerDex) HttpServer() http.Server {
 
-	prometheus.MustRegister(metricsOpenConnections)
 	// --------------------------------------------------------------
 	// 		Custom Server, if needed to customize
 	// --------------------------------------------------------------
@@ -59,7 +71,28 @@ func (sd *ServerDex) HttpServer() http.Server {
 				metricsOpenConnections.Dec()
 			} // .switch
 		},
+		Handler: TrackHTTPCodes(http.DefaultServeMux),
 		// etc...
 
 	} // .httpServer
 } // .HttpServer
+
+type codedResponseWriter struct {
+	http.ResponseWriter
+	code string
+}
+
+func (c *codedResponseWriter) WriteHeader(statusCode int) {
+	c.code = http.StatusText(statusCode)
+	c.ResponseWriter.WriteHeader(statusCode)
+}
+
+func TrackHTTPCodes(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ww := &codedResponseWriter{
+			ResponseWriter: w,
+		}
+		handler.ServeHTTP(ww, r)
+		httpReqs.WithLabelValues(ww.code, r.Method).Inc()
+	})
+}
