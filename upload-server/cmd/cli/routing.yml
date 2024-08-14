@@ -1,0 +1,17 @@
+delivery:
+  - name: "edav"
+    system: "s3"
+    connection: 
+      connections_string: "<whatever>"
+      bucket_name: "edav"
+    manifest_conditions:
+      - key: "data_stream_id"
+        value: "dextesting"
+      - key: "data_stream_route"
+        value: "testevent1"
+  - name: "routing"
+    system: "file"
+    folder: "routing"
+    manifest_conditions:
+      - key: "data_stream_id"
+        value: "dextesting"
