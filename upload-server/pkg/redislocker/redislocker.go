@@ -28,32 +28,68 @@ func WithLogger(logger *slog.Logger) LockerOption {
 	}
 }
 
+func WithMutexCreator(uri string) (LockerOption, error) {
+	connection, err := redis.ParseURL(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	rsm := &RedSyncMutex{
+		conn: connection,
+	}
+
+	return func(l *RedisLocker) {
+		l.CreateMutex = rsm.CreateMutex
+	}, nil
+}
+
 func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
+	defaultCreator, err := WithMutexCreator(uri)
+	if err != nil {
+		return nil, err
+	}
+	defaultOpts := []LockerOption{
+		WithLogger(slog.Default()), defaultCreator,
+	}
+
 	connection, err := redis.ParseURL(uri)
 	if err != nil {
 		return nil, err
 	}
 	client := redis.NewClient(connection)
-	if res := client.Ping(context.Background()); res.Err() != nil {
-		return nil, res.Err()
+
+	rsm := &RedSyncMutex{
+		conn: connection,
 	}
 
 	locker := &RedisLocker{
-		CreateMutex: func(id string) MutexLock {
-			rs := redsync.New(goredis.NewPool(client))
-			return rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
-		},
-		redis: client,
+		CreateMutex: rsm.CreateMutex,
+		redis:       client,
 	}
+
+	for _, option := range defaultOpts {
+		option(locker)
+	}
+
 	for _, option := range lockerOptions {
 		option(locker)
 	}
-	//defaults
-	if locker.logger == nil {
-		locker.logger = slog.Default()
-	}
 
 	return locker, nil
+}
+
+type RedSyncMutex struct {
+	rs   *redsync.Redsync
+	conn *redis.Options
+}
+
+func (rsm *RedSyncMutex) CreateMutex(id string) MutexLock {
+	// Recreate client if the pool lost connection.
+	if rsm.rs == nil {
+		client := redis.NewClient(rsm.conn)
+		rsm.rs = redsync.New(goredis.NewPool(client))
+	}
+	return rsm.rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
 }
 
 type LockExchange interface {
