@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"log/slog"
 	"time"
 
@@ -36,10 +37,12 @@ func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
 	if res := client.Ping(context.Background()); res.Err() != nil {
 		return nil, res.Err()
 	}
-	rs := redsync.New(goredis.NewPool(client))
 
 	locker := &RedisLocker{
-		rs:    rs,
+		CreateMutex: func(id string) MutexLock {
+			rs := redsync.New(goredis.NewPool(client))
+			return rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
+		},
 		redis: client,
 	}
 	for _, option := range lockerOptions {
@@ -103,10 +106,18 @@ func (e *RedisLockExchange) Release(ctx context.Context, id string) error {
 	return res.Err()
 }
 
+type MutexLock interface {
+	TryLockContext(context.Context) error
+	ExtendContext(context.Context) (bool, error)
+	UnlockContext(context.Context) (bool, error)
+	Until() time.Time
+}
+
 type RedisLocker struct {
-	rs     *redsync.Redsync
-	redis  *redis.Client
-	logger *slog.Logger
+	//rs          *redsync.Redsync
+	CreateMutex func(id string) MutexLock
+	redis       *redis.Client
+	logger      *slog.Logger
 }
 
 func (locker *RedisLocker) UseIn(composer *handler.StoreComposer) {
@@ -114,7 +125,8 @@ func (locker *RedisLocker) UseIn(composer *handler.StoreComposer) {
 }
 
 func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {
-	mutex := locker.rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
+	//mutex := locker.rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
+	mutex := locker.CreateMutex(id)
 	return &redisLock{
 		id:    id,
 		mutex: mutex,
@@ -125,9 +137,29 @@ func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {
 	}, nil
 }
 
+func (locker *RedisLocker) Health(_ context.Context) models.ServiceHealthResp {
+	var shr models.ServiceHealthResp
+	shr.Service = models.REDIS_LOCKER
+
+	// Ping redis service
+	client := locker.redis
+	if res := client.Ping(context.Background()); res.Err() != nil {
+		return models.ServiceHealthResp{
+			Service:     models.REDIS_LOCKER,
+			Status:      models.STATUS_DOWN,
+			HealthIssue: res.Err().Error(),
+		}
+	}
+
+	// all good
+	shr.Status = models.STATUS_UP
+	shr.HealthIssue = models.HEALTH_ISSUE_NONE
+	return shr
+}
+
 type redisLock struct {
 	id       string
-	mutex    *redsync.Mutex
+	mutex    MutexLock
 	ctx      context.Context
 	cancel   func()
 	exchange BidirectionalLockExchange
