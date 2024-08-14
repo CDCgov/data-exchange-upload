@@ -104,9 +104,9 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 	}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, manifestValidator.Verify)
-	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
+	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted, ActiveUploadInc)
 	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
-	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append, ManifestCounter)
+	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append, ManifestCounter, ActiveUploadDec)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
 
@@ -115,8 +115,27 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 	return handler, nil
 }
 
+// todo this could also be a vec per datastream
+var activeUploads = prometheus.NewGauge(prometheus.GaugeOpts{
+	Name: "dex_server_active_uploads",
+	Help: "Current number of active uploads",
+}) // .metricsOpenConnections
+
+func init() {
+	prometheus.MustRegister(activeUploads)
+}
+
+func ActiveUploadInc(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error) {
+	activeUploads.Inc()
+	return resp, nil
+}
+func ActiveUploadDec(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error) {
+	activeUploads.Dec()
+	return resp, nil
+}
+
 // todo: structure this to make it work with a config for manifest fields
-var httpReqs = prometheus.NewCounterVec(
+var dataStreamUploads = prometheus.NewCounterVec(
 	prometheus.CounterOpts{
 		Name: "uploads_by_datastream",
 		Help: "How many uploads were completed for a datastream",
@@ -125,7 +144,7 @@ var httpReqs = prometheus.NewCounterVec(
 )
 
 func init() {
-	prometheus.MustRegister(httpReqs)
+	prometheus.MustRegister(dataStreamUploads)
 }
 
 func ManifestCounter(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error) {
@@ -138,6 +157,6 @@ func ManifestCounter(event handler.HookEvent, resp tusHooks.HookResponse) (tusHo
 			return resp, nil
 		}
 	}
-	httpReqs.WithLabelValues(val).Add(1)
+	dataStreamUploads.WithLabelValues(val).Add(1)
 	return resp, nil
 }
