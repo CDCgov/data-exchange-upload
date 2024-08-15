@@ -3,6 +3,8 @@ package cli
 import (
 	"context"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
 	"os"
 
@@ -81,17 +83,35 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 				health.Register(routingDeliverer)
 			}
 		}
-	} else {
+	}
+
+	if appConfig.S3Connection != nil {
+		client, err := stores3.New(ctx, appConfig.S3Connection)
+		if err != nil {
+			return nil, err
+		}
+		metadata.Cache.Loader = &loaders.S3ConfigLoader{
+			Client:     client,
+			BucketName: appConfig.S3ManifestConfigBucket,
+		}
+	}
+
+	if metadataAppender == nil {
 		metadataAppender = &metadata.FileMetadataAppender{
 			Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
 		}
+	}
 
+	if edavDeliverer == nil {
 		edavDeliverer, err := postprocessing.NewFileDeliverer(ctx, "edav", &appConfig)
 		if err != nil {
 			return nil, err
 		}
 		postprocessing.RegisterTarget("edav", edavDeliverer)
 		health.Register(edavDeliverer)
+	}
+
+	if routingDeliverer == nil {
 		routingDeliverer, err := postprocessing.NewFileDeliverer(ctx, "routing", &appConfig)
 		if err != nil {
 			return nil, err
