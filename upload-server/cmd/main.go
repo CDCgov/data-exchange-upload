@@ -3,9 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"log/slog"
 	"net/http"
 	"os"
@@ -16,9 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/serverdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
 	"github.com/joho/godotenv"
@@ -115,7 +116,7 @@ func main() {
 	}()
 
 	// start serving the app
-	_, err = cli.Serve(ctx, appConfig)
+	handler, err := cli.Serve(ctx, appConfig)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
@@ -123,20 +124,16 @@ func main() {
 
 	logger.Info("http handlers ready")
 	// ------------------------------------------------------------------
-	// create dex server, includes dex handler
-	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(appConfig)
-	if err != nil {
-		logger.Error("error starting app, error initialize dex server", "error", err)
-		os.Exit(appMainExitCode)
-	} // .if
-
-	logger.Info("http server ready")
-
-	// ------------------------------------------------------------------
 	// Start http custom server
 	// ------------------------------------------------------------------
-	httpServer := serverDex.HttpServer()
+	httpServer := http.Server{
+
+		Addr: ":" + appConfig.ServerPort,
+
+		Handler: metrics.TrackHTTP(handler),
+		// etc...
+
+	} // .httpServer
 
 	mainWaitGroup.Add(1)
 	go func() {
