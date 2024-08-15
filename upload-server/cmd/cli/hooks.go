@@ -6,7 +6,6 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	azureloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/azure"
@@ -15,21 +14,19 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
-	"github.com/tus/tusd/v2/pkg/handler"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
-	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
 
-func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
-	if Flags.FileHooksDir != "" {
-		return &file.FileHook{
-			Directory: Flags.FileHooksDir,
-		}, nil
-	}
+type RegisterableHookHandler interface {
+	tusHooks.HookHandler
+	Register(t tusHooks.HookType, hookFuncs ...prebuilthooks.HookHandlerFunc)
+}
+
+func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig) (RegisterableHookHandler, error) {
 	return PrebuiltHooks(ctx, appConfig)
 }
 
-func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
+func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (RegisterableHookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	metadata.Cache = &metadata.ConfigCache{
@@ -104,59 +101,13 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 	}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, manifestValidator.Verify)
-	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted, ActiveUploadInc)
+	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
 	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
-	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append, ManifestCounter, ActiveUploadDec)
+	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
 
 	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook())
 
 	return handler, nil
-}
-
-// todo this could also be a vec per datastream
-var activeUploads = prometheus.NewGauge(prometheus.GaugeOpts{
-	Name: "dex_server_active_uploads",
-	Help: "Current number of active uploads",
-}) // .metricsOpenConnections
-
-func init() {
-	prometheus.MustRegister(activeUploads)
-}
-
-func ActiveUploadInc(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error) {
-	activeUploads.Inc()
-	return resp, nil
-}
-func ActiveUploadDec(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error) {
-	activeUploads.Dec()
-	return resp, nil
-}
-
-// todo: structure this to make it work with a config for manifest fields
-var dataStreamUploads = prometheus.NewCounterVec(
-	prometheus.CounterOpts{
-		Name: "uploads_by_datastream",
-		Help: "How many uploads were completed for a datastream",
-	},
-	[]string{"data_stream"},
-)
-
-func init() {
-	prometheus.MustRegister(dataStreamUploads)
-}
-
-func ManifestCounter(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error) {
-	key := "data_stream_id"
-	val, ok := event.Upload.MetaData[key]
-	if !ok {
-		val, ok = resp.ChangeFileInfo.MetaData[key]
-		if !ok {
-			// no op.. should be something else
-			return resp, nil
-		}
-	}
-	dataStreamUploads.WithLabelValues(val).Add(1)
-	return resp, nil
 }

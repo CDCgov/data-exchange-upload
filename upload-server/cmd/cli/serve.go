@@ -2,18 +2,20 @@ package cli
 
 import (
 	"context"
+	"net/http"
+	"strings"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
-	"net/http"
-	"strings"
 )
 
 func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
@@ -53,12 +55,20 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		}
 	}
 
+	manifestMetrics := metrics.NewManifestMetrics(
+		"upload_manifest_count",
+		"The count of uploads by certain keys in the manifiest",
+		appConfig.Metrics.LabelsFromManifest...)
+	setupMetrics(manifestMetrics.Counter)
+
 	// get and initialize tusd hook handlers
 	hookHandler, err := GetHookHandler(ctx, appConfig)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
 	}
+	hookHandler.Register(hooks.HookPostCreate, metrics.ActiveUploadIncHook)
+	hookHandler.Register(hooks.HookPreFinish, manifestMetrics.Hook, metrics.ActiveUploadDecHook)
 
 	// initialize tusd handler
 	handlerTusd, err := handlertusd.New(store, locker, hookHandler, appConfig.TusdHandlerBasePath)
@@ -84,9 +94,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	// --------------------------------------------------------------
 	// 	Prometheus metrics handler for /metrics
 	// --------------------------------------------------------------
-	hooks.SetupHookMetrics()
 	http.Handle("/metrics", promhttp.Handler())
-	setupMetrics()
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
 	http.Handle("/version", &VersionHandler{})
