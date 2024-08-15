@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
@@ -88,8 +87,8 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	http.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
 
 	// initialize and route handler for DEX
-	handlerDex := handlerdex.New(appConfig)
-	http.Handle("/", handlerDex)
+	http.Handle("/", appconfig.Handler())
+	http.Handle("/health", health.Handler())
 
 	// --------------------------------------------------------------
 	// 	Prometheus metrics handler for /metrics
