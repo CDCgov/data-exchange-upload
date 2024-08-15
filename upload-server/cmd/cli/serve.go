@@ -7,6 +7,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
@@ -54,6 +55,11 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		}
 	}
 
+	err = postprocessing.RegisterAllTargets(ctx, appConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	// Must be called before hook handler
 	err = metadata.InitConfigCache(ctx, appConfig)
 	if err != nil {
@@ -61,7 +67,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	}
 
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(ctx, appConfig)
+	hookHandler, err := GetHookHandler(appConfig)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
