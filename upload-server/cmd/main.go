@@ -87,6 +87,7 @@ func main() {
 	logger.Info("starting app")
 
 	// Pub Sub
+	event.MaxRetries = appConfig.EventMaxRetryCount
 	// initialize event reporter
 	err := cli.InitReporters(ctx, appConfig)
 	defer reports.DefaultReporter.Close()
@@ -94,12 +95,12 @@ func main() {
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
 
-	fileReadyPublisher, err := event.NewEventPublisher[*event.FileReady](ctx, appConfig)
+	err = event.InitFileReadyPublisher(ctx, appConfig)
+	defer event.FileReadyPublisher.Close()
 	if err != nil {
 		logger.Error("error creating file ready publisher", "error", err)
 		os.Exit(appMainExitCode)
 	}
-	defer fileReadyPublisher.Close()
 
 	mainWaitGroup.Add(1)
 	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
@@ -114,7 +115,7 @@ func main() {
 	}()
 
 	// start serving the app
-	_, err = cli.Serve(ctx, appConfig, fileReadyPublisher)
+	_, err = cli.Serve(ctx, appConfig)
 	if err != nil {
 		logger.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)

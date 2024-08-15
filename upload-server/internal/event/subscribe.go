@@ -46,7 +46,13 @@ func (ms *MemorySubscriber[T]) HandleSuccess(_ context.Context, e T) error {
 
 func (ms *MemorySubscriber[T]) HandleError(_ context.Context, e T, err error) error {
 	logger.Error("failed to handle event", "event", e, "error", err.Error())
-	ms.Chan <- e
+	if e.RetryCount() < MaxRetries {
+		e.IncrementRetryCount()
+		// Retrying in a separate go routine so this doesn't block on channel write.
+		go func() {
+			ms.Chan <- e
+		}()
+	}
 	return nil
 }
 

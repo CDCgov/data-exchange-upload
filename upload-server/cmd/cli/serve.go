@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -17,13 +16,13 @@ import (
 	"strings"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyPublisher event.Publisher[*event.FileReady]) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
 
 	// create and register data store
-	store, storeHealthCheck, err := GetDataStore(appConfig)
+	store, storeHealthCheck, err := GetDataStore(ctx, appConfig)
 	if err != nil {
 		logger.Error("error starting app, error configuring storage", "error", err)
 		return nil, err
@@ -55,7 +54,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyPublishe
 	}
 
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(ctx, appConfig, fileReadyPublisher)
+	hookHandler, err := GetHookHandler(ctx, appConfig)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
@@ -91,6 +90,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, fileReadyPublishe
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
 	http.Handle("/version", &VersionHandler{})
+	http.Handle("/route/{UploadID}", &Router{})
 
 	return http.DefaultServeMux, nil
 }

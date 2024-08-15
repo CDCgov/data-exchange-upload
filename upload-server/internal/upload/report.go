@@ -8,7 +8,6 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"log/slog"
 	"reflect"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -29,20 +28,20 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	report := reports.NewBuilder[reports.UploadStatusContent](
+	report := reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
 		reports.StageUploadStatus,
 		uploadId,
 		uploadMetadata,
 		reports.DispositionTypeReplace).SetContent(reports.UploadStatusContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadStatus,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadStatus,
 		},
 		Filename: metadataPkg.GetFilename(uploadMetadata),
 		Tguid:    uploadId,
-		Offset:   strconv.FormatInt(uploadOffset, 10),
-		Size:     strconv.FormatInt(uploadSize, 10),
+		Offset:   uploadOffset,
+		Size:     uploadSize,
 	}).Build()
 
 	logger.Info("REPORT", "report", report)
@@ -58,33 +57,34 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload started")
 
-	report := reports.NewBuilder[reports.UploadLifecycleContent](
+	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
 		reports.StageUploadStarted,
 		uploadId,
 		manifest,
 		reports.DispositionTypeAdd).SetContent(reports.UploadLifecycleContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadStarted,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadStarted,
 		},
+		Status: reports.StatusSuccess,
 	}).Build()
 	reports.Publish(event.Context, report)
 
-	report = reports.NewBuilder[reports.UploadStatusContent](
+	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
 		reports.StageUploadStatus,
 		uploadId,
 		manifest,
 		reports.DispositionTypeReplace).SetStartTime(time.Now().UTC()).SetContent(reports.UploadStatusContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadStatus,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadStatus,
 		},
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,
-		Offset:   strconv.FormatInt(uploadOffset, 10),
-		Size:     strconv.FormatInt(uploadSize, 10),
+		Offset:   uploadOffset,
+		Size:     uploadSize,
 	}).Build()
 
 	logger.Info("REPORT upload-status", "report", report)
@@ -100,33 +100,34 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	uploadSize := event.Upload.Size
 	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
 
-	report := reports.NewBuilder[reports.UploadLifecycleContent](
+	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
 		reports.StageUploadCompleted,
 		uploadId,
 		manifest,
 		reports.DispositionTypeAdd).SetContent(reports.UploadLifecycleContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadCompleted,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadCompleted,
 		},
+		Status: reports.StatusSuccess,
 	}).Build()
 	reports.Publish(event.Context, report)
 
-	report = reports.NewBuilder[reports.UploadStatusContent](
+	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
 		reports.StageUploadStatus,
 		uploadId,
 		manifest,
-		reports.DispositionTypeReplace).SetEndTime(time.Now().UTC()).SetStatus("success").SetContent(reports.UploadStatusContent{
+		reports.DispositionTypeReplace).SetEndTime(time.Now().UTC()).SetContent(reports.UploadStatusContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageUploadStatus,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageUploadStatus,
 		},
 		Filename: metadataPkg.GetFilename(manifest),
 		Tguid:    uploadId,
-		Offset:   strconv.FormatInt(uploadOffset, 10),
-		Size:     strconv.FormatInt(uploadSize, 10),
+		Offset:   uploadOffset,
+		Size:     uploadSize,
 	}).Build()
 
 	logger.Info("REPORT upload-status", "report", report)

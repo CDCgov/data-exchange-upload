@@ -2,6 +2,7 @@ package testing
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -16,8 +17,10 @@ import (
 	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log"
+	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -117,6 +120,27 @@ func TestTus(t *testing.T) {
 					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
 						t.Error("file was not copied to edav checkpoint for file", tuid)
 					}
+
+					// Remove and re-route the file
+					// TODO probably best if this was in its own test function but this is at least good for happy path test for now
+					err = os.Remove("./test/edav/" + tuid)
+					if err != nil {
+						t.Error("failed to remove edav file for "+tuid, err.Error())
+					}
+					b := []byte(`{
+						"target": "edav"
+					}`)
+					resp, err := http.Post(url+"/route/"+tuid, "application/json", bytes.NewBuffer(b))
+					if err != nil {
+						t.Error("failed to retry routing")
+					}
+					if resp.StatusCode != http.StatusOK {
+						t.Error("expected 200 when retrying route but got", resp.StatusCode)
+					}
+					time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
+					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
+						t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
+					}
 				}
 
 				if slices.Contains(config.Copy.Targets, "routing") {
@@ -202,9 +226,13 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dateTokens := strings.Split(p, "/")
-	if len(dateTokens) != 4 {
-		t.Error("date prefix not properly formatted", p)
+	prefixTokens := strings.Split(p, string(filepath.Separator))
+	if len(prefixTokens) != 4 {
+		t.Error("prefix not properly formatted", p)
+	}
+	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
+	if prefixTokens[0] != expectedFolderPrefix {
+		t.Error("prefix folder not properly formatted")
 	}
 }
 
@@ -225,8 +253,10 @@ func TestGetFileDeliveryPrefixRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p != "" {
-		t.Error("expected file delivery prefix to be empty but was", p)
+	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
+
+	if p != expectedFolderPrefix {
+		t.Error("expected file delivery prefix to be folder prefix but was", p)
 	}
 }
 
@@ -288,6 +318,61 @@ func TestFileInfoNotFound(t *testing.T) {
 	}
 }
 
+func TestRouteBadRequest(t *testing.T) {
+	client := ts.Client()
+	resp, err := client.Get(ts.URL + "/route/1234")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestRouteInvalidBody(t *testing.T) {
+	client := ts.Client()
+	b := []byte("blah")
+	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestRouteInvalidTarget(t *testing.T) {
+	client := ts.Client()
+	b := []byte(`{
+		"target": "blah"
+	}`)
+	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestRouteFileNotFound(t *testing.T) {
+	client := ts.Client()
+	b := []byte(`{
+		"target": "edav"
+	}`)
+	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 404 {
+		t.Error("Expected 404 but got", resp.StatusCode)
+	}
+}
+
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
@@ -307,18 +392,15 @@ func TestMain(m *testing.M) {
 	testWaitGroup.Add(1)
 	err := cli.InitReporters(testContext, appConfig)
 	defer reports.DefaultReporter.Close()
-	var fileReadyPublisher event.Publisher[*event.FileReady]
-	fileReadyPublisher = &event.MemoryPublisher[*event.FileReady]{
-		Dir:  appConfig.LocalEventsFolder,
-		Chan: event.FileReadyChan,
-	}
+	err = event.InitFileReadyPublisher(testContext, appConfig)
+	defer event.FileReadyPublisher.Close()
 	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
 		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig, fileReadyPublisher)
+	serveHandler, err := cli.Serve(testContext, appConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -357,12 +439,12 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 	}
 
 	trackedStages := []string{
-		"dex-metadata-verify",
-		"dex-metadata-transform",
-		"dex-upload-status",
-		"dex-upload-started",
-		"dex-upload-complete",
-		"dex-file-copy",
+		reports.StageMetadataVerify,
+		reports.StageMetadataTransform,
+		reports.StageUploadCompleted,
+		reports.StageUploadStarted,
+		reports.StageUploadStatus,
+		reports.StageFileCopy,
 	}
 
 	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
@@ -392,7 +474,7 @@ func unmarshalReport(bytes []byte) (reports.Report, error) {
 }
 
 func appendReport(summary ReportFileSummary, r reports.Report) ReportFileSummary {
-	stageName := r.StageInfo.Stage
+	stageName := r.StageInfo.Action
 	s, ok := summary.Summaries[stageName]
 	if !ok {
 		summary.Summaries[stageName] = ReportSummary{
