@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -25,7 +26,7 @@ type codedResponseWriter struct {
 }
 
 func (c *codedResponseWriter) WriteHeader(statusCode int) {
-	c.code = http.StatusText(statusCode)
+	c.code = strconv.Itoa(statusCode)
 	c.ResponseWriter.WriteHeader(statusCode)
 }
 

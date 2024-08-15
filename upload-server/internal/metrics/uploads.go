@@ -7,21 +7,21 @@ import (
 )
 
 // todo this could also be a vec per datastream
-var activeUploads = prometheus.NewGauge(prometheus.GaugeOpts{
+var ActiveUploads = prometheus.NewGauge(prometheus.GaugeOpts{
 	Name: "dex_server_active_uploads",
 	Help: "Current number of active uploads",
 }) // .metricsOpenConnections
 
 var DefaultMetrics = []prometheus.Collector{
-	activeUploads,
+	ActiveUploads,
 }
 
 func ActiveUploadIncHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	activeUploads.Inc()
+	ActiveUploads.Inc()
 	return resp, nil
 }
 func ActiveUploadDecHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	activeUploads.Dec()
+	ActiveUploads.Dec()
 	return resp, nil
 }
 
@@ -64,8 +64,7 @@ func (mm *ManifestMetrics) Hook(event handler.HookEvent, resp hooks.HookResponse
 		if !ok {
 			val, ok = resp.ChangeFileInfo.MetaData[key]
 			if !ok {
-				// no op.. should be something else
-				continue
+				val = ""
 			}
 		}
 		vals = append(vals, val)
