@@ -6,6 +6,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
@@ -51,6 +52,12 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		} else {
 			health.Register(redisLockerHealth)
 		}
+	}
+
+	// Must be called before hook handler
+	err = metadata.InitConfigCache(ctx, appConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	// get and initialize tusd hook handlers

@@ -2,18 +2,12 @@ package cli
 
 import (
 	"context"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
-	"os"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	azureloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/azure"
-	fileloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/file"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/hooks/file"
@@ -25,36 +19,16 @@ func GetHookHandler(ctx context.Context, appConfig appconfig.AppConfig) (tusHook
 			Directory: Flags.FileHooksDir,
 		}, nil
 	}
-	return PrebuiltHooks(ctx, appConfig)
-}
-
-func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
-	handler := &prebuilthooks.PrebuiltHook{}
-
-	metadata.Cache = &metadata.ConfigCache{
-		Loader: &fileloader.FileConfigLoader{
-			FileSystem: os.DirFS(appConfig.UploadConfigPath),
-		},
-	}
 
 	manifestValidator := metadata.SenderManifestVerification{
 		Configs: metadata.Cache,
 	}
 
-	var metadataAppender metadata.Appender
-	var edavDeliverer postprocessing.Deliverer
-	var routingDeliverer postprocessing.Deliverer
+	var metadataAppender metadata.Appender = &metadata.FileMetadataAppender{
+		Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
+	}
 
 	if appConfig.AzureConnection != nil {
-		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
-		if err != nil {
-			return nil, err
-		}
-		metadata.Cache.Loader = &azureloader.AzureConfigLoader{
-			Client:        client,
-			ContainerName: appConfig.AzureManifestConfigContainer,
-		}
-
 		tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
 		if err != nil {
 			return nil, err
@@ -64,6 +38,42 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 			ContainerClient: tusContainerClient,
 			TusPrefix:       appConfig.TusUploadPrefix,
 		}
+	}
+
+	return PrebuiltHooks(ctx, appConfig, manifestValidator, metadataAppender)
+}
+
+func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig, validator metadata.SenderManifestVerification, appender metadata.Appender) (tusHooks.HookHandler, error) {
+	handler := &prebuilthooks.PrebuiltHook{}
+	var err error
+	//metadata.Cache = &metadata.ConfigCache{
+	//	Loader: &fileloader.FileConfigLoader{
+	//		FileSystem: os.DirFS(appConfig.UploadConfigPath),
+	//	},
+	//}
+
+	var edavDeliverer postprocessing.Deliverer
+	var routingDeliverer postprocessing.Deliverer
+
+	if appConfig.AzureConnection != nil {
+		//client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//metadata.Cache.Loader = &azureloader.AzureConfigLoader{
+		//	Client:        client,
+		//	ContainerName: appConfig.AzureManifestConfigContainer,
+		//}
+
+		//tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//
+		//metadataAppender = &metadata.AzureMetadataAppender{
+		//	ContainerClient: tusContainerClient,
+		//	TusPrefix:       appConfig.TusUploadPrefix,
+		//}
 
 		if appConfig.EdavConnection != nil {
 			edavDeliverer, err = postprocessing.NewAzureDeliverer(ctx, "edav", &appConfig)
@@ -85,22 +95,16 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 		}
 	}
 
-	if appConfig.S3Connection != nil {
-		client, err := stores3.New(ctx, appConfig.S3Connection)
-		if err != nil {
-			return nil, err
-		}
-		metadata.Cache.Loader = &loaders.S3ConfigLoader{
-			Client:     client,
-			BucketName: appConfig.S3ManifestConfigBucket,
-		}
-	}
-
-	if metadataAppender == nil {
-		metadataAppender = &metadata.FileMetadataAppender{
-			Path: appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix,
-		}
-	}
+	//if appConfig.S3Connection != nil {
+	//	client, err := stores3.New(ctx, appConfig.S3Connection)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	metadata.Cache.Loader = &loaders.S3ConfigLoader{
+	//		Client:     client,
+	//		BucketName: appConfig.S3ManifestConfigBucket,
+	//	}
+	//}
 
 	if edavDeliverer == nil {
 		edavDeliverer, err := postprocessing.NewFileDeliverer(ctx, "edav", &appConfig)
@@ -120,10 +124,10 @@ func PrebuiltHooks(ctx context.Context, appConfig appconfig.AppConfig) (tusHooks
 		health.Register(routingDeliverer)
 	}
 
-	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, manifestValidator.Verify)
+	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, validator.Verify)
 	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
 	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
-	handler.Register(tusHooks.HookPreFinish, manifestValidator.Hydrate, metadataAppender.Append)
+	handler.Register(tusHooks.HookPreFinish, validator.Hydrate, appender.Append)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
 	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook())
