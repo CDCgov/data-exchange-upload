@@ -14,8 +14,6 @@
   const chunkInput      = document.querySelector('#chunksize')
   const parallelInput   = document.querySelector('#paralleluploads')
   const endpointInput   = document.querySelector('#endpoint')
-  const metadataInput   = document.querySelector('#metadata_json')
-  metadataInput.value =  '{"meta_destination_id":"dextesting", "meta_ext_event":"testevent1"}'
 
 
   function reset (startTimeUpload, fileListBytesUploaded, fileListBytesTotal) {
@@ -69,13 +67,6 @@
       // tusd azure does not support chuncks concatenation, ref: https://github.com/tus/tusd/issues/843 
       parallelUploads = 1
     } // .if
-
-    let metadataJSON = JSON.parse(metadataInput.value)
-    let metadataJSONstr = JSON.stringify(metadataJSON, null, 4)
-    console.log(`metadata JSON: ${metadataJSONstr}`)
-
-
-
     // toggleBtn.textContent = 'pause upload'
 
     const fileListBytesTotal = fileList.reduce( 
@@ -96,25 +87,17 @@
       let lastChunckNotAdded = true 
       let prevFileBytesUploaded = 0
 
-      const metadata = {
-        ...metadataJSON,
-  
-        // REQUIRED: original file name
-        filename: file.name, 
-      } // .metadata
-
       const options = {
         endpoint,
-        headers: {
-        },
+        // headers: {
+        //   "Upload-Length": file.size
+        // },
+        uploadUrl,
+        uploadSize: file.size,
+        uploadLengthDeferred: true,
         chunkSize,
         retryDelays: [0, 1000, 3000, 5000],
         parallelUploads,
-        metadata: metadata,
-        // metadata   : {
-        //   filename: file.name,
-        //   filetype: file.type,
-        // },
         onError (error) {
           if (error.originalRequest) {
             if (window.confirm(`Failed because: ${error}\nDo you want to retry?`)) {

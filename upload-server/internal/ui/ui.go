@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"html/template"
@@ -15,7 +16,7 @@ import (
 
 // content holds our static web server content.
 //
-//go:embed assets/* index.html destination/* manifest.tmpl
+//go:embed assets/* index.html destination/* manifest.tmpl upload.tmpl
 var content embed.FS
 
 func FixNames(name string) string {
@@ -29,6 +30,7 @@ var usefulFuncs = template.FuncMap{
 }
 
 var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl"))
+var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl"))
 
 var StaticHandler = http.FileServer(http.FS(content))
 
@@ -87,10 +89,16 @@ func NewServer(addr string) *http.Server {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		fmt.Printf(resp.Header.Get("Location"))
+		loc := resp.Header.Get("Location")
 
-		// redirect to page for file upload based on "Location" response
-		http.Redirect(rw, r, resp.Header.Get("Location"), 302)
+		http.Redirect(rw, r, fmt.Sprintf("/status/%s", filepath.Base(loc)), 302)
+	})
+	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("upload_id")
+		// TODO need to name this dynamic
+		uploadUrl := "http://localhost:8080/files/" + id
+
+		uploadTemplate.Execute(rw, uploadUrl)
 	})
 	router.Handle("/", StaticHandler)
 

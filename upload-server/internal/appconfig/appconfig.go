@@ -36,7 +36,7 @@ type RootResp struct {
 type AppConfig struct {
 
 	// App and for Logger
-	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
+	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON, default=true"`
 
 	// Server
 	ServerPort string `env:"SERVER_PORT, default=8080"`
@@ -45,7 +45,7 @@ type AppConfig struct {
 
 	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
 
-	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
+	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./chase_uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
 	LocalEventsFolder     string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
 	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
