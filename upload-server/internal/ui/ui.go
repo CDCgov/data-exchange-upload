@@ -47,13 +47,21 @@ func NewServer(addr string) *http.Server {
 			return
 		}
 
-		manifestTemplate.Execute(rw, config)
+		err = manifestTemplate.Execute(rw, config)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 	router.HandleFunc("/upload", func(rw http.ResponseWriter, r *http.Request) {
 		// Tell the tus server we want to start an upload
 		// turn form values into map[string]string
-		r.ParseForm()
-		manifest := map[string]string{}
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
+		}
+		manifest := map[string]string{"version": "2.0"}
 		for k, v := range r.Form {
 			manifest[k] = v[0]
 		}
