@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -34,9 +35,7 @@ var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl"))
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-var DefaultServer = NewServer(":8000")
-
-func NewServer(addr string) *http.Server {
+func NewServer(addr string, uploadUrl string) *http.Server {
 	router := http.NewServeMux()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		// TODO check to see if they don't exist
@@ -73,7 +72,7 @@ func NewServer(addr string) *http.Server {
 			Metadata: manifest,
 		}
 
-		req, err := http.NewRequest("POST", "http://localhost:8080/files/", nil)
+		req, err := http.NewRequest("POST", uploadUrl, nil)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -95,8 +94,11 @@ func NewServer(addr string) *http.Server {
 	})
 	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("upload_id")
-		// TODO need to name this dynamic
-		uploadUrl := "http://localhost:8080/files/" + id
+		uploadUrl, err := url.JoinPath(uploadUrl, id)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		uploadTemplate.Execute(rw, uploadUrl)
 	})
@@ -109,7 +111,10 @@ func NewServer(addr string) *http.Server {
 	return s
 }
 
-func Start() error {
+var DefaultServer *http.Server
+
+func Start(uiPort string, uploadURL string) error {
+	DefaultServer = NewServer(uiPort, uploadURL)
 	return DefaultServer.ListenAndServe()
 }
 

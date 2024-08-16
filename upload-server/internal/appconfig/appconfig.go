@@ -45,7 +45,7 @@ type AppConfig struct {
 
 	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
 
-	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./chase_uploads"`
+	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
 	LocalEventsFolder     string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
 	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
@@ -54,6 +54,10 @@ type AppConfig struct {
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
+
+	// UI
+	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
+	UIPort               string `env:"UI_PORT, default=:8000"`
 
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
