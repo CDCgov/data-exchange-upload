@@ -6,7 +6,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -42,15 +41,9 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))
 		if err != nil {
 			logger.Error("failed to configure Redis locker, defaulting to in-memory locker", "error", err)
+			return nil, err
 		}
-
-		// configure redislocker health check
-		redisLockerHealth, err := redislockerhealth.New(appConfig.TusRedisLockURI)
-		if err != nil {
-			logger.Error("failed to configure Redis locker health check, skipping check", "error", err)
-		} else {
-			health.Register(redisLockerHealth)
-		}
+		health.Register(locker.(health.Checkable))
 	}
 
 	// get and initialize tusd hook handlers
