@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -33,12 +34,17 @@ var usefulFuncs = template.FuncMap{
 var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl"))
 var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl"))
 
+type ManifestTemplateData struct {
+	DataStream      string
+	DataStreamRoute string
+	MetadataFields  []validation.FieldConfig
+}
+
 var StaticHandler = http.FileServer(http.FS(content))
 
 func NewServer(addr string, uploadUrl string) *http.Server {
 	router := http.NewServeMux()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
-		// TODO check to see if they don't exist
 		dataStream := r.FormValue("data_stream")
 		dataStreamRoute := r.FormValue("data_stream_route")
 
@@ -48,7 +54,11 @@ func NewServer(addr string, uploadUrl string) *http.Server {
 			return
 		}
 
-		err = manifestTemplate.Execute(rw, config)
+		err = manifestTemplate.Execute(rw, &ManifestTemplateData{
+			DataStream:      dataStream,
+			DataStreamRoute: dataStreamRoute,
+			MetadataFields:  metadata.GetMetadataFields(config),
+		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -66,6 +76,7 @@ func NewServer(addr string, uploadUrl string) *http.Server {
 		for k, v := range r.Form {
 			manifest[k] = v[0]
 		}
+		fmt.Println("***%v", manifest)
 
 		// submit to upload server to get upload id
 		upload := &tus.Upload{
