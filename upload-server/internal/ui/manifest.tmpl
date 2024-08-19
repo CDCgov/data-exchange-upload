@@ -3,26 +3,33 @@
 <html>
     <head>
         <meta charset="UTF-8">
+        <link href="assets/manifest.css" rel="stylesheet">
         <title>Manifest</title>
     </head>
     <body>
+      <div id="upload-container">
         <h2>Please fill in the sender manifest form for your file</h2>
-        <form method="POST" action="/upload">
-          {{range .Metadata.Fields}}
-          <div>
-            <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
-            {{if not .AllowedValues}}
-              <input name="{{.FieldName}}" type="text" />
-            {{ else }}
-              <select>
-                {{range .AllowedValues}}
-                  <option value="{{.}}">{{.}}</option>
-                {{end}}
-              </select>
-            {{ end }}
-          </div>
-          {{end}}
-          <button type="submit">Next</button>
-        </form>
+        <div class="form-container">
+          <form method="POST" action="/upload">
+            {{range .Metadata.Fields}}
+            <div>
+              <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
+              {{if not .AllowedValues}}
+                <input name="{{.FieldName}}" type="text" />
+              {{ else }}
+                <select>
+                  {{range .AllowedValues}}
+                    <option value="{{.}}">{{.}}</option>
+                  {{end}}
+                </select>
+              {{ end }}
+            </div>
+            {{end}}
+            <button type="submit">
+              Next &#x2192;
+            </button>
+          </form>
+        </div>
+      </div>
     </body>
 </html>

@@ -1,24 +1,22 @@
 <!DOCTYPE html>
-<html>
+    <html>
+    <head>
+    </head>
 
-<head>
-</head>
+    <body>
+        <form method="GET" action="/manifest">
+            <div>
+                <label for="data_stream">Data Stream</label>
+                <input type="text" name="data_stream" required />
+            </div>
+            <div>
+                <label for="data_stream_route">Data Stream Route</label>
+                <input type="text" name="data_stream_route" required />
+            </div>
+            <div>
+            <button type="submit">Submit</button>
+            </div>
+        </form>
+    </body>
 
-<body>
-    <form method="GET" action="/manifest">
-        <div>
-            <label for="data_stream">Data Stream</label>
-            <input type="text" name="data_stream" required />
-        </div>
-        <div>
-            <label for="data_stream_route">Data Stream Route</label>
-            <input type="text" name="data_stream_route" required />
-        </div>
-        <div>
-          <button type="submit">Submit</button>
-        </div>
-    </form>
-
-</body>
-
-</html>
+    </html>
