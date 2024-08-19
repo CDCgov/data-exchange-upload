@@ -154,7 +154,7 @@ func main() {
 	mainWaitGroup.Add(1)
 	go func() {
 		defer mainWaitGroup.Done()
-		if err := ui.Start(appConfig.UIPort, appConfig.TusUIFileEndpointUrl); err != nil {
+		if err := ui.Start(appConfig.UIPort, appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl); err != nil {
 			logger.Error("failed to start ui", "error", err)
 			os.Exit(appMainExitCode)
 		}

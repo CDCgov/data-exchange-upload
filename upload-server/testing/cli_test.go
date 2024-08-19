@@ -477,6 +477,25 @@ func TestUploadPageRedirectStatusPage(t *testing.T) {
 	}
 }
 
+func TestStatusPageUploadNotFoundRedirect(t *testing.T) {
+	didRedirect := false
+	client := testUIServer.Client()
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		didRedirect = true
+		return nil
+	}
+	resp, err := client.Get(testUIServer.URL + "/status/1234")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+	if !didRedirect {
+		t.Error("Expected to redirect but did not")
+	}
+}
+
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
@@ -513,7 +532,8 @@ func TestMain(m *testing.M) {
 
 	// Start ui server
 	appConfig.TusUIFileEndpointUrl = ts.URL + "/files"
-	uiHandler := ui.GetRouter(appConfig.TusUIFileEndpointUrl)
+	appConfig.TusUIInfoEndpointUrl = ts.URL + "/info"
+	uiHandler := ui.GetRouter(appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()

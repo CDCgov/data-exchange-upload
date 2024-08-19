@@ -57,6 +57,7 @@ type AppConfig struct {
 
 	// UI
 	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
+	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
 	UIPort               string `env:"UI_PORT, default=:8000"`
 
 	// Processing Status
