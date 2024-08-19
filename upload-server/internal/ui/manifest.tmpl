@@ -14,7 +14,7 @@
             {{if not .AllowedValues}}
               <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
             {{ else }}
-              <select>
+              <select name="{{.FieldName}}">
                 {{range .AllowedValues}}
                   <option value="{{.}}">{{.}}</option>
                 {{end}}

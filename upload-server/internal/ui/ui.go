@@ -128,7 +128,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		u.JoinPath(id)
+		u = u.JoinPath(id)
 		req, err := http.NewRequest("GET", u.String(), nil)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
