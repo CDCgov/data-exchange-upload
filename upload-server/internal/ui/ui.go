@@ -111,7 +111,11 @@ func NewServer(addr string, uploadUrl string) *http.Server {
 			return
 		}
 
-		uploadTemplate.Execute(rw, uploadUrl)
+		err = uploadTemplate.Execute(rw, uploadUrl)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 	router.Handle("/", StaticHandler)
 
