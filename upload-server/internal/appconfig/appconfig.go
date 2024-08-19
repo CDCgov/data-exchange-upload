@@ -60,6 +60,7 @@ type AppConfig struct {
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
 	AzureConnection      *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
+	S3Connection         *S3StorageConfig    `env:", prefix=AWS_, noinit"`
 	EdavConnection       *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
 	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
 	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
@@ -110,6 +111,11 @@ type AzureStorageConfig struct {
 	StorageKey        string `env:"STORAGE_KEY"`
 	ContainerEndpoint string `env:"ENDPOINT"`
 } // .AzureStorageConfig
+
+type S3StorageConfig struct {
+	Endpoint   string `env:"S3_ENDPOINT"`
+	BucketName string `env:"S3_BUCKET_NAME"`
+}
 
 type AzureContainerConfig struct {
 	AzureStorageConfig
