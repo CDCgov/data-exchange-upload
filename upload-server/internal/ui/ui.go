@@ -18,7 +18,7 @@ import (
 
 // content holds our static web server content.
 //
-//go:embed assets/* index.html destination/* manifest.tmpl upload.tmpl
+//go:embed assets/* index.html manifest.tmpl upload.tmpl
 var content embed.FS
 
 func FixNames(name string) string {
