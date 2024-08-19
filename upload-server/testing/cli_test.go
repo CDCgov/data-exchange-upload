@@ -184,6 +184,13 @@ func TestTus(t *testing.T) {
 						}
 					}
 				}
+
+				appendedUid, ok := processedMeta["upload_id"]
+				if !ok {
+					t.Error("upload ID not appended to file metadata")
+				} else if appendedUid != tuid {
+					t.Error("appended upload ID did not match upload ID", appendedUid, tuid)
+				}
 			}
 
 			t.Log("test case", name, "passed", tuid)
