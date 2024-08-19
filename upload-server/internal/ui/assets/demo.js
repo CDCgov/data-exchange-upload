@@ -89,9 +89,10 @@
 
       const options = {
         endpoint,
-        // headers: {
-        //   "Upload-Length": file.size
-        // },
+        headers: {
+          'Tus-Resumable': '1.0.0'
+        },
+        protocol:'ietf-draft-03',
         uploadUrl,
         uploadSize: file.size,
         uploadLengthDeferred: true,

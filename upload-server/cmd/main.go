@@ -3,10 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"log/slog"
 	"net/http"
 	"os"
@@ -16,6 +12,11 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -153,7 +154,7 @@ func main() {
 	mainWaitGroup.Add(1)
 	go func() {
 		defer mainWaitGroup.Done()
-		if err := ui.Start(); err != nil {
+		if err := ui.Start(appConfig.UIPort, appConfig.TusUIFileEndpointUrl); err != nil {
 			logger.Error("failed to start ui", "error", err)
 			os.Exit(appMainExitCode)
 		}

@@ -9,27 +9,30 @@
     <body>
       <div id="upload-container">
         <h2>Please fill in the sender manifest form for your file</h2>
-        <div class="form-container">
-          <form method="POST" action="/upload">
-            {{range .Metadata.Fields}}
-            <div>
-              <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
-              {{if not .AllowedValues}}
-                <input name="{{.FieldName}}" type="text" />
-              {{ else }}
-                <select>
-                  {{range .AllowedValues}}
-                    <option value="{{.}}">{{.}}</option>
-                  {{end}}
-                </select>
-              {{ end }}
-            </div>
-            {{end}}
-            <button type="submit">
-              Next &#x2192;
-            </button>
-          </form>
-        </div>
-      </div>
+        <form method="POST" action="/upload">
+          {{range .MetadataFields}}
+          <div>
+            <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
+            {{if not .AllowedValues}}
+              <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
+            {{ else }}
+              <select>
+                {{range .AllowedValues}}
+                  <option value="{{.}}">{{.}}</option>
+                {{end}}
+              </select>
+            {{ end }}
+          </div>
+          {{end}}
+          <div>
+            <label for="data_stream_id">Data Stream ID</label>
+            <input id="data_stream_id" name="data_stream_id" type="text" value="{{.DataStream}}" />
+          </div>
+          <div>
+            <label for="data_stream_route">Data Stream Route</label>
+            <input id="data_stream_route" name="data_stream_route" type="text" value="{{.DataStreamRoute}}" />
+          </div>
+          <button type="submit">Next</button>
+        </form>
     </body>
 </html>
