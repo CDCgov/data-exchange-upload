@@ -13,6 +13,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
@@ -28,8 +29,9 @@ import (
 )
 
 var (
-	ts          *httptest.Server
-	testContext context.Context
+	ts           *httptest.Server
+	testUIServer *httptest.Server
+	testContext  context.Context
 )
 
 func TestTus(t *testing.T) {
@@ -366,6 +368,22 @@ func TestRouteFileNotFound(t *testing.T) {
 	}
 }
 
+// UI Tests
+func TestLandingPage(t *testing.T) {
+	client := testUIServer.Client()
+	resp, err := client.Get(testUIServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if ct != "text/html; charset=utf-8" {
+		t.Error("Expected html content but got", ct)
+	}
+}
+
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
@@ -397,6 +415,10 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Start ui server
+	uiHandler := ui.GetRouter(appConfig.TusUIFileEndpointUrl)
+	testUIServer = httptest.NewServer(uiHandler)
 
 	ts = httptest.NewServer(serveHandler)
 	testRes := m.Run()
