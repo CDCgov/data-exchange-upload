@@ -5,13 +5,25 @@ test.describe("Upload End to End Tests", () => {
         const dataStream = 'dextesting';
         const route = 'testevent1';
 
-        await page.goto(`/destination`);
-        await page.getByLabel('Data Stream').fill(dataStream);
+        await page.goto(`/`);
+        await page.getByLabel('Data Stream', {exact: true}).fill(dataStream);
         await page.getByLabel('Data Stream Route').fill(route);
-        await page.getByLabel('Submit').click();
+        await page.getByRole('button', {name: /submit/i }).click();
 
-        // More TBD
-        
+        await page.getByLabel('Sender Id').fill('Sender123')
+        await page.getByLabel('Data Producer Id').fill('Producer123')
+        await page.getByLabel('Jurisdiction').fill('Jurisdiction123')
+        await page.getByLabel('Received Filename').fill('small-test-file')
+        await page.getByRole('button', {name: /next/i }).click();
+
+        const fileChooserPromise = page.waitForEvent('filechooser');
+    
+        await page.locator('input[type="file"]').click();
+        const fileChooser = await fileChooserPromise;
+        await fileChooser.setFiles('../upload-files/10KB-test-file');
+        page.waitForLoadState("networkidle")
+
+        await page.getByText('Download 10KB-test-file')
     })
 })    
 

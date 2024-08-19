@@ -12,7 +12,7 @@
           <div>
             <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
             {{if not .AllowedValues}}
-              <input name="{{.FieldName}}" type="text" />
+              <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
             {{ else }}
               <select>
                 {{range .AllowedValues}}
@@ -24,11 +24,11 @@
           {{end}}
           <div>
             <label for="data_stream_id">Data Stream ID</label>
-            <input name="data_stream_id" type="text" value="{{.DataStream}}" />
+            <input id="data_stream_id" name="data_stream_id" type="text" value="{{.DataStream}}" />
           </div>
           <div>
             <label for="data_stream_route">Data Stream Route</label>
-            <input name="data_stream_route" type="text" value="{{.DataStreamRoute}}" />
+            <input id="data_stream_route" name="data_stream_route" type="text" value="{{.DataStreamRoute}}" />
           </div>
           <button type="submit">Next</button>
         </form>
