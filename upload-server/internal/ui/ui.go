@@ -4,7 +4,9 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -16,7 +18,7 @@ import (
 
 // content holds our static web server content.
 //
-//go:embed assets/* index.html destination/* manifest.tmpl upload.tmpl
+//go:embed assets/* index.html manifest.tmpl upload.tmpl
 var content embed.FS
 
 func FixNames(name string) string {
@@ -32,14 +34,25 @@ var usefulFuncs = template.FuncMap{
 var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl"))
 var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl"))
 
+type ManifestTemplateData struct {
+	DataStream      string
+	DataStreamRoute string
+	MetadataFields  []validation.FieldConfig
+}
+
 var StaticHandler = http.FileServer(http.FS(content))
 
-var DefaultServer = NewServer(":8000")
+func NewServer(addr string, uploadUrl string) *http.Server {
+	s := &http.Server{
+		Addr:    addr,
+		Handler: GetRouter(uploadUrl),
+	}
+	return s
+}
 
-func NewServer(addr string) *http.Server {
+func GetRouter(uploadUrl string) *http.ServeMux {
 	router := http.NewServeMux()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
-		// TODO check to see if they don't exist
 		dataStream := r.FormValue("data_stream")
 		dataStreamRoute := r.FormValue("data_stream_route")
 
@@ -49,7 +62,11 @@ func NewServer(addr string) *http.Server {
 			return
 		}
 
-		err = manifestTemplate.Execute(rw, config)
+		err = manifestTemplate.Execute(rw, &ManifestTemplateData{
+			DataStream:      dataStream,
+			DataStreamRoute: dataStreamRoute,
+			MetadataFields:  metadata.GetMetadataFields(config),
+		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -73,12 +90,11 @@ func NewServer(addr string) *http.Server {
 			Metadata: manifest,
 		}
 
-		req, err := http.NewRequest("POST", "http://localhost:8080/files/", nil)
+		req, err := http.NewRequest("POST", uploadUrl, nil)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 		req.Header.Set("Content-Length", "0")
 		req.Header.Set("Upload-Metadata", upload.EncodedMetadata())
 		req.Header.Set("Upload-Defer-Length", "1")
@@ -89,27 +105,43 @@ func NewServer(addr string) *http.Server {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if resp.StatusCode != http.StatusCreated {
+			// Failed to init upload.  Forward response from tus.
+			var respMsg []byte
+			_, err := resp.Body.Read(respMsg)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			http.Error(rw, string(respMsg), resp.StatusCode)
+			return
+		}
 		loc := resp.Header.Get("Location")
-
-		http.Redirect(rw, r, fmt.Sprintf("/status/%s", filepath.Base(loc)), 302)
+		http.Redirect(rw, r, fmt.Sprintf("/status/%s", filepath.Base(loc)), http.StatusFound)
 	})
 	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("upload_id")
-		// TODO need to name this dynamic
-		uploadUrl := "http://localhost:8080/files/" + id
+		uploadUrl, err := url.JoinPath(uploadUrl, id)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-		uploadTemplate.Execute(rw, uploadUrl)
+		err = uploadTemplate.Execute(rw, uploadUrl)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	})
 	router.Handle("/", StaticHandler)
 
-	s := &http.Server{
-		Addr:    addr,
-		Handler: router,
-	}
-	return s
+	return router
 }
 
-func Start() error {
+var DefaultServer *http.Server
+
+func Start(uiPort string, uploadURL string) error {
+	DefaultServer = NewServer(uiPort, uploadURL)
 	return DefaultServer.ListenAndServe()
 }
 
