@@ -42,15 +42,15 @@ type ManifestTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(addr string, uploadUrl string) *http.Server {
+func NewServer(addr string, uploadUrl string, infoUrl string) *http.Server {
 	s := &http.Server{
 		Addr:    addr,
-		Handler: GetRouter(uploadUrl),
+		Handler: GetRouter(uploadUrl, infoUrl),
 	}
 	return s
 }
 
-func GetRouter(uploadUrl string) *http.ServeMux {
+func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 	router := http.NewServeMux()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream")
@@ -65,7 +65,7 @@ func GetRouter(uploadUrl string) *http.ServeMux {
 		err = manifestTemplate.Execute(rw, &ManifestTemplateData{
 			DataStream:      dataStream,
 			DataStreamRoute: dataStreamRoute,
-			MetadataFields:  metadata.GetMetadataFields(config),
+			MetadataFields:  filterMetadataFields(config),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -121,6 +121,40 @@ func GetRouter(uploadUrl string) *http.ServeMux {
 	})
 	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("upload_id")
+
+		// Check for upload
+		u, err := url.Parse(infoUrl)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		u = u.JoinPath(id)
+		req, err := http.NewRequest("GET", u.String(), nil)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// Redirect to landing page if info not found
+		if resp.StatusCode == http.StatusNotFound {
+			http.Redirect(rw, r, "/", http.StatusFound)
+			return
+		}
+		if resp.StatusCode != http.StatusOK {
+			var respMsg []byte
+			_, err := resp.Body.Read(respMsg)
+			if err != nil {
+				http.Error(rw, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			http.Error(rw, string(respMsg), resp.StatusCode)
+		}
+
 		uploadUrl, err := url.JoinPath(uploadUrl, id)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -140,11 +174,23 @@ func GetRouter(uploadUrl string) *http.ServeMux {
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, uploadURL string) error {
-	DefaultServer = NewServer(uiPort, uploadURL)
+func Start(uiPort string, uploadURL string, infoURL string) error {
+	DefaultServer = NewServer(uiPort, uploadURL, infoURL)
 	return DefaultServer.ListenAndServe()
 }
 
 func Close(ctx context.Context) error {
 	return DefaultServer.Shutdown(ctx)
+}
+
+func filterMetadataFields(config *validation.ManifestConfig) []validation.FieldConfig {
+	var fields []validation.FieldConfig
+
+	for _, f := range config.Metadata.Fields {
+		if f.FieldName != "data_stream_id" && f.FieldName != "data_stream_route" {
+			fields = append(fields, f)
+		}
+	}
+
+	return fields
 }

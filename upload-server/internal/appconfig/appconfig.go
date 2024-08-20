@@ -36,7 +36,7 @@ type RootResp struct {
 type AppConfig struct {
 
 	// App and for Logger
-	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON, default=true"`
+	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
 	// Server
 	ServerPort string `env:"SERVER_PORT, default=8080"`
@@ -57,6 +57,7 @@ type AppConfig struct {
 
 	// UI
 	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
+	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
 	UIPort               string `env:"UI_PORT, default=:8000"`
 
 	// Processing Status

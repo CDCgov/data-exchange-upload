@@ -6,6 +6,8 @@
         <link href="assets/manifest.css" rel="stylesheet">
         <link href="assets/index.css" rel="stylesheet">
         <title>Manifest</title>
+
+        <link rel="stylesheet" href="/assets/index.css">
     </head>
     <body>
       <div id="upload-container">
@@ -18,11 +20,11 @@
               {{if not .AllowedValues}}
                 <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
               {{ else }}
-                <select>
-                  {{range .AllowedValues}}
-                    <option value="{{.}}">{{.}}</option>
-                  {{end}}
-                </select>
+              <select name="{{.FieldName}}">
+                {{range .AllowedValues}}
+                  <option value="{{.}}">{{.}}</option>
+                {{end}}
+              </select>
               {{ end }}
             </div>
             {{end}}
