@@ -2,10 +2,13 @@
 <html>
     <head>
         <meta charset="UTF-8">
+        <link rel="stylesheet" href="/assets/index.css">
+        <link rel="stylesheet" href="/assets/form.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>DEX Upload</title>
     </head>
     <body>
-        <div class="container">
+        <div id="upload-container">
         <h1>Demo File Uploader</h1>
         <p>
             This demo purpose is to upload files to the custom tusd go server. 
@@ -29,57 +32,38 @@
             <b>Warning!</b> Your browser does not seem to support the features necessary to run tus-js-client. The buttons below may work but probably will fail silently.
         </div>
 
-        <br>
-
-        <table>
-            <tr>
-            <td>
+        <div class="form-container">
+            <div class="input-group">
                 <label for="endpoint">
-                Upload endpoint:
+                    Upload endpoint:
                 </label>
-            </td>
-            <td>
                 <input type="text" id="endpoint" name="endpoint" value="http://localhost:8080/files/">
                 <!-- http://localhost:8080/files/ -->
                 <!-- https://tusd.tusdemo.net/files/ -->
                 <!-- https://apidev.cdc.gov/upload -->
-            </td> 
-            </tr>
-            <tr>
-            <td>
+            </div>
+            <div class="input-group">
                 <label for="chunksize">
-                Chunk size (bytes):
+                    Chunk size (bytes):
                 </label>
-            </td>
-            <td>
                 <input type="number" id="chunksize" name="chunksize" value="40000000">
-            </td>
-            </tr>
-            <tr>
-            <td>
+            </div>
+            <div class="input-group">
                 <label for="paralleluploads">
-                Parallel upload requests:
+                    Parallel upload requests:
                 </label>
-            </td>
-            <td>
                 <input type="number" id="paralleluploads" name="paralleluploads" value="1" disabled>
-            </td>
-            </tr>
-            <tr>
-            <td>
-                <label for="metadata_json">
+            </div>
+            <div class="input-group">
+                <label>
                 Metadata JSON object (file name will be inferred from each file):
                 </label>
-            </td>
-            </tr>
-        </table>
-
-        <br>
-            
-            <input class="btn btn-info" type="file" multiple>
-
-        <br>
-        <br>
+                <div class="upload-container">
+                    <button onclick="files.click()">Browse Files</button>
+                    <input type="file" id="files">
+                </div>
+            </div>
+        </div>
 
         <div class="row">
             <div class="span8">
