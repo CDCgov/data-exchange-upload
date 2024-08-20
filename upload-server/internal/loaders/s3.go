@@ -17,7 +17,6 @@ func (l *S3ConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte, e
 		Key:    &path,
 	})
 	if err != nil {
-
 		return nil, err
 	}
 
