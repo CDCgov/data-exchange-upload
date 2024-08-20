@@ -70,7 +70,9 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		},
 	}
 
-	// TODO error if both azure and s3 configs are provided
+	if appConfig.AzureConnection != nil && appConfig.S3Connection != nil {
+		return errors.New("cannot load metadata config from multiple locations")
+	}
 
 	if appConfig.AzureConnection != nil {
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
