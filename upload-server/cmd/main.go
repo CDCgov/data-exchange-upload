@@ -16,6 +16,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
@@ -147,6 +148,15 @@ func main() {
 
 	logger.Info("started http server with tusd and dex handlers", "port", appConfig.ServerPort)
 
+	mainWaitGroup.Add(1)
+	go func() {
+		defer mainWaitGroup.Done()
+		if err := ui.Start(appConfig.UIPort, appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl); err != nil {
+			logger.Error("failed to start ui", "error", err)
+			os.Exit(appMainExitCode)
+		}
+	}()
+
 	// ------------------------------------------------------------------
 	// 	Block for Exit, server above is on goroutine
 	// ------------------------------------------------------------------
@@ -160,6 +170,7 @@ func main() {
 	httpShutdownCtx, httpShutdownCancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer httpShutdownCancelFunc()
 	httpServer.Shutdown(httpShutdownCtx)
+	ui.Close(httpShutdownCtx)
 
 	mainWaitGroup.Wait()
 

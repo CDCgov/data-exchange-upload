@@ -28,6 +28,7 @@ const config: PlaywrightTestConfig = {
     viewport: { width: 1280, height: 720 },
 
     // More options can be set here
+    baseURL: 'http://localhost:8000'
   },
 
   // Add any global setup or teardown in here
