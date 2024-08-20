@@ -17,7 +17,11 @@
             <div>
               <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
               {{if not .AllowedValues}}
-                <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
+                {{ if .Required }}
+                  <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" required/>
+                {{ else }}
+                  <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
+                {{ end }}
               {{ else }}
               <select name="{{.FieldName}}">
                 {{range .AllowedValues}}
@@ -27,11 +31,11 @@
               {{ end }}
             </div>
             {{end}}
-            <div>
+            <div class="hidden">
               <label for="data_stream_id">Data Stream ID</label>
               <input id="data_stream_id" name="data_stream_id" type="text" value="{{.DataStream}}" />
             </div>
-            <div>
+            <div class="hidden">
               <label for="data_stream_route">Data Stream Route</label>
               <input id="data_stream_route" name="data_stream_route" type="text" value="{{.DataStreamRoute}}" />
             </div>
