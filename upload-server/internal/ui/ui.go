@@ -65,7 +65,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		err = manifestTemplate.Execute(rw, &ManifestTemplateData{
 			DataStream:      dataStream,
 			DataStreamRoute: dataStreamRoute,
-			MetadataFields:  metadata.GetMetadataFields(config),
+			MetadataFields:  filterMetadataFields(config),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -181,4 +181,16 @@ func Start(uiPort string, uploadURL string, infoURL string) error {
 
 func Close(ctx context.Context) error {
 	return DefaultServer.Shutdown(ctx)
+}
+
+func filterMetadataFields(config *validation.ManifestConfig) []validation.FieldConfig {
+	var fields []validation.FieldConfig
+
+	for _, f := range config.Metadata.Fields {
+		if f.FieldName != "data_stream_id" && f.FieldName != "data_stream_route" {
+			fields = append(fields, f)
+		}
+	}
+
+	return fields
 }
