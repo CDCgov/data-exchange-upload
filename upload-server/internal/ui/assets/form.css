@@ -6,13 +6,14 @@ body {
 
 #upload-container {
   margin: 0 auto;
-  padding: 0 15px;
-  width: 100%;
+  padding: 0;
+  width: 90%;
 }
 
 .form-container {
-  margin: 0 auto;
-  width: 100%;
+  margin: 0;
+  width: 90%;
+  max-width: 550px;
 }
 
 .form-container button {
@@ -26,7 +27,6 @@ body {
   margin: 20px 0 10px 0;
   padding: 10px;
   width: 100%;
-  max-width: 800px;
 }
 
 .form-container input {
@@ -37,7 +37,16 @@ body {
   margin: 5px 0;
   padding: 10px;
   width: 100%;
-  max-width: 778px;
+}
+
+.form-container input[type=file] {
+  display: block;
+  font-style: oblique;
+  margin-left: 15px;
+}
+
+.form-container input[type=file]::file-selector-button {
+  display: none;
 }
 
 .form-container label {
@@ -54,5 +63,14 @@ body {
   margin: 5px 0;
   padding: 10px;
   width: 100%;
-  max-width: 800px;
+}
+
+.form-container .upload-container {
+  display: flex;
+  flex-direction: row;
+}
+
+.form-container .upload-container input {
+  background: none;
+  border: none;
 }
