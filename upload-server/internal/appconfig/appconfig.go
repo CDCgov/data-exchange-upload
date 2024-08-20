@@ -36,7 +36,7 @@ type RootResp struct {
 type AppConfig struct {
 
 	// App and for Logger
-	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON, default=true"`
+	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
 	// Server
 	ServerPort string `env:"SERVER_PORT, default=8080"`
