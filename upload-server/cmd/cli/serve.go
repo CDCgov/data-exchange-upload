@@ -2,20 +2,20 @@ package cli
 
 import (
 	"context"
+	"net/http"
+	"strings"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
-	"net/http"
-	"strings"
 )
 
 func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
@@ -44,15 +44,9 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))
 		if err != nil {
 			logger.Error("failed to configure Redis locker, defaulting to in-memory locker", "error", err)
+			return nil, err
 		}
-
-		// configure redislocker health check
-		redisLockerHealth, err := redislockerhealth.New(appConfig.TusRedisLockURI)
-		if err != nil {
-			logger.Error("failed to configure Redis locker health check, skipping check", "error", err)
-		} else {
-			health.Register(redisLockerHealth)
-		}
+		health.Register(locker.(health.Checkable))
 	}
 
 	err = postprocessing.RegisterAllTargets(ctx, appConfig)

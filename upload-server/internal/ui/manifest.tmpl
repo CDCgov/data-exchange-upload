@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <link rel="stylesheet" href="/assets/index.css">
+        <link rel="stylesheet" href="/assets/form.css" >
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Manifest</title>
+    </head>
+    <body>
+      <div id="upload-container">
+        <h2>Please fill in the sender manifest form for your file</h2>
+        <div class="form-container">
+          <form method="POST" action="/upload">
+            {{range .MetadataFields}}
+            <div>
+              <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
+              {{if not .AllowedValues}}
+                {{ if .Required }}
+                  <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" required/>
+                {{ else }}
+                  <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
+                {{ end }}
+              {{ else }}
+              <select name="{{.FieldName}}">
+                {{range .AllowedValues}}
+                  <option value="{{.}}">{{.}}</option>
+                {{end}}
+              </select>
+              {{ end }}
+            </div>
+            {{end}}
+            <div class="hidden">
+              <label for="data_stream_id">Data Stream ID</label>
+              <input id="data_stream_id" name="data_stream_id" type="text" value="{{.DataStream}}" />
+            </div>
+            <div class="hidden">
+              <label for="data_stream_route">Data Stream Route</label>
+              <input id="data_stream_route" name="data_stream_route" type="text" value="{{.DataStreamRoute}}" />
+            </div>
+            <button type="submit">Next</button>
+          </form>
+        </div>
+    </body>
+</html>
