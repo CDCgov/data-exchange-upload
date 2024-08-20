@@ -12,7 +12,11 @@
           <div>
             <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
             {{if not .AllowedValues}}
-              <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
+              {{ if .Required }}
+                <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" required/>
+              {{ else }}
+                <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
+              {{ end }}
             {{ else }}
               <select name="{{.FieldName}}">
                 {{range .AllowedValues}}
