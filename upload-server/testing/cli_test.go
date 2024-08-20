@@ -13,12 +13,14 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -29,8 +31,9 @@ import (
 )
 
 var (
-	ts          *httptest.Server
-	testContext context.Context
+	ts           *httptest.Server
+	testUIServer *httptest.Server
+	testContext  context.Context
 )
 
 func TestTus(t *testing.T) {
@@ -380,6 +383,133 @@ func TestRouteFileNotFound(t *testing.T) {
 	}
 }
 
+// UI Tests
+func TestLandingPage(t *testing.T) {
+	client := testUIServer.Client()
+	resp, err := client.Get(testUIServer.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if ct != "text/html; charset=utf-8" {
+		t.Error("Expected html content but got", ct)
+	}
+}
+
+func TestManifestPageManifestNotFound(t *testing.T) {
+	client := testUIServer.Client()
+	resp, err := client.Get(testUIServer.URL + "/manifest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 404 {
+		t.Error("Expected 404 but got", resp.StatusCode)
+	}
+}
+
+func TestManifestPageValidDestination(t *testing.T) {
+	client := testUIServer.Client()
+	resp, err := client.Get(testUIServer.URL + "/manifest?data_stream=dextesting&data_stream_route=testevent1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if ct != "text/html; charset=utf-8" {
+		t.Error("Expected html content but got", ct)
+	}
+}
+
+func TestUploadPageEmptyBodyNotFound(t *testing.T) {
+	client := testUIServer.Client()
+	manifestForm := url.Values{}
+	body := strings.NewReader(manifestForm.Encode())
+	resp, err := client.Post(testUIServer.URL+"/upload", "application/x-www-form-urlencoded", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestUploadPageInvalidManifestBadRequest(t *testing.T) {
+	client := testUIServer.Client()
+	manifestForm := url.Values{
+		"data_stream_id":    {"dextesting"},
+		"data_stream_route": {"testevent1"},
+	}
+	body := strings.NewReader(manifestForm.Encode())
+	resp, err := client.Post(testUIServer.URL+"/upload", "application/x-www-form-urlencoded", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 400 {
+		t.Error("Expected 400 but got", resp.StatusCode)
+	}
+}
+
+func TestUploadPageRedirectStatusPage(t *testing.T) {
+	didRedirect := false
+	var redirectUrl *url.URL
+	client := testUIServer.Client()
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		didRedirect = true
+		redirectUrl = req.URL
+		return nil
+	}
+	manifestForm := url.Values{
+		"data_stream_id":    {"dextesting"},
+		"data_stream_route": {"testevent1"},
+		"sender_id":         {"test sender ID"},
+		"data_producer_id":  {"test data producer ID"},
+		"jurisdiction":      {"test jur"},
+		"received_filename": {"test.txt"},
+	}
+	body := strings.NewReader(manifestForm.Encode())
+	resp, err := client.Post(testUIServer.URL+"/upload", "application/x-www-form-urlencoded", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !didRedirect {
+		t.Error("Expected to redirect but did not")
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if ct != "text/html; charset=utf-8" {
+		t.Error("Expected html content but got", ct)
+	}
+	if resp.Request.URL.String() != redirectUrl.String() {
+		t.Errorf("Expected to be redirected to %s but was redirected to %s", redirectUrl.String(), resp.Request.URL.String())
+	}
+}
+
+func TestStatusPageUploadNotFoundRedirect(t *testing.T) {
+	didRedirect := false
+	client := testUIServer.Client()
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		didRedirect = true
+		return nil
+	}
+	resp, err := client.Get(testUIServer.URL + "/status/1234")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+	if !didRedirect {
+		t.Error("Expected to redirect but did not")
+	}
+}
+
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
@@ -413,6 +543,13 @@ func TestMain(m *testing.M) {
 	}
 
 	ts = httptest.NewServer(serveHandler)
+
+	// Start ui server
+	appConfig.TusUIFileEndpointUrl = ts.URL + "/files"
+	appConfig.TusUIInfoEndpointUrl = ts.URL + "/info"
+	uiHandler := ui.GetRouter(appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl)
+	testUIServer = httptest.NewServer(uiHandler)
+
 	testRes := m.Run()
 
 	ts.Close()

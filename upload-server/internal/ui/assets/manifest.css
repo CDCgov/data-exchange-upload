@@ -1,0 +1,48 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0 auto;
+}
+
+#upload-container {
+  margin: 0 auto;
+  max-width: 700px;
+}
+
+.form-container input {
+  background: #f1f1f1;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  display: inline-block;
+  margin: 5px 0;
+  padding: 10px;
+  width: 450px;
+}
+
+.form-container select {
+  background: #f1f1f1;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  display: inline-block;
+  margin: 5px 0;
+  padding: 10px;
+  width: 470px;
+}
+
+.form-container label {
+  display: block;
+  font-weight: 600;
+  margin-top: 5px;
+}
+
+.form-container button {
+  background: #487de6;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  display: inline-block;
+  font-size: 16px;
+  margin: 20px 0 10px 0;
+  padding: 10px;
+  width: 470px;
+}
