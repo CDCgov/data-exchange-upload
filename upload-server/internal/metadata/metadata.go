@@ -87,18 +87,6 @@ func (c *ConfigCache) SetConfig(key any, config *validation.ManifestConfig) {
 	c.Store(key, config)
 }
 
-func GetMetadataFields(config *validation.ManifestConfig) []validation.FieldConfig {
-	var fields []validation.FieldConfig
-
-	for _, f := range config.Metadata.Fields {
-		if f.FieldName != "data_stream_id" && f.FieldName != "data_stream_route" {
-			fields = append(fields, f)
-		}
-	}
-
-	return fields
-}
-
 func GetConfigFromManifest(ctx context.Context, manifest handler.MetaData) (*validation.ManifestConfig, error) {
 	path, err := GetConfigIdentifierByVersion(manifest)
 	if err != nil {
