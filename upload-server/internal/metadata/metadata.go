@@ -380,8 +380,8 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	logger.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
-	fieldname := "dex_ingest_datetime"
-	manifest[fieldname] = timestamp
+	manifest["dex_ingest_datetime"] = timestamp
+	manifest["upload_id"] = tuid
 	resp.ChangeFileInfo.MetaData = manifest
 
 	report := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
@@ -399,8 +399,12 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 				Field: "ID",
 				Value: tuid}, {
 				Action: "append",
-				Field:  fieldname,
+				Field:  "dex_ingest_datetime",
 				Value:  timestamp,
+			}, {
+				Action: "append",
+				Field:  "upload_id",
+				Value:  tuid,
 			}},
 	}).Build()
 
