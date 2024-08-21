@@ -2,22 +2,29 @@
 <html>
 
 <head>
+    <link rel="stylesheet" href="/assets/index.css">
+    <link rel="stylesheet" href="/assets/form.css">
 </head>
 
 <body>
-    <form method="GET" action="/manifest">
-        <div>
-            <label for="data_stream">Data Stream</label>
-            <input type="text" id="data_stream" name="data_stream" required />
+    <div id="upload-container">
+        <h1>DEX Upload</h1>
+        <div class="form-container">
+            <form method="GET" action="/manifest">
+                <div class="input-container">
+                    <label for="data_stream">Data Stream</label>
+                    <input type="text" id="data_stream" name="data_stream" required />
+                </div>
+                <div class="input-container">
+                    <label for="data_stream_route">Data Stream Route</label>
+                    <input type="text" id="data_stream_route" name="data_stream_route" required />
+                </div>
+                <div>
+                  <button type="submit">Submit</button>
+                </div>
+            </form>
         </div>
-        <div>
-            <label for="data_stream_route">Data Stream Route</label>
-            <input type="text" id="data_stream_route" name="data_stream_route" required />
-        </div>
-        <div>
-          <button type="submit">Submit</button>
-        </div>
-    </form>
+    </div>
 
 </body>
 

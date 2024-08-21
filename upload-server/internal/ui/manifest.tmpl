@@ -11,11 +11,16 @@
     <body>
       <div id="upload-container">
         <h2>Please fill in the sender manifest form for your file</h2>
+        <p>
+          * indicates a required field
+        </p>
         <div class="form-container">
           <form method="POST" action="/upload">
             {{range .MetadataFields}}
             <div>
-              <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
+              <label for="{{.FieldName}}">
+                {{FixNames .FieldName}} {{if .Required}}*{{end}}
+              </label>
               {{if not .AllowedValues}}
                 {{ if .Required }}
                   <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" required/>
