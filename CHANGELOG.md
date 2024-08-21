@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] 2024-08-21
+- Embedding of file post processing and delivery capabilities into the upload tus service
+- v2 PS API reports for improved observability
+- Decommission of Upload API function app, Event Hub, and Event Grid
+
 ## [2.2.3] 2024-07-30
 - Sender manifest configuration updates
 - Global reporting timestamp update to Universal Time Zone (UTC) settings
