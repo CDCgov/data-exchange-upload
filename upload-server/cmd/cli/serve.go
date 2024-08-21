@@ -31,7 +31,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	} // .if
 	health.Register(storeHealthCheck)
 
-	uploadInfoHandler, err := GetUploadInfoHandler(&appConfig)
+	uploadInfoHandler, err := GetUploadInfoHandler(ctx, &appConfig)
 	if err != nil {
 		logger.Error("error configuring upload info handler: ", "error", err)
 		return nil, err

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/inspector"
 	"net/http"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -54,7 +56,7 @@ func getStatusFromError(err error) int {
 	return http.StatusInternalServerError
 }
 
-func createInspector(appConfig *appconfig.AppConfig) (UploadInspector, error) {
+func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (UploadInspector, error) {
 	if appConfig.AzureConnection != nil {
 		// Create tus container client.
 		containerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
@@ -64,6 +66,18 @@ func createInspector(appConfig *appconfig.AppConfig) (UploadInspector, error) {
 
 		return azureinspector.NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
 	}
+	if appConfig.S3Connection != nil {
+		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
+		if err != nil {
+			return nil, err
+		}
+
+		return &inspector.S3UploadInspector{
+			Client:     s3Client,
+			BucketName: appConfig.S3Connection.BucketName,
+			TusPrefix:  appConfig.TusUploadPrefix,
+		}, nil
+	}
 	if appConfig.LocalFolderUploadsTus != "" {
 		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
 	}
@@ -71,9 +85,9 @@ func createInspector(appConfig *appconfig.AppConfig) (UploadInspector, error) {
 	return nil, errors.New("unable to create inspector given app configuration")
 }
 
-func GetUploadInfoHandler(appConfig *appconfig.AppConfig) (http.Handler, error) {
-	inspector, err := createInspector(appConfig)
+func GetUploadInfoHandler(ctx context.Context, appConfig *appconfig.AppConfig) (http.Handler, error) {
+	i, err := createInspector(ctx, appConfig)
 	return &InfoHandler{
-		inspector,
+		i,
 	}, err
 }
