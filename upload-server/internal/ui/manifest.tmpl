@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
         <link rel="stylesheet" href="/assets/index.css">
@@ -9,8 +9,9 @@
         <title>Manifest</title>
     </head>
     <body>
+      <main>
       <div id="upload-container">
-        <h2>Please fill in the sender manifest form for your file</h2>
+        <h1>Please fill in the sender manifest form for your file</h1>
         <p>
           * indicates a required field
         </p>
@@ -37,8 +38,8 @@
             </div>
             {{end}}
             <div class="hidden">
-              <label for="data_stream_id">Data Stream ID</label>
-              <input id="data_stream_id" name="data_stream_id" type="text" value="{{.DataStream}}" />
+              <label for="data-stream-id">Data Stream ID</label>
+              <input id="data-stream-id" name="data-stream-id" type="text" value="{{.DataStream}}" />
             </div>
             <div class="hidden">
               <label for="data_stream_route">Data Stream Route</label>
@@ -47,5 +48,6 @@
             <button type="submit">Next</button>
           </form>
         </div>
+      </main>
     </body>
 </html>
