@@ -8,19 +8,71 @@ Repo is structured (as feasible) based on the [golang-standards/project-layout](
 - Based on the [tus](https://tus.io/) open protocol for resumable file uploads
 - Based on the [tusd](https://github.com/tus/tusd) official reference implementation
 
-## Running and Building
+## Usage
 
-### Running locally
+### Configuring the storage backend
+This service currently supports local file system, Azure, and AWS as storage backends.  Configuring a storage backend
+for your setup is done via environment variables.  Environment variables can be set at the system level, or via a `.env` file
+located within the `configs/local/` directory.  Here are some examples for configuring the different storage backends
+that this service supports.
+
+#### Local file system
+By default, this service uses the file system of the host machine it is running on as a storage backend.  Therefore, no
+environment variables are necessary to set.  To run, simply execute
 ```go
 go run ./cmd/main.go
 ```
+This will start the HTTP server at http://localhost:8080.  With a Tus client, you can upload files to http://localhost:8080/files,
+and they will show up in the `uploads/` directory.
 
-### Building
+You can configure this behavior with the following environment variables:
+- `SERVER_PORT` - Sets the port that the server runs on.  Default is 8080.
+- `LOCAL_FOLDER_UPLOADS_TUS` - Relative path to the folder where tus will upload files to.  Default is `./uploads`.
+- `TUSD_HANDLER_BASE_PATH` - URL path for the file upload endpoint.  Default is `/files` or `/files/`.
+- `TUS_UPLOAD_PREFIX` - Sub folder to drop files into within the local or cloud folder.  Defaults to `tus-prefix`.
+
+#### Azure Storage Account
+To upload to an Azure Storage Account, you'll need to collect the name, access key, and endpoint URI of the account.  You
+also need to create a Blob Container within the account.  Next, fill in the following environment variables to tell the 
+service to use your Azure storage account as the storage backend:
+- `AZURE_STORAGE_ACCOUNT` - Name of the storage account.
+- `AZURE_STORAGE_KEY` - Private access key or SAS token of the account.
+- `AZURE_ENDPOINT` - URI of the storage account.
+
+#### S3
+This service currently uses the AWS S3 SDK to support uploading to S3 storage backends, however any compatible S3 storage, 
+such as Minio, is supported.  You'll need to set the following environment variables to enable this:
+- `AWS_S3_ENDPOINT` - URI of the S3 instance.  Must start with `http` or `https`.
+- `AWS_S3_BUCKET_NAME` - Globally unique name of the S3 bucket.
+- `AWS_REGION` - Region where the S3 bucket lives.
+- `AWS_ACCESS_KEY_ID` - Username or user ID of a user or service account with write access to the bucket.
+- `AWS_SECRET_ACCESS_KEY` - Password or private key of user or service account.
+- `AWS_SESSION_TOKEN` - Optional session token for authentication.  Typically used for short lived keys.
+
+### Configuring Distributed File Locking with Redis
+When you want to scale this service horizontally, you'll need to use a distributed file locking mechanism to prevent
+upload corruption.  You can read more about the limitations of Tus's support for concurrent requests [here](https://tus.github.io/tusd/advanced-topics/locks/).
+This service comes with a Redis implementation of a distributed file lock out of the box.  All you need is a Redis instance
+that is accessible from the servers you will deploy this service to.  After that, set the following environment variable
+to enable the use of your Redis instance:
+- `REDIS_CONNECTION_STRING` - The full URI of the Redis instance, including authentication credentials such as username/password or access token.  Make sure to use `rediss://` instead of `redis://` to use TLS for this traffic.
+
+### Configuring metadata validation
+TODO
+
+### Configuring basic upload routing
+TODO
+
+### Configuring Authentication
+TODO
+
+
+## Building the source
 ```go
 go build ./cmd/main.go -o <binary name>
 ```
 
-### Unit Testing
+## Unit Testing
 Before running unit tests, make sure to clean the file system with the `clean.sh` script.  This removes any temparary upload and report files that the tests generated.
 
 ```go

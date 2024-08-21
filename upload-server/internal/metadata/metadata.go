@@ -22,7 +22,6 @@ import (
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -116,16 +115,21 @@ func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
 }
 
 func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
-	p := ""
 	config, err := GetConfigFromManifest(ctx, manifest)
 	if err != nil {
-		return p, err
+		return "", err
 	}
+
+	ds := metadata.GetDataStreamID(manifest)
+	r := metadata.GetDataStreamRoute(manifest)
+
+	p := ds + "-" + r
 
 	if config.Copy.FolderStructure == FolderStructureDate {
 		// Get UTC year, month, and day
 		t := time.Now().UTC()
-		p = fmt.Sprintf("%d/%02d/%02d/", t.Year(), t.Month(), t.Day())
+		datePrefix := fmt.Sprintf("%d/%02d/%02d", t.Year(), t.Month(), t.Day())
+		p = filepath.Join(p, datePrefix)
 	}
 
 	return p, nil
@@ -190,8 +194,8 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		manifest,
 		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC()).SetContent(reports.MetaDataVerifyContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageMetadataVerify,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageMetadataVerify,
 		},
 		Filename: metadata.GetFilename(manifest),
 		Metadata: manifest,
@@ -207,7 +211,10 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	if err := v.verify(event.Context, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
-		rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error())
+		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
+			Level:   reports.IssueLevelError,
+			Message: err.Error(),
+		})
 
 		if errors.Is(err, validation.ErrFailure) {
 			resp.RejectUpload = true
@@ -283,15 +290,18 @@ func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks
 
 	c, err := v.getHydrationConfig(ctx, manifest)
 	if err != nil {
-		rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error()).SetEndTime(time.Now().UTC())
+		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
+			Level:   reports.IssueLevelError,
+			Message: err.Error(),
+		}).SetEndTime(time.Now().UTC())
 		return resp, err
 	}
 
 	v2Manifest, transforms := v1.Hydrate(manifest, c)
 	rb.SetContent(reports.BulkMetadataTransformReportContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageMetadataTransform,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageMetadataTransform,
 		},
 		Transforms: transforms,
 	})
@@ -362,16 +372,18 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 	return resp, nil
 }
 
-func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
-	if sloger.DefaultLogger != nil {
-		logger = sloger.DefaultLogger.With(models.TGUID_KEY, tuid)
-	}
-	logger.Info("Generated UUID", "UUID", tuid)
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+	logger.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
+	manifest["dex_ingest_datetime"] = timestamp
+	manifest["upload_id"] = tuid
+	resp.ChangeFileInfo.MetaData = manifest
+
 	report := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
 		"1.0.0",
 		reports.StageMetadataTransform,
@@ -379,59 +391,21 @@ func WithUploadID(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookR
 		manifest,
 		reports.DispositionTypeAdd).SetContent(reports.BulkMetadataTransformReportContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageMetadataTransform,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageMetadataTransform,
 		},
-		Transforms: []reports.MetadataTransformContent{{
-			Action: "update",
-			Field:  "ID",
-			Value:  tuid,
-		}},
-	}).Build()
-
-	logger.Info("METADATA TRANSFORM REPORT", "report", report)
-	reports.Publish(event.Context, report)
-
-	return resp, nil
-}
-
-func WithTimestamp(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	tguid := event.Upload.ID
-	if resp.ChangeFileInfo.ID != "" {
-		tguid = resp.ChangeFileInfo.ID
-	}
-	if tguid == "" {
-		return resp, errors.New("no Upload ID defined")
-	}
-
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-	logger.Info("adding global timestamp", "timestamp", timestamp)
-
-	manifest := event.Upload.MetaData
-
-	if resp.ChangeFileInfo.MetaData != nil {
-		manifest = resp.ChangeFileInfo.MetaData
-	}
-
-	fieldname := "dex_ingest_datetime"
-	manifest[fieldname] = timestamp
-	resp.ChangeFileInfo.MetaData = manifest
-
-	report := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
-		"1.0.0",
-		reports.StageMetadataTransform,
-		tguid,
-		manifest,
-		reports.DispositionTypeAdd).SetContent(reports.BulkMetadataTransformReportContent{
-		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageMetadataTransform,
-		},
-		Transforms: []reports.MetadataTransformContent{{
-			Action: "append",
-			Field:  fieldname,
-			Value:  timestamp,
-		}},
+		Transforms: []reports.MetadataTransformContent{
+			{Action: "update",
+				Field: "ID",
+				Value: tuid}, {
+				Action: "append",
+				Field:  "dex_ingest_datetime",
+				Value:  timestamp,
+			}, {
+				Action: "append",
+				Field:  "upload_id",
+				Value:  tuid,
+			}},
 	}).Build()
 
 	logger.Info("METADATA TRANSFORM REPORT", "report", report)

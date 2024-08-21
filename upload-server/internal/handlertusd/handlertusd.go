@@ -2,7 +2,6 @@ package handlertusd
 
 import (
 	"errors"
-
 	"golang.org/x/exp/slog"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"

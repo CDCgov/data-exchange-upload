@@ -128,18 +128,20 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 	}
 	rb.SetContent(reports.FileCopyContent{
 		ReportContent: reports.ReportContent{
-			SchemaVersion: "1.0.0",
-			SchemaName:    reports.StageFileCopy,
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageFileCopy,
 		},
 		FileSourceBlobUrl:      srcUrl,
 		FileDestinationBlobUrl: destUrl,
-		Timestamp:              "", // TODO.  Does PS API do this for us?
 	})
 
 	defer func() {
 		if err != nil {
 			logger.Error("failed to copy file", "target", target)
-			rb.SetStatus(reports.StatusFailed).AppendIssue(err.Error())
+			rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
+				Level:   reports.IssueLevelError,
+				Message: err.Error(),
+			})
 		}
 		report := rb.Build()
 		logger.Info("File Copy Report", "report", report)
@@ -256,7 +258,7 @@ func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map
 	destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
 	s, err := srcBlobClient.DownloadStream(ctx, nil)
 	defer s.Body.Close()
-	if *s.ErrorCode == string(bloberror.BlobNotFound) {
+	if s.ErrorCode != nil && *s.ErrorCode == string(bloberror.BlobNotFound) {
 		return ErrSrcFileNotExist
 	}
 	if err != nil {
@@ -337,13 +339,12 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	prefix := ""
 
 	switch target {
-	case "edav":
-	case "routing":
+	case "routing", "edav":
 		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	return prefix + blobName, nil
+	return filepath.Join(prefix, blobName), nil
 }

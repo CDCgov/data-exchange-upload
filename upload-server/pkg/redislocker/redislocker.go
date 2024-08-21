@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"log/slog"
 	"time"
 
@@ -27,30 +28,67 @@ func WithLogger(logger *slog.Logger) LockerOption {
 	}
 }
 
+func WithMutexCreator(uri string) (LockerOption, error) {
+	connection, err := redis.ParseURL(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	rsm := &RedSyncMutex{
+		conn: connection,
+	}
+
+	return func(l *RedisLocker) {
+		l.CreateMutex = rsm.CreateMutex
+	}, nil
+}
+
 func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
+	defaultCreator, err := WithMutexCreator(uri)
+	if err != nil {
+		return nil, err
+	}
+	defaultOpts := []LockerOption{
+		WithLogger(slog.Default()), defaultCreator,
+	}
+
 	connection, err := redis.ParseURL(uri)
 	if err != nil {
 		return nil, err
 	}
 	client := redis.NewClient(connection)
-	if res := client.Ping(context.Background()); res.Err() != nil {
-		return nil, res.Err()
-	}
-	rs := redsync.New(goredis.NewPool(client))
 
 	locker := &RedisLocker{
-		rs:    rs,
 		redis: client,
 	}
+
+	for _, option := range defaultOpts {
+		option(locker)
+	}
+
 	for _, option := range lockerOptions {
 		option(locker)
 	}
-	//defaults
-	if locker.logger == nil {
-		locker.logger = slog.Default()
+
+	if locker.CreateMutex == nil || locker.logger == nil {
+		return nil, fmt.Errorf("missing required properties for locker %v", *locker)
 	}
 
 	return locker, nil
+}
+
+type RedSyncMutex struct {
+	rs   *redsync.Redsync
+	conn *redis.Options
+}
+
+func (rsm *RedSyncMutex) CreateMutex(id string) MutexLock {
+	// Recreate client if the pool lost connection.
+	if rsm.rs == nil {
+		client := redis.NewClient(rsm.conn)
+		rsm.rs = redsync.New(goredis.NewPool(client))
+	}
+	return rsm.rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
 }
 
 type LockExchange interface {
@@ -103,10 +141,18 @@ func (e *RedisLockExchange) Release(ctx context.Context, id string) error {
 	return res.Err()
 }
 
+type MutexLock interface {
+	TryLockContext(context.Context) error
+	ExtendContext(context.Context) (bool, error)
+	UnlockContext(context.Context) (bool, error)
+	Until() time.Time
+}
+
 type RedisLocker struct {
-	rs     *redsync.Redsync
-	redis  *redis.Client
-	logger *slog.Logger
+	//rs          *redsync.Redsync
+	CreateMutex func(id string) MutexLock
+	redis       *redis.Client
+	logger      *slog.Logger
 }
 
 func (locker *RedisLocker) UseIn(composer *handler.StoreComposer) {
@@ -114,7 +160,7 @@ func (locker *RedisLocker) UseIn(composer *handler.StoreComposer) {
 }
 
 func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {
-	mutex := locker.rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
+	mutex := locker.CreateMutex(id)
 	return &redisLock{
 		id:    id,
 		mutex: mutex,
@@ -125,9 +171,29 @@ func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {
 	}, nil
 }
 
+func (locker *RedisLocker) Health(_ context.Context) models.ServiceHealthResp {
+	var shr models.ServiceHealthResp
+	shr.Service = models.REDIS_LOCKER
+
+	// Ping redis service
+	client := locker.redis
+	if res := client.Ping(context.Background()); res.Err() != nil {
+		return models.ServiceHealthResp{
+			Service:     models.REDIS_LOCKER,
+			Status:      models.STATUS_DOWN,
+			HealthIssue: res.Err().Error(),
+		}
+	}
+
+	// all good
+	shr.Status = models.STATUS_UP
+	shr.HealthIssue = models.HEALTH_ISSUE_NONE
+	return shr
+}
+
 type redisLock struct {
 	id       string
-	mutex    *redsync.Mutex
+	mutex    MutexLock
 	ctx      context.Context
 	cancel   func()
 	exchange BidirectionalLockExchange

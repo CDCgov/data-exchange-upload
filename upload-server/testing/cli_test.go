@@ -22,6 +22,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -186,6 +187,13 @@ func TestTus(t *testing.T) {
 						}
 					}
 				}
+
+				appendedUid, ok := processedMeta["upload_id"]
+				if !ok {
+					t.Error("upload ID not appended to file metadata")
+				} else if appendedUid != tuid {
+					t.Error("appended upload ID did not match upload ID", appendedUid, tuid)
+				}
 			}
 
 			t.Log("test case", name, "passed", tuid)
@@ -228,9 +236,13 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dateTokens := strings.Split(p, "/")
-	if len(dateTokens) != 4 {
-		t.Error("date prefix not properly formatted", p)
+	prefixTokens := strings.Split(p, string(filepath.Separator))
+	if len(prefixTokens) != 4 {
+		t.Error("prefix not properly formatted", p)
+	}
+	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
+	if prefixTokens[0] != expectedFolderPrefix {
+		t.Error("prefix folder not properly formatted")
 	}
 }
 
@@ -251,8 +263,10 @@ func TestGetFileDeliveryPrefixRoot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if p != "" {
-		t.Error("expected file delivery prefix to be empty but was", p)
+	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
+
+	if p != expectedFolderPrefix {
+		t.Error("expected file delivery prefix to be folder prefix but was", p)
 	}
 }
 
@@ -569,12 +583,12 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 	}
 
 	trackedStages := []string{
-		"dex-metadata-verify",
-		"dex-metadata-transform",
-		"dex-upload-status",
-		"dex-upload-started",
-		"dex-upload-complete",
-		"dex-file-copy",
+		reports.StageMetadataVerify,
+		reports.StageMetadataTransform,
+		reports.StageUploadCompleted,
+		reports.StageUploadStarted,
+		reports.StageUploadStatus,
+		reports.StageFileCopy,
 	}
 
 	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
@@ -604,7 +618,7 @@ func unmarshalReport(bytes []byte) (reports.Report, error) {
 }
 
 func appendReport(summary ReportFileSummary, r reports.Report) ReportFileSummary {
-	stageName := r.StageInfo.Stage
+	stageName := r.StageInfo.Action
 	s, ok := summary.Summaries[stageName]
 	if !ok {
 		summary.Summaries[stageName] = ReportSummary{

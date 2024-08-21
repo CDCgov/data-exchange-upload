@@ -19,7 +19,7 @@ class Health {
     fun shouldGetHealthCheck() {
 
         val expectedDependentServices = arrayOf(
-            "Azure Service Bus",
+            "Event Publishing processing-status-cosmos-db-report-sink-topics",
             "Tus storage",
             "Redis Locker",
             "Azure deliver target edav",
