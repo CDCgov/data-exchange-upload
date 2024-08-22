@@ -16,6 +16,7 @@ func (l *S3ConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte, e
 		Bucket: &l.BucketName,
 		Key:    &path,
 	})
+	defer output.Body.Close()
 	if err != nil {
 		return nil, err
 	}
