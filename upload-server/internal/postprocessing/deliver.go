@@ -52,28 +52,26 @@ func RegisterAllTargets(ctx context.Context, appConfig appconfig.AppConfig) erro
 	}
 
 	if appConfig.EdavConnection != nil {
-		edavDeliverer, err := NewAzureDeliverer(ctx, "edav", &appConfig)
+		edavDeliverer, err = NewAzureDeliverer(ctx, "edav", &appConfig)
 		if err != nil {
 			logger.Error("failed to connect to edav deliverer target", "error", err.Error())
-		} else {
-			RegisterTarget("edav", edavDeliverer)
+		}
+		if edavDeliverer != nil {
 			health.Register(edavDeliverer)
 		}
 	}
 	if appConfig.RoutingConnection != nil {
-		routingDeliverer, err := NewAzureDeliverer(ctx, "routing", &appConfig)
+		routingDeliverer, err = NewAzureDeliverer(ctx, "routing", &appConfig)
 		if err != nil {
 			logger.Error("failed to connect to router deliverer target", "error", err.Error())
-		} else {
-			RegisterTarget("routing", routingDeliverer)
+		}
+		if routingDeliverer != nil {
 			health.Register(routingDeliverer)
 		}
 	}
 
 	RegisterTarget("edav", edavDeliverer)
-	health.Register(edavDeliverer)
 	RegisterTarget("routing", routingDeliverer)
-	health.Register(routingDeliverer)
 
 	return nil
 }
