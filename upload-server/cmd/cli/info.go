@@ -33,16 +33,21 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "error getting file manifest", getStatusFromError(err))
 		return
 	}
-	uploadedFileInfo, err := ih.inspector.InspectUploadedFile(r.Context(), id)
-	if err != nil {
-		http.Error(rw, fmt.Sprintf("error getting file info.  Manifest: %#v", fileInfo), getStatusFromError(err))
-		return
-	}
 
 	response := &info.InfoResponse{
 		Manifest: fileInfo,
-		FileInfo: uploadedFileInfo,
 	}
+
+	uploadedFileInfo, err := ih.inspector.InspectUploadedFile(r.Context(), id)
+	if err != nil {
+		// skip not found errors to handle deferred uploads.
+		if !errors.Is(err, inspector.ErrUploadNotFound) {
+			http.Error(rw, fmt.Sprintf("error getting file info.  Manifest: %#v", fileInfo), getStatusFromError(err))
+			return
+		}
+	}
+
+	response.FileInfo = uploadedFileInfo
 
 	enc := json.NewEncoder(rw)
 	enc.Encode(response)

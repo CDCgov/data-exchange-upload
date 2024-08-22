@@ -3,6 +3,7 @@ package inspector
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
@@ -62,8 +63,12 @@ func (sui *S3UploadInspector) InspectUploadedFile(c context.Context, id string) 
 		ObjectAttributes: []types.ObjectAttributes{"ObjectSize"},
 	})
 	if err != nil {
-		// TODO specifically handle not found.  Need to support deferred uploads
-		return nil, nil
+		// Support deferred uploads
+		var nsk *types.NoSuchKey
+		if errors.As(err, &nsk) {
+			return nil, ErrUploadNotFound
+		}
+		return nil, err
 	}
 
 	return map[string]any{
