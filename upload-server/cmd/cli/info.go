@@ -41,7 +41,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	uploadedFileInfo, err := ih.inspector.InspectUploadedFile(r.Context(), id)
 	if err != nil {
 		// skip not found errors to handle deferred uploads.
-		if !errors.Is(err, inspector.ErrUploadNotFound) {
+		if !errors.Is(err, info.ErrNotFound) {
 			http.Error(rw, fmt.Sprintf("error getting file info.  Manifest: %#v", fileInfo), getStatusFromError(err))
 			return
 		}

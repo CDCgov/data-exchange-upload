@@ -66,7 +66,7 @@ func (sui *S3UploadInspector) InspectUploadedFile(c context.Context, id string) 
 		// Support deferred uploads
 		var nsk *types.NoSuchKey
 		if errors.As(err, &nsk) {
-			return nil, ErrUploadNotFound
+			return nil, errors.Join(err, info.ErrNotFound)
 		}
 		return nil, err
 	}
