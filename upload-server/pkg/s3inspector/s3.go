@@ -1,4 +1,4 @@
-package inspector
+package s3inspector
 
 import (
 	"context"
@@ -24,7 +24,6 @@ func (sui *S3UploadInspector) InspectInfoFile(c context.Context, id string) (map
 		id = tokens[0]
 	}
 
-	// TODO make sure this is robust.  Can't use filepath.Join
 	filename := sui.TusPrefix + "/" + id + ".info"
 	output, err := sui.Client.GetObject(c, &s3.GetObjectInput{
 		Bucket: &sui.BucketName,
@@ -55,7 +54,6 @@ func (sui *S3UploadInspector) InspectUploadedFile(c context.Context, id string) 
 		id = tokens[0]
 	}
 
-	// TODO make sure this is robust.  Can't use filepath.Join
 	filename := sui.TusPrefix + "/" + id
 	output, err := sui.Client.GetObjectAttributes(c, &s3.GetObjectAttributesInput{
 		Bucket:           &sui.BucketName,
