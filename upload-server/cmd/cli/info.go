@@ -11,8 +11,6 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/azureinspector"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/fileinspector"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 )
 
@@ -69,7 +67,7 @@ func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (Uploa
 			return nil, err
 		}
 
-		return azureinspector.NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
+		return inspector.NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
 	}
 	if appConfig.S3Connection != nil {
 		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
@@ -84,7 +82,7 @@ func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (Uploa
 		}, nil
 	}
 	if appConfig.LocalFolderUploadsTus != "" {
-		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
+		return inspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
 	}
 
 	return nil, errors.New("unable to create inspector given app configuration")

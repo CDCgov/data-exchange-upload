@@ -1,4 +1,4 @@
-package fileinspector
+package inspector
 
 import (
 	"context"

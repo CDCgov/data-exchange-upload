@@ -1,4 +1,4 @@
-package azureinspector
+package inspector
 
 import (
 	"context"
