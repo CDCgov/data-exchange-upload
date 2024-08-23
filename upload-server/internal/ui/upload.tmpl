@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
         <link rel="stylesheet" href="/assets/index.css">
@@ -8,80 +8,82 @@
         <title>DEX Upload</title>
     </head>
     <body>
-        <div id="upload-container">
-        <h1>Demo File Uploader</h1>
-        <p>
-            This demo purpose is to upload files to the custom tusd go server. 
-        </p>
-        <p>
-            You can select a file using the controls below.
-        </p>
-        <p><b>Note:</b> Chunksize should be set on the client for uploading files of large size (1GB or over).</p>
-        <!-- <p>
-            For a prettier demo please go to the
-            <a href="http://tus.io/demo.html">tus.io</a> website.
-            This demo is just here to aid developers.
-        </p> -->
+        <main>
+            <div id="upload-container">
+                <h1>Demo File Uploader</h1>
+                <p>
+                    This demo purpose is to upload files to the custom tusd go server. 
+                </p>
+                <p>
+                    You can select a file using the controls below.
+                </p>
+                <p><b>Note:</b> Chunksize should be set on the client for uploading files of large size (1GB or over).</p>
+                <!-- <p>
+                    For a prettier demo please go to the
+                    <a href="http://tus.io/demo.html">tus.io</a> website.
+                    This demo is just here to aid developers.
+                </p> -->
 
-        <!-- <p>
-            A demo where a video is recorded from your webcam while being simultaneously uploaded, can be found <a href="./video.html">here</a>.
-        </p> -->
+                <!-- <p>
+                    A demo where a video is recorded from your webcam while being simultaneously uploaded, can be found <a href="./video.html">here</a>.
+                </p> -->
 
 
-        <div class="alert alert-warining hidden" id="support-alert">
-            <b>Warning!</b> Your browser does not seem to support the features necessary to run tus-js-client. The buttons below may work but probably will fail silently.
-        </div>
-
-        <div class="form-container">
-            <div class="input-group">
-                <label for="endpoint">
-                    Upload endpoint:
-                </label>
-                <input type="text" id="endpoint" name="endpoint" value="http://localhost:8080/files/">
-                <!-- http://localhost:8080/files/ -->
-                <!-- https://tusd.tusdemo.net/files/ -->
-                <!-- https://apidev.cdc.gov/upload -->
-            </div>
-            <div class="input-group">
-                <label for="chunksize">
-                    Chunk size (bytes):
-                </label>
-                <input type="number" id="chunksize" name="chunksize" value="40000000">
-            </div>
-            <div class="input-group">
-                <label for="paralleluploads">
-                    Parallel upload requests:
-                </label>
-                <input type="number" id="paralleluploads" name="paralleluploads" value="1" disabled>
-            </div>
-            <div class="input-group">
-                <label>
-                Metadata JSON object (file name will be inferred from each file):
-                </label>
-                <div class="upload-container">
-                    <button onclick="files.click()">Browse Files</button>
-                    <input type="file" id="files">
+                <div class="alert alert-warining hidden" id="support-alert">
+                    <b>Warning!</b> Your browser does not seem to support the features necessary to run tus-js-client. The buttons below may work but probably will fail silently.
                 </div>
-            </div>
-        </div>
 
-        <div class="row">
-            <div class="span8">
-            <div class="progress progress-striped progress-success">
-                <div class="bar" style="width: 0%;"></div>
-            </div>
-            </div>
-            <!-- <div class="span4">
-            <button class="btn stop" id="toggle-btn">start upload</button>
-            </div> -->
-        </div>
+                <div class="form-container">
+                    <div class="input-group">
+                        <label for="endpoint">
+                            Upload endpoint:
+                        </label>
+                        <input type="text" id="endpoint" name="endpoint" value="http://localhost:8080/files/">
+                        <!-- http://localhost:8080/files/ -->
+                        <!-- https://tusd.tusdemo.net/files/ -->
+                        <!-- https://apidev.cdc.gov/upload -->
+                    </div>
+                    <div class="input-group">
+                        <label for="chunksize">
+                            Chunk size (bytes):
+                        </label>
+                        <input type="number" id="chunksize" name="chunksize" value="40000000">
+                    </div>
+                    <div class="input-group">
+                        <label for="paralleluploads">
+                            Parallel upload requests:
+                        </label>
+                        <input type="number" id="paralleluploads" name="paralleluploads" value="1" disabled>
+                    </div>
+                    <div class="input-group">
+                        <label>
+                            Metadata JSON object (file name will be inferred from each file):
+                            <div class="upload-container">
+                                <button onclick="files.click()">Browse Files</button>
+                                <input type="file" id="files">
+                            </div>
+                        </label>
+                    </div>
+                </div>
 
-        <hr>
-        <h3>Uploads</h3>
-        <p id="upload-list">
-            Successful uploads will be listed here.
-        </p>
-        </div>
+                <div class="row">
+                    <div class="span8">
+                    <div class="progress progress-striped progress-success">
+                        <div class="bar" style="width: 0%;"></div>
+                    </div>
+                    </div>
+                    <!-- <div class="span4">
+                    <button class="btn stop" id="toggle-btn">start upload</button>
+                    </div> -->
+                </div>
+
+                <hr>
+                <h2>Uploads</h2>
+                <p id="upload-list">
+                    Successful uploads will be listed here.
+                </p>
+            </div>
+        </main>
     </body>
 
     <script>const uploadUrl="{{.}}"</script>

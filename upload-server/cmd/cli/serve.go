@@ -2,17 +2,20 @@ package cli
 
 import (
 	"context"
+	"net/http"
+	"strings"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
-	"net/http"
-	"strings"
 )
 
 func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
@@ -28,7 +31,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	} // .if
 	health.Register(storeHealthCheck)
 
-	uploadInfoHandler, err := GetUploadInfoHandler(&appConfig)
+	uploadInfoHandler, err := GetUploadInfoHandler(ctx, &appConfig)
 	if err != nil {
 		logger.Error("error configuring upload info handler: ", "error", err)
 		return nil, err
@@ -46,8 +49,19 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		health.Register(locker.(health.Checkable))
 	}
 
+	err = postprocessing.RegisterAllTargets(ctx, appConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// Must be called before hook handler
+	err = metadata.InitConfigCache(ctx, appConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(ctx, appConfig)
+	hookHandler, err := GetHookHandler(appConfig)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
