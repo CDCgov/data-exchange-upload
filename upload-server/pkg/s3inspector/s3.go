@@ -19,10 +19,7 @@ type S3UploadInspector struct {
 
 func (sui *S3UploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
 	// temp solution for handling hash that tus s3 store puts on upload IDs.  See https://github.com/tus/tusd/pull/1167
-	tokens := strings.Split(id, "+")
-	if len(tokens) > 0 {
-		id = tokens[0]
-	}
+	id = strings.Split(id, "+")[0]
 
 	filename := sui.TusPrefix + "/" + id + ".info"
 	output, err := sui.Client.GetObject(c, &s3.GetObjectInput{
@@ -49,10 +46,7 @@ func (sui *S3UploadInspector) InspectInfoFile(c context.Context, id string) (map
 
 func (sui *S3UploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
 	// temp solution for handling hash that tus s3 store puts on upload IDs.  See https://github.com/tus/tusd/pull/1167
-	tokens := strings.Split(id, "+")
-	if len(tokens) > 0 {
-		id = tokens[0]
-	}
+	id = strings.Split(id, "+")[0]
 
 	filename := sui.TusPrefix + "/" + id
 	output, err := sui.Client.GetObjectAttributes(c, &s3.GetObjectAttributesInput{
