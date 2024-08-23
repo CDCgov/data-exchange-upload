@@ -43,6 +43,11 @@ type S3Connection struct {
 	BucketName       string `json:"bucket_name"`
 }
 
+type Connection interface {
+	// TODO: should return more info than just the error
+	Upload(io.ReadSeeker) error
+}
+
 func ParseConnection[T io.Writer](raw []byte) (io.Writer, error) {
 	var w T
 	if err := json.Unmarshal(raw, &w); err != nil {

@@ -2,7 +2,7 @@ delivery:
   - name: "edav"
     system: "s3"
     connection: 
-      connections_string: "<whatever>"
+      connections_string: "$EDAV_CONNECTION_STRING"
       bucket_name: "edav"
     manifest_conditions:
       - key: "data_stream_id"
