@@ -6,7 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders"
+	azureloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/azure"
+	fileloader "github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders/file"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/google/uuid"
@@ -56,6 +61,42 @@ var Cache *ConfigCache
 type ConfigCache struct {
 	sync.Map
 	Loader validation.ConfigLoader
+}
+
+func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
+	Cache = &ConfigCache{
+		Loader: &fileloader.FileConfigLoader{
+			FileSystem: os.DirFS(appConfig.UploadConfigPath),
+		},
+	}
+
+	if appConfig.AzureConnection != nil && appConfig.S3Connection != nil {
+		return errors.New("cannot load metadata config from multiple locations")
+	}
+
+	if appConfig.AzureConnection != nil {
+		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
+		if err != nil {
+			return err
+		}
+		Cache.Loader = &azureloader.AzureConfigLoader{
+			Client:        client,
+			ContainerName: appConfig.AzureManifestConfigContainer,
+		}
+	}
+
+	if appConfig.S3Connection != nil {
+		client, err := stores3.New(ctx, appConfig.S3Connection)
+		if err != nil {
+			return err
+		}
+		Cache.Loader = &loaders.S3ConfigLoader{
+			Client:     client,
+			BucketName: appConfig.S3ManifestConfigBucket,
+		}
+	}
+
+	return nil
 }
 
 func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.ManifestConfig, error) {

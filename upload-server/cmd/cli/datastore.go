@@ -3,8 +3,6 @@ package cli
 import (
 	"context"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	"github.com/tus/tusd/v2/pkg/s3store"
 	"os"
@@ -58,18 +56,10 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 	} // .if
 
 	if appConfig.S3Connection != nil {
-		cfg, err := config.LoadDefaultConfig(ctx)
-
+		client, err := stores3.New(ctx, appConfig.S3Connection)
 		if err != nil {
 			return nil, nil, err
 		}
-		client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-			// For non-AWS S3 backends
-			if appConfig.S3Connection.Endpoint != "" {
-				o.UsePathStyle = true
-				o.BaseEndpoint = &appConfig.S3Connection.Endpoint
-			}
-		})
 		hc := &stores3.S3HealthCheck{
 			Client: client,
 		}
