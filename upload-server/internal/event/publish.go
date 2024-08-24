@@ -13,12 +13,15 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 )
 
 var logger *slog.Logger
 var FileReadyPublisher Publisher[*FileReady]
+
+const TypeSeparator = "_"
 
 func init() {
 	type Empty struct{}
@@ -70,7 +73,7 @@ func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 		return err
 	}
 
-	filename := mp.Dir + "/" + event.Identifier()
+	filename := filepath.Join(mp.Dir, event.Identifier() + TypeSeparator + event.Type())
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err

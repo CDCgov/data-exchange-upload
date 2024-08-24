@@ -113,7 +113,7 @@ func TestTus(t *testing.T) {
 				}
 
 				// Post-processing
-				events, err := readEventFile(tuid)
+				events, err := readEventFile(tuid, event.FileReadyEventType)
 				if err != nil {
 					t.Error("no events found for tuid", "tuid", tuid)
 				}
@@ -581,7 +581,7 @@ func readReportFiles(tuid string, stages []string) (ReportFileSummary, error) {
 	}
 
 	for _, stage := range stages {
-		filename := tuid + "-" + stage
+		filename := tuid + event.TypeSeparator + stage
 		f, err := os.Open("test/reports/" + filename)
 		if err != nil {
 			return summary, fmt.Errorf("failed to open report file for %s; inner error %w", filename, err)
@@ -693,9 +693,9 @@ func checkReportSummary(fileSummary ReportFileSummary, stageName string, expecte
 	return nil
 }
 
-func readEventFile(tuid string) ([]event.Event, error) {
+func readEventFile(tuid string, eType string) ([]event.Event, error) {
 	var events []event.Event
-	f, err := os.Open("test/events/" + tuid)
+	f, err := os.Open("test/events/" + tuid + event.TypeSeparator + eType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open event file file for %s; inner error %w", tuid, err)
 	}

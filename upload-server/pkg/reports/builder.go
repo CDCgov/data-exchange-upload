@@ -227,7 +227,7 @@ func (b *ReportBuilder[T]) Build() *Report {
 	default:
 		return &Report{
 			Event: event.Event{
-				Type: "Report",
+				Type: b.Action,
 				ID:   b.UploadId,
 			},
 			ReportSchemaVersion: b.Version,
