@@ -19,6 +19,7 @@ import (
 type UploadInspector interface {
 	InspectInfoFile(c context.Context, id string) (map[string]any, error)
 	InspectUploadedFile(c context.Context, id string) (map[string]any, error)
+	InspectFileStatus(ctx context.Context, id string) (*info.FileStatus, error)
 }
 
 type InfoHandler struct {
@@ -36,6 +37,9 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	response := &info.InfoResponse{
 		Manifest: fileInfo,
+		FileStatus: info.FileStatus{
+			Destinations: []info.FileDeliveryStatus{},
+		},
 	}
 
 	uploadedFileInfo, err := ih.inspector.InspectUploadedFile(r.Context(), id)
@@ -47,8 +51,23 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	fileStatus, err := ih.inspector.InspectFileStatus(r.Context(), id)
+	if err != nil {
+		// skip not found errors to handle deferred uploads.
+		if !errors.Is(err, info.ErrNotFound) {
+			http.Error(rw, fmt.Sprintf("error getting file status.  Manifest: %#v", fileInfo), getStatusFromError(err))
+			return
+		}
+	}
+
 	response.FileInfo = uploadedFileInfo
 
+	// TODO this nil check is probably not necessary
+	if fileStatus != nil {
+		response.FileStatus = *fileStatus
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(rw)
 	enc.Encode(response)
 }
@@ -84,7 +103,7 @@ func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (Uploa
 		}, nil
 	}
 	if appConfig.LocalFolderUploadsTus != "" {
-		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
+		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix, appConfig.LocalReportsFolder), nil
 	}
 
 	return nil, errors.New("unable to create inspector given app configuration")

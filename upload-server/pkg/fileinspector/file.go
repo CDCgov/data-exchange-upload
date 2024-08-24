@@ -1,24 +1,28 @@
 package fileinspector
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"os"
 	"path/filepath"
-
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 )
 
 type FileSystemUploadInspector struct {
 	BaseDir   string
 	TusPrefix string
+	ReportsDir string
 }
 
-func NewFileSystemUploadInspector(baseDir string, tusPrefix string) *FileSystemUploadInspector {
+func NewFileSystemUploadInspector(baseDir string, tusPrefix string, reportsDir string) *FileSystemUploadInspector {
 	return &FileSystemUploadInspector{
 		BaseDir:   baseDir,
 		TusPrefix: tusPrefix,
+		ReportsDir: reportsDir,
 	}
 }
 
@@ -53,4 +57,38 @@ func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id
 		"size_bytes": fi.Size(),
 	}
 	return uploadedFileInfo, nil
+}
+
+func (fsui *FileSystemUploadInspector) InspectFileStatus(_ context.Context, id string) (*info.FileStatus, error) {
+	status := &info.FileStatus{
+		Destinations: []info.FileDeliveryStatus{},
+	}
+	deliveryReportFilename := filepath.Join(fsui.ReportsDir, id + event.TypeSeparator + reports.StageFileCopy)
+	f, err := os.Open(deliveryReportFilename)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, errors.Join(err, info.ErrNotFound)
+		}
+		return status, err
+	}
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		l := scanner.Text()
+
+		var report reports.Report
+		err := json.Unmarshal([]byte(l), &report)
+		if err != nil {
+			return status, err
+		}
+
+		status.Destinations = append(status.Destinations, info.FileDeliveryStatus{
+			Status: report.StageInfo.Status,
+			Name: "", // TODO need to store target in report
+			// TODO need to get the content in a better way.  Maybe with generics?
+			//Location: report.Content.(reports.FileCopyContent).FileDestinationBlobUrl, // TODO type check
+		})
+	}
+
+	return status, nil
 }
