@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
         <link rel="stylesheet" href="/assets/index.css">
@@ -9,21 +9,27 @@
         <title>Manifest</title>
     </head>
     <body>
+      <main>
       <div id="upload-container">
-        <h2>Please fill in the sender manifest form for your file</h2>
+        <h1>Please fill in the sender manifest form for your file</h1>
+        <p>
+          * indicates a required field
+        </p>
         <div class="form-container">
           <form method="POST" action="/upload">
             {{range .MetadataFields}}
             <div>
-              <label for="{{.FieldName}}">{{FixNames .FieldName}}</label>
+              <label for="{{.FieldName}}">
+                {{FixNames .FieldName}} {{if .Required}}*{{end}}
+              </label>
               {{if not .AllowedValues}}
                 {{ if .Required }}
-                  <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" required/>
+                  <input id="{{.FieldName}}" id="{{.FieldName}}" type="text" required/>
                 {{ else }}
-                  <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
+                  <input id="{{.FieldName}}" id="{{.FieldName}}" type="text" />
                 {{ end }}
               {{ else }}
-              <select name="{{.FieldName}}">
+              <select id="{{.FieldName}}">
                 {{range .AllowedValues}}
                   <option value="{{.}}">{{.}}</option>
                 {{end}}
@@ -33,14 +39,15 @@
             {{end}}
             <div class="hidden">
               <label for="data_stream_id">Data Stream ID</label>
-              <input id="data_stream_id" name="data_stream_id" type="text" value="{{.DataStream}}" />
+              <input id="data_stream_id" id="data_stream_id" type="text" value="{{.DataStream}}" />
             </div>
             <div class="hidden">
               <label for="data_stream_route">Data Stream Route</label>
-              <input id="data_stream_route" name="data_stream_route" type="text" value="{{.DataStreamRoute}}" />
+              <input id="data_stream_route" id="data_stream_route" type="text" value="{{.DataStreamRoute}}" />
             </div>
             <button type="submit">Next</button>
           </form>
         </div>
+      </main>
     </body>
 </html>
