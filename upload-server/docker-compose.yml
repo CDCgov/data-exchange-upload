@@ -31,8 +31,9 @@ services:
       - REDIS_CONNECTION_STRING=redis://redispw@cache:6379
     ports:
       - "8080:8080"
-    # command: go run ./...
-    command: go test --tags=integration -coverprofile=c.out -coverpkg=./... ./cmd
+      - "8081:8081"
+    command: go run ./...
+    # command: go test --tags=integration -coverprofile=c.out -coverpkg=./... ./cmd
     depends_on:
       - azurite
       - cache
