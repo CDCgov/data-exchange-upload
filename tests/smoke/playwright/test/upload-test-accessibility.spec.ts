@@ -1,12 +1,16 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
+
+test.describe.configure({ mode: 'parallel' });
 test.describe('Upload User Interface', () => {
+
+    const axeRuleTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
     test('Checks accessiblity for the upload landing page', async ({ page }, testInfo) => {
         await page.goto(`/`)
         const results = await new AxeBuilder({ page })
-            .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+            .withTags(axeRuleTags)
             .analyze();
 
         expect(results.violations).toEqual([]);
@@ -36,7 +40,7 @@ test.describe('Upload User Interface', () => {
         test(`Checks accessibility for individual mainfest page: ${dataStream} / ${route}`, async ({ page }) => {
             await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
             const results = await new AxeBuilder({ page })
-                .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+                .withTags(axeRuleTags)
                 .analyze();
             expect(results.violations).toEqual([]);
         })
@@ -52,7 +56,7 @@ test.describe('Upload User Interface', () => {
         await page.getByRole('button', { name: /next/i }).click();
         await expect(page).toHaveURL(/status/)
         const results = await new AxeBuilder({ page })
-            .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+            .withTags(axeRuleTags)
             .analyze();
         expect(results.violations).toEqual([]);
 

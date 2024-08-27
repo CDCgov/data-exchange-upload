@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+test.describe.configure({ mode: 'parallel' });
+
 [
     { dataStream: "celr", route: "csv" },
     { dataStream: "celr", route: "hl7v2" },
