@@ -28,7 +28,7 @@ const config: PlaywrightTestConfig = {
     viewport: { width: 1280, height: 720 },
 
     // More options can be set here
-    baseURL: 'http://localhost:8000'
+    baseURL: 'http://localhost:8081'
   },
 
   // Add any global setup or teardown in here
@@ -45,7 +45,7 @@ const config: PlaywrightTestConfig = {
   ],
 
   // Configure reporter here. 'dot', 'list', 'junit', etc.
-  reporter: 'dot',
+  reporter: [['list']]
 };
 
 export default config;
