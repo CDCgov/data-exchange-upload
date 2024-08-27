@@ -126,7 +126,7 @@
   
           const percentageFile = ((fileBytesUploaded / fileBytesTotal) * 100).toFixed(2)
           const percentageTotal = ((fileListBytesUploaded / fileListBytesTotal) * 100).toFixed(2)
-          const percentageTotalRound = ((fileListBytesUploaded / fileListBytesTotal) * 100).toFixed(0)
+          const percentageTotalRound = Math.round(percentageTotal)
 
           if (percentageTotal >= 100) {
             progressContainer.classList.add('hidden')
