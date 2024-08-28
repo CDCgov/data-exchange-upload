@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	DefaultLogger *slog.Logger
+	DefaultLogger = slog.Default()
 )
 
 func SetDefaultLogger(l *slog.Logger) {

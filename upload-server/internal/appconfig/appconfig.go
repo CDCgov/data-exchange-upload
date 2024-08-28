@@ -87,7 +87,13 @@ type AppConfig struct {
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
 	EdavCheckpointContainer    string `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
 	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
+
+	Metrics MetricsConfig `env:", prefix=METRICS_"`
 } // .AppConfig
+
+type MetricsConfig struct {
+	LabelsFromManifest []string `env:"LABELS_FROM_MANIFEST, default=data_stream_id,data_stream_route,sender_id"`
+}
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	jsonResp, err := json.Marshal(RootResp{

@@ -8,15 +8,14 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/upload"
 	prebuilthooks "github.com/cdcgov/data-exchange-upload/upload-server/pkg/hooks"
 	tusHooks "github.com/tus/tusd/v2/pkg/hooks"
-	"github.com/tus/tusd/v2/pkg/hooks/file"
 )
 
-func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error) {
-	if Flags.FileHooksDir != "" {
-		return &file.FileHook{
-			Directory: Flags.FileHooksDir,
-		}, nil
-	}
+type RegisterableHookHandler interface {
+	tusHooks.HookHandler
+	Register(t tusHooks.HookType, hookFuncs ...prebuilthooks.HookHandlerFunc)
+}
+
+func GetHookHandler(appConfig appconfig.AppConfig) (RegisterableHookHandler, error) {
 
 	manifestValidator := metadata.SenderManifestVerification{
 		Configs: metadata.Cache,
@@ -41,7 +40,7 @@ func GetHookHandler(appConfig appconfig.AppConfig) (tusHooks.HookHandler, error)
 	return PrebuiltHooks(manifestValidator, metadataAppender)
 }
 
-func PrebuiltHooks(validator metadata.SenderManifestVerification, appender metadata.Appender) (tusHooks.HookHandler, error) {
+func PrebuiltHooks(validator metadata.SenderManifestVerification, appender metadata.Appender) (RegisterableHookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, validator.Verify)
@@ -50,6 +49,7 @@ func PrebuiltHooks(validator metadata.SenderManifestVerification, appender metad
 	handler.Register(tusHooks.HookPreFinish, validator.Hydrate, appender.Append)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
+
 	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook())
 
 	return handler, nil
