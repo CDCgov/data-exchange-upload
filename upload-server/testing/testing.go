@@ -120,6 +120,20 @@ var Cases = map[string]testCase{
 		},
 		nil,
 	},
+	"ndlp v1 good": {
+		tus.Metadata{
+			"meta_destination_id": "ndlp",
+			"meta_ext_event": "covidallmonthlyvaccination",
+			"meta_ext_filename": "test",
+			"meta_ext_objectkey": "test",
+			"meta_ext_source": "IZGW",
+			"meta_ext_sourceversion": "V2023-09-01",
+			"meta_ext_submissionperiod": "test",
+			"meta_username": "test",
+			"meta_ext_entity": "AKA",
+		},
+		nil,
+	},
 }
 
 func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
