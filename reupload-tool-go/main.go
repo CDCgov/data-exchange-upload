@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -25,10 +26,6 @@ var (
 )
 
 type CSVFiles []string
-type Replay struct {
-	Id     string `json:"-"`
-	Target string `json:"target"`
-}
 
 func (ids CSVFiles) String() string {
 	return strings.Join(inputFiles, ",")
@@ -37,6 +34,11 @@ func (ids CSVFiles) String() string {
 func (ids CSVFiles) Set(value string) error {
 	inputFiles = strings.Split(value, ",")
 	return nil
+}
+
+type Replay struct {
+	Id     string `json:"-"`
+	Target string `json:"target"`
 }
 
 func init() {
@@ -94,11 +96,13 @@ func main() {
 	}
 
 	// Next, send request to replay service.
+	tStart := time.Now()
 	for _, replay := range replays {
 		wg.Add(1)
 		c <- replay
 	}
 	wg.Wait()
+	slog.Info(fmt.Sprintf("Duration: %f seconds", time.Since(tStart).Seconds()))
 	// TODO
 	// Count success and fail responses
 	// Smoke flag
