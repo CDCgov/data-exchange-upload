@@ -91,16 +91,21 @@ func main() {
 	slog.Debug(fmt.Sprintf("File IDs: %v", replays))
 
 	c := make(chan Replay, parallelism)
+	wg.Add(parallelism)
+
 	for i := 0; i < parallelism; i++ {
-		go worker(c)
+		go func() {
+			defer wg.Done()
+			worker(c)
+		}()
 	}
 
 	// Next, send request to replay service.
 	tStart := time.Now()
 	for _, replay := range replays {
-		wg.Add(1)
 		c <- replay
 	}
+	close(c)
 	wg.Wait()
 	slog.Info(fmt.Sprintf("Duration: %f seconds", time.Since(tStart).Seconds()))
 	// TODO
@@ -126,6 +131,5 @@ func worker(c <-chan Replay) {
 		if resp.StatusCode != http.StatusOK {
 			slog.Error("replay attempt unsuccessful", "response", resp.Status)
 		}
-		wg.Done()
 	}
 }
