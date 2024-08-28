@@ -114,13 +114,13 @@ func worker(c <-chan Replay) {
 		url := uploadAPIUrl + "/route" + "/" + r.Id
 		b, err := json.Marshal(r)
 		if err != nil {
-			slog.Error(err.Error())
+			slog.Error("error replaying file", "id", r.Id, "target", r.Target, "error", err.Error())
 			continue
 		}
 		slog.Debug(fmt.Sprintf("replaying %s for target %s", r.Id, r.Target))
 		resp, err := http.Post(url, "application/json", bytes.NewReader(b))
 		if err != nil {
-			slog.Error(err.Error())
+			slog.Error("error replaying file", "id", r.Id, "target", r.Target, "error", err.Error())
 			continue
 		}
 		if resp.StatusCode != http.StatusOK {
