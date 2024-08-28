@@ -6,14 +6,14 @@
   let upload          = null
   let uploadIsRunning = false
 
-  const input               = document.querySelector('input[type=file]')
-  const progressContainer   = document.querySelector('.progress')
-  const progressBar         = progressContainer.querySelector('.bar')
-  const alertBox            = document.querySelector('#support-alert')
-  const uploadList          = document.querySelector('#upload-list')
-  const chunkInput          = document.querySelector('#chunksize')
-  const parallelInput       = document.querySelector('#paralleluploads')
-  const endpointInput       = document.querySelector('#endpoint')
+  const input           = document.querySelector('input[type=file]')
+  const progress        = document.querySelector('.progress')
+  const progressBar     = progress.querySelector('.bar')
+  const alertBox        = document.querySelector('#support-alert')
+  const uploadList      = document.querySelector('#upload-list')
+  const chunkInput      = document.querySelector('#chunksize')
+  const parallelInput   = document.querySelector('#paralleluploads')
+  const endpointInput   = document.querySelector('#endpoint')
 
 
   function reset (startTimeUpload, fileListBytesUploaded, fileListBytesTotal) {
@@ -126,17 +126,8 @@
   
           const percentageFile = ((fileBytesUploaded / fileBytesTotal) * 100).toFixed(2)
           const percentageTotal = ((fileListBytesUploaded / fileListBytesTotal) * 100).toFixed(2)
-          const percentageTotalRound = Math.round(percentageTotal)
-
-          if (percentageTotal >= 100) {
-            progressContainer.classList.add('hidden')
-            progressBar.style.width = 0
-          } else {
-            progressContainer.classList.remove('hidden')
-            progressBar.classList.remove('hidden')
-            progressBar.style.width = `${percentageTotal}%`
-            progressBar.textContent = `${percentageTotalRound}%`
-          }
+  
+          progressBar.style.width = `${percentageTotal}%`
   
           console.log('file:', file.name, fileBytesUploaded, fileBytesTotal, `${percentageFile}%`)
           console.log('fileList (total):', fileListBytesUploaded, fileListBytesTotal, `${percentageTotal}%`)
