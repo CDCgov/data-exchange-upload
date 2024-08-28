@@ -9,7 +9,7 @@ services:
       - 9090:9090
     restart: unless-stopped
     volumes:
-      - ./config/local/prometheus:/etc/prometheus
+      - ./configs/local/prometheus:/etc/prometheus
       - prom_data:/prometheus
   grafana:
     image: grafana/grafana
@@ -21,7 +21,7 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=grafana
     volumes:
-      - ./config/local/grafana/provisioning:/etc/grafana/provisioning
+      - ./configs/local/grafana/provisioning:/etc/grafana/provisioning
   cache:
     image: redis:alpine
     restart: always
