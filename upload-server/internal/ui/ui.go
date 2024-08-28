@@ -4,11 +4,12 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 
 	"html/template"
 
