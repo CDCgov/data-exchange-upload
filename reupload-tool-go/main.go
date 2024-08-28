@@ -10,14 +10,18 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
+	"sync"
 )
 
 var (
 	uploadAPIUrl string
 	inputFiles   CSVFiles
+	parallelism  int
 	replays      []Replay
 	verbose      bool
+	wg           sync.WaitGroup
 )
 
 type CSVFiles []string
@@ -38,6 +42,7 @@ func (ids CSVFiles) Set(value string) error {
 func init() {
 	flag.StringVar(&uploadAPIUrl, "url", "", "URL of the upload API service")
 	flag.Var(&inputFiles, "csvFiles", "file1.csv,file2.csv")
+	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1")
 	flag.BoolVar(&verbose, "v", false, "turn on debug logs")
 	flag.Parse()
 
@@ -81,17 +86,34 @@ func main() {
 		}
 	}
 	slog.Info(fmt.Sprintf("replaying %d files", len(replays)))
-	slog.Debug("File IDs: %v", replays)
+	slog.Debug(fmt.Sprintf("File IDs: %v", replays))
+
+	c := make(chan Replay, parallelism)
+	for i := 0; i < parallelism; i++ {
+		go worker(c)
+	}
 
 	// Next, send request to replay service.
 	for _, replay := range replays {
-		url := uploadAPIUrl + "/route" + "/" + replay.Id
-		b, err := json.Marshal(replay)
+		wg.Add(1)
+		c <- replay
+	}
+	wg.Wait()
+	// TODO
+	// Count success and fail responses
+	// Smoke flag
+}
+
+func worker(c <-chan Replay) {
+	for r := range c {
+		// Do replay
+		url := uploadAPIUrl + "/route" + "/" + r.Id
+		b, err := json.Marshal(r)
 		if err != nil {
 			slog.Error(err.Error())
 			continue
 		}
-		slog.Debug(fmt.Sprintf("replaying %s for target %s", replay.Id, replay.Target))
+		slog.Debug(fmt.Sprintf("replaying %s for target %s", r.Id, r.Target))
 		resp, err := http.Post(url, "application/json", bytes.NewReader(b))
 		if err != nil {
 			slog.Error(err.Error())
@@ -100,9 +122,6 @@ func main() {
 		if resp.StatusCode != http.StatusOK {
 			slog.Error("replay attempt unsuccessful", "response", resp.Status)
 		}
+		wg.Done()
 	}
-	// TODO
-	// Count success and fail responses
-	// Use a channel and go routines to fan out
-	// Smoke flag
 }
