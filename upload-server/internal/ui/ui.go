@@ -4,11 +4,12 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 
 	"html/template"
 
@@ -152,7 +153,9 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 				http.Error(rw, err.Error(), http.StatusInternalServerError)
 				return
 			}
+			fmt.Printf("***%d", resp.StatusCode)
 			http.Error(rw, string(respMsg), resp.StatusCode)
+			return
 		}
 
 		uploadUrl, err := url.JoinPath(uploadUrl, id)

@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 )
 
@@ -40,6 +42,46 @@ type Source interface {
 
 type Destination interface {
 	Upload(context.Context, string, io.Reader, map[string]string) error
+}
+
+// Eventually, this can take a more generic list of deliverer configuration object
+func RegisterAllTargets(ctx context.Context, appConfig appconfig.AppConfig) error {
+	edavDeliverer, err := NewFileDestination(ctx, "edav", &appConfig)
+	if err != nil {
+		return err
+	}
+	routingDeliverer, err := NewFileDestination(ctx, "routing", &appConfig)
+	if err != nil {
+		return err
+	}
+
+	/*
+		if appConfig.EdavConnection != nil {
+			edavDeliverer, err = NewAzureDeliverer(ctx, "edav", &appConfig)
+			if err != nil {
+				return fmt.Errorf("failed to connect to edav deliverer target %w", err)
+			}
+			health.Register(edavDeliverer)
+		}
+		if appConfig.RoutingConnection != nil {
+			routingDeliverer, err = NewAzureDeliverer(ctx, "routing", &appConfig)
+			if err != nil {
+				return fmt.Errorf("failed to connect to routing deliverer target %w", err)
+			}
+			health.Register(routingDeliverer)
+		}
+	*/
+	RegisterDestination("edav", edavDeliverer)
+	RegisterDestination("routing", routingDeliverer)
+
+	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
+	fromPath := os.DirFS(fromPathStr)
+	src := &FileSource{
+		FS: fromPath,
+	}
+	RegisterSource("upload", src)
+
+	return nil
 }
 
 // target may end up being a type

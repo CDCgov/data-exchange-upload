@@ -1,35 +1,46 @@
 version: "3.9"
 services:
-  azurite:
-    image: mcr.microsoft.com/azure-storage/azurite
-    container_name: "azurite"
-    hostname: azurite
-    restart: always
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
     ports:
-      - "10000:10000"
-      - "10001:10001"
-      - "10002:10002"
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./configs/local/prometheus:/etc/prometheus
+      - prom_data:/prometheus
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./configs/local/grafana/provisioning:/etc/grafana/provisioning
   cache:
     image: redis:alpine
     restart: always
     ports:
-      - '6379:6379'
+      - "6379:6379"
     command: redis-server
-  upload-server-integration:
+  upload-server:
     image: golang:alpine
     volumes:
       - .:/code
+      - ../upload-configs:/upload-configs
     working_dir: /code
     environment:
-      - AZURE_STORAGE_ACCOUNT=devstoreaccount1
-      # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
-      - AZURE_STORAGE_KEY=${AZURITE_STORAGE_KEY}
-      - AZURE_ENDPOINT=http://azurite:10000/devstoreaccount1
-      - TUS_AZURE_CONTAINER_NAME=test
-      - DEX_MANIFEST_CONFIG_CONTAINER_NAME=config
-      - PODMAN_CI_TESTS=true
-      - TUS_REDIS_LOCK_URI=redis://redispw@cache:6379
-    command: go test --tags=integration -coverprofile=c.out -coverpkg=./... ./cmd
+      - REDIS_CONNECTION_STRING=redis://redispw@cache:6379
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    command: go run ./...
     depends_on:
-      - azurite
       - cache
+volumes:
+  prom_data:

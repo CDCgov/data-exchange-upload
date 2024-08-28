@@ -59,7 +59,7 @@ type AppConfig struct {
 	// UI
 	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
 	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
-	UIPort               string `env:"UI_PORT, default=:8000"`
+	UIPort               string `env:"UI_PORT, default=:8081"`
 
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
@@ -80,11 +80,20 @@ type AppConfig struct {
 	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 
+	// S3
+	S3ManifestConfigBucket string `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
+
 	// Upload processing
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
 	EdavCheckpointContainer    string `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
 	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
+
+	Metrics MetricsConfig `env:", prefix=METRICS_"`
 } // .AppConfig
+
+type MetricsConfig struct {
+	LabelsFromManifest []string `env:"LABELS_FROM_MANIFEST, default=data_stream_id,data_stream_route,sender_id"`
+}
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	jsonResp, err := json.Marshal(RootResp{
