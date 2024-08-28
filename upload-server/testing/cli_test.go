@@ -536,7 +536,7 @@ func TestMain(m *testing.M) {
 	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
 	err := cli.InitReporters(testContext, appConfig)
-	defer reports.DefaultReporter.Close()
+	defer reports.CloseAll()
 	err = event.InitFileReadyPublisher(testContext, appConfig)
 	defer event.FileReadyPublisher.Close()
 	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
