@@ -6,6 +6,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"log/slog"
 )
 
 func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
@@ -14,6 +15,7 @@ func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
 	}
 
 	if appConfig.ReporterConnection != nil && appConfig.ReporterConnection.ConnectionString != "" {
+		slog.Default().Info("***REPORTER CONNECTION STRING***", "CS", appConfig.ReporterConnection.ConnectionString)
 		r, err := event.NewAzurePublisher[*reports.Report](ctx, *appConfig.ReporterConnection)
 		if err != nil {
 			return err
