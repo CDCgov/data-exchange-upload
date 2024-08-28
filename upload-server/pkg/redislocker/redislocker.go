@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"log/slog"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
@@ -57,6 +58,10 @@ func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
 		return nil, err
 	}
 	client := redis.NewClient(connection)
+
+	if res := client.Ping(context.Background()); res.Err() != nil {
+		return nil, res.Err()
+	}
 
 	locker := &RedisLocker{
 		redis: client,
