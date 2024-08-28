@@ -1,6 +1,0 @@
-#!/bin/sh
-
-id="$TUS_ID"
-
-# run the python standalone binary to evaluate the metadata
-./post-finish-bin --id "$id"
