@@ -38,40 +38,6 @@ func init() {
 	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
 }
 
-// Eventually, this can take a more generic list of deliverer configuration object
-func RegisterAllTargets(ctx context.Context, appConfig appconfig.AppConfig) error {
-	var edavDeliverer Deliverer
-	edavDeliverer, err := NewFileDeliverer(ctx, "edav", &appConfig)
-	if err != nil {
-		return err
-	}
-	var routingDeliverer Deliverer
-	routingDeliverer, err = NewFileDeliverer(ctx, "routing", &appConfig)
-	if err != nil {
-		return err
-	}
-
-	if appConfig.EdavConnection != nil {
-		edavDeliverer, err = NewAzureDeliverer(ctx, "edav", &appConfig)
-		if err != nil {
-			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
-		}
-		health.Register(edavDeliverer)
-	}
-	if appConfig.RoutingConnection != nil {
-		routingDeliverer, err = NewAzureDeliverer(ctx, "routing", &appConfig)
-		if err != nil {
-			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
-		}
-		health.Register(routingDeliverer)
-	}
-
-	RegisterTarget("edav", edavDeliverer)
-	RegisterTarget("routing", routingDeliverer)
-
-	return nil
-}
-
 func RegisterTarget(name string, d Deliverer) {
 	targets[name] = d
 }

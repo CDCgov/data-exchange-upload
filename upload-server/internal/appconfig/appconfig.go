@@ -59,7 +59,7 @@ type AppConfig struct {
 	// UI
 	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
 	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
-	UIPort               string `env:"UI_PORT, default=:8081"`
+	UIPort               string `env:"UI_PORT, default=:8000"`
 
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
@@ -79,9 +79,6 @@ type AppConfig struct {
 	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
 	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
-
-	// S3
-	S3ManifestConfigBucket string `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
 
 	// Upload processing
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`

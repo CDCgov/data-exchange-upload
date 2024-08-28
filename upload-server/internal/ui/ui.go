@@ -152,9 +152,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 				http.Error(rw, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			fmt.Printf("***%d", resp.StatusCode)
 			http.Error(rw, string(respMsg), resp.StatusCode)
-			return
 		}
 
 		uploadUrl, err := url.JoinPath(uploadUrl, id)
