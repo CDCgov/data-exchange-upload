@@ -2,11 +2,13 @@ package cli
 
 import (
 	"encoding/json"
-	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"io"
 	"net/http"
+	"os"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 )
 
 type Router struct{}
@@ -32,21 +34,23 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d, ok := postprocessing.GetTarget(body.Target)
-	if !ok {
-		rw.WriteHeader(400)
-		rw.Write([]byte("invalid target " + body.Target))
-		return
-	}
-	srcUrl, err := d.GetSrcUrl(r.Context(), id)
-	if err != nil {
-		if errors.Is(err, postprocessing.ErrSrcFileNotExist) {
-			rw.WriteHeader(404)
-			rw.Write([]byte(err.Error()))
-			return
+	/*
+		srcUrl, err := d.GetSrcUrl(r.Context(), id)
+		if err != nil {
+			if errors.Is(err, delivery.ErrSrcFileNotExist) {
+				rw.WriteHeader(404)
+				rw.Write([]byte(err.Error()))
+				return
+			}
 		}
+	*/
+	fromPathStr := appconfig.LoadedConfig.LocalFolderUploadsTus + "/" + appconfig.LoadedConfig.TusUploadPrefix
+	fromPath := os.DirFS(fromPathStr)
+	src := &delivery.FileSource{
+		FS: fromPath,
 	}
-	m, err := d.GetMetadata(r.Context(), id)
+
+	m, err := src.GetMetadata(r.Context(), id)
 	if err != nil {
 		rw.WriteHeader(500)
 		rw.Write([]byte(err.Error()))
@@ -60,7 +64,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		UploadId:          id,
 		DestinationTarget: body.Target,
 		Metadata:          m,
-		SrcUrl:            srcUrl,
+		SrcUrl:            id,
 	}
 	err = event.FileReadyPublisher.Publish(r.Context(), e)
 	if err != nil {

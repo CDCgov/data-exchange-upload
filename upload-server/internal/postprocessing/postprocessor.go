@@ -2,11 +2,14 @@ package postprocessing
 
 import (
 	"context"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
+	"fmt"
 	"log/slog"
 	"reflect"
 	"strings"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 )
 
 var logger *slog.Logger
@@ -24,5 +27,13 @@ type PostProcessor struct {
 }
 
 func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
-	return Deliver(ctx, e.UploadId, e.DestinationTarget)
+	src, ok := delivery.GetSource("upload")
+	if !ok {
+		return fmt.Errorf("failed to get source for file delivery %+v", e)
+	}
+	d, ok := delivery.GetDestination(e.DestinationTarget)
+	if !ok {
+		return fmt.Errorf("failed to get destination for file delivery %+v", e)
+	}
+	return delivery.Deliver(ctx, e.UploadId, src, d)
 }
