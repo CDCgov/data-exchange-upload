@@ -44,5 +44,5 @@ func (ph *PrebuiltHook) Register(t tusHooks.HookType, hookFuncs ...HookHandlerFu
 	if ph.hookMapping == nil {
 		ph.hookMapping = map[tusHooks.HookType][]HookHandlerFunc{}
 	}
-	ph.hookMapping[t] = hookFuncs
+	ph.hookMapping[t] = append(ph.hookMapping[t], hookFuncs...)
 }
