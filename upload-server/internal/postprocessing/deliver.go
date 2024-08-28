@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
-	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"io"
 	"io/fs"
 	"os"
@@ -16,14 +13,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
+	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 var ErrBadTarget = fmt.Errorf("bad delivery target")
@@ -134,6 +140,22 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 	}, nil
 }
 
+func NewS3Deliverer(ctx context.Context, target string, appConfig *appconfig.AppConfig) (*S3Deliverer, error) {
+	s3Client, err := stores3.New(ctx, appConfig.S3Connection)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the initialized S3Deliverer
+	return &S3Deliverer{
+		SrcBucket:  appConfig.S3Connection.BucketName,
+		DestBucket: appConfig.S3DeliveryBucket,
+		SrcClient:  s3Client,
+		TusPrefix:  appConfig.TusUploadPrefix,
+		Target:     target,		
+	}, nil
+}
+
 // target may end up being a type
 func Deliver(ctx context.Context, tuid string, target string) error {
 	d, ok := targets[target]
@@ -203,6 +225,15 @@ type AzureDeliverer struct {
 	ToContainer         string
 	TusPrefix           string
 	Target              string
+}
+
+// S3Deliverer handles the delivery of files to an S3 bucket.
+type S3Deliverer struct {
+	SrcBucket   string
+	DestBucket  string
+	SrcClient   *s3.Client
+	TusPrefix   string
+	Target      string
 }
 
 func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, _ map[string]string) error {
@@ -355,6 +386,125 @@ func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthR
 	}
 
 	return rsp
+}
+
+func (sd *S3Deliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "AWS S3 deliver target " + sd.Target
+	rsp.Status = models.STATUS_UP
+
+	if sd.SrcBucket == "" {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "AWS S3 deliverer Source Bucket not configured"
+	}
+	
+	if sd.DestBucket == "" {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "AWS S3 deliverer Destination Bucket not configured"
+	}
+
+	if sd.SrcClient == nil {
+		// Running in aws, but deliverer not set up.
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "AWS S3 deliverer target " + sd.Target + " not configured"
+	}
+
+	return rsp
+}
+
+func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
+
+	destFileName, err := getDeliveredFilename(ctx, sd.Target, tuid, manifest)
+	if err != nil {
+		return err
+	}
+
+	// Initiate multipart upload in the destination bucket
+	createResp, err := sd.SrcClient.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket: &sd.DestBucket,
+		Key:    &destFileName,
+		Metadata: manifest,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to initiate multipart upload: %v", err)
+	}
+
+	// Upload parts from the source file
+	partNumber := int32(1)
+	uploadPartCopyResp, err := sd.SrcClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
+		Bucket:          &sd.DestBucket,
+		CopySource:      aws.String(sd.SrcBucket + "/" + tuid), // TODO: get tus prefix here
+		Key:             &destFileName,
+		PartNumber:      aws.Int32(partNumber),
+		UploadId:        createResp.UploadId,
+		CopySourceRange: aws.String("bytes=0-"), // Copy the entire object
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upload part: %v", err)
+	}
+	
+	// Complete the multipart upload
+	_, err = sd.SrcClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+		Bucket: &sd.DestBucket,
+		Key:    &destFileName,
+		MultipartUpload: &types.CompletedMultipartUpload{
+			Parts: []types.CompletedPart{
+				{
+					ETag:       uploadPartCopyResp.CopyPartResult.ETag,
+					PartNumber: &partNumber, // Pass pointer to partNumber
+				},
+			},
+		},
+		UploadId: createResp.UploadId,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to complete multipart upload: %v", err)
+	}
+
+	return nil
+}
+
+func (sd *S3Deliverer) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
+	// Get the object from S3
+	output, err := sd.SrcClient.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(sd.SrcBucket),
+		Key:    aws.String(sd.TusPrefix + "/" + tuid + ".meta"),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve object: %v", err)
+	}
+	defer output.Body.Close()
+
+	// Read the content of the file
+	b, err := io.ReadAll(output.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read object content: %v", err)
+	}
+
+	// Unmarshal the content into a map[string]string
+	var m map[string]string
+	err = json.Unmarshal(b, &m)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshal JSON: %v", err)
+	}
+
+	return m, nil
+}
+
+func (sd *S3Deliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
+	// Construct the S3 URL
+	s3URL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", sd.SrcBucket, sd.Region, sd.TusPrefix + "/" + tuid) // TODO: get region here
+	return s3URL, nil
+}
+
+func (sd *S3Deliverer) GetDestUrl(ctx context.Context, tuid string, manifest map[string]string) (string, error) {
+	objectKey, err := getDeliveredFilename(ctx, sd.Target, tuid, manifest)
+	if err != nil {
+		return "", err
+	}
+
+	// Construct the S3 URL
+	s3URL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", sd.DestBucket, sd.Region, objectKey) // TODO: get region here
+	return s3URL, nil	
 }
 
 func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
