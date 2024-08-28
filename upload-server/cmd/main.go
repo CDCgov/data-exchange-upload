@@ -161,6 +161,8 @@ func main() {
 		}
 	}()
 
+	logger.Info("Started ui server", "port", appConfig.UIPort)
+
 	// ------------------------------------------------------------------
 	// 	Block for Exit, server above is on goroutine
 	// ------------------------------------------------------------------

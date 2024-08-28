@@ -13,7 +13,7 @@ services:
     image: redis:alpine
     restart: always
     ports:
-      - '6379:6379'
+      - "6379:6379"
     command: redis-server
   upload-server-integration:
     image: golang:alpine
@@ -28,8 +28,12 @@ services:
       - TUS_AZURE_CONTAINER_NAME=test
       - DEX_MANIFEST_CONFIG_CONTAINER_NAME=config
       - PODMAN_CI_TESTS=true
-      - TUS_REDIS_LOCK_URI=redis://redispw@cache:6379
-    command: go test --tags=integration -coverprofile=c.out -coverpkg=./... ./cmd
+      - REDIS_CONNECTION_STRING=redis://redispw@cache:6379
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    command: go run ./...
+    # command: go test --tags=integration -coverprofile=c.out -coverpkg=./... ./cmd
     depends_on:
       - azurite
       - cache
