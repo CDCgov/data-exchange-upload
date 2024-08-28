@@ -35,9 +35,10 @@ services:
       - ../upload-configs:/upload-configs
     working_dir: /code
     environment:
-      - TUS_REDIS_LOCK_URI=redis://redispw@cache:6379
+      - REDIS_CONNECTION_STRING=redis://redispw@cache:6379
     ports:
       - "8080:8080"
+      - "8081:8081"
     command: go run ./...
     depends_on:
       - cache

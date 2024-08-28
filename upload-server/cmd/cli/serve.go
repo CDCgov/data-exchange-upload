@@ -43,7 +43,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		var err error
 		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))
 		if err != nil {
-			logger.Error("failed to configure Redis locker, defaulting to in-memory locker", "error", err)
+			logger.Error("failed to initialize Redis Locker", "error", err)
 			return nil, err
 		}
 		health.Register(locker.(health.Checkable))

@@ -1,9 +1,0 @@
-build/
-
-dist/
-
-post-receive-bin
-
-cosmos-sync-bin
-
-*.spec
