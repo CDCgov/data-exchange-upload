@@ -19,11 +19,11 @@ import (
 type UploadInspector interface {
 	InspectInfoFile(c context.Context, id string) (map[string]any, error)
 	InspectUploadedFile(c context.Context, id string) (map[string]any, error)
-	InspectFileStatus(ctx context.Context, id string) (*info.FileStatus, error)
 }
 
 type InfoHandler struct {
 	inspector UploadInspector
+	statusInspector UploadStatusInspector
 }
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -51,7 +51,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fileStatus, err := ih.inspector.InspectFileStatus(r.Context(), id)
+	fileStatus, err := ih.statusInspector.InspectFileStatus(r.Context(), id)
 	if err != nil {
 		// skip not found errors to handle deferred uploads.
 		if !errors.Is(err, info.ErrNotFound) {
@@ -103,7 +103,7 @@ func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (Uploa
 		}, nil
 	}
 	if appConfig.LocalFolderUploadsTus != "" {
-		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix, appConfig.LocalReportsFolder), nil
+		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
 	}
 
 	return nil, errors.New("unable to create inspector given app configuration")
@@ -113,5 +113,9 @@ func GetUploadInfoHandler(ctx context.Context, appConfig *appconfig.AppConfig) (
 	i, err := createInspector(ctx, appConfig)
 	return &InfoHandler{
 		i,
+		&fileinspector.FileSystemUploadStatusInspector{
+			BaseDir:    appConfig.TusUploadPrefix,
+			ReportsDir: appConfig.LocalReportsFolder,
+		},
 	}, err
 }
