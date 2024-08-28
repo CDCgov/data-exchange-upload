@@ -65,11 +65,12 @@ type AppConfig struct {
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
 	AzureConnection      *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
-	S3Connection         *S3StorageConfig    `env:", prefix=AWS_, noinit"`
+	S3Connection         *S3StorageConfig    `env:", prefix=AWS_, noinit"`	
 	EdavConnection       *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
 	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
 	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
 	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
+
 
 	// Reporting
 	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
@@ -82,6 +83,7 @@ type AppConfig struct {
 
 	// S3
 	S3ManifestConfigBucket string `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
+	S3DeliveryBucket       string `env:"S3_DELIVERY_BUCKET_NAME"`
 
 	// Upload processing
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
@@ -117,6 +119,11 @@ type AzureStorageConfig struct {
 type S3StorageConfig struct {
 	Endpoint   string `env:"S3_ENDPOINT"`
 	BucketName string `env:"S3_BUCKET_NAME"`
+}
+
+type S3FolderConfig struct {
+	S3StorageConfig
+	FolderName string
 }
 
 type AzureContainerConfig struct {
