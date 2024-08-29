@@ -4,16 +4,19 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+
 	"html/template"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/eventials/go-tus"
+
+	"github.com/coreos/go-oidc/v3/oidc"
 )
 
 // content holds our static web server content.
@@ -50,8 +53,57 @@ func NewServer(addr string, uploadUrl string, infoUrl string) *http.Server {
 	return s
 }
 
+func OAuthTokenVerificationMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TODO: check for specific scopes
+		// TODO: opaque token
+
+		ctx := context.Background()
+
+		issuer := "https://apigw-stg.cdc.gov:8443"
+
+		// Create a provider using the IdP's issuer URL
+		provider, err := oidc.NewProvider(ctx, issuer)
+		if err != nil {
+			http.Error(w, "Failed to get provider", http.StatusUnauthorized)
+			return
+		}
+
+		// Set up the OIDC verifier
+		verifier := provider.Verifier(&oidc.Config{SkipClientIDCheck: true})
+
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+			return
+		}
+
+		if len(authHeader) < len("Bearer ") {
+			http.Error(w, "Authorization header format is invalid", http.StatusUnauthorized)
+			return
+		}
+
+		// Extract the token from the header
+		token := authHeader[len("Bearer "):]
+
+		// Verify the token
+		_, err = verifier.Verify(ctx, token)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to verify token: %v", err), http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 	router := http.NewServeMux()
+
+	router.Handle("/test-auth", OAuthTokenVerificationMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, "Token successfully validated.")
+	})))
+
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream")
 		dataStreamRoute := r.FormValue("data_stream_route")
