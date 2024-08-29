@@ -53,6 +53,9 @@ type AppConfig struct {
 	LocalEDAVFolder       string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
 	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
 
+	// OAUTH
+	OauthIssuerUrl string `env:"OAUTH_ISSUER_URL, default=https://apigw-stg.cdc.gov:8443"`
+
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
 

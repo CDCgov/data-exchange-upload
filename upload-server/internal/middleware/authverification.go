@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/coreos/go-oidc/v3/oidc"
 )
 
@@ -15,7 +16,7 @@ func OAuthTokenVerificationMiddleware(next http.Handler) http.Handler {
 
 		ctx := context.Background()
 
-		issuer := "https://apigw-stg.cdc.gov:8443"
+		issuer := appconfig.LoadedConfig.OauthIssuerUrl
 
 		// Create a provider using the IdP's issuer URL
 		provider, err := oidc.NewProvider(ctx, issuer)
