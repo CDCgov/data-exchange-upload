@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"os"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 )
@@ -18,41 +16,37 @@ type RequestBody struct {
 
 func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
-		rw.WriteHeader(400)
+		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	id := r.PathValue("UploadID")
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
-		rw.WriteHeader(400)
+		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	var body RequestBody
 	err = json.Unmarshal(b, &body)
 	if err != nil {
-		rw.WriteHeader(400)
+		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	/*
-		srcUrl, err := d.GetSrcUrl(r.Context(), id)
-		if err != nil {
-			if errors.Is(err, delivery.ErrSrcFileNotExist) {
-				rw.WriteHeader(404)
-				rw.Write([]byte(err.Error()))
-				return
-			}
-		}
-	*/
-	fromPathStr := appconfig.LoadedConfig.LocalFolderUploadsTus + "/" + appconfig.LoadedConfig.TusUploadPrefix
-	fromPath := os.DirFS(fromPathStr)
-	src := &delivery.FileSource{
-		FS: fromPath,
+	src, ok := delivery.GetSource("upload")
+	if !ok {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte("Could not find source"))
+		return
+	}
+
+	if _, ok := delivery.GetDestination(body.Target); !ok {
+		http.Error(rw, "Invalid target", http.StatusBadRequest)
+		return
 	}
 
 	m, err := src.GetMetadata(r.Context(), id)
 	if err != nil {
-		rw.WriteHeader(500)
+		rw.WriteHeader(http.StatusNotFound)
 		rw.Write([]byte(err.Error()))
 		return
 	}
@@ -69,7 +63,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	err = event.FileReadyPublisher.Publish(r.Context(), e)
 	if err != nil {
 		// Unhandled error occurred
-		rw.WriteHeader(500)
+		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(err.Error()))
 		return
 	}

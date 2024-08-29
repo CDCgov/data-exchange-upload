@@ -46,7 +46,7 @@ type FileSource struct {
 	FS fs.FS
 }
 
-func (fd *FileSource) Reader(path string) (io.Reader, error) {
+func (fd *FileSource) Reader(_ context.Context, path string) (io.Reader, error) {
 	f, err := fd.FS.Open(path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
@@ -79,24 +79,3 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 
 	return m, nil
 }
-
-/*
-func (fd *FileDeliverer) Health(_ context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "File Deliver Target " + fd.Target
-	info, err := os.Stat(fd.ToPath)
-	if err != nil {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = err.Error()
-		return rsp
-	}
-	if !info.IsDir() {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = fmt.Sprintf("%s is not a directory", fd.ToPath)
-		return rsp
-	}
-	rsp.Status = models.STATUS_UP
-	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
-	return rsp
-}
-
-*/

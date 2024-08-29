@@ -7,15 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log"
 	"net/http"
@@ -28,6 +19,16 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/tus/tusd/v2/pkg/handler"
 )
 
 var (
@@ -138,7 +139,8 @@ func TestTus(t *testing.T) {
 						t.Error("failed to retry routing")
 					}
 					if resp.StatusCode != http.StatusOK {
-						t.Error("expected 200 when retrying route but got", resp.StatusCode)
+						b, _ := io.ReadAll(resp.Body)
+						t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
 					}
 					time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
 					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
@@ -521,6 +523,7 @@ func TestMain(m *testing.M) {
 		LocalRoutingFolder:    "test/routing",
 		TusdHandlerBasePath:   "/files/",
 	}
+	appconfig.LoadedConfig = &appConfig
 
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup

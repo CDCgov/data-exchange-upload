@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 )
 
 var ErrBadTarget = fmt.Errorf("bad delivery target")
@@ -36,7 +39,7 @@ func GetSource(name string) (Source, bool) {
 }
 
 type Source interface {
-	Reader(string) (io.Reader, error)
+	Reader(context.Context, string) (io.Reader, error)
 	GetMetadata(context.Context, string) (map[string]string, error)
 }
 
@@ -45,40 +48,55 @@ type Destination interface {
 }
 
 // Eventually, this can take a more generic list of deliverer configuration object
-func RegisterAllTargets(ctx context.Context, appConfig appconfig.AppConfig) error {
-	edavDeliverer, err := NewFileDestination(ctx, "edav", &appConfig)
+func RegisterAllTargets(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
+	var src Source
+	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
+	fromPath := os.DirFS(fromPathStr)
+	src = &FileSource{
+		FS: fromPath,
+	}
+
+	var edavDeliverer Destination
+	edavDeliverer, err = NewFileDestination(ctx, "edav", &appConfig)
 	if err != nil {
 		return err
 	}
-	routingDeliverer, err := NewFileDestination(ctx, "routing", &appConfig)
+	var routingDeliverer Destination
+	routingDeliverer, err = NewFileDestination(ctx, "routing", &appConfig)
 	if err != nil {
 		return err
 	}
 
-	/*
-		if appConfig.EdavConnection != nil {
-			edavDeliverer, err = NewAzureDeliverer(ctx, "edav", &appConfig)
-			if err != nil {
-				return fmt.Errorf("failed to connect to edav deliverer target %w", err)
-			}
-			health.Register(edavDeliverer)
+	if appConfig.EdavConnection != nil {
+		edavDeliverer, err = NewAzureDestination(ctx, "edav", &appConfig)
+		if err != nil {
+			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
 		}
-		if appConfig.RoutingConnection != nil {
-			routingDeliverer, err = NewAzureDeliverer(ctx, "routing", &appConfig)
-			if err != nil {
-				return fmt.Errorf("failed to connect to routing deliverer target %w", err)
-			}
-			health.Register(routingDeliverer)
+		//health.Register(edavDeliverer)
+	}
+	if appConfig.RoutingConnection != nil {
+		routingDeliverer, err = NewAzureDestination(ctx, "routing", &appConfig)
+		if err != nil {
+			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
 		}
-	*/
+		//health.Register(routingDeliverer)
+	}
+
+	if appConfig.AzureConnection != nil {
+		// TODO Can the tus container client be singleton?
+		tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
+		if err != nil {
+			return err
+		}
+		src = &AzureSource{
+			FromContainerClient: tusContainerClient,
+			TusPrefix:           appConfig.TusUploadPrefix,
+		}
+	}
+
 	RegisterDestination("edav", edavDeliverer)
 	RegisterDestination("routing", routingDeliverer)
 
-	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
-	fromPath := os.DirFS(fromPathStr)
-	src := &FileSource{
-		FS: fromPath,
-	}
 	RegisterSource("upload", src)
 
 	return nil
@@ -92,42 +110,43 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) error {
 		return err
 	}
 
-	/*
-		//TODO pull reports up if we can
-		rb := reports.NewBuilder[reports.FileCopyContent](
-			"1.0.0",
-			reports.StageFileCopy,
-			tuid,
-			reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
+	//TODO pull reports up if we can
+	rb := reports.NewBuilder[reports.FileCopyContent](
+		"1.0.0",
+		reports.StageFileCopy,
+		path,
+		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
 
-		rb.SetManifest(manifest)
+	rb.SetManifest(manifest)
 
-		rb.SetContent(reports.FileCopyContent{
-			ReportContent: reports.ReportContent{
-				ContentSchemaVersion: "1.0.0",
-				ContentSchemaName:    reports.StageFileCopy,
-			},
-			FileSourceBlobUrl:      srcUrl,
-			FileDestinationBlobUrl: destUrl,
-		})
+	rb.SetContent(reports.FileCopyContent{
+		ReportContent: reports.ReportContent{
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageFileCopy,
+		},
+		//FileSourceBlobUrl:      srcUrl,
+		//FileDestinationBlobUrl: destUrl,
+	})
 
-		defer func() {
-			rb.SetEndTime(time.Now().UTC())
-			if err != nil {
-				rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
-					Level:   reports.IssueLevelError,
-					Message: err.Error(),
-				})
-			}
-			report := rb.Build()
-			reports.Publish(ctx, report)
-		}()
-	*/
+	defer func() {
+		rb.SetEndTime(time.Now().UTC())
+		if err != nil {
+			rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
+				Level:   reports.IssueLevelError,
+				Message: err.Error(),
+			})
+		}
+		report := rb.Build()
+		reports.Publish(ctx, report)
+	}()
 
 	//NOTE could use ctx to store the manifest
-	r, err := s.Reader(path)
+	r, err := s.Reader(ctx, path)
 	if err != nil {
 		return err
+	}
+	if rc, ok := r.(io.Closer); ok {
+		defer rc.Close()
 	}
 	if err := d.Upload(ctx, path, r, manifest); err != nil {
 		return err
