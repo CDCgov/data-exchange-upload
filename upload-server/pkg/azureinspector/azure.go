@@ -69,7 +69,7 @@ func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id strin
 	return uploadedFileInfo, nil
 }
 
-func (aui *AzureUploadInspector) InspectFileStatus(ctx context.Context, id string) (*info.DeliveryStatus, error) {
+func (aui *AzureUploadInspector) InspectFileStatus(ctx context.Context, id string) ([]info.FileDeliveryStatus, error) {
 	//TODO implement me
 	panic("implement me")
 }

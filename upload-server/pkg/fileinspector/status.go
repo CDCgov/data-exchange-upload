@@ -17,17 +17,15 @@ type FileSystemUploadStatusInspector struct {
 	ReportsDir string
 }
 
-func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Context, id string) (*info.DeliveryStatus, error) {
-	status := &info.DeliveryStatus{
-		Destinations: []info.FileDeliveryStatus{},
-	}
+func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ context.Context, id string) ([]info.FileDeliveryStatus, error) {
+	deliveries := []info.FileDeliveryStatus{}
 	deliveryReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageFileCopy)
 	f, err := os.Open(deliveryReportFilename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, errors.Join(err, info.ErrNotFound)
 		}
-		return status, err
+		return deliveries, err
 	}
 
 	scanner := bufio.NewScanner(f)
@@ -37,17 +35,17 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Contex
 		var report reports.Report
 		err := json.Unmarshal([]byte(l), &report)
 		if err != nil {
-			return status, err
+			return deliveries, err
 		}
 
 		var content reports.FileCopyContent
 		b, err := json.Marshal(report.Content)
 		if err != nil {
-			return status, err
+			return deliveries, err
 		}
 		err = json.Unmarshal(b, &content)
 		if err != nil {
-			return status, err
+			return deliveries, err
 		}
 
 		issues := []string{}
@@ -55,7 +53,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Contex
 			issues = append(issues, issue.String())
 		}
 
-		status.Destinations = append(status.Destinations, info.FileDeliveryStatus{
+		deliveries = append(deliveries, info.FileDeliveryStatus{
 			Status: report.StageInfo.Status,
 			Name: content.DestinationName,
 			Location: content.FileDestinationBlobUrl,
@@ -64,5 +62,5 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Contex
 		})
 	}
 
-	return status, nil
+	return deliveries, nil
 }

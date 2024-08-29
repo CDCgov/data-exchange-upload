@@ -37,9 +37,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	response := &info.InfoResponse{
 		Manifest: fileInfo,
-		DeliveryStatus: info.DeliveryStatus{
-			Destinations: []info.FileDeliveryStatus{},
-		},
+		Deliveries: []info.FileDeliveryStatus{},
 	}
 
 	uploadedFileInfo, err := ih.inspector.InspectUploadedFile(r.Context(), id)
@@ -51,7 +49,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	fileStatus, err := ih.statusInspector.InspectFileStatus(r.Context(), id)
+	deliveries, err := ih.statusInspector.InspectFileDeliveryStatus(r.Context(), id)
 	if err != nil {
 		// skip not found errors to handle deferred uploads.
 		if !errors.Is(err, info.ErrNotFound) {
@@ -61,11 +59,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	response.FileInfo = uploadedFileInfo
-
-	// TODO this nil check is probably not necessary
-	if fileStatus != nil {
-		response.DeliveryStatus = *fileStatus
-	}
+	response.Deliveries = deliveries
 
 	rw.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(rw)

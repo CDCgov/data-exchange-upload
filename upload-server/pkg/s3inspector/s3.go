@@ -69,7 +69,7 @@ func (sui *S3UploadInspector) InspectUploadedFile(c context.Context, id string) 
 	}, nil
 }
 
-func (sui *S3UploadInspector) InspectFileStatus(ctx context.Context, id string) (*info.DeliveryStatus, error) {
+func (sui *S3UploadInspector) InspectFileStatus(ctx context.Context, id string) ([]info.FileDeliveryStatus, error) {
 	//TODO implement me
 	panic("implement me")
 }
