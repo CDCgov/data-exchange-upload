@@ -54,6 +54,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Contex
 			Status: report.StageInfo.Status,
 			Name: content.DestinationName,
 			Location: content.FileDestinationBlobUrl,
+			DeliveredAt: report.StageInfo.EndProcessTime,
 		})
 	}
 
