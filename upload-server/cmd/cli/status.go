@@ -6,5 +6,5 @@ import (
 )
 
 type UploadStatusInspector interface {
-	InspectFileStatus(ctx context.Context, id string) (*info.FileStatus, error)
+	InspectFileStatus(ctx context.Context, id string) (*info.DeliveryStatus, error)
 }

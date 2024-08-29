@@ -37,7 +37,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	response := &info.InfoResponse{
 		Manifest: fileInfo,
-		FileStatus: info.FileStatus{
+		DeliveryStatus: info.DeliveryStatus{
 			Destinations: []info.FileDeliveryStatus{},
 		},
 	}
@@ -64,7 +64,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	// TODO this nil check is probably not necessary
 	if fileStatus != nil {
-		response.FileStatus = *fileStatus
+		response.DeliveryStatus = *fileStatus
 	}
 
 	rw.Header().Set("Content-Type", "application/json")

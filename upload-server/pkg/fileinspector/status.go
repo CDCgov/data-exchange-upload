@@ -17,8 +17,8 @@ type FileSystemUploadStatusInspector struct {
 	ReportsDir string
 }
 
-func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Context, id string) (*info.FileStatus, error) {
-	status := &info.FileStatus{
+func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Context, id string) (*info.DeliveryStatus, error) {
+	status := &info.DeliveryStatus{
 		Destinations: []info.FileDeliveryStatus{},
 	}
 	deliveryReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageFileCopy)
