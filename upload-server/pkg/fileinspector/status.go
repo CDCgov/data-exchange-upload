@@ -50,11 +50,17 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Contex
 			return status, err
 		}
 
+		issues := []string{}
+		for _, issue := range report.StageInfo.Issues {
+			issues = append(issues, issue.String())
+		}
+
 		status.Destinations = append(status.Destinations, info.FileDeliveryStatus{
 			Status: report.StageInfo.Status,
 			Name: content.DestinationName,
 			Location: content.FileDestinationBlobUrl,
 			DeliveredAt: report.StageInfo.EndProcessTime,
+			Issues: issues,
 		})
 	}
 

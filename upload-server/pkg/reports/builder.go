@@ -81,6 +81,10 @@ type ReportIssue struct {
 	Message string `json:"message"`
 }
 
+func (r *ReportIssue) String() string {
+	return fmt.Sprintf("%s: %s", r.Level, r.Message)
+}
+
 func (r *Report) Identifier() string {
 	return r.UploadID
 }

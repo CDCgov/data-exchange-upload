@@ -25,4 +25,5 @@ type FileDeliveryStatus struct {
 	Name string `json:"name"`
 	Location string `json:"location"`
 	DeliveredAt string `json:"delivered_at"`
+	Issues []string `json:"issues"`
 }
