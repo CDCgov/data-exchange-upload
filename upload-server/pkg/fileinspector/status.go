@@ -52,7 +52,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Contex
 
 		status.Destinations = append(status.Destinations, info.FileDeliveryStatus{
 			Status: report.StageInfo.Status,
-			Name: "", // TODO need to store target in report
+			Name: content.DestinationName,
 			Location: content.FileDestinationBlobUrl,
 		})
 	}
