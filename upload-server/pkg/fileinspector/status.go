@@ -40,11 +40,20 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileStatus(_ context.Contex
 			return status, err
 		}
 
+		var content reports.FileCopyContent
+		b, err := json.Marshal(report.Content)
+		if err != nil {
+			return status, err
+		}
+		err = json.Unmarshal(b, &content)
+		if err != nil {
+			return status, err
+		}
+
 		status.Destinations = append(status.Destinations, info.FileDeliveryStatus{
 			Status: report.StageInfo.Status,
 			Name: "", // TODO need to store target in report
-			// TODO need to get the content in a better way.  Maybe with generics?
-			//Location: report.Content.(reports.FileCopyContent).FileDestinationBlobUrl, // TODO type check
+			Location: content.FileDestinationBlobUrl,
 		})
 	}
 
