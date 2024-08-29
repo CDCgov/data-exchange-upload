@@ -47,6 +47,8 @@ func (hc *SystemHealthCheck) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var servicesResponses []models.ServiceHealthResp
 
 	for _, check := range hc.Services {
+		// TODO make a new context from r.Context with a timeout
+		// Can get timeout from app config and default to 10 seconds
 		sr := check.Health(r.Context())
 		servicesResponses = append(servicesResponses, sr)
 		if sr.Status == models.STATUS_DOWN {
