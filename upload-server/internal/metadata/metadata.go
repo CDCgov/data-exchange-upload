@@ -170,7 +170,8 @@ func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, 
 		// Get UTC year, month, and day
 		t := time.Now().UTC()
 		datePrefix := fmt.Sprintf("%d/%02d/%02d", t.Year(), t.Month(), t.Day())
-		p = filepath.Join(p, datePrefix)
+		p = p + "/" + datePrefix
+		//p = filepath.Join(p, datePrefix)
 	}
 
 	return p, nil

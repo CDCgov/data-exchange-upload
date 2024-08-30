@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"io"
 	"io/fs"
 	"os"
@@ -29,7 +30,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 var ErrBadTarget = fmt.Errorf("bad delivery target")
@@ -57,19 +57,37 @@ func RegisterAllTargets(ctx context.Context, appConfig appconfig.AppConfig) erro
 		return err
 	}
 
-	if appConfig.EdavConnection != nil {
-		edavDeliverer, err = NewAzureDeliverer(ctx, "edav", &appConfig)
+	//if appConfig.EdavConnection != nil {
+	//	edavDeliverer, err = NewAzureDeliverer(ctx, "edav", &appConfig)
+	//	if err != nil {
+	//		return fmt.Errorf("failed to connect to edav deliverer target %w", err)
+	//	}
+	//
+	//	if appConfig.S3DeliveryBucket != "" {
+	//		edavDeliverer, err = NewS3Deliverer(ctx, "edav", &appConfig)
+	//		if err != nil {
+	//			return fmt.Errorf("failed to connect to edav deliverer target for S3 %w", err)
+	//		}
+	//	}
+	//
+	//	health.Register(edavDeliverer)
+	//}
+	//if appConfig.RoutingConnection != nil {
+	//	routingDeliverer, err = NewAzureDeliverer(ctx, "routing", &appConfig)
+	//	if err != nil {
+	//		return fmt.Errorf("failed to connect to routing deliverer target %w", err)
+	//	}
+	//
+	//
+	//
+	//	health.Register(routingDeliverer)
+	//}
+
+	if appConfig.S3DeliveryBucket != "" {
+		routingDeliverer, err = NewS3Deliverer(ctx, "routing", &appConfig)
 		if err != nil {
-			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
+			return fmt.Errorf("failed to connect to routing deliverer target for S3 %w", err)
 		}
-		health.Register(edavDeliverer)
-	}
-	if appConfig.RoutingConnection != nil {
-		routingDeliverer, err = NewAzureDeliverer(ctx, "routing", &appConfig)
-		if err != nil {
-			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
-		}
-		health.Register(routingDeliverer)
 	}
 
 	RegisterTarget("edav", edavDeliverer)
@@ -168,10 +186,12 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 		reports.StageFileCopy,
 		tuid,
 		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
+	logger.Info("***getting metadata")
 	manifest, err := d.GetMetadata(ctx, tuid)
 	if err != nil {
 		return err
 	}
+	logger.Info("***got metadata", "m", manifest)
 	rb.SetManifest(manifest)
 
 	srcUrl, err := d.GetSrcUrl(ctx, tuid)
@@ -412,16 +432,46 @@ func (sd *S3Deliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp
 }
 
 func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
-
+	logger.Info("***in deliverer")
+	id := strings.Split(tuid, "+")[0]
+	srcFilename := sd.TusPrefix + "/" + id
 	destFileName, err := getDeliveredFilename(ctx, sd.Target, tuid, manifest)
 	if err != nil {
 		return err
 	}
+	logger.Info("***deliver filename", "filename", destFileName)
 
-	// Get the size of the source object
+	//d := manager.NewDownloader(sd.SrcClient)
+	//logger.Info("***making uploader")
+	//
+	//u := manager.NewUploader(sd.SrcClient)
+	//logger.Info("***ready to download")
+	//
+	//var buf []byte
+	//wb := manager.NewWriteAtBuffer(buf)
+	//logger.Info("***starting download", "filename", srcFilename)
+	//_, err = d.Download(ctx, wb, &s3.GetObjectInput{
+	//	Bucket: &sd.SrcBucket,
+	//	Key:    &srcFilename,
+	//})
+	//if err != nil {
+	//	return err
+	//}
+	//logger.Info("***starting upload")
+	//_, err = u.Upload(ctx, &s3.PutObjectInput{
+	//	Bucket: &sd.DestBucket,
+	//	Key:    &destFileName,
+	//	Body:   bytes.NewBuffer(buf),
+	//	Metadata: manifest,
+	//})
+	//if err != nil {
+	//	return err
+	//}
+
+	//Get the size of the source object
 	headResp, err := sd.SrcClient.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: &sd.SrcBucket,
-		Key:    aws.String(tuid),
+		Key:    aws.String(srcFilename),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get source object size: %w", err)
@@ -437,7 +487,7 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 		_, err := sd.SrcClient.CopyObject(ctx, &s3.CopyObjectInput{
 			Bucket:     &sd.DestBucket,
 			Key:        &destFileName,
-			CopySource: aws.String(sd.SrcBucket + "/" + tuid),
+			CopySource: aws.String(srcFilename),
 			Metadata:   manifest,
 		})
 		if err != nil {
@@ -468,7 +518,7 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 
 			uploadPartCopyResp, err := sd.SrcClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
 				Bucket:          &sd.DestBucket,
-				CopySource:      aws.String(sd.SrcBucket + "/" + tuid),
+				CopySource:      aws.String(srcFilename),
 				Key:             &destFileName,
 				PartNumber:      aws.Int32(partNumber),
 				UploadId:        createResp.UploadId,
@@ -506,29 +556,31 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 
 func (sd *S3Deliverer) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
 	// Get the object from S3
-	output, err := sd.SrcClient.GetObject(ctx, &s3.GetObjectInput{
+	id := strings.Split(tuid, "+")[0]
+	srcFilename := sd.TusPrefix + "/" + id
+	output, err := sd.SrcClient.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(sd.SrcBucket),
-		Key:    aws.String(sd.TusPrefix + "/" + tuid + ".info"),
+		Key:    aws.String(srcFilename),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve object: %w", err)
 	}
-	defer output.Body.Close()
+	//defer output.Body.Close()
+	//
+	//// Read the content of the file
+	//b, err := io.ReadAll(output.Body)
+	//if err != nil {
+	//	return nil, fmt.Errorf("unable to read object content: %w", err)
+	//}
+	//
+	//// Unmarshal the content into a map[string]string
+	//var m map[string]string
+	//err = json.Unmarshal(b, &m)
+	//if err != nil {
+	//	return nil, fmt.Errorf("unable to unmarshal JSON: %w", err)
+	//}
 
-	// Read the content of the file
-	b, err := io.ReadAll(output.Body)
-	if err != nil {
-		return nil, fmt.Errorf("unable to read object content: %w", err)
-	}
-
-	// Unmarshal the content into a map[string]string
-	var m map[string]string
-	err = json.Unmarshal(b, &m)
-	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal JSON: %w", err)
-	}
-
-	return m, nil
+	return output.Metadata, nil
 }
 
 func (sd *S3Deliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
@@ -571,6 +623,6 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 			return "", err
 		}
 	}
-
-	return filepath.Join(prefix, blobName), nil
+	return prefix + "/" + blobName, nil
+	//return filepath.Join(prefix, blobName), nil
 }
