@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -95,7 +96,9 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 
 	RegisterSource("upload", src)
 
-	health.Register(edavDeliverer, routingDeliverer, src)
+	if err := health.Register(edavDeliverer, routingDeliverer, src); err != nil {
+		slog.Error("failed to register some health checks", "error", err)
+	}
 
 	return nil
 }

@@ -43,7 +43,7 @@ func (hc *SystemHealthCheck) Register(checks ...any) error {
 		if cc, ok := c.(Checkable); ok {
 			hc.Services = append(hc.Services, cc)
 		} else {
-			errs = errors.Join(errs, fmt.Errorf("Could not register %+v health check", c))
+			errs = errors.Join(errs, fmt.Errorf("Could not register %+V health check", c))
 		}
 	}
 	return errs
@@ -83,7 +83,7 @@ func (hc *SystemHealthCheck) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 var DefaultSystemHealthCheck = &SystemHealthCheck{}
 
 func Register(c ...any) error {
-	return DefaultSystemHealthCheck.Register(c)
+	return DefaultSystemHealthCheck.Register(c...)
 }
 
 func Handler() http.Handler {

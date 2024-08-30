@@ -11,6 +11,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 )
@@ -83,6 +84,26 @@ func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader
 		Metadata: storeaz.PointerizeMetadata(m),
 	})
 	return blobName, err
+}
+
+func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "Azure deliver target " + ad.Target
+	rsp.Status = models.STATUS_UP
+
+	if ad.ToClient == nil {
+		// Running in azure, but deliverer not set up.
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "Azure deliverer target " + ad.Target + " not configured"
+	}
+
+	c := ad.ToClient.ServiceClient()
+	_, err := c.GetProperties(ctx, nil)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+	}
+
+	return rsp
 }
 
 func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
