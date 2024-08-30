@@ -141,7 +141,7 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 }
 
 func NewS3Deliverer(ctx context.Context, target string, appConfig *appconfig.AppConfig) (*S3Deliverer, error) {
-	s3Client, err := stores3.New(ctx, appConfig.S3Connection)
+	s3SrcClient, err := stores3.New(ctx, appConfig.S3Connection)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func NewS3Deliverer(ctx context.Context, target string, appConfig *appconfig.App
 	return &S3Deliverer{
 		SrcBucket:  appConfig.S3Connection.BucketName,
 		DestBucket: appConfig.S3DeliveryBucket,
-		SrcClient:  s3Client,
+		SrcClient:  s3SrcClient,
 		TusPrefix:  appConfig.TusUploadPrefix,
 		Target:     target,		
 	}, nil
@@ -418,46 +418,87 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 		return err
 	}
 
-	// Initiate multipart upload in the destination bucket
-	createResp, err := sd.SrcClient.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
-		Bucket: &sd.DestBucket,
-		Key:    &destFileName,
-		Metadata: manifest,
+	// Get the size of the source object
+	headResp, err := sd.SrcClient.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: &sd.SrcBucket,
+		Key:    aws.String(tuid),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to initiate multipart upload: %v", err)
+		return fmt.Errorf("failed to get source object size: %w", err)
 	}
+	fileSize := headResp.ContentLength
 
-	// Upload parts from the source file
-	partNumber := int32(1)
-	uploadPartCopyResp, err := sd.SrcClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
-		Bucket:          &sd.DestBucket,
-		CopySource:      aws.String(sd.SrcBucket + "/" + tuid), // TODO: get tus prefix here
-		Key:             &destFileName,
-		PartNumber:      aws.Int32(partNumber),
-		UploadId:        createResp.UploadId,
-		CopySourceRange: aws.String("bytes=0-"), // Copy the entire object
-	})
-	if err != nil {
-		return fmt.Errorf("failed to upload part: %v", err)
-	}
-	
-	// Complete the multipart upload
-	_, err = sd.SrcClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
-		Bucket: &sd.DestBucket,
-		Key:    &destFileName,
-		MultipartUpload: &types.CompletedMultipartUpload{
-			Parts: []types.CompletedPart{
-				{
-					ETag:       uploadPartCopyResp.CopyPartResult.ETag,
-					PartNumber: &partNumber, // Pass pointer to partNumber
-				},
+	// Define a 5MB threshold for multipart upload
+	const multipartThreshold int64 = 5 * 1024 * 1024
+
+	if *fileSize < multipartThreshold {
+
+		// Use single-part upload for small files
+		_, err := sd.SrcClient.CopyObject(ctx, &s3.CopyObjectInput{
+			Bucket:     &sd.DestBucket,
+			Key:        &destFileName,
+			CopySource: aws.String(sd.SrcBucket + "/" + tuid),
+			Metadata:   manifest,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to copy object: %w", err)
+		}
+
+	} else {
+
+		// Use multipart upload for large files
+		createResp, err := sd.SrcClient.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+			Bucket:   &sd.DestBucket,
+			Key:      &destFileName,
+			Metadata: manifest,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to initiate multipart upload: %w", err)
+		}
+
+		var completedParts []types.CompletedPart
+		partNumber := int32(1)
+		var startRange int64 = 0
+
+		for startRange < *fileSize {
+			endRange := startRange + multipartThreshold - 1
+			if endRange > *fileSize-1 {
+				endRange = *fileSize - 1
+			}
+
+			uploadPartCopyResp, err := sd.SrcClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
+				Bucket:          &sd.DestBucket,
+				CopySource:      aws.String(sd.SrcBucket + "/" + tuid),
+				Key:             &destFileName,
+				PartNumber:      aws.Int32(partNumber),
+				UploadId:        createResp.UploadId,
+				CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", startRange, endRange)),
+			})
+			if err != nil {
+				return fmt.Errorf("failed to upload part: %w", err)
+			}
+
+			completedParts = append(completedParts, types.CompletedPart{
+				ETag:       uploadPartCopyResp.CopyPartResult.ETag,
+				PartNumber: aws.Int32(partNumber),
+			})
+
+			startRange = endRange + 1
+			partNumber++
+		}
+
+		// Complete the multipart upload
+		_, err = sd.SrcClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+			Bucket: &sd.DestBucket,
+			Key:    &destFileName,
+			MultipartUpload: &types.CompletedMultipartUpload{
+				Parts: completedParts,
 			},
-		},
-		UploadId: createResp.UploadId,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to complete multipart upload: %v", err)
+			UploadId: createResp.UploadId,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to complete multipart upload: %w", err)
+		}
 	}
 
 	return nil
@@ -467,24 +508,24 @@ func (sd *S3Deliverer) GetMetadata(ctx context.Context, tuid string) (map[string
 	// Get the object from S3
 	output, err := sd.SrcClient.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(sd.SrcBucket),
-		Key:    aws.String(sd.TusPrefix + "/" + tuid + ".meta"),
+		Key:    aws.String(sd.TusPrefix + "/" + tuid + ".info"),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve object: %v", err)
+		return nil, fmt.Errorf("unable to retrieve object: %w", err)
 	}
 	defer output.Body.Close()
 
 	// Read the content of the file
 	b, err := io.ReadAll(output.Body)
 	if err != nil {
-		return nil, fmt.Errorf("unable to read object content: %v", err)
+		return nil, fmt.Errorf("unable to read object content: %w", err)
 	}
 
 	// Unmarshal the content into a map[string]string
 	var m map[string]string
 	err = json.Unmarshal(b, &m)
 	if err != nil {
-		return nil, fmt.Errorf("unable to unmarshal JSON: %v", err)
+		return nil, fmt.Errorf("unable to unmarshal JSON: %w", err)
 	}
 
 	return m, nil
@@ -492,7 +533,7 @@ func (sd *S3Deliverer) GetMetadata(ctx context.Context, tuid string) (map[string
 
 func (sd *S3Deliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
 	// Construct the S3 URL
-	s3URL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", sd.SrcBucket, sd.Region, sd.TusPrefix + "/" + tuid) // TODO: get region here
+	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.SrcBucket, sd.TusPrefix + "/" + tuid)
 	return s3URL, nil
 }
 
@@ -503,7 +544,7 @@ func (sd *S3Deliverer) GetDestUrl(ctx context.Context, tuid string, manifest map
 	}
 
 	// Construct the S3 URL
-	s3URL := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", sd.DestBucket, sd.Region, objectKey) // TODO: get region here
+	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.DestBucket, objectKey)
 	return s3URL, nil	
 }
 
