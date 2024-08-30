@@ -121,11 +121,6 @@ type S3StorageConfig struct {
 	BucketName string `env:"S3_BUCKET_NAME"`
 }
 
-type S3FolderConfig struct {
-	S3StorageConfig
-	FolderName string
-}
-
 type AzureContainerConfig struct {
 	AzureStorageConfig
 	ContainerName string
