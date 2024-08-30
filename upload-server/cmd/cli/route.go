@@ -12,6 +12,7 @@ import (
 type Router struct{}
 type RequestBody struct {
 	Target string `json:"target"`
+	Source string `json:"source"`
 }
 
 func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -32,7 +33,11 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	src, ok := delivery.GetSource("upload")
+	sourceName := body.Source
+	if sourceName == "" {
+		sourceName = "upload"
+	}
+	src, ok := delivery.GetSource(sourceName)
 	if !ok {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte("Could not find source"))

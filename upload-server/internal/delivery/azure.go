@@ -20,43 +20,34 @@ func NewAzureDestination(ctx context.Context, target string, appConfig *appconfi
 	if err != nil {
 		return nil, err
 	}
-	checkpointContainerClient, err := storeaz.NewContainerClient(config.AzureStorageConfig, config.ContainerName)
+	containerClient, err := storeaz.NewContainerClient(config.AzureStorageConfig, config.ContainerName)
 	if err != nil {
 		return nil, err
 	}
-	checkpointClient, err := storeaz.NewBlobClient(config.AzureStorageConfig)
+	client, err := storeaz.NewBlobClient(config.AzureStorageConfig)
 	if err != nil {
 		return nil, err
 	}
-	err = storeaz.CreateContainerIfNotExists(ctx, checkpointContainerClient)
+	err = storeaz.CreateContainerIfNotExists(ctx, containerClient)
 	if err != nil {
 		return nil, err
 	}
 
 	return &AzureDestination{
-		ToClient:    checkpointClient,
+		ToClient:    client,
 		ToContainer: config.ContainerName,
 		Target:      target,
 	}, nil
 }
 
-type AzureDeliverer struct {
-	FromContainerClient *container.Client
-	ToContainerClient   *container.Client
-	ToClient            *azblob.Client
-	ToContainer         string
-	TusPrefix           string
-	Target              string
-}
-
 type AzureSource struct {
 	FromContainerClient *container.Client
-	TusPrefix           string
+	Prefix              string
 }
 
 func (ad *AzureSource) Reader(ctx context.Context, path string) (io.Reader, error) {
 	// Get blob src blob client.
-	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + path)
+	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.Prefix + "/" + path)
 	s, err := srcBlobClient.DownloadStream(ctx, nil)
 	if s.ErrorCode != nil && *s.ErrorCode == string(bloberror.BlobNotFound) {
 		return nil, ErrSrcFileNotExist
@@ -69,7 +60,7 @@ func (ad *AzureSource) Reader(ctx context.Context, path string) (io.Reader, erro
 
 func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
 	// Get blob src blob client.
-	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
+	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.Prefix + "/" + tuid)
 	resp, err := srcBlobClient.GetProperties(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -83,92 +74,17 @@ type AzureDestination struct {
 	Target      string
 }
 
-func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) error {
+func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
 	blobName, err := getDeliveredFilename(ctx, ad.Target, path, m)
 	if err != nil {
-		return err
+		return blobName, err
 	}
 	_, err = ad.ToClient.UploadStream(ctx, ad.ToContainer, blobName, r, &azblob.UploadStreamOptions{
 		Metadata: storeaz.PointerizeMetadata(m),
 	})
-	return err
+	return blobName, err
 }
 
-/*
-	func (ad *AzureDeliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
-		// Get blob src blob client.
-		srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
-		blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
-		if err != nil {
-			return err
-		}
-		destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
-		s, err := srcBlobClient.DownloadStream(ctx, nil)
-		defer s.Body.Close()
-		if s.ErrorCode != nil && *s.ErrorCode == string(bloberror.BlobNotFound) {
-			return ErrSrcFileNotExist
-		}
-		if err != nil {
-			return err
-		}
-
-		slog.Info("starting copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
-
-		_, err = ad.ToClient.UploadStream(ctx, ad.ToContainer, blobName, s.Body, &azblob.UploadStreamOptions{
-			Metadata: storeaz.PointerizeMetadata(manifest),
-		})
-		if err != nil {
-			return err
-		}
-
-		slog.Info("successful copy from", "src", srcBlobClient.URL(), "to dest", destBlobClient.URL())
-
-		return nil
-	}
-
-	func (ad *AzureDeliverer) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
-		// Get blob src blob client.
-		srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
-		resp, err := srcBlobClient.GetProperties(ctx, nil)
-		if err != nil {
-			return nil, err
-		}
-		return storeaz.DepointerizeMetadata(resp.Metadata), nil
-	}
-
-	func (ad *AzureDeliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
-		srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.TusPrefix + "/" + tuid)
-		return srcBlobClient.URL(), nil
-	}
-
-	func (ad *AzureDeliverer) GetDestUrl(ctx context.Context, tuid string, manifest map[string]string) (string, error) {
-		blobName, err := getDeliveredFilename(ctx, ad.Target, tuid, manifest)
-		if err != nil {
-			return "", err
-		}
-		destBlobClient := ad.ToContainerClient.NewBlobClient(blobName)
-		return destBlobClient.URL(), nil
-	}
-
-	func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
-		rsp.Service = "Azure deliver target " + ad.Target
-		rsp.Status = models.STATUS_UP
-
-		if ad.ToContainerClient == nil {
-			// Running in azure, but deliverer not set up.
-			rsp.Status = models.STATUS_DOWN
-			rsp.HealthIssue = "Azure deliverer target " + ad.Target + " not configured"
-		}
-
-		_, err := ad.ToContainerClient.GetProperties(ctx, nil)
-		if err != nil {
-			rsp.Status = models.STATUS_DOWN
-			rsp.HealthIssue = err.Error()
-		}
-
-		return rsp
-	}
-*/
 func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadataPkg.GetFilename(manifest)

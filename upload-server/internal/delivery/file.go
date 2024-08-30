@@ -29,17 +29,17 @@ type FileDestination struct {
 	Target string
 }
 
-func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) error {
+func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
 	os.Mkdir(fd.ToPath, 0755)
 	dest, err := os.Create(filepath.Join(fd.ToPath, id))
 	if err != nil {
-		return err
+		return dest.Name(), err
 	}
 	defer dest.Close()
 	if _, err := io.Copy(dest, r); err != nil {
-		return err
+		return dest.Name(), err
 	}
-	return nil
+	return dest.Name(), nil
 }
 
 type FileSource struct {

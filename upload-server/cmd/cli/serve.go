@@ -61,7 +61,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		return nil, err
 	}
 
-	err = delivery.RegisterAllTargets(ctx, appConfig)
+	err = delivery.RegisterAllSourcesAndDestinations(ctx, appConfig)
 	if err != nil {
 		return nil, err
 	}
