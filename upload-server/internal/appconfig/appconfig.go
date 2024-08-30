@@ -54,7 +54,8 @@ type AppConfig struct {
 	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
 
 	// OAUTH
-	OauthIssuerUrl string `env:"OAUTH_ISSUER_URL, default=https://apigw-stg.cdc.gov:8443"`
+	OauthIssuerUrl      string `env:"OAUTH_ISSUER_URL, default=https://apigw-stg.cdc.gov:8443"`
+	OauthRequiredScopes string `env:"OAUTH_REQUIRED_SCOPES"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
