@@ -51,5 +51,8 @@ func Hydrate(m map[string]string, config *validation.ManifestConfig) (map[string
 			})
 		}
 	}
+	m["version"] = "2.0"
+	m["data_stream_id"] = m["meta_destination_id"]
+	m["data_stream_route"] = m["meta_ext_event"]
 	return m, transforms
 }
