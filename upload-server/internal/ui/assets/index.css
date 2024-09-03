@@ -16,3 +16,25 @@ body {
 .hidden {
     display: none;
 }
+
+.nav-container {
+    background-color: #f4f4f4;
+    border-bottom: 1px solid #c5c5c5;
+    font-size: 1.6rem;
+    font-weight: 700;
+    padding: 1rem;
+}
+
+.nav-container a, a:visited {
+    color: #000;
+    text-decoration: none;
+}
+
+.nav-container a:hover {
+    color: #000;
+    border-bottom: 1px solid #000;
+}
+
+.nav-container img {
+    width: 7.5rem !important;
+}
