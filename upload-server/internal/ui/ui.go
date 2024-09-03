@@ -4,11 +4,12 @@ import (
 	"context"
 	"embed"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 
 	"html/template"
 
@@ -18,7 +19,7 @@ import (
 
 // content holds our static web server content.
 //
-//go:embed assets/* index.html manifest.tmpl upload.tmpl
+//go:embed assets/* index.html manifest.tmpl upload.tmpl login.tmpl
 var content embed.FS
 
 func FixNames(name string) string {
@@ -33,6 +34,7 @@ var usefulFuncs = template.FuncMap{
 
 var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl"))
 var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl"))
+var loginTemplate = template.Must(template.ParseFS(content, "login.tmpl"))
 
 type ManifestTemplateData struct {
 	DataStream      string
@@ -167,6 +169,12 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
+		}
+	})
+	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
+		err := loginTemplate.Execute(rw, nil)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
 	})
 	router.Handle("/", StaticHandler)
