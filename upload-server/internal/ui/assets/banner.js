@@ -5,7 +5,7 @@
     banner.innerHTML = `
       <div role="navigation" id="nav" class="nav-container">
         <a href="/">
-          <img src="/assets/dex_logo.svg" /> Upload
+          <img src="/assets/dex_logo.svg" alt="DEX logo" /> Upload
         </a>
       </div>
     `;
