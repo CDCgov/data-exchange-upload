@@ -1,0 +1,13 @@
+# configureation settings for login service
+
+# IDP Config
+auth:
+  active_idp: "sams"
+  idp:
+    sams:
+      client_id: ""
+      auth_url: ""
+      token_url: ""
+      callback_url: ""
+      redirect_uri: ""
+      scope: ""
