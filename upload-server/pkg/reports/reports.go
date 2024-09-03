@@ -11,6 +11,7 @@ import (
 
 var logger *slog.Logger
 var DefaultReporter event.Publisher[*Report]
+var Reporters []event.Publisher[*Report]
 
 func init() {
 	type Empty struct{}
@@ -19,13 +20,25 @@ func init() {
 	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
 }
 
+func Register(r event.Publisher[*Report]) {
+	Reporters = append(Reporters, r)
+}
+
 func Publish(ctx context.Context, r *Report) {
-	err := DefaultReporter.Publish(ctx, r)
-	if err != nil {
-		logger.Error("Failed to report", "report", r, "reporter", DefaultReporter, "err", err)
-		if r.RetryCount() < event.MaxRetries {
-			r.IncrementRetryCount()
-			Publish(ctx, r)
+	for _, reporter := range Reporters {
+		err := reporter.Publish(ctx, r)
+		if err != nil {
+			logger.Error("Failed to report", "report", r, "reporter", reporter, "err", err)
+			if r.RetryCount() < event.MaxRetries {
+				r.IncrementRetryCount()
+				Publish(ctx, r)
+			}
 		}
+	}
+}
+
+func CloseAll() {
+	for _, r := range Reporters {
+		r.Close()
 	}
 }
