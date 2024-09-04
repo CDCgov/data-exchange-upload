@@ -53,11 +53,6 @@ type AppConfig struct {
 	LocalEDAVFolder       string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
 	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
 
-	// OAUTH
-	OauthIntrospectionUrl string `env:"OAUTH_INTROSPECTION_URL, default=https://apigw-stg.cdc.gov:8443"`
-	OauthIssuerUrl        string `env:"OAUTH_ISSUER_URL, default=https://apigw-stg.cdc.gov:8443"`
-	OauthRequiredScopes   string `env:"OAUTH_REQUIRED_SCOPES"`
-
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
 
@@ -75,6 +70,7 @@ type AppConfig struct {
 	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
 	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
 	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
+	OauthConfig          *OauthConfig        `env:", prefix=OAUTH_,noinit"`
 
 	// Reporting
 	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
@@ -146,6 +142,12 @@ type LocalStorageConfig struct {
 	FromPathStr string
 	FromPath    fs.FS
 	ToPath      string
+}
+
+type OauthConfig struct {
+	IntrospectionUrl string `env:"INTROSPECTION_URL, default=https://apigw-stg.cdc.gov:8443"`
+	IssuerUrl        string `env:"ISSUER_URL, default=https://apigw-stg.cdc.gov:8443"`
+	RequiredScopes   string `env:"REQUIRED_SCOPES"`
 }
 
 func (azc *AzureStorageConfig) Check() error {

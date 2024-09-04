@@ -5,11 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/coreos/go-oidc/v3/oidc"
 )
+
+type Claims struct {
+	Scopes string `json:"scope"`
+}
+
+type IntrospectionResponse struct {
+	Active bool   `json:"active"`
+	Scope  string `json:"scope"`
+}
 
 func OAuthTokenVerificationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -28,70 +38,65 @@ func OAuthTokenVerificationMiddleware(next http.Handler) http.Handler {
 
 		token := authHeader[len("Bearer "):]
 
+		var err error
 		if strings.Count(token, ".") == 2 {
 			// Token is JWT, validate using oidc verifier
-			if !validateJWT(ctx, w, token) {
-				return
-			}
+			err = validateJWT(ctx, token)
 		} else {
 			// Token is opaque, validate using introspection
-			if !validateOpaqueToken(ctx, w, token) {
-				return
-			}
+			err = validateOpaqueToken(ctx, token)
+		}
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
 }
 
-func validateJWT(ctx context.Context, w http.ResponseWriter, token string) bool {
-	issuer := appconfig.LoadedConfig.OauthIssuerUrl
+func validateJWT(ctx context.Context, token string) error {
+	issuer := appconfig.LoadedConfig.OauthConfig.IssuerUrl
 
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
-		http.Error(w, "Failed to get provider", http.StatusUnauthorized)
-		return false
+		return fmt.Errorf("failed to get provider: %w", err)
 	}
 
 	verifier := provider.Verifier(&oidc.Config{SkipClientIDCheck: true})
 
 	idToken, err := verifier.Verify(ctx, token)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to verify token: %v", err), http.StatusUnauthorized)
-		return false
+		return fmt.Errorf("failed to verify token: %w", err)
 	}
 
-	var claims struct {
-		Scopes string `json:"scope"`
-	}
+	var claims Claims
 
 	if err := idToken.Claims(&claims); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to parse token claims: %v", err), http.StatusUnauthorized)
-		return false
+		return fmt.Errorf("failed to parse token claims: %w", err)
 	}
 
 	actualScopes := strings.Split(claims.Scopes, " ")
 
 	requiredScopes := []string{}
-	if appconfig.LoadedConfig.OauthRequiredScopes != "" {
-		requiredScopes = strings.Split(appconfig.LoadedConfig.OauthRequiredScopes, " ")
+	if appconfig.LoadedConfig.OauthConfig.RequiredScopes != "" {
+		requiredScopes = strings.Split(appconfig.LoadedConfig.OauthConfig.RequiredScopes, " ")
 	}
 
 	if !hasRequiredScopes(actualScopes, requiredScopes) {
-		http.Error(w, "One or more required scopes not found.", http.StatusForbidden)
-		return false
+		return fmt.Errorf("one or more required scopes not found")
 	}
 
-	return true
+	return nil
 }
 
-func validateOpaqueToken(ctx context.Context, w http.ResponseWriter, token string) bool {
-	introspectionURL := appconfig.LoadedConfig.OauthIntrospectionUrl
+func validateOpaqueToken(ctx context.Context, token string) error {
+	introspectionURL := appconfig.LoadedConfig.OauthConfig.IntrospectionUrl
 
 	req, err := http.NewRequestWithContext(ctx, "POST", introspectionURL, strings.NewReader("token="+token))
 	if err != nil {
-		http.Error(w, "Failed to create introspection request", http.StatusInternalServerError)
-		return false
+		return fmt.Errorf("failed to create introspection request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -101,39 +106,32 @@ func validateOpaqueToken(ctx context.Context, w http.ResponseWriter, token strin
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil || resp.StatusCode != http.StatusOK {
-		http.Error(w, "Failed to validate opaque token", http.StatusUnauthorized)
-		return false
+		return fmt.Errorf("failed to validate opaque token")
 	}
 	defer resp.Body.Close()
 
-	var introspectionResponse struct {
-		Active bool   `json:"active"`
-		Scope  string `json:"scope"`
-	}
+	var introspectionResponse IntrospectionResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&introspectionResponse); err != nil {
-		http.Error(w, "Failed to parse introspection response", http.StatusInternalServerError)
-		return false
+		return fmt.Errorf("failed to parse introspection response: %w", err)
 	}
 
 	if !introspectionResponse.Active {
-		http.Error(w, "Inactive token", http.StatusUnauthorized)
-		return false
+		return fmt.Errorf("inactive token")
 	}
 
 	actualScopes := strings.Split(introspectionResponse.Scope, " ")
 
 	requiredScopes := []string{}
-	if appconfig.LoadedConfig.OauthRequiredScopes != "" {
-		requiredScopes = strings.Split(appconfig.LoadedConfig.OauthRequiredScopes, " ")
+	if appconfig.LoadedConfig.OauthConfig.RequiredScopes != "" {
+		requiredScopes = strings.Split(appconfig.LoadedConfig.OauthConfig.RequiredScopes, " ")
 	}
 
 	if !hasRequiredScopes(actualScopes, requiredScopes) {
-		http.Error(w, "One or more required scopes not found.", http.StatusForbidden)
-		return false
+		return fmt.Errorf("one or more required scopes not found")
 	}
 
-	return true
+	return nil
 }
 
 func hasRequiredScopes(actualScopes, requiredScopes []string) bool {
@@ -141,12 +139,8 @@ func hasRequiredScopes(actualScopes, requiredScopes []string) bool {
 		return true
 	}
 
-	scopeMap := make(map[string]bool)
-	for _, scope := range actualScopes {
-		scopeMap[scope] = true
-	}
 	for _, reqScope := range requiredScopes {
-		if !scopeMap[reqScope] {
+		if !slices.Contains(actualScopes, reqScope) {
 			return false
 		}
 	}
