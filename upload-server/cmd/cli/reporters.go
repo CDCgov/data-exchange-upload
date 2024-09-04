@@ -9,9 +9,9 @@ import (
 )
 
 func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
-	reports.DefaultReporter = &event.MemoryPublisher[*reports.Report]{
+	reports.Register(&event.MemoryPublisher[*reports.Report]{
 		Dir: appConfig.LocalReportsFolder,
-	}
+	})
 
 	if appConfig.ReporterConnection != nil && appConfig.ReporterConnection.ConnectionString != "" {
 		r, err := event.NewAzurePublisher[*reports.Report](ctx, *appConfig.ReporterConnection)
@@ -19,7 +19,7 @@ func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
 			return err
 		}
 
-		reports.DefaultReporter = r
+		reports.Register(r)
 		health.Register(r)
 	}
 

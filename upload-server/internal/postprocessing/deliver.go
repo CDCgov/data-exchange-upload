@@ -167,6 +167,7 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 		},
 		FileSourceBlobUrl:      srcUrl,
 		FileDestinationBlobUrl: destUrl,
+		DestinationName: target,
 	})
 
 	defer func() {
