@@ -445,6 +445,14 @@ func (sd *S3Deliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp
 	return rsp
 }
 
+type writeAtWrapper struct {
+	writer io.Writer
+}
+
+func (w *writeAtWrapper) WriteAt(p []byte, offset int64) (int, error) {
+	return w.writer.Write(p)
+}
+
 func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
 	logger.Info("***in deliverer")
 	id := strings.Split(tuid, "+")[0]
@@ -459,38 +467,63 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 		downloader := manager.NewDownloader(sd.SrcClient)
 		uploader := manager.NewUploader(sd.SrcClient)
 
-		// Create a temporary file to store the downloaded content
-		tmpFile, err := os.CreateTemp("", "s3-download-")
-		if err != nil {
-			return fmt.Errorf("failed to create temp file: %w", err)
-		}
-		defer os.Remove(tmpFile.Name()) // Ensure the temp file is removed after the operation
-		defer tmpFile.Close()
+		r, w := io.Pipe()
 
-		// Download the file into the temporary file
-		_, err = downloader.Download(ctx, tmpFile, &s3.GetObjectInput{
-			Bucket: &sd.SrcBucket,
-			Key:    &srcFilename,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to download file: %w", err)
-		}
+		go func() {
+			defer w.Close()
 
-		// Rewind the temporary file to the beginning
-		if _, err := tmpFile.Seek(0, 0); err != nil {
-			return fmt.Errorf("failed to seek temp file: %w", err)
-		}
+			_, err := downloader.Download(ctx, &writeAtWrapper{w}, &s3.GetObjectInput{
+				Bucket: &sd.SrcBucket,
+				Key: &srcFilename,
+			})
+			if err != nil {
+				logger.Error(err.Error())
+				//return fmt.Errorf("failed to download file: %w", err)
+			}
+		}()
 
-		// Upload the file from the temporary file to the destination bucket
 		_, err = uploader.Upload(ctx, &s3.PutObjectInput{
 			Bucket:   &sd.DestBucket,
 			Key:      &destFileName,
-			Body:     tmpFile,
+			Body:     r,
 			Metadata: manifest,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to upload file: %w", err)
 		}
+
+		//// Create a temporary file to store the downloaded content
+		//tmpFile, err := os.CreateTemp("", "s3-download-")
+		//if err != nil {
+		//	return fmt.Errorf("failed to create temp file: %w", err)
+		//}
+		//defer os.Remove(tmpFile.Name()) // Ensure the temp file is removed after the operation
+		//defer tmpFile.Close()
+		//
+		//// Download the file into the temporary file
+		//_, err = downloader.Download(ctx, tmpFile, &s3.GetObjectInput{
+		//	Bucket: &sd.SrcBucket,
+		//	Key:    &srcFilename,
+		//})
+		//if err != nil {
+		//	return fmt.Errorf("failed to download file: %w", err)
+		//}
+		//
+		//// Rewind the temporary file to the beginning
+		//if _, err := tmpFile.Seek(0, 0); err != nil {
+		//	return fmt.Errorf("failed to seek temp file: %w", err)
+		//}
+		//
+		//// Upload the file from the temporary file to the destination bucket
+		//_, err = uploader.Upload(ctx, &s3.PutObjectInput{
+		//	Bucket:   &sd.DestBucket,
+		//	Key:      &destFileName,
+		//	Body:     tmpFile,
+		//	Metadata: manifest,
+		//})
+		//if err != nil {
+		//	return fmt.Errorf("failed to upload file: %w", err)
+		//}
 	
 	//d := manager.NewDownloader(sd.SrcClient)
 	//logger.Info("***making uploader")
