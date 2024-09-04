@@ -21,7 +21,6 @@ test.describe("Upload End to End Tests", () => {
         await page.locator('input[type="file"]').click();
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles('../upload-files/10KB-test-file');
-        page.waitForLoadState("networkidle")
 
         await page.getByText('Download 10KB-test-file')
     })
