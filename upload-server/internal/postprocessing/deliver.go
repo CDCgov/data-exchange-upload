@@ -465,6 +465,7 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 
 		// Create a downloader and uploader
 		downloader := manager.NewDownloader(sd.SrcClient)
+		downloader.Concurrency = 1
 		uploader := manager.NewUploader(sd.SrcClient)
 
 		r, w := io.Pipe()
