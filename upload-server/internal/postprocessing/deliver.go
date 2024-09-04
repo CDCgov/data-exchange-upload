@@ -84,7 +84,7 @@ func RegisterAllTargets(ctx context.Context, appConfig appconfig.AppConfig) erro
 	//	health.Register(routingDeliverer)
 	//}
 
-	if appConfig.S3DeliveryBucket != "" {
+	if appConfig.S3ConnectionDest != nil {
 		routingDeliverer, err = NewS3Deliverer(ctx, "routing", &appConfig)
 		if err != nil {
 			return fmt.Errorf("failed to connect to routing deliverer target for S3 %w", err)

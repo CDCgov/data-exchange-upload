@@ -84,7 +84,6 @@ type AppConfig struct {
 
 	// S3
 	S3ManifestConfigBucket string `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
-	S3DeliveryBucket       string `env:"S3_DELIVERY_BUCKET_NAME"`
 
 	// Upload processing
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
@@ -124,8 +123,8 @@ type AzureStorageConfig struct {
 } // .AzureStorageConfig
 
 type S3StorageConfig struct {
-	Endpoint   string `env:"S3_ENDPOINT_DEST"`
-	BucketName string `env:"S3_BUCKET_NAME_DEST"`
+	Endpoint   string `env:"S3_ENDPOINT"`
+	BucketName string `env:"S3_BUCKET_NAME"`
 }
 
 type AzureContainerConfig struct {
