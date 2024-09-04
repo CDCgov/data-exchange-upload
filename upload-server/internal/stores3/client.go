@@ -15,9 +15,10 @@ func New(ctx context.Context, s3Config *appconfig.S3StorageConfig) (*s3.Client, 
 	}
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		// For non-AWS S3 backends
-		if s3Config.Endpoint != "" {
+		endpoint := s3Config.Endpoint
+		if endpoint != "" {
 			o.UsePathStyle = true
-			o.BaseEndpoint = &s3Config.Endpoint
+			o.BaseEndpoint = &endpoint
 		}
 	})
 

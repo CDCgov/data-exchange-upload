@@ -55,18 +55,18 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 		return store, hc, nil
 	} // .if
 
-	if appConfig.S3Connection != nil {
-		client, err := stores3.New(ctx, appConfig.S3Connection)
+	if appConfig.S3ConnectionSrc != nil {
+		client, err := stores3.New(ctx, appConfig.S3ConnectionSrc)
 		if err != nil {
 			return nil, nil, err
 		}
 		hc := &stores3.S3HealthCheck{
 			Client: client,
 		}
-		store := s3store.New(appConfig.S3Connection.BucketName, client)
+		store := s3store.New(appConfig.S3ConnectionSrc.BucketName, client)
 		store.ObjectPrefix = appConfig.TusUploadPrefix
 
-		logger.Info("using S3 bucket", "bucket", appConfig.S3Connection.BucketName)
+		logger.Info("using S3 bucket", "bucket", appConfig.S3ConnectionSrc.BucketName)
 		return store, hc, nil
 	}
 

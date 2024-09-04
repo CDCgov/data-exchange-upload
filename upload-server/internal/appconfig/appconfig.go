@@ -64,12 +64,13 @@ type AppConfig struct {
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
-	AzureConnection      *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
-	S3Connection         *S3StorageConfig    `env:", prefix=AWS_, noinit"`	
-	EdavConnection       *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
-	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
-	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
-	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
+	AzureConnection      *AzureStorageConfig  `env:", prefix=AZURE_, noinit"`
+	S3ConnectionSrc      *S3StorageConfig 	  `env:", prefix=AWS_SRC_, noinit"`	
+	S3ConnectionDest     *S3StorageConfig 	  `env:", prefix=AWS_DEST_, noinit"`	
+	EdavConnection       *AzureStorageConfig  `env:", prefix=EDAV_, noinit"`
+	RoutingConnection    *AzureStorageConfig  `env:", prefix=ROUTING_, noinit"`
+	PublisherConnection  *AzureQueueConfig    `env:", prefix=PUBLISHER_,noinit"`
+	SubscriberConnection *AzureQueueConfig    `env:", prefix=SUBSCRIBER_,noinit"`
 
 
 	// Reporting
@@ -123,8 +124,8 @@ type AzureStorageConfig struct {
 } // .AzureStorageConfig
 
 type S3StorageConfig struct {
-	Endpoint   string `env:"S3_ENDPOINT"`
-	BucketName string `env:"S3_BUCKET_NAME"`
+	Endpoint   string `env:"S3_ENDPOINT_DEST"`
+	BucketName string `env:"S3_BUCKET_NAME_DEST"`
 }
 
 type AzureContainerConfig struct {

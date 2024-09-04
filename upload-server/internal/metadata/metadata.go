@@ -70,7 +70,7 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		},
 	}
 
-	if appConfig.AzureConnection != nil && appConfig.S3Connection != nil {
+	if appConfig.AzureConnection != nil && appConfig.S3ConnectionSrc != nil {
 		return errors.New("cannot load metadata config from multiple locations")
 	}
 
@@ -85,8 +85,8 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		}
 	}
 
-	if appConfig.S3Connection != nil {
-		client, err := stores3.New(ctx, appConfig.S3Connection)
+	if appConfig.S3ConnectionSrc != nil {
+		client, err := stores3.New(ctx, appConfig.S3ConnectionSrc)
 		if err != nil {
 			return err
 		}

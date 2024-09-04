@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	// "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"io"
 	"io/fs"
 	"os"
@@ -29,7 +29,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"	
 )
 
 var ErrBadTarget = fmt.Errorf("bad delivery target")
@@ -159,16 +160,22 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 }
 
 func NewS3Deliverer(ctx context.Context, target string, appConfig *appconfig.AppConfig) (*S3Deliverer, error) {
-	s3SrcClient, err := stores3.New(ctx, appConfig.S3Connection)
+	s3SrcClientSrc, err := stores3.New(ctx, appConfig.S3ConnectionSrc)
+	if err != nil {
+		return nil, err
+	}
+
+	s3SrcClientDest, err := stores3.New(ctx, appConfig.S3ConnectionDest)
 	if err != nil {
 		return nil, err
 	}
 
 	// Return the initialized S3Deliverer
 	return &S3Deliverer{
-		SrcBucket:  appConfig.S3Connection.BucketName,
-		DestBucket: appConfig.S3DeliveryBucket,
-		SrcClient:  s3SrcClient,
+		SrcBucket:  appConfig.S3ConnectionSrc.BucketName,
+		DestBucket: appConfig.S3ConnectionDest.BucketName,
+		SrcClient:  s3SrcClientSrc,
+		DestClient: s3SrcClientDest,
 		TusPrefix:  appConfig.TusUploadPrefix,
 		Target:     target,		
 	}, nil
@@ -252,6 +259,7 @@ type S3Deliverer struct {
 	SrcBucket   string
 	DestBucket  string
 	SrcClient   *s3.Client
+	DestClient  *s3.Client
 	TusPrefix   string
 	Target      string
 }
@@ -425,7 +433,13 @@ func (sd *S3Deliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp
 	if sd.SrcClient == nil {
 		// Running in aws, but deliverer not set up.
 		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = "AWS S3 deliverer target " + sd.Target + " not configured"
+		rsp.HealthIssue = "AWS S3 deliverer src client not configured"
+	}
+
+	if sd.DestClient == nil {
+		// Running in aws, but deliverer not set up.
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "AWS S3 deliverer target client not configured"
 	}
 
 	return rsp
@@ -441,6 +455,43 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 	}
 	logger.Info("***deliver filename", "filename", destFileName)
 
+		// Create a downloader and uploader
+		downloader := manager.NewDownloader(sd.SrcClient)
+		uploader := manager.NewUploader(sd.SrcClient)
+
+		// Create a temporary file to store the downloaded content
+		tmpFile, err := os.CreateTemp("", "s3-download-")
+		if err != nil {
+			return fmt.Errorf("failed to create temp file: %w", err)
+		}
+		defer os.Remove(tmpFile.Name()) // Ensure the temp file is removed after the operation
+		defer tmpFile.Close()
+
+		// Download the file into the temporary file
+		_, err = downloader.Download(ctx, tmpFile, &s3.GetObjectInput{
+			Bucket: &sd.SrcBucket,
+			Key:    &srcFilename,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to download file: %w", err)
+		}
+
+		// Rewind the temporary file to the beginning
+		if _, err := tmpFile.Seek(0, 0); err != nil {
+			return fmt.Errorf("failed to seek temp file: %w", err)
+		}
+
+		// Upload the file from the temporary file to the destination bucket
+		_, err = uploader.Upload(ctx, &s3.PutObjectInput{
+			Bucket:   &sd.DestBucket,
+			Key:      &destFileName,
+			Body:     tmpFile,
+			Metadata: manifest,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upload file: %w", err)
+		}
+	
 	//d := manager.NewDownloader(sd.SrcClient)
 	//logger.Info("***making uploader")
 	//
@@ -469,87 +520,87 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 	//}
 
 	//Get the size of the source object
-	headResp, err := sd.SrcClient.HeadObject(ctx, &s3.HeadObjectInput{
-		Bucket: &sd.SrcBucket,
-		Key:    aws.String(srcFilename),
-	})
-	if err != nil {
-		return fmt.Errorf("failed to get source object size: %w", err)
-	}
-	fileSize := headResp.ContentLength
+	// headResp, err := sd.SrcClient.HeadObject(ctx, &s3.HeadObjectInput{
+	// 	Bucket: &sd.SrcBucket,
+	// 	Key:    aws.String(srcFilename),
+	// })
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get source object size: %w", err)
+	// }
+	// fileSize := headResp.ContentLength
 
-	// Define a 5MB threshold for multipart upload
-	const multipartThreshold int64 = 5 * 1024 * 1024
+	// // Define a 5MB threshold for multipart upload
+	// const multipartThreshold int64 = 5 * 1024 * 1024
 
-	if *fileSize < multipartThreshold {
+	// if *fileSize < multipartThreshold {
 
-		// Use single-part upload for small files
-		_, err := sd.SrcClient.CopyObject(ctx, &s3.CopyObjectInput{
-			Bucket:     &sd.DestBucket,
-			Key:        &destFileName,
-			CopySource: aws.String(srcFilename),
-			Metadata:   manifest,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to copy object: %w", err)
-		}
+	// 	// Use single-part upload for small files
+	// 	_, err := sd.SrcClient.CopyObject(ctx, &s3.CopyObjectInput{
+	// 		Bucket:     &sd.DestBucket,
+	// 		Key:        &destFileName,
+	// 		CopySource: aws.String(srcFilename),
+	// 		Metadata:   manifest,
+	// 	})
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to copy object: %w", err)
+	// 	}
 
-	} else {
+	// } else {
 
-		// Use multipart upload for large files
-		createResp, err := sd.SrcClient.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
-			Bucket:   &sd.DestBucket,
-			Key:      &destFileName,
-			Metadata: manifest,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to initiate multipart upload: %w", err)
-		}
+	// 	// Use multipart upload for large files
+	// 	createResp, err := sd.SrcClient.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+	// 		Bucket:   &sd.DestBucket,
+	// 		Key:      &destFileName,
+	// 		Metadata: manifest,
+	// 	})
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to initiate multipart upload: %w", err)
+	// 	}
 
-		var completedParts []types.CompletedPart
-		partNumber := int32(1)
-		var startRange int64 = 0
+	// 	var completedParts []types.CompletedPart
+	// 	partNumber := int32(1)
+	// 	var startRange int64 = 0
 
-		for startRange < *fileSize {
-			endRange := startRange + multipartThreshold - 1
-			if endRange > *fileSize-1 {
-				endRange = *fileSize - 1
-			}
+	// 	for startRange < *fileSize {
+	// 		endRange := startRange + multipartThreshold - 1
+	// 		if endRange > *fileSize-1 {
+	// 			endRange = *fileSize - 1
+	// 		}
 
-			uploadPartCopyResp, err := sd.SrcClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
-				Bucket:          &sd.DestBucket,
-				CopySource:      aws.String(srcFilename),
-				Key:             &destFileName,
-				PartNumber:      aws.Int32(partNumber),
-				UploadId:        createResp.UploadId,
-				CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", startRange, endRange)),
-			})
-			if err != nil {
-				return fmt.Errorf("failed to upload part: %w", err)
-			}
+	// 		uploadPartCopyResp, err := sd.SrcClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
+	// 			Bucket:          &sd.DestBucket,
+	// 			CopySource:      aws.String(srcFilename),
+	// 			Key:             &destFileName,
+	// 			PartNumber:      aws.Int32(partNumber),
+	// 			UploadId:        createResp.UploadId,
+	// 			CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", startRange, endRange)),
+	// 		})
+	// 		if err != nil {
+	// 			return fmt.Errorf("failed to upload part: %w", err)
+	// 		}
 
-			completedParts = append(completedParts, types.CompletedPart{
-				ETag:       uploadPartCopyResp.CopyPartResult.ETag,
-				PartNumber: aws.Int32(partNumber),
-			})
+	// 		completedParts = append(completedParts, types.CompletedPart{
+	// 			ETag:       uploadPartCopyResp.CopyPartResult.ETag,
+	// 			PartNumber: aws.Int32(partNumber),
+	// 		})
 
-			startRange = endRange + 1
-			partNumber++
-		}
+	// 		startRange = endRange + 1
+	// 		partNumber++
+	// 	}
 
-		// Complete the multipart upload
-		_, err = sd.SrcClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
-			Bucket: &sd.DestBucket,
-			Key:    &destFileName,
-			MultipartUpload: &types.CompletedMultipartUpload{
-				Parts: completedParts,
-			},
-			UploadId: createResp.UploadId,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to complete multipart upload: %w", err)
-		}
-	}
+	// 	// Complete the multipart upload
+	// 	_, err = sd.SrcClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+	// 		Bucket: &sd.DestBucket,
+	// 		Key:    &destFileName,
+	// 		MultipartUpload: &types.CompletedMultipartUpload{
+	// 			Parts: completedParts,
+	// 		},
+	// 		UploadId: createResp.UploadId,
+	// 	})
+	// 	if err != nil {
+	// 		return fmt.Errorf("failed to complete multipart upload: %w", err)
+	// 	}
+	// }
 
 	return nil
 }
