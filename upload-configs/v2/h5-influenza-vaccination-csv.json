@@ -225,13 +225,17 @@
 			{
 				"field_name": "data_stream_id",
 				"required": true,
-				"allowed_values": "h5-influenza-vaccination",
+				"allowed_values": [
+					"h5-influenza-vaccination"
+				],
 				"description": "This field is the identifier for the data stream."
 			},
 			{
 				"field_name": "data_stream_route",
 				"required": true,
-				"allowed_values": "csv",
+				"allowed_values": [
+					"csv"
+				],
 				"description": "This recieved is the route of the data stream."
 			},
 			{
