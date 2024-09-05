@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"log/slog"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -148,13 +149,17 @@ func (t *TestCase) Set(s string) error {
 }
 
 type TestCases struct {
-	cases []TestCase
-	i     int
+	cases  []TestCase
+	i      int
+	random bool
 }
 
 func (t *TestCases) Next() TestCase {
 	c := t.cases[t.i]
 	t.i = (t.i + 1) % len(t.cases)
+	if t.random {
+		t.i = rand.Intn(len(t.cases))
+	}
 	return c
 }
 
@@ -195,7 +200,7 @@ func passthroughString(s string) (string, error) {
 
 func init() {
 	flag.Float64Var(&size, "size", 5, "the size of the file to upload, in MB")
-	flag.StringVar(&url, "url", fromEnv("UPLOAD_URL", "http://localhost:8080/files/", passthroughString), "the upload url for the tus server")
+	flag.StringVar(&url, "url", fromEnv("UPLOAD_URL", "http://localhost:8080/files", passthroughString), "the upload url for the tus server")
 	flag.StringVar(&reportsURL, "reports-url", fromEnv("DEX_REPORTS_URL", "", passthroughString), "the url for the reports graphql server")
 	flag.IntVar(&parallelism, "parallelism", fromEnv("UPLOAD_PARALLELISM", runtime.NumCPU(), strconv.Atoi), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", fromEnv("UPLOAD_LOAD", 0, strconv.Atoi), "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
@@ -211,6 +216,7 @@ func init() {
 	flag.IntVar(&repetitions, "repetitions", 1, "The number of times to repeat a template when building a file")
 	flag.DurationVar(&duration, "duration", 0, "the duration to run load for.")
 	flag.StringVar(&patchURL, "patch-url", "", "Override the base url to use to upload the file itself after upload creation.")
+	flag.BoolVar(&cases.random, "random", false, "Randomly select the next test case to run, only affects anything if multiple test cases are used.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
@@ -236,7 +242,7 @@ func init() {
 		}
 	}
 	if !flagset["case-dir"] {
-		cases = TestCases{cases: []TestCase{testcase}}
+		cases.cases = []TestCase{testcase}
 	}
 	slog.Debug("testing with cases", "cases", cases)
 	conf = resultOrFatal(buildConfig())
