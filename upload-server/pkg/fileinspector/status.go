@@ -67,94 +67,66 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ contex
 	return deliveries, nil
 }
 
-func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx context.Context, id string) (string, error) {
-	uploadStatusReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadStatus)
+func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx context.Context, id string) (info.FileUploadStatus, error) {
+	// check if the upload-completed file exists
 	uploadCompletedReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadCompleted)
-
-	// check if the upload-complete file exists
-	_, err := os.Stat(uploadCompletedReportFilename)
-	if err == nil {
-		// if the upload-complete file exists then the file is finished uploading
-		return info.UploadComplete, nil
+	uploadCompletedFileInfo, errComplete := os.Stat(uploadCompletedReportFilename)
+	if errComplete == nil {
+		// if the upload-completed file exists then the file is finished uploading
+		return info.FileUploadStatus{
+			Status: info.UploadComplete,
+			LastChunkReceived: uploadCompletedFileInfo.ModTime(),
+		}, nil
 	} 
 
-	// if the error from checking the upload-complete file is something other than
-	// the file not existing, return an error
-	if !errors.Is(err, os.ErrNotExist) {
-		return "", err
+	// if the error from checking the upload-completed file is something other than
+	// the file not existing, return the error
+	if !errors.Is(errComplete, os.ErrNotExist) {
+		return info.FileUploadStatus{}, errComplete
 	}
 
-	// The status is now either not started or in progress 
-	// we need to check the last line of the upload-status file
-	// to check the offset and size
-	f, err := os.Open(uploadStatusReportFilename)
-	defer f.Close()
-
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return "", errors.Join(err, info.ErrNotFound)
+	// get the file info for the upload-started file
+	uploadStartedReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadStarted)
+	uploadStartedFileInfo, errStart := os.Stat(uploadStartedReportFilename)
+	if errStart != nil {
+		if errors.Is(errStart, os.ErrNotExist) {
+			return info.FileUploadStatus{}, errors.Join(errStart, info.ErrNotFound)
 		}
-		return "", err
+		return info.FileUploadStatus{}, errStart
 	}
 
-	// Get the last line of the upload-status
-	scanner := bufio.NewScanner(f)
-	var lastLine string
-	for scanner.Scan() {
-		lastLine = scanner.Text()
-	}
-	
-	// unmarshal the last line as a report
-	var report reports.Report
-	err = json.Unmarshal([]byte(lastLine), &report)
-	if err != nil {
-		return "", err
+	// get the file info for the upload-status file
+	uploadStatusReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadStatus)
+	uploadStatusReportFileInfo, errStatus := os.Stat(uploadStatusReportFilename)
+	if errStatus != nil {
+		if errors.Is(errStatus, os.ErrNotExist) {
+			return info.FileUploadStatus{}, errors.Join(errStatus, info.ErrNotFound)
+		}
+		return info.FileUploadStatus{}, errStatus
 	}
 
-	// check the status in the report.StageInfo
-	if (report.StageInfo.Status == reports.StatusFailed) {
-		return info.UploadFailed, nil
+	uploadStartedModTime := uploadStartedFileInfo.ModTime()
+	uploadStatusModTime := uploadStatusReportFileInfo.ModTime()
+
+	if (uploadStartedModTime.Unix() == uploadStatusModTime.Unix()) {
+		// when the file upload is initiated the upload-started and upload-status reports 
+		// are created at the same time, so if the file modified times are still equal 
+		// it means the file hasn't started uploading yet
+		return info.FileUploadStatus{
+			Status: info.UploadInitiated,
+			LastChunkReceived: uploadStartedModTime,
+		}, nil
 	}
 
-	// retrieve the content from the report to get the file size and offset
-	// report.Content is an map[string]any so we need to 
-	// marshal it so we can unmarshal it into an UploadStatusContent
-	// so that we can use it easier
-	var content reports.UploadStatusContent
-	b, err := json.Marshal(report.Content)
-	if err != nil {
-		return "", err
-	}
-	err = json.Unmarshal(b, &content)
-	if err != nil {
-		return "", err
+	if (uploadStartedModTime.Unix() < uploadStatusModTime.Unix()) {
+		// if the file modified time of the upload-status report is later than the
+		// upload-started report, then the file is being uploaded
+		return info.FileUploadStatus{
+			Status: info.UploadInProgress,
+			LastChunkReceived: uploadStatusModTime,
+		}, nil
 	}
 
-	// get the offset and size value so they can be compared
-	offset := content.Offset
-	size := content.Size
-
-	if (offset == 0 && size == 0) {
-		// if they are both 0 then the file hasn't started uploading
-		return info.UploadNotStarted, nil
-	}
-	if (offset > 0 && size == 0) {
-		// the size is not set until the file upload completes
-		// so if the offset is greater than 0 but the size is 
-		// still 0, then it is still being uploaded
-		return info.UploadInProgress, nil
-	}
-	if (offset > 0 && size > 0 && offset == size) {
-		// if the offset and size are greater than 0 and they are equal
-		// then the file has completed upload
-		// we shouldn't reach this state because we already checked
-		// for file completion at the beginning, but there is a chance
-		// that the file finished after we checked if the upload-completed file
-		// existed but before we opened the upload-status file
-		return info.UploadComplete, nil
-	}
-
-	// shouldn't get here, and if we have there's an issue
-	return "", errors.New("Error determining the status of the file upload")
+	return info.FileUploadStatus{}, errors.New("Unable to determine the status of the upload")
 }
 

@@ -1,28 +1,34 @@
 package info
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 var (
 	ErrNotFound = errors.New("expected file not found")
 )
 
 const (
-	UploadNotStarted string = "Not Started"
+	UploadInitiated string = "Initiated"
 	UploadInProgress string = "In Progress"
 	UploadComplete string = "Complete"
-	UploadFailed string = "Failed"
-
 )
 
 type InfoResponse struct {
 	Manifest map[string]any `json:"manifest"`
 	FileInfo   map[string]any `json:"file_info"`
-	UploadStatus string `json:"upload_status"`
+	UploadStatus FileUploadStatus `json:"upload_status"`
 	Deliveries []FileDeliveryStatus `json:"deliveries"`
 }
 
 type InfoFileData struct {
 	MetaData map[string]any `json:"MetaData"`
+}
+
+type FileUploadStatus struct {
+	Status string `json:"status"`
+	LastChunkReceived time.Time `json:"chunk_received_at"`
 }
 
 type FileDeliveryStatus struct {
