@@ -417,7 +417,6 @@ func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthR
 	return rsp
 }
 
-// TODO improve.  Needs to ping the bucket
 func (sd *S3Deliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "AWS S3 deliver target " + sd.Target
 	rsp.Status = models.STATUS_UP
@@ -442,6 +441,14 @@ func (sd *S3Deliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp
 		// Running in aws, but deliverer not set up.
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = "AWS S3 deliverer target client not configured"
+	}
+
+	_, err := sd.DestClient.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
+		Bucket: &sd.DestBucket,
+	})
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "Error pinging destination bucket " + err.Error()
 	}
 
 	return rsp
