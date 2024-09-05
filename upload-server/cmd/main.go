@@ -92,7 +92,7 @@ func main() {
 	event.MaxRetries = appConfig.EventMaxRetryCount
 	// initialize event reporter
 	err := cli.InitReporters(ctx, appConfig)
-	defer reports.DefaultReporter.Close()
+	defer reports.CloseAll()
 
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()

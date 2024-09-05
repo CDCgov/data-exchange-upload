@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 	"os"
 	"path/filepath"
-
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 )
 
 type FileSystemUploadInspector struct {

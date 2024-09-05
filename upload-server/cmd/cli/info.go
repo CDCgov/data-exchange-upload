@@ -23,6 +23,7 @@ type UploadInspector interface {
 
 type InfoHandler struct {
 	inspector UploadInspector
+	statusInspector UploadStatusInspector
 }
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -36,6 +37,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 
 	response := &info.InfoResponse{
 		Manifest: fileInfo,
+		Deliveries: []info.FileDeliveryStatus{},
 	}
 
 	uploadedFileInfo, err := ih.inspector.InspectUploadedFile(r.Context(), id)
@@ -47,8 +49,19 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response.FileInfo = uploadedFileInfo
+	deliveries, err := ih.statusInspector.InspectFileDeliveryStatus(r.Context(), id)
+	if err != nil {
+		// skip not found errors to handle deferred uploads.
+		if !errors.Is(err, info.ErrNotFound) {
+			http.Error(rw, fmt.Sprintf("error getting file status.  Manifest: %#v", fileInfo), getStatusFromError(err))
+			return
+		}
+	}
 
+	response.FileInfo = uploadedFileInfo
+	response.Deliveries = deliveries
+
+	rw.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(rw)
 	enc.Encode(response)
 }
@@ -94,5 +107,9 @@ func GetUploadInfoHandler(ctx context.Context, appConfig *appconfig.AppConfig) (
 	i, err := createInspector(ctx, appConfig)
 	return &InfoHandler{
 		i,
+		&fileinspector.FileSystemUploadStatusInspector{
+			BaseDir:    appConfig.TusUploadPrefix,
+			ReportsDir: appConfig.LocalReportsFolder,
+		},
 	}, err
 }

@@ -45,7 +45,7 @@ const config: PlaywrightTestConfig = {
   ],
 
   // Configure reporter here. 'dot', 'list', 'junit', etc.
-  reporter: "dot",
+  reporter: [['list']]
 };
 
 export default config;

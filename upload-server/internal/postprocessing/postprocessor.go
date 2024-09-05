@@ -83,6 +83,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		},
 		FileSourceBlobUrl:      e.SrcUrl,
 		FileDestinationBlobUrl: uri,
+		DestinationName:        e.DestinationTarget,
 	})
 
 	return err
