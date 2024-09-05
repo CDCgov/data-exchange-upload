@@ -17,7 +17,8 @@ class ProcStat {
     private val testFile = TestFile.getResourceFile("10KB-test-file")
     private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
-    private val procStatReqSpec = given().apply {
+    private val procStatReqSpec = given().relaxedHTTPSValidation()
+        .apply {
         baseUri(EnvConfig.PROC_STAT_URL)
     }
     private lateinit var authToken: String
@@ -50,23 +51,32 @@ class ProcStat {
         testContext.setAttribute("uploadId", uid)
         Thread.sleep(2000)
 
-        val reportResponse = procStatReqSpec.get("/api/report/uploadId/$uid")
+        val reportResponse = procStatReqSpec
+            .body( """
+            {
+                "query": "query GetReports { getReports(uploadId: \"$uid\", reportsSortedBy: \"timestamp\", sortOrder: Ascending) { content contentType data dataStreamId dataStreamRoute dexIngestDateTime id jurisdiction reportId senderId tags timestamp uploadId } }",
+                "variables": {}
+            }
+        """.trimIndent())
+            .header("Content-Type", "application/json")
+            .post("pstatus/graphql-service/graphql")
             .then()
             .statusCode(200)
+
 
         // Metadata Verify
         reportResponse.body("upload_id", equalTo(uid))
             .body(
                 "reports.stage_name",
-                hasItem("dex-metadata-verify")
+                hasItem("metadata-transform")
             ).body(
                 "reports.content.schema_name",
-                hasItem("dex-metadata-verify")
+                hasItem("metadata-transform")
             )
 
         var jsonPath = reportResponse.extract().jsonPath()
         val metadataVerifyReport =
-            jsonPath.getList("reports", Report::class.java).find { it.stageName == "dex-metadata-verify" }
+            jsonPath.getList("reports", Report::class.java).find { it.stageName == "metadata-transform" }
         assertNotNull(metadataVerifyReport)
         assertNull(metadataVerifyReport?.issues)
 
