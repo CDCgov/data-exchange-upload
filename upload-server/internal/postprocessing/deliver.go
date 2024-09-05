@@ -214,7 +214,7 @@ func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, _ map[string]st
 		return err
 	}
 	defer f.Close()
-	os.Mkdir(fd.ToPath, 0755)
+	os.MkdirAll(fd.ToPath, 0755)
 	dest, err := os.Create(filepath.Join(fd.ToPath, tuid))
 	if err != nil {
 		return err
