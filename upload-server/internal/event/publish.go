@@ -68,7 +68,7 @@ type MemoryPublisher[T Identifiable] struct {
 }
 
 func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
-	err := os.Mkdir(mp.Dir, 0750)
+	err := os.MkdirAll(mp.Dir, 0750)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
