@@ -4,17 +4,26 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
-	"io"
-	"strings"
 )
 
 type S3UploadInspector struct {
 	Client     *s3.Client
 	BucketName string
 	TusPrefix  string
+}
+
+func NewS3UploadInspector(containerClient *s3.Client, bucketName string, tusPrefix string) *S3UploadInspector {
+	return &S3UploadInspector{
+			Client:     containerClient,
+			BucketName: bucketName,
+			TusPrefix:  tusPrefix,
+		}
 }
 
 func (sui *S3UploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {

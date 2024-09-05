@@ -6,9 +6,18 @@ var (
 	ErrNotFound = errors.New("expected file not found")
 )
 
+const (
+	UploadNotStarted string = "Not Started"
+	UploadInProgress string = "In Progress"
+	UploadComplete string = "Complete"
+	UploadFailed string = "Failed"
+
+)
+
 type InfoResponse struct {
 	Manifest map[string]any `json:"manifest"`
 	FileInfo   map[string]any `json:"file_info"`
+	UploadStatus string `json:"upload_status"`
 	Deliveries []FileDeliveryStatus `json:"deliveries"`
 }
 
