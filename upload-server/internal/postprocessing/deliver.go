@@ -194,12 +194,10 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 		reports.StageFileCopy,
 		tuid,
 		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
-	logger.Info("***getting metadata")
 	manifest, err := d.GetMetadata(ctx, tuid)
 	if err != nil {
 		return err
 	}
-	logger.Info("***got metadata", "m", manifest)
 	rb.SetManifest(manifest)
 
 	srcUrl, err := d.GetSrcUrl(ctx, tuid)
@@ -464,14 +462,12 @@ func (w *writeAtWrapper) WriteAt(p []byte, _ int64) (int, error) {
 }
 
 func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
-	logger.Info("***in deliverer")
 	id := strings.Split(tuid, "+")[0]
 	srcFilename := sd.TusPrefix + "/" + id
 	destFileName, err := getDeliveredFilename(ctx, sd.Target, tuid, manifest)
 	if err != nil {
 		return err
 	}
-	logger.Info("***deliver filename", "filename", destFileName)
 
 	// Create a downloader and uploader
 	downloader := manager.NewDownloader(sd.SrcClient)
@@ -520,14 +516,12 @@ func (sd *S3Deliverer) GetMetadata(ctx context.Context, tuid string) (map[string
 	return output.Metadata, nil
 }
 
-// TODO get from client
 func (sd *S3Deliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
 	// Construct the S3 URL
 	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.SrcBucket, sd.TusPrefix+"/"+tuid)
 	return s3URL, nil
 }
 
-// TODO get from client
 func (sd *S3Deliverer) GetDestUrl(ctx context.Context, tuid string, manifest map[string]string) (string, error) {
 	objectKey, err := getDeliveredFilename(ctx, sd.Target, tuid, manifest)
 	if err != nil {
