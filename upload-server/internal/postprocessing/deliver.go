@@ -58,37 +58,38 @@ func RegisterAllTargets(ctx context.Context, appConfig appconfig.AppConfig) erro
 		return err
 	}
 
-	//if appConfig.EdavConnection != nil {
-	//	edavDeliverer, err = NewAzureDeliverer(ctx, "edav", &appConfig)
-	//	if err != nil {
-	//		return fmt.Errorf("failed to connect to edav deliverer target %w", err)
-	//	}
-	//
-	//	if appConfig.S3DeliveryBucket != "" {
-	//		edavDeliverer, err = NewS3Deliverer(ctx, "edav", &appConfig)
-	//		if err != nil {
-	//			return fmt.Errorf("failed to connect to edav deliverer target for S3 %w", err)
-	//		}
-	//	}
-	//
-	//	health.Register(edavDeliverer)
-	//}
-	//if appConfig.RoutingConnection != nil {
-	//	routingDeliverer, err = NewAzureDeliverer(ctx, "routing", &appConfig)
-	//	if err != nil {
-	//		return fmt.Errorf("failed to connect to routing deliverer target %w", err)
-	//	}
-	//
-	//
-	//
-	//	health.Register(routingDeliverer)
-	//}
+	if appConfig.EdavConnection != nil {
+		edavDeliverer, err = NewAzureDeliverer(ctx, "edav", &appConfig)
+		if err != nil {
+			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
+		}
 
-	if appConfig.S3ConnectionDest != nil {
-		routingDeliverer, err = NewS3Deliverer(ctx, "routing", &appConfig)
+		health.Register(edavDeliverer)
+	}
+	if appConfig.RoutingConnection != nil {
+		routingDeliverer, err = NewAzureDeliverer(ctx, "routing", &appConfig)
+		if err != nil {
+			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
+		}
+
+		health.Register(routingDeliverer)
+	}
+
+	if appConfig.EdavS3Connection != nil {
+		edavDeliverer, err = NewS3Deliverer(ctx, "edav", appConfig.S3Connection, appConfig.EdavS3Connection, appConfig.TusUploadPrefix)
+		if err != nil {
+			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
+		}
+
+		health.Register(edavDeliverer)
+	}
+
+	if appConfig.RoutingS3Connection != nil {
+		routingDeliverer, err = NewS3Deliverer(ctx, "routing", appConfig.S3Connection, appConfig.RoutingS3Connection, appConfig.TusUploadPrefix)
 		if err != nil {
 			return fmt.Errorf("failed to connect to routing deliverer target for S3 %w", err)
 		}
+		health.Register(routingDeliverer)
 	}
 
 	RegisterTarget("edav", edavDeliverer)
@@ -159,24 +160,24 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 	}, nil
 }
 
-func NewS3Deliverer(ctx context.Context, target string, appConfig *appconfig.AppConfig) (*S3Deliverer, error) {
-	s3SrcClientSrc, err := stores3.New(ctx, appConfig.S3ConnectionSrc)
+func NewS3Deliverer(ctx context.Context, target string, srcS3Connection *appconfig.S3StorageConfig, destS3Connection *appconfig.S3StorageConfig, tusPrefix string) (*S3Deliverer, error) {
+	s3SrcClientSrc, err := stores3.New(ctx, srcS3Connection)
 	if err != nil {
 		return nil, err
 	}
 
-	s3SrcClientDest, err := stores3.New(ctx, appConfig.S3ConnectionDest)
+	s3SrcClientDest, err := stores3.New(ctx, destS3Connection)
 	if err != nil {
 		return nil, err
 	}
 
 	// Return the initialized S3Deliverer
 	return &S3Deliverer{
-		SrcBucket:  appConfig.S3ConnectionSrc.BucketName,
-		DestBucket: appConfig.S3ConnectionDest.BucketName,
+		SrcBucket:  srcS3Connection.BucketName,
+		DestBucket: destS3Connection.BucketName,
 		SrcClient:  s3SrcClientSrc,
 		DestClient: s3SrcClientDest,
-		TusPrefix:  appConfig.TusUploadPrefix,
+		TusPrefix:  tusPrefix,
 		Target:     target,		
 	}, nil
 }
@@ -416,6 +417,7 @@ func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthR
 	return rsp
 }
 
+// TODO improve.  Needs to ping the bucket
 func (sd *S3Deliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "AWS S3 deliver target " + sd.Target
 	rsp.Status = models.STATUS_UP
@@ -449,7 +451,8 @@ type writeAtWrapper struct {
 	writer io.Writer
 }
 
-func (w *writeAtWrapper) WriteAt(p []byte, offset int64) (int, error) {
+func (w *writeAtWrapper) WriteAt(p []byte, _ int64) (int, error) {
+	// Ignoring offset because we force sequential writing
 	return w.writer.Write(p)
 }
 
@@ -463,178 +466,34 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 	}
 	logger.Info("***deliver filename", "filename", destFileName)
 
-		// Create a downloader and uploader
-		downloader := manager.NewDownloader(sd.SrcClient)
-		downloader.Concurrency = 1
-		uploader := manager.NewUploader(sd.SrcClient)
+	// Create a downloader and uploader
+	downloader := manager.NewDownloader(sd.SrcClient)
+	downloader.Concurrency = 1
+	uploader := manager.NewUploader(sd.DestClient)
 
-		r, w := io.Pipe()
+	r, w := io.Pipe()
 
-		go func() {
-			defer w.Close()
+	go func() {
+		defer w.Close()
 
-			_, err := downloader.Download(ctx, &writeAtWrapper{w}, &s3.GetObjectInput{
-				Bucket: &sd.SrcBucket,
-				Key: &srcFilename,
-			})
-			if err != nil {
-				logger.Error(err.Error())
-				//return fmt.Errorf("failed to download file: %w", err)
-			}
-		}()
-
-		_, err = uploader.Upload(ctx, &s3.PutObjectInput{
-			Bucket:   &sd.DestBucket,
-			Key:      &destFileName,
-			Body:     r,
-			Metadata: manifest,
+		_, err := downloader.Download(ctx, &writeAtWrapper{w}, &s3.GetObjectInput{
+			Bucket: &sd.SrcBucket,
+			Key: &srcFilename,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to upload file: %w", err)
+			logger.Error(err.Error())
 		}
+	}()
 
-		//// Create a temporary file to store the downloaded content
-		//tmpFile, err := os.CreateTemp("", "s3-download-")
-		//if err != nil {
-		//	return fmt.Errorf("failed to create temp file: %w", err)
-		//}
-		//defer os.Remove(tmpFile.Name()) // Ensure the temp file is removed after the operation
-		//defer tmpFile.Close()
-		//
-		//// Download the file into the temporary file
-		//_, err = downloader.Download(ctx, tmpFile, &s3.GetObjectInput{
-		//	Bucket: &sd.SrcBucket,
-		//	Key:    &srcFilename,
-		//})
-		//if err != nil {
-		//	return fmt.Errorf("failed to download file: %w", err)
-		//}
-		//
-		//// Rewind the temporary file to the beginning
-		//if _, err := tmpFile.Seek(0, 0); err != nil {
-		//	return fmt.Errorf("failed to seek temp file: %w", err)
-		//}
-		//
-		//// Upload the file from the temporary file to the destination bucket
-		//_, err = uploader.Upload(ctx, &s3.PutObjectInput{
-		//	Bucket:   &sd.DestBucket,
-		//	Key:      &destFileName,
-		//	Body:     tmpFile,
-		//	Metadata: manifest,
-		//})
-		//if err != nil {
-		//	return fmt.Errorf("failed to upload file: %w", err)
-		//}
-	
-	//d := manager.NewDownloader(sd.SrcClient)
-	//logger.Info("***making uploader")
-	//
-	//u := manager.NewUploader(sd.SrcClient)
-	//logger.Info("***ready to download")
-	//
-	//var buf []byte
-	//wb := manager.NewWriteAtBuffer(buf)
-	//logger.Info("***starting download", "filename", srcFilename)
-	//_, err = d.Download(ctx, wb, &s3.GetObjectInput{
-	//	Bucket: &sd.SrcBucket,
-	//	Key:    &srcFilename,
-	//})
-	//if err != nil {
-	//	return err
-	//}
-	//logger.Info("***starting upload")
-	//_, err = u.Upload(ctx, &s3.PutObjectInput{
-	//	Bucket: &sd.DestBucket,
-	//	Key:    &destFileName,
-	//	Body:   bytes.NewBuffer(buf),
-	//	Metadata: manifest,
-	//})
-	//if err != nil {
-	//	return err
-	//}
-
-	//Get the size of the source object
-	// headResp, err := sd.SrcClient.HeadObject(ctx, &s3.HeadObjectInput{
-	// 	Bucket: &sd.SrcBucket,
-	// 	Key:    aws.String(srcFilename),
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get source object size: %w", err)
-	// }
-	// fileSize := headResp.ContentLength
-
-	// // Define a 5MB threshold for multipart upload
-	// const multipartThreshold int64 = 5 * 1024 * 1024
-
-	// if *fileSize < multipartThreshold {
-
-	// 	// Use single-part upload for small files
-	// 	_, err := sd.SrcClient.CopyObject(ctx, &s3.CopyObjectInput{
-	// 		Bucket:     &sd.DestBucket,
-	// 		Key:        &destFileName,
-	// 		CopySource: aws.String(srcFilename),
-	// 		Metadata:   manifest,
-	// 	})
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to copy object: %w", err)
-	// 	}
-
-	// } else {
-
-	// 	// Use multipart upload for large files
-	// 	createResp, err := sd.SrcClient.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
-	// 		Bucket:   &sd.DestBucket,
-	// 		Key:      &destFileName,
-	// 		Metadata: manifest,
-	// 	})
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to initiate multipart upload: %w", err)
-	// 	}
-
-	// 	var completedParts []types.CompletedPart
-	// 	partNumber := int32(1)
-	// 	var startRange int64 = 0
-
-	// 	for startRange < *fileSize {
-	// 		endRange := startRange + multipartThreshold - 1
-	// 		if endRange > *fileSize-1 {
-	// 			endRange = *fileSize - 1
-	// 		}
-
-	// 		uploadPartCopyResp, err := sd.SrcClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
-	// 			Bucket:          &sd.DestBucket,
-	// 			CopySource:      aws.String(srcFilename),
-	// 			Key:             &destFileName,
-	// 			PartNumber:      aws.Int32(partNumber),
-	// 			UploadId:        createResp.UploadId,
-	// 			CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", startRange, endRange)),
-	// 		})
-	// 		if err != nil {
-	// 			return fmt.Errorf("failed to upload part: %w", err)
-	// 		}
-
-	// 		completedParts = append(completedParts, types.CompletedPart{
-	// 			ETag:       uploadPartCopyResp.CopyPartResult.ETag,
-	// 			PartNumber: aws.Int32(partNumber),
-	// 		})
-
-	// 		startRange = endRange + 1
-	// 		partNumber++
-	// 	}
-
-	// 	// Complete the multipart upload
-	// 	_, err = sd.SrcClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
-	// 		Bucket: &sd.DestBucket,
-	// 		Key:    &destFileName,
-	// 		MultipartUpload: &types.CompletedMultipartUpload{
-	// 			Parts: completedParts,
-	// 		},
-	// 		UploadId: createResp.UploadId,
-	// 	})
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to complete multipart upload: %w", err)
-	// 	}
-	// }
+	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
+		Bucket:   &sd.DestBucket,
+		Key:      &destFileName,
+		Body:     r,
+		Metadata: manifest,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upload file: %w", err)
+	}
 
 	return nil
 }
@@ -650,30 +509,18 @@ func (sd *S3Deliverer) GetMetadata(ctx context.Context, tuid string) (map[string
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve object: %w", err)
 	}
-	//defer output.Body.Close()
-	//
-	//// Read the content of the file
-	//b, err := io.ReadAll(output.Body)
-	//if err != nil {
-	//	return nil, fmt.Errorf("unable to read object content: %w", err)
-	//}
-	//
-	//// Unmarshal the content into a map[string]string
-	//var m map[string]string
-	//err = json.Unmarshal(b, &m)
-	//if err != nil {
-	//	return nil, fmt.Errorf("unable to unmarshal JSON: %w", err)
-	//}
 
 	return output.Metadata, nil
 }
 
+// TODO get from client
 func (sd *S3Deliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
 	// Construct the S3 URL
 	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.SrcBucket, sd.TusPrefix + "/" + tuid)
 	return s3URL, nil
 }
 
+// TODO get from client
 func (sd *S3Deliverer) GetDestUrl(ctx context.Context, tuid string, manifest map[string]string) (string, error) {
 	objectKey, err := getDeliveredFilename(ctx, sd.Target, tuid, manifest)
 	if err != nil {
@@ -698,16 +545,15 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	blobName := filenameWithoutExtension + suffix + extension
 
 	// Next, need to set the filename prefix based on config and target.
-	// edav, routing -> use config
+	// edav, routing, s3 -> use config
 	prefix := ""
 
 	switch target {
-	case "routing", "edav":
+	case "routing", "edav", "s3":
 		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
 		if err != nil {
 			return "", err
 		}
 	}
 	return prefix + "/" + blobName, nil
-	//return filepath.Join(prefix, blobName), nil
 }

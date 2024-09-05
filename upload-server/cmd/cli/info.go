@@ -84,15 +84,15 @@ func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (Uploa
 
 		return azureinspector.NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
 	}
-	if appConfig.S3ConnectionSrc != nil {
-		s3Client, err := stores3.New(ctx, appConfig.S3ConnectionSrc)
+	if appConfig.S3Connection != nil {
+		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
 		if err != nil {
 			return nil, err
 		}
 
 		return &s3inspector.S3UploadInspector{
 			Client:     s3Client,
-			BucketName: appConfig.S3ConnectionSrc.BucketName,
+			BucketName: appConfig.S3Connection.BucketName,
 			TusPrefix:  appConfig.TusUploadPrefix,
 		}, nil
 	}

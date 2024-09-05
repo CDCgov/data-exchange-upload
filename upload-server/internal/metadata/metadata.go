@@ -70,7 +70,7 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		},
 	}
 
-	if appConfig.AzureConnection != nil && appConfig.S3ConnectionSrc != nil {
+	if appConfig.AzureConnection != nil && appConfig.S3Connection != nil {
 		return errors.New("cannot load metadata config from multiple locations")
 	}
 
@@ -85,8 +85,8 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		}
 	}
 
-	if appConfig.S3ConnectionSrc != nil {
-		client, err := stores3.New(ctx, appConfig.S3ConnectionSrc)
+	if appConfig.S3Connection != nil {
+		client, err := stores3.New(ctx, appConfig.S3Connection)
 		if err != nil {
 			return err
 		}
@@ -171,7 +171,6 @@ func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, 
 		t := time.Now().UTC()
 		datePrefix := fmt.Sprintf("%d/%02d/%02d", t.Year(), t.Month(), t.Day())
 		p = p + "/" + datePrefix
-		//p = filepath.Join(p, datePrefix)
 	}
 
 	return p, nil
