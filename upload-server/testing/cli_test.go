@@ -31,9 +31,9 @@ import (
 )
 
 var (
-	ts           *httptest.Server
-	testUIServer *httptest.Server
-	testContext  context.Context
+	ts            *httptest.Server
+	testUIServer  *httptest.Server
+	testContext   context.Context
 	trackedStages = []string{
 		reports.StageMetadataVerify,
 		reports.StageMetadataTransform,
@@ -637,8 +637,6 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 	if err != nil {
 		return summary, fmt.Errorf("failed to read report file %s; inner error %w", f.Name(), err)
 	}
-
-	
 
 	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
 	for rScanner.Scan() {

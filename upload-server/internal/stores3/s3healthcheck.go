@@ -7,7 +7,7 @@ import (
 )
 
 type S3HealthCheck struct {
-	Client *s3.Client
+	Client     *s3.Client
 	BucketName string
 }
 

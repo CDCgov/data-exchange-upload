@@ -291,7 +291,7 @@ func (v *SenderManifestVerification) getHydrationConfig(ctx context.Context, man
 		return nil, err
 	}
 	if c.CompatConfigFilename != "" {
-		return v.Configs.GetConfig(ctx, "v2/" + c.CompatConfigFilename)
+		return v.Configs.GetConfig(ctx, "v2/"+c.CompatConfigFilename)
 	}
 
 	return c, nil

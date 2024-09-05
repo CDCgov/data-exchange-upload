@@ -64,14 +64,13 @@ type AppConfig struct {
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
-	AzureConnection      *AzureStorageConfig  `env:", prefix=AZURE_, noinit"`
+	AzureConnection *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	//S3ConnectionSrc      *S3StorageConfig 	  `env:", prefix=AWS_SRC_, noinit"`
 	//S3ConnectionDest     *S3StorageConfig 	  `env:", prefix=AWS_DEST_, noinit"`
-	EdavConnection       *AzureStorageConfig  `env:", prefix=EDAV_, noinit"`
-	RoutingConnection    *AzureStorageConfig  `env:", prefix=ROUTING_, noinit"`
-	PublisherConnection  *AzureQueueConfig    `env:", prefix=PUBLISHER_,noinit"`
-	SubscriberConnection *AzureQueueConfig    `env:", prefix=SUBSCRIBER_,noinit"`
-
+	EdavConnection       *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
+	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
+	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
+	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
 
 	// Reporting
 	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
@@ -83,10 +82,10 @@ type AppConfig struct {
 	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 
 	// S3
-	S3Connection *S3StorageConfig `env:", prefix=S3_, noinit"`
-	S3ManifestConfigBucket string `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
-	EdavS3Connection *S3StorageConfig `env:", prefix=EDAV_S3_, noinit"`
-	RoutingS3Connection *S3StorageConfig `env:", prefix=ROUTING_S3_, noinit"`
+	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
+	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
+	EdavS3Connection       *S3StorageConfig `env:", prefix=EDAV_S3_, noinit"`
+	RoutingS3Connection    *S3StorageConfig `env:", prefix=ROUTING_S3_, noinit"`
 
 	// Upload processing
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`

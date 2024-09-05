@@ -41,4 +41,3 @@ func NewWithEndpoint(ctx context.Context, endpoint string) (*s3.Client, error) {
 
 	return client, nil
 }
-

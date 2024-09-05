@@ -30,7 +30,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"	
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 var ErrBadTarget = fmt.Errorf("bad delivery target")
@@ -178,7 +178,7 @@ func NewS3Deliverer(ctx context.Context, target string, srcS3Connection *appconf
 		SrcClient:  s3SrcClientSrc,
 		DestClient: s3SrcClientDest,
 		TusPrefix:  tusPrefix,
-		Target:     target,		
+		Target:     target,
 	}, nil
 }
 
@@ -217,7 +217,7 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 		},
 		FileSourceBlobUrl:      srcUrl,
 		FileDestinationBlobUrl: destUrl,
-		DestinationName: target,
+		DestinationName:        target,
 	})
 
 	defer func() {
@@ -257,12 +257,12 @@ type AzureDeliverer struct {
 
 // S3Deliverer handles the delivery of files to an S3 bucket.
 type S3Deliverer struct {
-	SrcBucket   string
-	DestBucket  string
-	SrcClient   *s3.Client
-	DestClient  *s3.Client
-	TusPrefix   string
-	Target      string
+	SrcBucket  string
+	DestBucket string
+	SrcClient  *s3.Client
+	DestClient *s3.Client
+	TusPrefix  string
+	Target     string
 }
 
 func (fd *FileDeliverer) Deliver(_ context.Context, tuid string, _ map[string]string) error {
@@ -425,7 +425,7 @@ func (sd *S3Deliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = "AWS S3 deliverer Source Bucket not configured"
 	}
-	
+
 	if sd.DestBucket == "" {
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = "AWS S3 deliverer Destination Bucket not configured"
@@ -485,7 +485,7 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 
 		_, err := downloader.Download(ctx, &writeAtWrapper{w}, &s3.GetObjectInput{
 			Bucket: &sd.SrcBucket,
-			Key: &srcFilename,
+			Key:    &srcFilename,
 		})
 		if err != nil {
 			logger.Error(err.Error())
@@ -523,7 +523,7 @@ func (sd *S3Deliverer) GetMetadata(ctx context.Context, tuid string) (map[string
 // TODO get from client
 func (sd *S3Deliverer) GetSrcUrl(_ context.Context, tuid string) (string, error) {
 	// Construct the S3 URL
-	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.SrcBucket, sd.TusPrefix + "/" + tuid)
+	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.SrcBucket, sd.TusPrefix+"/"+tuid)
 	return s3URL, nil
 }
 
@@ -536,7 +536,7 @@ func (sd *S3Deliverer) GetDestUrl(ctx context.Context, tuid string, manifest map
 
 	// Construct the S3 URL
 	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.DestBucket, objectKey)
-	return s3URL, nil	
+	return s3URL, nil
 }
 
 func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
