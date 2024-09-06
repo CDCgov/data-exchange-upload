@@ -25,19 +25,14 @@ func NewAzureDestination(ctx context.Context, target string, appConfig *appconfi
 	if err != nil {
 		return nil, err
 	}
-	client, err := storeaz.NewBlobClient(config.AzureStorageConfig)
-	if err != nil {
-		return nil, err
-	}
 	err = storeaz.CreateContainerIfNotExists(ctx, containerClient)
 	if err != nil {
 		return nil, err
 	}
 
 	return &AzureDestination{
-		ToClient:    client,
-		ToContainer: config.ContainerName,
-		Target:      target,
+		ToClient: containerClient,
+		Target:   target,
 	}, nil
 }
 
@@ -70,9 +65,8 @@ func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string
 }
 
 type AzureDestination struct {
-	ToClient    *azblob.Client
-	ToContainer string
-	Target      string
+	ToClient *container.Client
+	Target   string
 }
 
 func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
@@ -80,10 +74,13 @@ func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader
 	if err != nil {
 		return blobName, err
 	}
-	_, err = ad.ToClient.UploadStream(ctx, ad.ToContainer, blobName, r, &azblob.UploadStreamOptions{
+
+	client := ad.ToClient.NewBlockBlobClient(blobName)
+
+	_, err = client.UploadStream(ctx, r, &azblob.UploadStreamOptions{
 		Metadata: storeaz.PointerizeMetadata(m),
 	})
-	return blobName, err
+	return client.URL(), err
 }
 
 func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
@@ -96,8 +93,7 @@ func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealt
 		rsp.HealthIssue = "Azure deliverer target " + ad.Target + " not configured"
 	}
 
-	c := ad.ToClient.ServiceClient()
-	_, err := c.GetProperties(ctx, nil)
+	_, err := ad.ToClient.GetProperties(ctx, nil)
 	if err != nil {
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = err.Error()

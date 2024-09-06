@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -46,7 +45,6 @@ func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m m
 }
 
 func (fd *FileDestination) Health(_ context.Context) (rsp models.ServiceHealthResp) {
-	log.Println("calling file health")
 	rsp.Service = "File Deliver Target " + fd.Target
 	info, err := os.Stat(fd.ToPath)
 	if err != nil {
