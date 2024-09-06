@@ -32,7 +32,7 @@ type FileDestination struct {
 }
 
 func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
-	os.Mkdir(fd.ToPath, 0755)
+	os.MkdirAll(fd.ToPath, 0755)
 	dest, err := os.Create(filepath.Join(fd.ToPath, id))
 	if err != nil {
 		return dest.Name(), err
