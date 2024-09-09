@@ -16,6 +16,7 @@ import (
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 )
 
+// TODO remove appConfig arg?
 func NewAzureDestination(ctx context.Context, target string, appConfig *appconfig.AppConfig) (*AzureDestination, error) {
 	config, err := appconfig.GetAzureContainerConfig(target)
 	if err != nil {
@@ -127,5 +128,5 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 		}
 	}
 
-	return filepath.Join(prefix, blobName), nil
+	return prefix + "/" + blobName, nil
 }

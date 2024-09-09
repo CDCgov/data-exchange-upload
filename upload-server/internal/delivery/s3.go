@@ -43,6 +43,9 @@ type S3Source struct {
 }
 
 func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) {
+	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
+	id := strings.Split(path, "+")[0]
+	srcFileName := ss.Prefix + "/" + id
 	downloader := manager.NewDownloader(ss.FromClient)
 	downloader.Concurrency = 1
 
@@ -53,7 +56,7 @@ func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) 
 
 		_, err := downloader.Download(ctx, &writeAtWrapper{w}, &s3.GetObjectInput{
 			Bucket: &ss.BucketName,
-			Key:    &path,
+			Key:    &srcFileName,
 		})
 		if err != nil {
 			slog.Error(err.Error())
@@ -108,6 +111,7 @@ func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m
 
 func (sd *S3Destination) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "S3 deliver target " + sd.Target
+	rsp.Status = models.STATUS_UP
 
 	if sd.ToClient == nil {
 		// Running in azure, but deliverer not set up.

@@ -3,6 +3,7 @@ package delivery
 import (
 	"context"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	"io"
 	"log/slog"
 	"os"
@@ -79,6 +80,19 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		}
 	}
 
+	if appConfig.EdavS3Connection != nil {
+		edavDeliverer, err = NewS3Destination(ctx, "edav", appConfig.EdavS3Connection)
+		if err != nil {
+			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
+		}
+	}
+	if appConfig.RoutingS3Connection != nil {
+		routingDeliverer, err = NewS3Destination(ctx, "routing", appConfig.RoutingS3Connection)
+		if err != nil {
+			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
+		}
+	}
+
 	if appConfig.AzureConnection != nil {
 		// TODO Can the tus container client be singleton?
 		tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
@@ -88,6 +102,18 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		src = &AzureSource{
 			FromContainerClient: tusContainerClient,
 			Prefix:              appConfig.TusUploadPrefix,
+		}
+	}
+
+	if appConfig.S3Connection != nil {
+		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
+		if err != nil {
+			return err
+		}
+		src = &S3Source{
+			FromClient: s3Client,
+			BucketName: appConfig.S3Connection.BucketName,
+			Prefix: appConfig.TusUploadPrefix,
 		}
 	}
 
