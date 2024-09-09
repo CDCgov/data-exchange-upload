@@ -105,8 +105,8 @@ func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m
 		return "", fmt.Errorf("failed to upload file: %w", err)
 	}
 
-	// TODO get dest object URL.
-	return "", nil
+	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, destFileName)
+	return s3URL, nil
 }
 
 func (sd *S3Destination) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
