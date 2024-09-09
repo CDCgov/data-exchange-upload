@@ -67,56 +67,30 @@ var Cases = map[string]testCase{
 		},
 		nil,
 	},
-	"daart good": {
-		tus.Metadata{
-			"meta_destination_id":    "daart",
-			"meta_ext_event":         "hl7",
-			"original_filename":      "test",
-			"message_type":           "ELR",
-			"route":                  "DAART",
-			"reporting_jurisdiction": "test",
-		},
-		nil,
-	},
-	"daart bad": {
-		tus.Metadata{
-			"meta_destination_id":    "daart",
-			"meta_ext_event":         "hl7",
-			"original_filename":      "test",
-			"message_type":           "bad",
-			"reporting_jurisdiction": "test",
-			"route":                  "DAART",
-		},
-		tus.ClientError{
-			Code: 400,
-		},
-	},
-	"daart v2 bad (missing things)": {
+	"eicr v2 bad (missing things)": {
 		tus.Metadata{
 			"version":                "2.0",
-			"data_stream_id":         "daart",
-			"data_stream_route":      "hl7",
-			"sender_id":              "test",
+			"data_stream_id":         "eicr",
+			"data_stream_route":      "fhir",
+			"sender_id":              "APHL",
 			"original_filename":      "test",
 			"message_type":           "bad",
-			"route":                  "DAART",
-			"reporting_jurisdiction": "test",
 		},
 		tus.ClientError{
 			Code: 400,
 		},
 	},
-	"daart v2 good": {
+	"eicr v2 good": {
 		tus.Metadata{
 			"version":           "2.0",
-			"data_stream_id":    "daart",
-			"data_stream_route": "hl7",
+			"data_stream_id":    "eicr",
+			"data_stream_route": "fhir",
 			"data_producer_id":  "test",
-			"sender_id":         "test",
+			"sender_id":         "APHL",
 			"received_filename": "test",
-			"message_type":      "ELR",
-			"route":             "DAART",
 			"jurisdiction":      "test",
+			"meta_ext_objectkey": "test",
+			"meta_ext_file_timestamp": "test",
 		},
 		nil,
 	},
