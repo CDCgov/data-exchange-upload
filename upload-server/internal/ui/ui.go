@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
 
 	"html/template"
 
@@ -19,7 +20,7 @@ import (
 
 // content holds our static web server content.
 //
-//go:embed assets/* index.html manifest.tmpl upload.tmpl
+//go:embed assets/* components/* index.html manifest.tmpl upload.tmpl
 var content embed.FS
 
 func FixNames(name string) string {
@@ -32,13 +33,19 @@ var usefulFuncs = template.FuncMap{
 	"FixNames": FixNames,
 }
 
-var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl"))
-var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl"))
+var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl", "components/navbar.html"))
+var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl", "components/navbar.html"))
 
 type ManifestTemplateData struct {
 	DataStream      string
 	DataStreamRoute string
 	MetadataFields  []validation.FieldConfig
+	Navbar          components.Navbar
+}
+
+type UploadTemplateData struct {
+	UploadURL string
+	Navbar    components.Navbar
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -67,6 +74,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			DataStream:      dataStream,
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
+			Navbar:          components.Navbar{},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -164,7 +172,10 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			return
 		}
 
-		err = uploadTemplate.Execute(rw, uploadUrl)
+		err = uploadTemplate.Execute(rw, &UploadTemplateData{
+			UploadURL: uploadUrl,
+			Navbar:    components.Navbar{},
+		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
