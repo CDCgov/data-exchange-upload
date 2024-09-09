@@ -22,7 +22,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -244,7 +243,7 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	prefixTokens := strings.Split(p, string(filepath.Separator))
+	prefixTokens := strings.Split(p, "/")
 	if len(prefixTokens) != 4 {
 		t.Error("prefix not properly formatted", p)
 	}
