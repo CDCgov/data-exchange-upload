@@ -7,6 +7,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"slices"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -16,24 +28,12 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/tus/tusd/v2/pkg/handler"
-	"io"
-	"log"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"os"
-	"path/filepath"
-	"slices"
-	"strings"
-	"sync"
-	"testing"
-	"time"
 )
 
 var (
-	ts           *httptest.Server
-	testUIServer *httptest.Server
-	testContext  context.Context
+	ts            *httptest.Server
+	testUIServer  *httptest.Server
+	testContext   context.Context
 	trackedStages = []string{
 		reports.StageMetadataVerify,
 		reports.StageMetadataTransform,
@@ -146,7 +146,8 @@ func TestTus(t *testing.T) {
 						t.Error("failed to retry routing")
 					}
 					if resp.StatusCode != http.StatusOK {
-						t.Error("expected 200 when retrying route but got", resp.StatusCode)
+						b, _ := io.ReadAll(resp.Body)
+						t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
 					}
 					time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
 					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
@@ -244,7 +245,7 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	prefixTokens := strings.Split(p, string(filepath.Separator))
+	prefixTokens := strings.Split(p, "/")
 	if len(prefixTokens) != 4 {
 		t.Error("prefix not properly formatted", p)
 	}
@@ -529,6 +530,7 @@ func TestMain(m *testing.M) {
 		LocalRoutingFolder:    "test/routing",
 		TusdHandlerBasePath:   "/files/",
 	}
+	appconfig.LoadedConfig = &appConfig
 
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
@@ -637,8 +639,6 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 	if err != nil {
 		return summary, fmt.Errorf("failed to read report file %s; inner error %w", f.Name(), err)
 	}
-
-	
 
 	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
 	for rScanner.Scan() {

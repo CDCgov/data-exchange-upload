@@ -171,7 +171,7 @@ func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, 
 		// Get UTC year, month, and day
 		t := time.Now().UTC()
 		datePrefix := fmt.Sprintf("%d/%02d/%02d", t.Year(), t.Month(), t.Day())
-		p = filepath.Join(p, datePrefix)
+		p = p + "/" + datePrefix
 	}
 
 	return p, nil
@@ -292,7 +292,7 @@ func (v *SenderManifestVerification) getHydrationConfig(ctx context.Context, man
 		return nil, err
 	}
 	if c.CompatConfigFilename != "" {
-		return v.Configs.GetConfig(ctx, "v2/" + c.CompatConfigFilename)
+		return v.Configs.GetConfig(ctx, "v2/"+c.CompatConfigFilename)
 	}
 
 	return c, nil

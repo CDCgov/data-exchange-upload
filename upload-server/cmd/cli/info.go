@@ -23,7 +23,7 @@ type UploadInspector interface {
 }
 
 type InfoHandler struct {
-	inspector UploadInspector
+	inspector       UploadInspector
 	statusInspector UploadStatusInspector
 }
 

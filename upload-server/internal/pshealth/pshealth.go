@@ -23,4 +23,3 @@ func New(appConfig appconfig.AppConfig) (*PsHealth, error) {
 	}, nil // .return
 
 } // .New
-

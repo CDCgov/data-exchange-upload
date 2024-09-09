@@ -62,7 +62,8 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 			return nil, nil, err
 		}
 		hc := &stores3.S3HealthCheck{
-			Client: client,
+			Client:     client,
+			BucketName: appConfig.S3Connection.BucketName,
 		}
 		store := s3store.New(appConfig.S3Connection.BucketName, client)
 		store.ObjectPrefix = appConfig.TusUploadPrefix
