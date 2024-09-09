@@ -29,6 +29,7 @@ func (w *writeAtWrapper) WriteAt(p []byte, _ int64) (int, error) {
 }
 
 func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[string]string) error {
+	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
 	id := strings.Split(tuid, "+")[0]
 	srcFilename := sd.TusPrefix + "/" + id
 	destFileName, err := getDeliveredFilename(ctx, sd.Target, tuid, manifest)
@@ -70,6 +71,7 @@ func (sd *S3Deliverer) Deliver(ctx context.Context, tuid string, manifest map[st
 
 func (sd *S3Deliverer) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
 	// Get the object from S3
+	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
 	id := strings.Split(tuid, "+")[0]
 	srcFilename := sd.TusPrefix + "/" + id
 	output, err := sd.SrcClient.HeadObject(ctx, &s3.HeadObjectInput{
