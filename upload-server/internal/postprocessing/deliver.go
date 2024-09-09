@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
-	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
+	// "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"io"
 	"io/fs"
 	"os"
@@ -16,14 +14,21 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
+	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
+
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 var ErrBadTarget = fmt.Errorf("bad delivery target")
@@ -56,12 +61,31 @@ func RegisterAllTargets(ctx context.Context, appConfig appconfig.AppConfig) erro
 		if err != nil {
 			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
 		}
+
 		health.Register(edavDeliverer)
 	}
 	if appConfig.RoutingConnection != nil {
 		routingDeliverer, err = NewAzureDeliverer(ctx, "routing", &appConfig)
 		if err != nil {
 			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
+		}
+
+		health.Register(routingDeliverer)
+	}
+
+	if appConfig.EdavS3Connection != nil {
+		edavDeliverer, err = NewS3Deliverer(ctx, "edav", appConfig.S3Connection, appConfig.EdavS3Connection, appConfig.TusUploadPrefix)
+		if err != nil {
+			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
+		}
+
+		health.Register(edavDeliverer)
+	}
+
+	if appConfig.RoutingS3Connection != nil {
+		routingDeliverer, err = NewS3Deliverer(ctx, "routing", appConfig.S3Connection, appConfig.RoutingS3Connection, appConfig.TusUploadPrefix)
+		if err != nil {
+			return fmt.Errorf("failed to connect to routing deliverer target for S3 %w", err)
 		}
 		health.Register(routingDeliverer)
 	}
@@ -134,6 +158,28 @@ func NewAzureDeliverer(ctx context.Context, target string, appConfig *appconfig.
 	}, nil
 }
 
+func NewS3Deliverer(ctx context.Context, target string, srcS3Connection *appconfig.S3StorageConfig, destS3Connection *appconfig.S3StorageConfig, tusPrefix string) (*S3Deliverer, error) {
+	s3SrcClientSrc, err := stores3.New(ctx, srcS3Connection)
+	if err != nil {
+		return nil, err
+	}
+
+	s3SrcClientDest, err := stores3.New(ctx, destS3Connection)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return the initialized S3Deliverer
+	return &S3Deliverer{
+		SrcBucket:  srcS3Connection.BucketName,
+		DestBucket: destS3Connection.BucketName,
+		SrcClient:  s3SrcClientSrc,
+		DestClient: s3SrcClientDest,
+		TusPrefix:  tusPrefix,
+		Target:     target,
+	}, nil
+}
+
 // target may end up being a type
 func Deliver(ctx context.Context, tuid string, target string) error {
 	d, ok := targets[target]
@@ -167,7 +213,7 @@ func Deliver(ctx context.Context, tuid string, target string) error {
 		},
 		FileSourceBlobUrl:      srcUrl,
 		FileDestinationBlobUrl: destUrl,
-		DestinationName: target,
+		DestinationName:        target,
 	})
 
 	defer func() {
@@ -357,6 +403,43 @@ func (ad *AzureDeliverer) Health(ctx context.Context) (rsp models.ServiceHealthR
 	return rsp
 }
 
+func (sd *S3Deliverer) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "AWS S3 deliver target " + sd.Target
+	rsp.Status = models.STATUS_UP
+
+	if sd.SrcBucket == "" {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "AWS S3 deliverer Source Bucket not configured"
+	}
+
+	if sd.DestBucket == "" {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "AWS S3 deliverer Destination Bucket not configured"
+	}
+
+	if sd.SrcClient == nil {
+		// Running in aws, but deliverer not set up.
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "AWS S3 deliverer src client not configured"
+	}
+
+	if sd.DestClient == nil {
+		// Running in aws, but deliverer not set up.
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "AWS S3 deliverer target client not configured"
+	}
+
+	_, err := sd.DestClient.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
+		Bucket: &sd.DestBucket,
+	})
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "Error pinging destination bucket " + err.Error()
+	}
+
+	return rsp
+}
+
 func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadataPkg.GetFilename(manifest)
@@ -370,7 +453,7 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	blobName := filenameWithoutExtension + suffix + extension
 
 	// Next, need to set the filename prefix based on config and target.
-	// edav, routing -> use config
+	// edav, routing, s3 -> use config
 	prefix := ""
 
 	switch target {
@@ -380,6 +463,5 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 			return "", err
 		}
 	}
-
-	return filepath.Join(prefix, blobName), nil
+	return prefix + "/" + blobName, nil
 }
