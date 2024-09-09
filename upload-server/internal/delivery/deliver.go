@@ -3,10 +3,14 @@ package delivery
 import (
 	"context"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
+	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -68,13 +72,13 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 
 	if appConfig.EdavConnection != nil {
-		edavDeliverer, err = NewAzureDestination(ctx, "edav", &appConfig)
+		edavDeliverer, err = NewAzureDestination(ctx, "edav")
 		if err != nil {
 			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
 		}
 	}
 	if appConfig.RoutingConnection != nil {
-		routingDeliverer, err = NewAzureDestination(ctx, "routing", &appConfig)
+		routingDeliverer, err = NewAzureDestination(ctx, "routing")
 		if err != nil {
 			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
 		}
@@ -145,4 +149,31 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 		defer rc.Close()
 	}
 	return d.Upload(ctx, path, r, manifest)
+}
+
+func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
+	// First, build the filename from the manifest and config.  This will be the default.
+	filename := metadataPkg.GetFilename(manifest)
+	extension := filepath.Ext(filename)
+	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
+
+	suffix, err := metadata.GetFilenameSuffix(ctx, manifest, tuid)
+	if err != nil {
+		return "", err
+	}
+	blobName := filenameWithoutExtension + suffix + extension
+
+	// Next, need to set the filename prefix based on config and target.
+	// edav, routing -> use config
+	prefix := ""
+
+	switch target {
+	case "routing", "edav":
+		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return prefix + "/" + blobName, nil
 }

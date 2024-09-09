@@ -2,22 +2,16 @@ package delivery
 
 import (
 	"context"
-	"io"
-	"path/filepath"
-	"strings"
-
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
-	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
+	"io"
 )
 
-// TODO remove appConfig arg?
-func NewAzureDestination(ctx context.Context, target string, appConfig *appconfig.AppConfig) (*AzureDestination, error) {
+func NewAzureDestination(ctx context.Context, target string) (*AzureDestination, error) {
 	config, err := appconfig.GetAzureContainerConfig(target)
 	if err != nil {
 		return nil, err
@@ -101,32 +95,4 @@ func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealt
 	}
 
 	return rsp
-}
-
-// TODO move to common location
-func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
-	// First, build the filename from the manifest and config.  This will be the default.
-	filename := metadataPkg.GetFilename(manifest)
-	extension := filepath.Ext(filename)
-	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
-
-	suffix, err := metadata.GetFilenameSuffix(ctx, manifest, tuid)
-	if err != nil {
-		return "", err
-	}
-	blobName := filenameWithoutExtension + suffix + extension
-
-	// Next, need to set the filename prefix based on config and target.
-	// edav, routing -> use config
-	prefix := ""
-
-	switch target {
-	case "routing", "edav":
-		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return prefix + "/" + blobName, nil
 }
