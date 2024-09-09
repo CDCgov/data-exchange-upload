@@ -13,7 +13,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -32,9 +31,9 @@ import (
 )
 
 var (
-	ts           *httptest.Server
-	testUIServer *httptest.Server
-	testContext  context.Context
+	ts            *httptest.Server
+	testUIServer  *httptest.Server
+	testContext   context.Context
 	trackedStages = []string{
 		reports.StageMetadataVerify,
 		reports.StageMetadataTransform,
@@ -246,7 +245,7 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	prefixTokens := strings.Split(p, string(filepath.Separator))
+	prefixTokens := strings.Split(p, "/")
 	if len(prefixTokens) != 4 {
 		t.Error("prefix not properly formatted", p)
 	}
@@ -640,8 +639,6 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 	if err != nil {
 		return summary, fmt.Errorf("failed to read report file %s; inner error %w", f.Name(), err)
 	}
-
-	
 
 	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
 	for rScanner.Scan() {

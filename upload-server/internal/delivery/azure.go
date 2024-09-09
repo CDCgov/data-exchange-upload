@@ -102,6 +102,7 @@ func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealt
 	return rsp
 }
 
+// TODO move to common location
 func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadataPkg.GetFilename(manifest)

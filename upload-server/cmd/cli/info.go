@@ -22,7 +22,7 @@ type UploadInspector interface {
 }
 
 type InfoHandler struct {
-	inspector UploadInspector
+	inspector       UploadInspector
 	statusInspector UploadStatusInspector
 }
 
@@ -36,7 +36,7 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	response := &info.InfoResponse{
-		Manifest: fileInfo,
+		Manifest:   fileInfo,
 		Deliveries: []info.FileDeliveryStatus{},
 	}
 

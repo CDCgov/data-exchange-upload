@@ -73,7 +73,7 @@ func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 		return err
 	}
 
-	filename := filepath.Join(mp.Dir, event.Identifier() + TypeSeparator + event.Type())
+	filename := filepath.Join(mp.Dir, event.Identifier()+TypeSeparator+event.Type())
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
