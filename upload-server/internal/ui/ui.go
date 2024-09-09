@@ -18,7 +18,7 @@ import (
 	"github.com/eventials/go-tus"
 )
 
-// The //go:embed directive will embed all files in the listed directories. Paths are relative to the package directory.
+// content holds our static web server content.
 //
 //go:embed assets/* components/* index.html manifest.tmpl upload.tmpl
 var content embed.FS
