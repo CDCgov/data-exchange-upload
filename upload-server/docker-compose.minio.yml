@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  minio:
+    image: quay.io/minio/minio
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    command: server /minio --console-address :8001 --address :8000
+  upload-server:
+    environment:
+      - S3_ENDPOINT=http://minio:8000
+      - S3_BUCKET_NAME=test-bucket
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - DEX_MANIFEST_CONFIG_BUCKET_NAME=upload-configs
+    depends_on:
+      - minio
+      - cache

@@ -64,9 +64,7 @@ type AppConfig struct {
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
-	AzureConnection *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
-	//S3ConnectionSrc      *S3StorageConfig 	  `env:", prefix=AWS_SRC_, noinit"`
-	//S3ConnectionDest     *S3StorageConfig 	  `env:", prefix=AWS_DEST_, noinit"`
+	AzureConnection      *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	EdavConnection       *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
 	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
 	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
