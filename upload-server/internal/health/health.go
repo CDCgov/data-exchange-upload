@@ -3,6 +3,8 @@ package health
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"reflect"
@@ -35,8 +37,16 @@ type SystemHealthCheck struct {
 	Services []Checkable
 }
 
-func (hc *SystemHealthCheck) Register(c Checkable) {
-	hc.Services = append(hc.Services, c)
+func (hc *SystemHealthCheck) Register(checks ...any) error {
+	var errs error
+	for _, c := range checks {
+		if cc, ok := c.(Checkable); ok {
+			hc.Services = append(hc.Services, cc)
+		} else {
+			errs = errors.Join(errs, fmt.Errorf("Could not register %+V health check", c))
+		}
+	}
+	return errs
 }
 
 // health responds to /health endpoint with the health of the app including dependency services
@@ -72,8 +82,8 @@ func (hc *SystemHealthCheck) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 var DefaultSystemHealthCheck = &SystemHealthCheck{}
 
-func Register(c Checkable) {
-	DefaultSystemHealthCheck.Register(c)
+func Register(c ...any) error {
+	return DefaultSystemHealthCheck.Register(c...)
 }
 
 func Handler() http.Handler {
