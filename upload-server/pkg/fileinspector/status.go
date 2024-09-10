@@ -22,6 +22,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ contex
 	deliveries := []info.FileDeliveryStatus{}
 	deliveryReportFilename := filepath.Join(fsusi.ReportsDir, id+event.TypeSeparator+reports.StageFileCopy)
 	f, err := os.Open(deliveryReportFilename)
+	defer f.Close()
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, errors.Join(err, info.ErrNotFound)
@@ -129,4 +130,3 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 
 	return info.FileUploadStatus{}, errors.New("Unable to determine the status of the upload")
 }
-

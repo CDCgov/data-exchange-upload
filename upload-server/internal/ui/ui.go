@@ -3,7 +3,9 @@ package ui
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 
 	"html/template"
 
@@ -44,8 +47,9 @@ type ManifestTemplateData struct {
 }
 
 type UploadTemplateData struct {
-	UploadURL string
+	UploadUrl string
 	Navbar    components.Navbar
+	Info info.InfoResponse
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -154,14 +158,23 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			http.Redirect(rw, r, "/", http.StatusFound)
 			return
 		}
+
+		// Get the response body
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		if resp.StatusCode != http.StatusOK {
-			var respMsg []byte
-			_, err := resp.Body.Read(respMsg)
-			if err != nil {
-				http.Error(rw, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			http.Error(rw, string(respMsg), resp.StatusCode)
+			http.Error(rw, string(body), resp.StatusCode)
+			return
+		}
+
+		var info info.InfoResponse
+		err = json.Unmarshal(body, &info)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -172,8 +185,9 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		}
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
-			UploadURL: uploadUrl,
+			UploadUrl: uploadUrl,
 			Navbar:    components.Navbar{},
+			Info: info,
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)

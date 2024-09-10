@@ -16,8 +16,8 @@ const (
 )
 
 type InfoResponse struct {
-	Manifest map[string]any `json:"manifest"`
-	FileInfo   map[string]any `json:"file_info"`
+	Manifest   map[string]any       `json:"manifest"`
+	FileInfo   map[string]any       `json:"file_info"`
 	UploadStatus FileUploadStatus `json:"upload_status"`
 	Deliveries []FileDeliveryStatus `json:"deliveries"`
 }
