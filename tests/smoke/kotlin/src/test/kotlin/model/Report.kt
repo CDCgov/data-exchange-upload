@@ -27,6 +27,19 @@ data class Report(
     val senderId: String?,
     val tags: List<String>?,
     val timestamp: String?,
-    val uploadId: String?
+    val uploadId: String?,
+    @JsonProperty("stageInfo") val stageInfo: StageInfo?
 )
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class StageInfo(
+    @JsonProperty("action") val action: String?,
+    @JsonProperty("status") val status: String?,
+    @JsonProperty("issues") val issues: List<String>?,
+    @JsonProperty("startProcessingTime") val startProcessingTime: String?,
+    @JsonProperty("endProcessingTime") val endProcessingTime: String?,
+    @JsonProperty("service") val service: String?,
+    @JsonProperty("version") val version: String?
+)
+
 

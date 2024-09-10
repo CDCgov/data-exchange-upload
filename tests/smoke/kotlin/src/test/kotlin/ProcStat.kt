@@ -55,8 +55,8 @@ class ProcStat {
                 .body(
                     """
                 {
-                    "query": "query GetReports { getReports(uploadId: \"$uid\", reportsSortedBy: \"timestamp\", sortOrder: Ascending) { content contentType data dataStreamId dataStreamRoute dexIngestDateTime id jurisdiction reportId senderId tags timestamp uploadId } }",
-                    "variables": {}
+                 "query": "query GetReports { getReports(uploadId: \"$uid\", reportsSortedBy: \"timestamp\", sortOrder: Ascending) { content contentType data dataProducerId dataStreamId dataStreamRoute dexIngestDateTime id jurisdiction reportId senderId tags timestamp uploadId stageInfo { action endProcessingTime service startProcessingTime status version issues { level message } } } }",
+                  "variables": {}
                 }
                 """.trimIndent()
                 )
@@ -73,11 +73,19 @@ class ProcStat {
             reportList.forEach { report ->
                 val schemaName = report.content.contentSchemaName
                 when (schemaName) {
+
                     "metadata-verify" -> {
                         val uploadId = report.content.metadata?.uploadId
                         val dexIngestDateTime = report.content.metadata?.dexIngestDateTime
+                        val stageInfo = report.stageInfo
+
                         log.info("Metadata Verify - Upload ID: $uploadId, Dex Ingest DateTime: $dexIngestDateTime")
+
+                        assertEquals(uid, uploadId, "Expected upload ID to match the UID, but found: $uploadId")
+                        assertEquals("SUCCESS", stageInfo?.status, "Expected status 'SUCCESS' for metadata verify, but found: ${stageInfo?.status}")
+                        assertTrue(stageInfo?.issues.isNullOrEmpty(), "Expected no issues in the metadata verify report, but found: ${stageInfo?.issues}")
                     }
+
 
                     "metadata-transform" -> {
                         report.content.transforms?.forEach { transform ->
