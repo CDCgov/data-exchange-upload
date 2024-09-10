@@ -110,6 +110,9 @@ class ProcStat {
                 "upload-started", "upload-completed" -> {
                     val status = report.content.status
                     assertEquals("SUCCESS", status, "Expected status 'SUCCESS' for $schemaName, but found: $status")
+
+                    log.debug("Processing report for schema: $schemaName")
+                    log.debug("Report content: Status: $status, Report ID: ${report.reportId}")
                     log.info("Schema Name: $schemaName, Status: $status")
                 }
 
