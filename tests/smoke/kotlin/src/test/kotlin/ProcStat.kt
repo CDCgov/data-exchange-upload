@@ -119,6 +119,7 @@ class ProcStat {
                     val offset = report.content.offset
                     val size = report.content.size
                     log.info("Upload Status - Filename: $filename, TGUID: $tguid, Offset: $offset, Size: $size")
+                    assertEquals(size, offset, "Upload-status mismatch: expected offset to equal size, but found size: $size and offset: $offset")
                 }
 
                 "blob-file-copy" -> {
