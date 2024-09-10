@@ -91,9 +91,15 @@ class ProcStat {
                     )
                 }
 
-
                 "metadata-transform" -> {
-                    report.content.transforms?.forEach { transform ->
+                    val transforms = report.content.transforms
+                    assertNotNull(transforms, "No transforms found in the metadata-transform report; expected at least one transform.")
+                    assertTrue(
+                        transforms!!.isNotEmpty(),
+                        "The transforms list in the metadata-transform report is empty; expected at least one transform."
+                    )
+
+                    transforms.forEach { transform ->
                         val action = transform.action
                         val field = transform.field
                         val value = transform.value
