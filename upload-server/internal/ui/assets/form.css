@@ -4,7 +4,7 @@ body {
   width: 100vw;
 }
 
-#upload-container {
+.upload-container {
   margin: 0 auto;
   padding: 1.2rem;
 }

@@ -13,13 +13,13 @@ import (
 )
 
 type FileSystemUploadStatusInspector struct {
-	BaseDir string
+	BaseDir    string
 	ReportsDir string
 }
 
 func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ context.Context, id string) ([]info.FileDeliveryStatus, error) {
 	deliveries := []info.FileDeliveryStatus{}
-	deliveryReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageFileCopy)
+	deliveryReportFilename := filepath.Join(fsusi.ReportsDir, id+event.TypeSeparator+reports.StageFileCopy)
 	f, err := os.Open(deliveryReportFilename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -54,11 +54,11 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ contex
 		}
 
 		deliveries = append(deliveries, info.FileDeliveryStatus{
-			Status: report.StageInfo.Status,
-			Name: content.DestinationName,
-			Location: content.FileDestinationBlobUrl,
+			Status:      report.StageInfo.Status,
+			Name:        content.DestinationName,
+			Location:    content.FileDestinationBlobUrl,
 			DeliveredAt: report.StageInfo.EndProcessTime,
-			Issues: issues,
+			Issues:      issues,
 		})
 	}
 
