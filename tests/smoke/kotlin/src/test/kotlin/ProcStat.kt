@@ -47,6 +47,7 @@ class ProcStat {
         val uid = uploadClient.uploadFile(testFile, manifest)
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
+        log.debug("File uploaded successfully with UID: $uid")
         Thread.sleep(2000)
 
         val response = procStatReqSpec
@@ -63,15 +64,19 @@ class ProcStat {
             .post("pstatus/graphql-service/graphql")
 
         val jsonResponse = response.asString()
+        log.debug("Received response: $jsonResponse")
+
         val objectMapper = jacksonObjectMapper()
         val dataResponse: DataResponse = objectMapper.readValue(jsonResponse, DataResponse::class.java)
+        log.debug("Parsed DataResponse: $dataResponse")
 
         val reportList = dataResponse.data.reports
 
         reportList.forEach { report ->
             val schemaName = report.content.contentSchemaName
-            when (schemaName) {
+            log.debug("Validating schema: $schemaName")
 
+            when (schemaName) {
                 "metadata-verify" -> {
                     val uploadId = report.content.metadata?.uploadId
                     val dexIngestDateTime = report.content.metadata?.dexIngestDateTime
@@ -79,12 +84,16 @@ class ProcStat {
 
                     log.info("Metadata Verify - Upload ID: $uploadId, Dex Ingest DateTime: $dexIngestDateTime")
 
+                    log.debug("Validating uploadId for metadata-verify report. Expected: $uid, Actual: $uploadId")
                     assertEquals(uid, uploadId, "Expected upload ID to match the UID, but found: $uploadId")
+
+                    log.debug("Validating stageInfo status. Expected: SUCCESS, Actual: ${stageInfo?.status}")
                     assertEquals(
                         "SUCCESS",
                         stageInfo?.status,
                         "Expected status 'SUCCESS' for metadata verify, but found: ${stageInfo?.status}"
                     )
+                    log.debug("Checking for issues in stageInfo")
                     assertTrue(
                         stageInfo?.issues.isNullOrEmpty(),
                         "Expected no issues in the metadata verify report, but found: ${stageInfo?.issues}"
@@ -93,7 +102,12 @@ class ProcStat {
 
                 "metadata-transform" -> {
                     val transforms = report.content.transforms
-                    assertNotNull(transforms, "No transforms found in the metadata-transform report; expected at least one transform.")
+                    log.debug("Validating transforms in metadata-transform report")
+
+                    assertNotNull(
+                        transforms,
+                        "No transforms found in the metadata-transform report; expected at least one transform."
+                    )
                     assertTrue(
                         transforms!!.isNotEmpty(),
                         "The transforms list in the metadata-transform report is empty; expected at least one transform."
@@ -109,6 +123,8 @@ class ProcStat {
 
                 "upload-started", "upload-completed" -> {
                     val status = report.content.status
+                    log.debug("Validating upload-started/upload-completed schema: $schemaName with status: $status")
+
                     assertEquals("SUCCESS", status, "Expected status 'SUCCESS' for $schemaName, but found: $status")
 
                     log.debug("Processing report for schema: $schemaName")
@@ -121,14 +137,22 @@ class ProcStat {
                     val tguid = report.content.tguid
                     val offset = report.content.offset
                     val size = report.content.size
+                    log.debug("Validating upload status with Filename: $filename, Offset: $offset, Size: $size")
+
                     log.info("Upload Status - Filename: $filename, TGUID: $tguid, Offset: $offset, Size: $size")
-                    assertEquals(size, offset, "Upload-status mismatch: expected offset to equal size, but found size: $size and offset: $offset")
+                    assertEquals(
+                        size,
+                        offset,
+                        "Upload-status mismatch: expected offset to equal size, but found size: $size and offset: $offset"
+                    )
                 }
 
                 "blob-file-copy" -> {
                     val sourceUrl = report.content.fileSourceBlobUrl
                     val destinationUrl = report.content.fileDestinationBlobUrl
                     val destinationName = report.content.destinationName
+                    log.debug("Validating blob-file-copy with Source URL: $sourceUrl, Destination URL: $destinationUrl")
+
                     assertNotNull(sourceUrl, "Blob source URL is missing for $schemaName")
                     assertNotNull(destinationUrl, "Blob destination URL is missing for $schemaName")
                     assertNotNull(destinationName, "Destination name is missing for $schemaName")
