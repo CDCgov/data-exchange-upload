@@ -17,6 +17,8 @@ import (
 	"github.com/sethvargo/go-envconfig"
 ) // .import
 
+var DeliveryTargetEhdi = "ehdi"
+
 var logger *slog.Logger
 
 func init() {
@@ -52,6 +54,7 @@ type AppConfig struct {
 	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
 	LocalEDAVFolder       string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
 	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
+	LocalEhdiFolder       string `env:"LOCAL_EHDI_FOLDER, default=./uploads/ehdi"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
@@ -67,6 +70,7 @@ type AppConfig struct {
 	AzureConnection      *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	EdavConnection       *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
 	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
+	EhdiConnection       *AzureStorageConfig `env:", prefix=EHDI_, noinit"`
 	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
 	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
 
@@ -89,6 +93,7 @@ type AppConfig struct {
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
 	EdavCheckpointContainer    string `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
 	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
+	EhdiCheckpointContainer    string `env: "EHDI_CHECKPOINT_CONTAINER_NAME", default=ehdi-checkpoint`
 
 	Metrics MetricsConfig `env:", prefix=METRICS_"`
 } // .AppConfig
@@ -178,6 +183,11 @@ func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 			AzureStorageConfig: *LoadedConfig.RoutingConnection,
 			ContainerName:      LoadedConfig.RoutingCheckpointContainer,
 		}, nil
+	case DeliveryTargetEhdi:
+		return &AzureContainerConfig{
+			AzureStorageConfig: *LoadedConfig.EhdiConnection,
+			ContainerName: LoadedConfig.EhdiCheckpointContainer,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported azure target %s", target)
 	}
@@ -205,6 +215,12 @@ func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig,
 			FromPathStr: fromPathStr,
 			FromPath:    fromPath,
 			ToPath:      appConfig.LocalRoutingFolder,
+		}, nil
+	case DeliveryTargetEhdi:
+		return &LocalStorageConfig{
+			FromPathStr: fromPathStr,
+			FromPath: fromPath,
+			ToPath: appConfig.LocalEhdiFolder,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported local target %s", target)
