@@ -94,12 +94,12 @@ func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (Uploa
 		return azureinspector.NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
 	}
 	if appConfig.S3Connection != nil {
-		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
+		containerClient, err := stores3.NewContainerClient(ctx, appConfig.S3Connection)
 		if err != nil {
 			return nil, err
 		}
 
-		return s3inspector.NewS3UploadInspector(s3Client, appConfig.S3Connection.BucketName, appConfig.TusUploadPrefix), nil
+		return s3inspector.NewS3UploadInspector(containerClient, appConfig.S3Connection.BucketName, appConfig.TusUploadPrefix), nil
 	}
 	if appConfig.LocalFolderUploadsTus != "" {
 		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil

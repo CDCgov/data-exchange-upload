@@ -29,6 +29,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ contex
 		}
 		return deliveries, err
 	}
+	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
