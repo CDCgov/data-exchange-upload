@@ -129,7 +129,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 
 	RegisterSource("upload", src)
 
-	if err := health.Register(edavDeliverer, routingDeliverer, src); err != nil {
+	if err := health.Register(edavDeliverer, routingDeliverer, ehdiDeliverer, src); err != nil {
 		slog.Error("failed to register some health checks", "error", err)
 	}
 
