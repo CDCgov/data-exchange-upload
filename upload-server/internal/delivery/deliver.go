@@ -70,6 +70,8 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	if err != nil {
 		return err
 	}
+	var ehdiDeliverer Destination
+	ehdiDeliverer, err = NewFileDestination(ctx, "ehdi", &appConfig)
 
 	if appConfig.EdavConnection != nil {
 		edavDeliverer, err = NewAzureDestination(ctx, "edav")
@@ -123,6 +125,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 
 	RegisterDestination("edav", edavDeliverer)
 	RegisterDestination("routing", routingDeliverer)
+	RegisterDestination("ehdi", ehdiDeliverer)
 
 	RegisterSource("upload", src)
 
