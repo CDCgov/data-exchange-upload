@@ -74,7 +74,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 
 	var edavDeliverer Destination
-	edavDeliverer, err = NewFileDestination(ctx, "edav", &appConfig)
+	edavDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEdav, &appConfig)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	ehdiDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEhdi, &appConfig)
 
 	if appConfig.EdavConnection != nil {
-		edavDeliverer, err = NewAzureDestination(ctx, "edav")
+		edavDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEdav)
 		if err != nil {
 			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
 		}
@@ -106,7 +106,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 
 	if appConfig.EdavS3Connection != nil {
-		edavDeliverer, err = NewS3Destination(ctx, "edav", appConfig.EdavS3Connection)
+		edavDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetEdav, appConfig.EdavS3Connection)
 		if err != nil {
 			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
 		}
@@ -142,7 +142,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		}
 	}
 
-	RegisterDestination("edav", edavDeliverer)
+	RegisterDestination(appconfig.DeliveryTargetEdav, edavDeliverer)
 	RegisterDestination("routing", routingDeliverer)
 	RegisterDestination(appconfig.DeliveryTargetEhdi, ehdiDeliverer)
 
