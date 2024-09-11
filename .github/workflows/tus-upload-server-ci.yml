@@ -14,7 +14,6 @@ jobs:
   unit-test:
     name: Unit Test
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
@@ -29,3 +28,12 @@ jobs:
         run: go tool cover -func=c.out
       - name: Build Check
         run: go build -o upload-server ./cmd/main.go
+  run-fortify-scan:
+    uses: ./.github/workflows/remote-cd-trigger-template.yml
+    with:
+      WORKFLOW: fortify.yml
+      REF: ${{ github.ref_name }}
+    secrets: inherit
+
+    
+    
