@@ -86,6 +86,16 @@ function _showReadOnlyFileInfo() {
   _toggleInfoContainer(true);
 }
 
+function _updateUploadStatusInProgress() {
+  document.querySelector("#upload-status-value").innerHTML = "In Progress";
+}
+
+function _updateLastChunkReceived() {
+  const currTime = new Date();
+  document.querySelector("#upload-datetime-value").innerHTML =
+    currTime.toUTCString();
+}
+
 // Triggered by a file being selected. Gets the file from
 // the file input. Gets the other values from the form, if
 // this is a new upload, or from the previous upload metadata,
@@ -159,7 +169,7 @@ async function submitUploadForm() {
   }
 
   // hide the forms
-  _toggleFormContainer();
+  _toggleFormContainer(false);
 
   // Upload the file
   await uploadFile(file, { endpoint, chunkSize, parallelUploads });
@@ -245,6 +255,8 @@ async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
       console.log(
         `uploadedBytes: ${bytesUploaded}, totalBytes: ${total}, percentComplete: ${percentageTotal}`
       );
+
+      _updateLastChunkReceived();
     },
     onSuccess() {
       console.log(`file: ${file.name} uploaded successfully`);
@@ -268,6 +280,8 @@ async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
 
       // show the file info
       _showReadOnlyFileInfo();
+
+      location.reload();
     },
   };
 
@@ -283,6 +297,8 @@ async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
 
   // Start the upload
   uploadIsRunning = true;
+  _updateUploadStatusInProgress();
+  _toggleInfoContainer(true);
   upload.start();
 }
 
@@ -300,10 +316,9 @@ async function findResumableUpload() {
   return null;
 }
 
-// initializes what is hidden/shown on the page
-// based on the uploadStatusLevel on the local storage
-async function initPage() {
-  console.log(uploadStatusLevel);
+(async () => {
+  // initializes what is hidden/shown on the page
+  // based on the uploadStatusLevel on the local storage
   let isHost = false;
   switch (uploadStatusLevel) {
     case "0": // 0 is Initiated
@@ -335,9 +350,4 @@ async function initPage() {
     } // .if
     fileInput.addEventListener("change", submitUploadForm);
   }
-}
-
-// run the page setup when the file opens
-(async () => {
-  await initPage();
 })();

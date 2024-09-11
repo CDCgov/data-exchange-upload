@@ -117,11 +117,11 @@
                     <h2>Upload Status</h2>
                     <div class="info-item">
                         <div class="item-name">Upload Status:</div>
-                        <div class="item-value">{{.Info.UploadStatus.Status}}</div>
+                        <div class="item-value" id="upload-status-value">{{.Info.UploadStatus.Status}}</div>
                     </div>
                     <div class="info-item">
                         <div class="item-name">Last Chunk Received:</div>
-                        <div class="item-value">{{FormatDateTime .Info.UploadStatus.LastChunkReceived}}</div>
+                        <div class="item-value" id="upload-datetime-value">{{FormatDateTime .Info.UploadStatus.LastChunkReceived}}</div>
                     </div>
                 </div>
 
