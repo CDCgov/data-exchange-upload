@@ -1,16 +1,20 @@
 package delivery
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
+	"html/template"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -49,6 +53,15 @@ type Source interface {
 
 type Destination interface {
 	Upload(context.Context, string, io.Reader, map[string]string) (string, error)
+}
+
+type PathInfo struct {
+	Year string
+	Month string
+	Day string
+	Env string
+	UploadId string
+	Filename string
 }
 
 // Eventually, this can take a more generic list of deliverer configuration object
@@ -166,6 +179,37 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 
+	c, err := metadata.GetConfigFromManifest(ctx, manifest)
+
+	if c.Copy.PathTemplate != "" {
+		// Use path template to form the full name.
+		t := time.Now().UTC()
+		pathInfo := &PathInfo{
+			Year:  strconv.Itoa(t.Year()),
+			Month: strconv.Itoa(int(t.Month())),
+			Day:   strconv.Itoa(t.Day()),
+			Filename: filenameWithoutExtension,
+			UploadId: tuid,
+			Env: appconfig.LoadedConfig.Environment,
+		}
+		tmpl, err := template.New("path").Parse(c.Copy.PathTemplate)
+		if err != nil {
+			return "", err
+		}
+		b := new(bytes.Buffer)
+		err = tmpl.Execute(b, pathInfo)
+		if err != nil {
+			return "", err
+		}
+
+		if extension != "" {
+			return fmt.Sprintf("%s.%s", b.String(), extension), nil
+		}
+
+		return b.String(), nil
+	}
+
+	// Otherwise, use the suffix and folder structure values
 	suffix, err := metadata.GetFilenameSuffix(ctx, manifest, tuid)
 	if err != nil {
 		return "", err

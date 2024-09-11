@@ -21,6 +21,7 @@ type MetadataConfig struct {
 type CopyConfig struct {
 	FilenameSuffix  string   `json:"filename_suffix"`
 	FolderStructure string   `json:"folder_structure"`
+	PathTemplate    string `json:"path_template"`
 	Targets         []string `json:"targets"`
 }
 
