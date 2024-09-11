@@ -5,7 +5,7 @@
         <link rel="stylesheet" href="/assets/index.css">
         <link rel="stylesheet" href="/assets/form.css">
         <link rel="stylesheet" href="/assets/progress.css">
-        <link rel="stylesheet" href="/assets/status.css">
+        <link rel="stylesheet" href="/assets/file-info.css">
         <link rel="icon" type="image/x-icon" href="/assets/dex_logo.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>DEX Upload</title>
@@ -18,42 +18,40 @@
                     <b>Warning!</b> Your browser does not seem to support the features necessary to run tus-js-client. The buttons below may work but probably will fail silently.
                 </div>
 
-                <div class="upload-form">
-                    <h1 class="new-upload">File Uploader</h1>
-                    <h1 class="resume-upload">Resume Upload</h1>
-        
-                    <div class="form-container">
-                        <div class="input-group new-upload">
-                            <label for="endpoint">
-                                Upload endpoint:
-                            </label>
-                            <input type="text" id="endpoint" name="endpoint" value="http://localhost:8080/files/">
-                            <!-- http://localhost:8080/files/ -->
-                            <!-- https://tusd.tusdemo.net/files/ -->
-                            <!-- https://apidev.cdc.gov/upload -->
-                        </div>
-                        <div class="input-group new-upload">
-                            <label for="chunksize">
-                                Chunk size (bytes):
-                            </label>
-                            <input type="number" id="chunksize" name="chunksize" value="40000000">
-                            <p><b>Note:</b> Chunksize should be set on the client for uploading files of large size (1GB or over).</p>
-                        </div>
-                        <div class="input-group new-upload">
-                            <label for="paralleluploads">
-                                Parallel upload requests:
-                            </label>
-                            <input type="number" id="paralleluploads" name="paralleluploads" value="1" disabled>
-                        </div>
-                        <div class="input-group">
-                            <label>
-                                Metadata JSON object (file name will be inferred from each file):
-                                <div class="file-container">
-                                    <button onclick="files.click()">Browse Files</button>
-                                    <input type="file" id="file-to-upload">
-                                </div>
-                            </label>
-                        </div>
+                <h1 class="new-upload">File Uploader</h1>
+                <h1 class="resume-upload">Resume Upload</h1>
+    
+                <div class="form-container">
+                    <div class="input-group new-upload">
+                        <label for="endpoint">
+                            Upload endpoint:
+                        </label>
+                        <input type="text" id="endpoint" name="endpoint" value="http://localhost:8080/files/">
+                        <!-- http://localhost:8080/files/ -->
+                        <!-- https://tusd.tusdemo.net/files/ -->
+                        <!-- https://apidev.cdc.gov/upload -->
+                    </div>
+                    <div class="input-group new-upload">
+                        <label for="chunksize">
+                            Chunk size (bytes):
+                        </label>
+                        <input type="number" id="chunksize" name="chunksize" value="40000000">
+                        <p><b>Note:</b> Chunksize should be set on the client for uploading files of large size (1GB or over).</p>
+                    </div>
+                    <div class="input-group new-upload">
+                        <label for="paralleluploads">
+                            Parallel upload requests:
+                        </label>
+                        <input type="number" id="paralleluploads" name="paralleluploads" value="1" disabled>
+                    </div>
+                    <div class="input-group">
+                        <label>
+                            Metadata JSON object (file name will be inferred from each file):
+                            <div class="file-container">
+                                <button onclick="files.click()">Browse Files</button>
+                                <input type="file" id="files">
+                            </div>
+                        </label>
                     </div>
                 </div>
 
@@ -64,37 +62,45 @@
                 </div>
             </div>
             <hr />
-            <div class="info-container">
-                <div id="upload-list">
-                    <div id="upload-info">
-                        <strong>File Name:</strong> {{.Info.Manifest.received_file_name}}<br />
-                        <strong>Sender ID:</strong> {{AllUpperCase .Info.Manifest.sender_id}}<br />
-                        <strong>Upload ID:</strong> {{AllUpperCase .Info.Manifest.upload_id}}<br />
+            <div class="file-info-container">
+                <div id="manifest-info">
+                    <strong>File Name:</strong> {{.Info.Manifest.received_file_name}}<br />
+                    <strong>Sender ID:</strong> {{AllUpperCase .Info.Manifest.sender_id}}<br />
+                    <strong>Upload ID:</strong> {{AllUpperCase .Info.Manifest.upload_id}}<br />
+                </div>
+                <div id="manifest-info-extra">
+                    <strong>Version:</strong> {{.Info.Manifest.version}}<br />
+                    <strong>Producer ID:</strong> {{AllUpperCase .Info.Manifest.data_producer_id}}<br />
+                    <strong>Stream ID:</strong> {{AllUpperCase .Info.Manifest.data_stream_id}}<br />
+                    <strong>Stream Route:</strong> {{AllUpperCase .Info.Manifest.data_stream_route}}<br />
+                    <strong>Ingest Date/Time:</strong> {{.Info.Manifest.dex_ingest_datetime}}<br />
+                    <strong>Jurisdiction:</strong> {{AllUpperCase .Info.Manifest.jurisdiction}}<br />
+                </div>
+                <div id="file-info">
+                    <strong>File Size:</strong> {{.Info.FileInfo.size_bytes}} bytes<br />
+                    <strong>Updated At:</strong> {{.Info.FileInfo.updated_at}}
+                </div>
+                <div id="upload-status">
+                    <strong>Upload Status:</strong> {{.Info.UploadStatus.Status}}<br />
+                    <strong>Last Chunk Received:</strong> {{.Info.UploadStatus.LastChunkReceived}}
+                </div>
+                <div id="file-deliveries">
+                {{range .Info.Deliveries}}
+                    <div id="file-delivery">
+                        <strong>Delivery Status: <span class="delivery-{{AllLowerCase .Status}}">{{.Status}}</span></strong><br />
+                        <strong>Name:</strong> {{.Name}}<br />
+                        <strong>Location:</strong> {{.Location}}<br />
+                        <strong>DeliveredAt At:</strong> {{.DeliveredAt}}<br />
+                        <strong>Issues:</strong><br />
+                        {{if .Issues}}
+                            {{range .Issues}}
+                                {{.}}<br />
+                            {{end}}
+                        {{else}}
+                            No issues<br />
+                        {{end}}
                     </div>
-                    <div id="upload-info-extra">
-                        <strong>Version:</strong> {{.Info.Manifest.version}}<br />
-                        <strong>Producer ID:</strong> {{AllUpperCase .Info.Manifest.data_producer_id}}<br />
-                        <strong>Stream ID:</strong> {{AllUpperCase .Info.Manifest.data_stream_id}}<br />
-                        <strong>Stream Route:</strong> {{AllUpperCase .Info.Manifest.data_stream_route}}<br />
-                        <strong>Ingest Date/Time:</strong> {{.Info.Manifest.dex_ingest_datetime}}<br />
-                        <strong>Jurisdiction:</strong> {{AllUpperCase .Info.Manifest.jurisdiction}}<br />
-                    </div>
-                    <div id="file-info">
-                        <strong>File Size:</strong> {{.Info.FileInfo.size_bytes}} bytes<br />
-                        <strong>Updated At:</strong> {{.Info.FileInfo.updated_at}}
-                    </div>
-                    <div id="upload-status">
-                        <strong>Upload Status:</strong> {{.Info.UploadStatus.Status}} bytes<br />
-                        <strong>Last Chunk Received:</strong> {{.Info.UploadStatus.LastChunkReceived}}
-                    </div>
-                    <div id="file-deliveries">
-                    {{range .Info.Deliveries}}
-                        <div id="upload-status">
-                            <strong>Upload Status: <span class="upload-{{AllLowerCase .Status}}">{{.Status}}</span></strong><br />
-                            <strong>Received At:</strong> {{.DeliveredAt}}
-                        </div>
-                    {{end}}
-                    </div>
+                {{end}}
                 </div>
             </div>
         </main>

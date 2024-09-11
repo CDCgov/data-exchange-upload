@@ -1,0 +1,8 @@
+.file-info-container {
+  margin: 0 auto;
+  padding: 1.2rem;
+}
+
+.file-info-container #file-delivery .delivery-success {
+  color: rgb(6, 162, 6);
+}

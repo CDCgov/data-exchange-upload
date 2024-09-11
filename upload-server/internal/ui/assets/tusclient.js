@@ -52,8 +52,17 @@ function _toggleResumeUploadForm(show) {
     _toggleVisibility(element, show);
   }
 }
+
+function _toggleFormContainer(show) {
+  const formContainer = document.querySelector(".form-container");
+  _toggleVisibility(formContainer, show);
+}
+
 // Hides or shows the file info
-function _toggleInfoContainer(show) {}
+function _toggleInfoContainer(show) {
+  const infoContainer = document.querySelector(".file-info-container");
+  _toggleVisibility(infoContainer, show);
+}
 
 // Sets the view up as the initial upload form
 function _showInitiatedUploadForm() {
