@@ -60,54 +60,116 @@
                         <div class="bar hidden" style="width: 0%;"></div>
                     </div>
                 </div>
+                <hr />
             </div>
-            <hr />
             <div class="file-info-container">
-                <div id="manifest-info">
-                    <strong>File Name:</strong> {{.Info.Manifest.received_file_name}}<br />
-                    <strong>Sender ID:</strong> {{AllUpperCase .Info.Manifest.sender_id}}<br />
-                    <strong>Upload ID:</strong> {{AllUpperCase .Info.Manifest.upload_id}}<br />
-                </div>
-                <div id="manifest-info-extra">
-                    <strong>Version:</strong> {{.Info.Manifest.version}}<br />
-                    <strong>Producer ID:</strong> {{AllUpperCase .Info.Manifest.data_producer_id}}<br />
-                    <strong>Stream ID:</strong> {{AllUpperCase .Info.Manifest.data_stream_id}}<br />
-                    <strong>Stream Route:</strong> {{AllUpperCase .Info.Manifest.data_stream_route}}<br />
-                    <strong>Ingest Date/Time:</strong> {{.Info.Manifest.dex_ingest_datetime}}<br />
-                    <strong>Jurisdiction:</strong> {{AllUpperCase .Info.Manifest.jurisdiction}}<br />
-                </div>
-                <div id="file-info">
-                    <strong>File Size:</strong> {{.Info.FileInfo.size_bytes}} bytes<br />
-                    <strong>Updated At:</strong> {{.Info.FileInfo.updated_at}}
-                </div>
-                <div id="upload-status">
-                    <strong>Upload Status:</strong> {{.Info.UploadStatus.Status}}<br />
-                    <strong>Last Chunk Received:</strong> {{.Info.UploadStatus.LastChunkReceived}}
-                </div>
-                <div id="file-deliveries">
-                {{range .Info.Deliveries}}
-                    <div id="file-delivery">
-                        <strong>Delivery Status: <span class="delivery-{{AllLowerCase .Status}}">{{.Status}}</span></strong><br />
-                        <strong>Name:</strong> {{.Name}}<br />
-                        <strong>Location:</strong> {{.Location}}<br />
-                        <strong>DeliveredAt At:</strong> {{.DeliveredAt}}<br />
-                        <strong>Issues:</strong><br />
-                        {{if .Issues}}
-                            {{range .Issues}}
-                                {{.}}<br />
-                            {{end}}
-                        {{else}}
-                            No issues<br />
-                        {{end}}
+                <div class="file-info" id="manifest-info">
+                    <h2>Manifest</h2>
+                    <div class="info-item">
+                        <div class="item-name">File Name:</div>
+                        <div class="item-value">{{.Info.Manifest.received_filename}}</div>
                     </div>
-                {{end}}
+                    <div class="info-item">
+                        <div class="item-name">Upload ID:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.upload_id}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Version:</div>
+                        <div class="item-value">{{.Info.Manifest.version}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Sender ID:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.sender_id}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Producer ID:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.data_producer_id}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Stream ID:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.data_stream_id}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Stream Route:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.data_stream_route}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Jurisdiction:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Ingest Date/Time:</div>
+                        <div class="item-value">{{FormatDateTime .Info.Manifest.dex_ingest_datetime}}</div>
+                    </div>
                 </div>
+                <div class="file-info" id="file-info">
+                    <h2>File Information</h2>
+                    <div class="info-item">
+                        <div class="item-name">File Size:</div>
+                        <div class="item-value">{{.Info.FileInfo.size_bytes}} bytes</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Updated At:</div>
+                        <div class="item-value">{{FormatDateTime .Info.FileInfo.updated_at}}</div>
+                    </div>
+                </div>
+                <div class="file-info" id="upload-status">
+                    <h2>Upload Status</h2>
+                    <div class="info-item">
+                        <div class="item-name">Upload Status:</div>
+                        <div class="item-value">{{.Info.UploadStatus.Status}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Last Chunk Received:</div>
+                        <div class="item-value">{{FormatDateTime .Info.UploadStatus.LastChunkReceived}}</div>
+                    </div>
+                </div>
+
+                {{if .Info.Deliveries}}
+                <div class="file-info" id="file-deliveries">
+                    <h2>Delivery Status</h2>
+                    {{range .Info.Deliveries}}
+                    <div id="file-delivery">
+                        <div class="info-item">
+                            <div class="item-name">Name:</div>
+                            <div class="item-value">{{.Name}}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="item-name">Location:</div>
+                            <div class="item-value">{{.Location}}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="item-name">Delivery Status:</div>
+                            <div class="item-value delivery-{{AllLowerCase .Status}}">{{.Status}}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="item-name">Delivered At:</div>
+                            <div class="item-value">{{FormatDateTime .DeliveredAt}}</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="item-name">Issues:</div>
+                            <div class="item-value">
+                            {{if .Issues}}
+                                <ul>
+                                {{range .Issues}}
+                                    <li>{{.}}</li>
+                                {{end}}
+                                </ul>
+                            {{else}}
+                                No issues
+                            {{end}}
+                            </div>
+                        </div>
+                    </div>
+                    {{end}}
+                </div>
+                {{end}}
             </div>
         </main>
     </body>
 
-    <script>const uploadStatus="{{.Info.UploadStatus.Status}}"</script>
     <script>const uploadUrl="{{.UploadUrl}}"</script>
+    <script>const uploadStatusLevel="{{.UploadStatusLevel}}"</script>
     <script src="https://cdn.jsdelivr.net/npm/tus-js-client@latest/dist/tus.js"></script>
     <script src="/assets/tusclient.js"></script>
 </html>

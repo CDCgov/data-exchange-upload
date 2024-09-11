@@ -35,7 +35,6 @@
   display: block;
   font-style: oblique;
   margin-left: 15px;
-  display: none;
 }
 
 .form-container input[type="file"]::file-selector-button {
@@ -58,12 +57,12 @@
   width: 100%;
 }
 
-.form-container .upload-container {
+.form-container .file-container {
   display: flex;
   flex-direction: row;
 }
 
-.form-container .upload-container input {
+.form-container .file-container input {
   background: none;
   border: none;
 }

@@ -6,3 +6,23 @@
 .file-info-container #file-delivery .delivery-success {
   color: rgb(6, 162, 6);
 }
+
+.file-info {
+  margin-bottom: 2.5rem;
+}
+
+.file-info h2 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+}
+
+.file-info .info-item {
+  line-height: 1.8rem;
+  display: flex;
+  flex-direction: row;
+}
+
+.file-info .info-item .item-name {
+  font-weight: bold;
+  min-width: 18rem;
+}

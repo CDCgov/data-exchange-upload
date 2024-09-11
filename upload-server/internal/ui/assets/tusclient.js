@@ -18,11 +18,14 @@ const progressBar = progressContainer.querySelector(".bar");
 
 // Hides or shows an element
 function _toggleVisibility(element, show) {
+  console.log(show);
+  console.log("before: ", element.classList);
   if (show) {
     element.classList.remove("hidden");
   } else {
     element.classList.add("hidden");
   }
+  console.log("after: ", element.classList);
 }
 
 // Hides or shows the progress bar
@@ -33,7 +36,8 @@ function _toggleProgressBar(show) {
 
 // Hides or shows the upload forms and the progress bar
 function _toggleUploadContainer(show) {
-  const uploadContainer = document.querySelector("div.upload-container");
+  const uploadContainer = document.querySelector(".upload-container");
+  console.log(uploadContainer);
   _toggleVisibility(uploadContainer, show);
 }
 
@@ -83,7 +87,6 @@ function _showResumableUploadForm() {
 // Sets the view up to only show the file info
 function _showReadOnlyFileInfo() {
   _toggleUploadContainer(false);
-  _toggleProgressBar(false);
   _toggleInfoContainer(true);
 }
 
@@ -297,22 +300,30 @@ async function findResumableUpload() {
 }
 
 // initializes what is hidden/shown on the page
-// based on the uploadStatus on the local storage
+// based on the uploadStatusLevel on the local storage
 async function initPage() {
+  console.log(uploadStatusLevel);
   let isHost = false;
-  if (uploadStatus == "Initiated") {
-    isHost = true;
-    _showInitiatedUploadForm();
-  } else if (uploadStatus == "Completed") {
-    _showReadOnlyFileInfo();
-  } else if (uploadStatus == "In Progress") {
-    previousUpload = await findResumableUpload();
-    if (previousUpload) {
+  switch (uploadStatusLevel) {
+    case 0: // 0 is Initiated
       isHost = true;
-      _showResumableUploadForm();
-    } else {
+      _showInitiatedUploadForm();
+      break;
+    case 1: // 1 is In Progress
+      previousUpload = await findResumableUpload();
+      if (previousUpload) {
+        isHost = true;
+        _showResumableUploadForm();
+      } else {
+        _showReadOnlyFileInfo();
+      }
+      break;
+    case 2: // 2 is Complete
       _showReadOnlyFileInfo();
-    }
+      break;
+    default:
+      console.error(`${uploadStatusLevel} is an invalid status`);
+      _showReadOnlyFileInfo();
   }
 
   if (isHost) {
