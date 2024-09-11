@@ -17,6 +17,7 @@ import (
 	"github.com/sethvargo/go-envconfig"
 ) // .import
 
+var DeliveryTargetEdav = "edav"
 var DeliveryTargetEhdi = "ehdi"
 
 var logger *slog.Logger
@@ -171,7 +172,7 @@ func (azc *AzureStorageConfig) Check() error {
 
 func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 	switch target {
-	case "edav":
+	case DeliveryTargetEdav:
 		return &AzureContainerConfig{
 			AzureStorageConfig: *LoadedConfig.EdavConnection,
 			ContainerName:      LoadedConfig.EdavCheckpointContainer,
@@ -196,7 +197,7 @@ func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig,
 	fromPath := os.DirFS(fromPathStr)
 
 	switch target {
-	case "edav":
+	case DeliveryTargetEdav:
 		return &LocalStorageConfig{
 			FromPathStr: fromPathStr,
 			FromPath:    fromPath,

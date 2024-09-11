@@ -217,16 +217,11 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	blobName := filenameWithoutExtension + suffix + extension
 
 	// Next, need to set the filename prefix based on config and target.
-	// edav, routing -> use config
 	prefix := ""
 
-	// Can this switch be removed?
-	switch target {
-	case "routing", "edav", appconfig.DeliveryTargetEhdi:
-		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
-		if err != nil {
-			return "", err
-		}
+	prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
+	if err != nil {
+		return "", err
 	}
 
 	return prefix + "/" + blobName, nil
