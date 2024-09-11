@@ -21,9 +21,9 @@ func NewS3Destination(ctx context.Context, target string, conn *appconfig.S3Stor
 	}
 
 	return &S3Destination{
-		ToClient: c,
+		ToClient:   c,
 		BucketName: conn.BucketName,
-		Target: target,
+		Target:     target,
 	}, nil
 }
 
@@ -39,7 +39,7 @@ func (w *writeAtWrapper) WriteAt(p []byte, _ int64) (int, error) {
 type S3Source struct {
 	FromClient *s3.Client
 	BucketName string
-	Prefix string
+	Prefix     string
 }
 
 func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) {
@@ -83,22 +83,22 @@ func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]st
 }
 
 type S3Destination struct {
-	ToClient *s3.Client
+	ToClient   *s3.Client
 	BucketName string
-	Target string
+	Target     string
 }
 
 func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
-	destFileName, err := getDeliveredFilename(ctx, sd.Target, path, m)
+	destFileName, err := getDeliveredFilename(ctx, path, m)
 	if err != nil {
 		return "", err
 	}
 
 	uploader := manager.NewUploader(sd.ToClient)
 	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
-		Bucket: &sd.BucketName,
-		Key: &destFileName,
-		Body: r,
+		Bucket:   &sd.BucketName,
+		Key:      &destFileName,
+		Body:     r,
 		Metadata: m,
 	})
 	if err != nil {

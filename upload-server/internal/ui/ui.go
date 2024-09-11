@@ -33,6 +33,7 @@ var usefulFuncs = template.FuncMap{
 	"FixNames": FixNames,
 }
 
+var indexTemplate = template.Must(template.ParseFS(content, "index.html", "components/navbar.html"))
 var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl", "components/navbar.html"))
 var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl", "components/navbar.html"))
 
@@ -180,7 +181,14 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			return
 		}
 	})
-	router.Handle("/", StaticHandler)
+	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+		err := indexTemplate.Execute(rw, nil)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+	router.Handle("/assets/", StaticHandler)
 
 	return router
 }
