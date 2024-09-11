@@ -5,6 +5,7 @@
         <link rel="stylesheet" href="/assets/index.css">
         <link rel="stylesheet" href="/assets/form.css">
         <link rel="stylesheet" href="/assets/progress.css">
+        <link rel="stylesheet" href="/assets/status.css">
         <link rel="icon" type="image/x-icon" href="/assets/dex_logo.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>DEX Upload</title>
@@ -62,7 +63,40 @@
                     </div>
                 </div>
             </div>
-            <div class="info-container">{{.Info}}</div>
+            <hr />
+            <div class="info-container">
+                <div id="upload-list">
+                    <div id="upload-info">
+                        <strong>File Name:</strong> {{.Info.Manifest.received_file_name}}<br />
+                        <strong>Sender ID:</strong> {{AllUpperCase .Info.Manifest.sender_id}}<br />
+                        <strong>Upload ID:</strong> {{AllUpperCase .Info.Manifest.upload_id}}<br />
+                    </div>
+                    <div id="upload-info-extra">
+                        <strong>Version:</strong> {{.Info.Manifest.version}}<br />
+                        <strong>Producer ID:</strong> {{AllUpperCase .Info.Manifest.data_producer_id}}<br />
+                        <strong>Stream ID:</strong> {{AllUpperCase .Info.Manifest.data_stream_id}}<br />
+                        <strong>Stream Route:</strong> {{AllUpperCase .Info.Manifest.data_stream_route}}<br />
+                        <strong>Ingest Date/Time:</strong> {{.Info.Manifest.dex_ingest_datetime}}<br />
+                        <strong>Jurisdiction:</strong> {{AllUpperCase .Info.Manifest.jurisdiction}}<br />
+                    </div>
+                    <div id="file-info">
+                        <strong>File Size:</strong> {{.Info.FileInfo.size_bytes}} bytes<br />
+                        <strong>Updated At:</strong> {{.Info.FileInfo.updated_at}}
+                    </div>
+                    <div id="upload-status">
+                        <strong>Upload Status:</strong> {{.Info.UploadStatus.Status}} bytes<br />
+                        <strong>Last Chunk Received:</strong> {{.Info.UploadStatus.LastChunkReceived}}
+                    </div>
+                    <div id="file-deliveries">
+                    {{range .Info.Deliveries}}
+                        <div id="upload-status">
+                            <strong>Upload Status: <span class="upload-{{AllLowerCase .Status}}">{{.Status}}</span></strong><br />
+                            <strong>Received At:</strong> {{.DeliveredAt}}
+                        </div>
+                    {{end}}
+                    </div>
+                </div>
+            </div>
         </main>
     </body>
 

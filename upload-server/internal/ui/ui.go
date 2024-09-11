@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
@@ -32,12 +33,34 @@ func FixNames(name string) string {
 	return newName
 }
 
+func AllLowerCase(text string) string {
+	return strings.ToLower(text)
+}
+
+func AllUpperCase(text string) string {
+	return strings.ToUpper(text)
+}
+
+func StringToUnixTime(dateTimeString string) string {
+	date, err := time.Parse(time.RFC3339, dateTimeString)
+
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	return date.Format(time.UnixDate)
+}
+
 var usefulFuncs = template.FuncMap{
-	"FixNames": FixNames,
+	"FixNames":         FixNames,
+	"AllLowerCase":     AllLowerCase,
+	"AllUpperCase":     AllUpperCase,
+	"StringToUnixTime": StringToUnixTime,
 }
 
 var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl", "components/navbar.html"))
-var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl", "components/navbar.html"))
+var uploadTemplate = template.Must(template.New("upload.tmpl").Funcs(usefulFuncs).ParseFS(content, "upload.tmpl", "components/navbar.html"))
 
 type ManifestTemplateData struct {
 	DataStream      string
@@ -49,7 +72,7 @@ type ManifestTemplateData struct {
 type UploadTemplateData struct {
 	UploadUrl string
 	Navbar    components.Navbar
-	Info info.InfoResponse
+	Info      info.InfoResponse
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -187,7 +210,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
 			UploadUrl: uploadUrl,
 			Navbar:    components.Navbar{},
-			Info: info,
+			Info:      info,
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
