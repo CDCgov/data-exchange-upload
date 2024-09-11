@@ -76,8 +76,9 @@
   "copy_config": {
     "filename_suffix": "upload_id",
     "folder_structure": "date_YYYY_MM_DD",
+    "path_template": "DHDD/EHDI/DEX-{{.Env}}/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}",
     "targets": [
-      "routing"
+      "ehdi"
     ]
   }
 }
