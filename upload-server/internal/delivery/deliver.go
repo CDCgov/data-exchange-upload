@@ -7,7 +7,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
-	"html/template"
+	"text/template"
 	"io"
 	"log/slog"
 	"os"
@@ -85,6 +85,9 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 	var ehdiDeliverer Destination
 	ehdiDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEhdi, &appConfig)
+	if err != nil {
+		return err
+	}
 
 	if appConfig.EdavConnection != nil {
 		edavDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEdav)
