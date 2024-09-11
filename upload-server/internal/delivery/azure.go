@@ -65,7 +65,7 @@ type AzureDestination struct {
 }
 
 func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
-	blobName, err := getDeliveredFilename(ctx, ad.Target, path, m)
+	blobName, err := getDeliveredFilename(ctx, path, m)
 	if err != nil {
 		return blobName, err
 	}

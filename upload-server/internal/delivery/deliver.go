@@ -7,13 +7,13 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
-	"text/template"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -176,7 +176,7 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 	return d.Upload(ctx, path, r, manifest)
 }
 
-func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
+func getDeliveredFilename(ctx context.Context, tuid string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadataPkg.GetFilename(manifest)
 	extension := filepath.Ext(filename)

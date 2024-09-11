@@ -89,7 +89,7 @@ type S3Destination struct {
 }
 
 func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
-	destFileName, err := getDeliveredFilename(ctx, sd.Target, path, m)
+	destFileName, err := getDeliveredFilename(ctx, path, m)
 	if err != nil {
 		return "", err
 	}
