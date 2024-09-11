@@ -88,6 +88,11 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	if err != nil {
 		return err
 	}
+	var eicrDeliverer Destination
+	eicrDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEicr, &appConfig)
+	if err != nil {
+		return err
+	}
 
 	if appConfig.EdavConnection != nil {
 		edavDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEdav)
@@ -105,6 +110,12 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		ehdiDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEhdi)
 		if err != nil {
 			return fmt.Errorf("failed to connect to ehdi deliverer target %w", err)
+		}
+	}
+	if appConfig.EicrConnection != nil {
+		eicrDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEicr)
+		if err != nil {
+			return fmt.Errorf("failed to connect to eicr deliverer target %w", err)
 		}
 	}
 
@@ -148,10 +159,11 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	RegisterDestination(appconfig.DeliveryTargetEdav, edavDeliverer)
 	RegisterDestination("routing", routingDeliverer)
 	RegisterDestination(appconfig.DeliveryTargetEhdi, ehdiDeliverer)
+	RegisterDestination(appconfig.DeliveryTargetEicr, eicrDeliverer)
 
 	RegisterSource("upload", src)
 
-	if err := health.Register(edavDeliverer, routingDeliverer, ehdiDeliverer, src); err != nil {
+	if err := health.Register(edavDeliverer, routingDeliverer, ehdiDeliverer, eicrDeliverer, src); err != nil {
 		slog.Error("failed to register some health checks", "error", err)
 	}
 
