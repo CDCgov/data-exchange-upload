@@ -71,7 +71,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		return err
 	}
 	var ehdiDeliverer Destination
-	ehdiDeliverer, err = NewFileDestination(ctx, "ehdi", &appConfig)
+	ehdiDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEhdi, &appConfig)
 
 	if appConfig.EdavConnection != nil {
 		edavDeliverer, err = NewAzureDestination(ctx, "edav")
@@ -83,6 +83,12 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		routingDeliverer, err = NewAzureDestination(ctx, "routing")
 		if err != nil {
 			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
+		}
+	}
+	if appConfig.EhdiConnection != nil {
+		ehdiDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEhdi)
+		if err != nil {
+			return fmt.Errorf("failed to connect to ehdi deliverer target %w", err)
 		}
 	}
 
@@ -125,7 +131,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 
 	RegisterDestination("edav", edavDeliverer)
 	RegisterDestination("routing", routingDeliverer)
-	RegisterDestination("ehdi", ehdiDeliverer)
+	RegisterDestination(appconfig.DeliveryTargetEhdi, ehdiDeliverer)
 
 	RegisterSource("upload", src)
 
@@ -170,8 +176,9 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	// edav, routing -> use config
 	prefix := ""
 
+	// Can this switch be removed?
 	switch target {
-	case "routing", "edav":
+	case "routing", "edav", appconfig.DeliveryTargetEhdi:
 		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
 		if err != nil {
 			return "", err

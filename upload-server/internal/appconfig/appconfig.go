@@ -93,7 +93,7 @@ type AppConfig struct {
 	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
 	EdavCheckpointContainer    string `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
 	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
-	EhdiCheckpointContainer    string `env: "EHDI_CHECKPOINT_CONTAINER_NAME", default=ehdi-checkpoint`
+	EhdiCheckpointContainer    string `env:"EHDI_CHECKPOINT_CONTAINER_NAME, default=ehdi-checkpoint"`
 
 	Metrics MetricsConfig `env:", prefix=METRICS_"`
 } // .AppConfig
@@ -124,6 +124,9 @@ func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type AzureStorageConfig struct {
 	StorageName       string `env:"STORAGE_ACCOUNT"`
 	StorageKey        string `env:"STORAGE_KEY"`
+	TenantId string `env:"TENANT_ID"`
+	ClientId string `env:"CLIENT_ID"`
+	ClientSecret string `env:"CLIENT_SECRET"`
 	ContainerEndpoint string `env:"ENDPOINT"`
 } // .AzureStorageConfig
 
