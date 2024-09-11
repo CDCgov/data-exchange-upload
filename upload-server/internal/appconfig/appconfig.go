@@ -56,6 +56,7 @@ type AppConfig struct {
 	LocalEDAVFolder       string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
 	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
 	LocalEhdiFolder       string `env:"LOCAL_EHDI_FOLDER, default=./uploads/ehdi"`
+	LocalEicrFolder string `env:"LOCAL_EICR_FOLDER, default=./uploads/eicr"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
@@ -221,6 +222,12 @@ func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig,
 			FromPathStr: fromPathStr,
 			FromPath:    fromPath,
 			ToPath:      appConfig.LocalEhdiFolder,
+		}, nil
+	case DeliveryTargetEicr:
+		return &LocalStorageConfig{
+			FromPathStr: fromPathStr,
+			FromPath:    fromPath,
+			ToPath:      appConfig.LocalEicrFolder,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported local target %s", target)
