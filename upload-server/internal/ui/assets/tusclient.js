@@ -18,14 +18,11 @@ const progressBar = progressContainer.querySelector(".bar");
 
 // Hides or shows an element
 function _toggleVisibility(element, show) {
-  console.log(show);
-  console.log("before: ", element.classList);
   if (show) {
     element.classList.remove("hidden");
   } else {
     element.classList.add("hidden");
   }
-  console.log("after: ", element.classList);
 }
 
 // Hides or shows the progress bar
@@ -37,7 +34,6 @@ function _toggleProgressBar(show) {
 // Hides or shows the upload forms and the progress bar
 function _toggleUploadContainer(show) {
   const uploadContainer = document.querySelector(".upload-container");
-  console.log(uploadContainer);
   _toggleVisibility(uploadContainer, show);
 }
 
@@ -132,6 +128,7 @@ async function submitUploadForm() {
       fileSize != file.size ||
       fileLastModified != file.lastModified
     ) {
+      fileInput.value = "";
       // if it doesn't match the expected file, alert the user that they should try again
       window.alert(
         `This file does not match the previously partially uploaded file.\nPlease try with another file.`
@@ -160,6 +157,9 @@ async function submitUploadForm() {
     //   parallelUploads = 1;
     // }
   }
+
+  // hide the forms
+  _toggleFormContainer();
 
   // Upload the file
   await uploadFile(file, { endpoint, chunkSize, parallelUploads });
@@ -275,6 +275,7 @@ async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
   upload = new tus.Upload(file, options);
 
   if (previousUpload) {
+    console.log(`Resuming the upload of ${file.name}`);
     // if there is a previous upload for this file
     // set it here so that it will resume
     upload.resumeFromPreviousUpload(previousUpload);
@@ -305,11 +306,11 @@ async function initPage() {
   console.log(uploadStatusLevel);
   let isHost = false;
   switch (uploadStatusLevel) {
-    case 0: // 0 is Initiated
+    case "0": // 0 is Initiated
       isHost = true;
       _showInitiatedUploadForm();
       break;
-    case 1: // 1 is In Progress
+    case "1": // 1 is In Progress
       previousUpload = await findResumableUpload();
       if (previousUpload) {
         isHost = true;
@@ -318,7 +319,7 @@ async function initPage() {
         _showReadOnlyFileInfo();
       }
       break;
-    case 2: // 2 is Complete
+    case "2": // 2 is Complete
       _showReadOnlyFileInfo();
       break;
     default:
@@ -337,4 +338,6 @@ async function initPage() {
 }
 
 // run the page setup when the file opens
-initPage();
+(async () => {
+  await initPage();
+})();
