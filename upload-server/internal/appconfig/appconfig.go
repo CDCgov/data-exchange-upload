@@ -125,9 +125,9 @@ func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type AzureStorageConfig struct {
 	StorageName       string `env:"STORAGE_ACCOUNT"`
 	StorageKey        string `env:"STORAGE_KEY"`
-	TenantId string `env:"TENANT_ID"`
-	ClientId string `env:"CLIENT_ID"`
-	ClientSecret string `env:"CLIENT_SECRET"`
+	TenantId          string `env:"TENANT_ID"`
+	ClientId          string `env:"CLIENT_ID"`
+	ClientSecret      string `env:"CLIENT_SECRET"`
 	ContainerEndpoint string `env:"ENDPOINT"`
 } // .AzureStorageConfig
 
@@ -185,7 +185,7 @@ func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 	case DeliveryTargetEhdi:
 		return &AzureContainerConfig{
 			AzureStorageConfig: *LoadedConfig.EhdiConnection,
-			ContainerName: LoadedConfig.EhdiCheckpointContainer,
+			ContainerName:      LoadedConfig.EhdiCheckpointContainer,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported azure target %s", target)
@@ -212,8 +212,8 @@ func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig,
 	case DeliveryTargetEhdi:
 		return &LocalStorageConfig{
 			FromPathStr: fromPathStr,
-			FromPath: fromPath,
-			ToPath: appConfig.LocalEhdiFolder,
+			FromPath:    fromPath,
+			ToPath:      appConfig.LocalEhdiFolder,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported local target %s", target)

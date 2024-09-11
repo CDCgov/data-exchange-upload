@@ -56,10 +56,10 @@ type Destination interface {
 }
 
 type PathInfo struct {
-	Year string
-	Month string
-	Day string
-	Env string
+	Year     string
+	Month    string
+	Day      string
+	Env      string
 	UploadId string
 	Filename string
 }
@@ -138,7 +138,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		src = &S3Source{
 			FromClient: s3Client,
 			BucketName: appConfig.S3Connection.BucketName,
-			Prefix: appConfig.TusUploadPrefix,
+			Prefix:     appConfig.TusUploadPrefix,
 		}
 	}
 
@@ -185,12 +185,12 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 		// Use path template to form the full name.
 		t := time.Now().UTC()
 		pathInfo := &PathInfo{
-			Year:  strconv.Itoa(t.Year()),
-			Month: strconv.Itoa(int(t.Month())),
-			Day:   strconv.Itoa(t.Day()),
+			Year:     strconv.Itoa(t.Year()),
+			Month:    strconv.Itoa(int(t.Month())),
+			Day:      strconv.Itoa(t.Day()),
 			Filename: filenameWithoutExtension,
 			UploadId: tuid,
-			Env: appconfig.LoadedConfig.Environment,
+			Env:      appconfig.LoadedConfig.Environment,
 		}
 		tmpl, err := template.New("path").Parse(c.Copy.PathTemplate)
 		if err != nil {
