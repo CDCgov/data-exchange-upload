@@ -171,11 +171,6 @@ func (azc *AzureStorageConfig) Check() error {
 
 func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 	switch target {
-	case "dex":
-		return &AzureContainerConfig{
-			AzureStorageConfig: *LoadedConfig.AzureConnection,
-			ContainerName:      LoadedConfig.DexCheckpointContainer,
-		}, nil
 	case "edav":
 		return &AzureContainerConfig{
 			AzureStorageConfig: *LoadedConfig.EdavConnection,
@@ -201,12 +196,6 @@ func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig,
 	fromPath := os.DirFS(fromPathStr)
 
 	switch target {
-	case "dex":
-		return &LocalStorageConfig{
-			FromPathStr: fromPathStr,
-			FromPath:    fromPath,
-			ToPath:      appConfig.LocalDEXFolder,
-		}, nil
 	case "edav":
 		return &LocalStorageConfig{
 			FromPathStr: fromPathStr,
