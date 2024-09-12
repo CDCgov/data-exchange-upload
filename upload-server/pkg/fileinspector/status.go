@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
@@ -73,10 +74,11 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 	uploadCompletedReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadCompleted)
 	uploadCompletedFileInfo, errComplete := os.Stat(uploadCompletedReportFilename)
 	if errComplete == nil {
+		lastChunkReceived := uploadCompletedFileInfo.ModTime().Format(time.RFC3339)
 		// if the upload-completed file exists then the file is finished uploading
 		return info.FileUploadStatus{
 			Status: info.UploadComplete,
-			LastChunkReceived: uploadCompletedFileInfo.ModTime(),
+			LastChunkReceived: lastChunkReceived,
 		}, nil
 	} 
 
@@ -109,13 +111,15 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 	uploadStartedModTime := uploadStartedFileInfo.ModTime()
 	uploadStatusModTime := uploadStatusReportFileInfo.ModTime()
 
+	lastChunkReceived := uploadStatusModTime.Format(time.RFC3339)
+
 	if (uploadStartedModTime.Unix() == uploadStatusModTime.Unix()) {
 		// when the file upload is initiated the upload-started and upload-status reports 
 		// are created at the same time, so if the file modified times are still equal 
 		// it means the file hasn't started uploading yet
 		return info.FileUploadStatus{
 			Status: info.UploadInitiated,
-			LastChunkReceived: uploadStartedModTime,
+			LastChunkReceived: lastChunkReceived,
 		}, nil
 	}
 
@@ -124,7 +128,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 		// upload-started report, then the file is being uploaded
 		return info.FileUploadStatus{
 			Status: info.UploadInProgress,
-			LastChunkReceived: uploadStatusModTime,
+			LastChunkReceived: lastChunkReceived,
 		}, nil
 	}
 

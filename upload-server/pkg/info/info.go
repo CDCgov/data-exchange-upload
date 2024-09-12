@@ -2,7 +2,6 @@ package info
 
 import (
 	"errors"
-	"time"
 )
 
 var (
@@ -28,7 +27,7 @@ type InfoFileData struct {
 
 type FileUploadStatus struct {
 	Status string `json:"status"`
-	LastChunkReceived time.Time `json:"chunk_received_at"`
+	LastChunkReceived string `json:"chunk_received_at"`
 }
 
 type FileDeliveryStatus struct {
