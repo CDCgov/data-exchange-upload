@@ -96,7 +96,7 @@
   border: 3px solid #ccc;
   border-radius: 5px;
   margin-bottom: 2rem;
-  padding: 0 1rem;
+  padding: 1rem 2rem;
 }
 
 .file-delivery .delivery-label {
@@ -133,6 +133,25 @@
 
 .upload-failure {
   color: rgb(155, 0, 0);
+}
+
+#location-info {
+  padding: 2rem 0;
+  font-size: large;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 1rem;
+}
+
+#location-info .location-label {
+}
+
+#location-info .location-value {
+}
+
+#issue-info .issue-list .issue-item {
+  padding: 0.5rem 0;
 }
 
 .issue-item .issue-level {

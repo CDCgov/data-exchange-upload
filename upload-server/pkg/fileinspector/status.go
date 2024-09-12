@@ -52,17 +52,12 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ contex
 			return deliveries, err
 		}
 
-		issues := []string{}
-		for _, issue := range report.StageInfo.Issues {
-			issues = append(issues, issue.String())
-		}
-
 		deliveries = append(deliveries, info.FileDeliveryStatus{
 			Status:      report.StageInfo.Status,
 			Name:        content.DestinationName,
 			Location:    content.FileDestinationBlobUrl,
 			DeliveredAt: report.StageInfo.EndProcessTime,
-			Issues:      issues,
+			Issues:      report.StageInfo.Issues,
 		})
 	}
 

@@ -118,20 +118,22 @@
                 </div>
               </div>
             </div>
-            <div class="info-item">
-              <div class="item-name">Location:</div>
-              <div class="item-value">{{.Location}}</div>
+
+            <div class="info-item" id="location-info">
+              <div class="location-label">Location:</div>
+              <div class="lcoation-value">{{.Location}}</div>
             </div>
           
             {{if .Issues}}
-            <div class="info-item">
+            <div class="file-info delivery-issues">
               <h3>Issues:</h3>
-              <div class="item-value">    
-                <ul>
-                {{range .Issues}}
-                  <li>{{.}}</li>
-                {{end}}
-                </ul>   
+              <div class="issue-list">    
+              {{range .Issues}}
+                <div class="info-item">
+                  <span class="item-name issue-level-{{AllLowerCase .Level}}">{{.Level}}</span>
+                  <span class="item-value issue-message">{{.Message}}</span>
+                </div>
+              {{end}}
               </div>
             </div>
             {{end}}
