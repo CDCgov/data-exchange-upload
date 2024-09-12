@@ -65,11 +65,18 @@
             <div class="file-info-container">
                 <div class="file-info" id="upload-status">
                     <h1>
-                        Upload Status: <span class="item-value upload-{{AllLowerCase .Info.UploadStatus.Status}}" id="upload-status-value">{{.Info.UploadStatus.Status}}</span>
+                        <div>
+                            Upload Status: 
+                        </div>
+                        <div class="item-value upload-{{AllLowerCase .Info.UploadStatus.Status}}" id="upload-status-value">
+                            {{.Info.UploadStatus.Status}}
+                        </div>
                     </h1>
-                    <div>
-                        <a href="/" class="link-button">New Upload</a>
-                    </div>
+                    <a href="/" class="link-button">
+                        <div class="link-button-container">
+                            Upload New File
+                        </div>
+                    </a>
                 </div>
                 <div class="file-info" id="file-info">
                     <div class="info-item">
@@ -151,9 +158,11 @@
                         <div class="item-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
                     </div>
                 </div>
-                <div>
-                    <a href="/" class="link-button">New Upload</a>
-                </div>
+                <a href="/" class="link-button">
+                    <div class="link-button-container">
+                        Upload New File
+                    </div>
+                </a>
             </div>
         </main>
     </body>

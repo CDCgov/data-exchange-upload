@@ -8,8 +8,15 @@
 }
 
 .file-info h1 {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   margin-top: 0;
   margin-bottom: 0.75rem;
+}
+
+.file-info h1 div:first-child {
+  margin-right: 0.5rem;
 }
 
 #upload-status {
@@ -70,6 +77,27 @@
   color: rgb(155, 0, 0);
 }
 
+.item-value {
+  word-break:break-all;
+}
+
+.link-button-container {
+  background-color: rgba(0, 119, 255, .1);
+  border: 2px solid rgb(0, 94, 201);
+  border-radius: 5px;
+  margin: auto 0;
+  padding: 0.5rem 1rem;
+  text-align: center;
+}
+
+.link-button-container:hover {
+  background-color: rgb(0, 94, 201);
+  color: white;
+  cursor: pointer;
+}
+
 .link-button {
+  color: rgb(0, 94, 201) !important;
+  font-weight: 700;
   text-decoration: none;
 }
