@@ -20,7 +20,7 @@ test.describe("Upload End to End Tests", () => {
     
         await page.locator('input[type="file"]').click();
         const fileChooser = await fileChooserPromise;
-        await fileChooser.setFiles('../upload-files/10KB-test-file');
+        await fileChooser.setFiles('../upload-files/10KB-test-file');     
 
         await page.getByText('Download 10KB-test-file')
     })
