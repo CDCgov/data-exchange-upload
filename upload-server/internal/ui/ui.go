@@ -41,7 +41,6 @@ func AllUpperCase(text string) string {
 	return strings.ToUpper(text)
 }
 
-
 func FormatDateTime(dateTimeString string) string {
 	date, err := time.Parse(time.RFC3339, dateTimeString)
 
@@ -54,9 +53,9 @@ func FormatDateTime(dateTimeString string) string {
 }
 
 var usefulFuncs = template.FuncMap{
-	"FixNames":         FixNames,
-	"AllLowerCase":     AllLowerCase,
-	"AllUpperCase":     AllUpperCase,
+	"FixNames":       FixNames,
+	"AllLowerCase":   AllLowerCase,
+	"AllUpperCase":   AllUpperCase,
 	"FormatDateTime": FormatDateTime,
 }
 
@@ -71,10 +70,10 @@ type ManifestTemplateData struct {
 }
 
 type UploadTemplateData struct {
-	Navbar    				components.Navbar
-	UploadUrl 				string
-	UploadStatusLevel	int
-	Info      				info.InfoResponse
+	Navbar            components.Navbar
+	UploadUrl         string
+	UploadStatusLevel int
+	Info              info.InfoResponse
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -211,20 +210,20 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 
 		var uploadStatusLevel int
 		switch fileInfo.UploadStatus.Status {
-			case info.UploadInitiated:
-				uploadStatusLevel = 0;
-			case info.UploadInProgress:
-				uploadStatusLevel = 1;
-			case info.UploadComplete:
-				uploadStatusLevel = 2;
-			default:
-				uploadStatusLevel = -1;
+		case info.UploadInitiated:
+			uploadStatusLevel = 0
+		case info.UploadInProgress:
+			uploadStatusLevel = 1
+		case info.UploadComplete:
+			uploadStatusLevel = 2
+		default:
+			uploadStatusLevel = -1
 		}
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
-			UploadUrl: uploadUrl,
-			Navbar:    components.Navbar{},
-			Info:      fileInfo,
+			UploadUrl:         uploadUrl,
+			Navbar:            components.Navbar{},
+			Info:              fileInfo,
 			UploadStatusLevel: uploadStatusLevel,
 		})
 		if err != nil {
