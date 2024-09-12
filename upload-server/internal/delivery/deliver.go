@@ -59,7 +59,6 @@ type PathInfo struct {
 	Year     string
 	Month    string
 	Day      string
-	Env      string
 	UploadId string
 	Filename string
 }
@@ -205,7 +204,6 @@ func getDeliveredFilename(ctx context.Context, tuid string, manifest map[string]
 			Day:      strconv.Itoa(t.Day()),
 			Filename: filenameWithoutExtension,
 			UploadId: tuid,
-			Env:      appconfig.LoadedConfig.Environment,
 		}
 		tmpl, err := template.New("path").Parse(c.Copy.PathTemplate)
 		if err != nil {
