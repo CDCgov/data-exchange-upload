@@ -19,6 +19,11 @@ main, nav {
   max-width: 750px;
 }
 
+nav {
+  display: flex;
+  justify-content: space-between;
+}
+
 a.skip-main {
   left: -999px;
   position: absolute;

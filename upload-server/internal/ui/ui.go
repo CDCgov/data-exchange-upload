@@ -59,8 +59,8 @@ var usefulFuncs = template.FuncMap{
 	"FormatDateTime": FormatDateTime,
 }
 
-var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl", "components/navbar.html"))
-var uploadTemplate = template.Must(template.New("upload.tmpl").Funcs(usefulFuncs).ParseFS(content, "upload.tmpl", "components/navbar.html"))
+var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl", "components/navbar.html", "components/newuploadbtn.html"))
+var uploadTemplate = template.Must(template.New("upload.tmpl").Funcs(usefulFuncs).ParseFS(content, "upload.tmpl", "components/navbar.html", "components/newuploadbtn.html"))
 
 type ManifestTemplateData struct {
 	DataStream      string
@@ -74,6 +74,7 @@ type UploadTemplateData struct {
 	UploadUrl         string
 	UploadStatusLevel int
 	Info              info.InfoResponse
+	Newuploadbtn      components.Newuploadbtn
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -102,7 +103,11 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			DataStream:      dataStream,
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
-			Navbar:          components.Navbar{},
+			Navbar: components.Navbar{
+				Newuploadbtn: components.Newuploadbtn{
+					HideBtn: true,
+				},
+			},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -221,10 +226,15 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		}
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
-			UploadUrl:         uploadUrl,
-			Navbar:            components.Navbar{},
+			UploadUrl: uploadUrl,
+			Navbar: components.Navbar{
+				Newuploadbtn: components.Newuploadbtn{
+					HideBtn: false,
+				},
+			},
 			Info:              fileInfo,
 			UploadStatusLevel: uploadStatusLevel,
+			Newuploadbtn:      components.Newuploadbtn{},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)

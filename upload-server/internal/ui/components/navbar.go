@@ -1,3 +1,5 @@
 package components
 
-type Navbar struct{}
+type Navbar struct {
+	Newuploadbtn Newuploadbtn
+}

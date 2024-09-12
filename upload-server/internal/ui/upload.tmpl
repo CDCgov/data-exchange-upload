@@ -72,11 +72,6 @@
                             {{.Info.UploadStatus.Status}}
                         </div>
                     </h1>
-                    <a href="/" class="link-button">
-                        <div class="link-button-container">
-                            Upload New File
-                        </div>
-                    </a>
                 </div>
                 <div class="file-info" id="file-info">
                     <div class="info-item">
@@ -158,11 +153,7 @@
                         <div class="item-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
                     </div>
                 </div>
-                <a href="/" class="link-button">
-                    <div class="link-button-container">
-                        Upload New File
-                    </div>
-                </a>
+                {{template "newuploadbtn" .Newuploadbtn}}
             </div>
         </main>
     </body>
