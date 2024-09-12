@@ -3,8 +3,20 @@
   padding: 1.2rem;
 }
 
+.file-info-container .file-id {
+  margin-bottom: 2.5rem;
+
+  h1 {
+    margin-bottom: 0.5rem;
+  }
+}
+
 .file-info-container #file-delivery .delivery-success {
   color: rgb(6, 162, 6);
+}
+
+.file-info-container #file-delivery .delivery-failure {
+  color: rgb(162, 6, 6);
 }
 
 .file-info {
