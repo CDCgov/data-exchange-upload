@@ -41,7 +41,7 @@ func AllUpperCase(text string) string {
 	return strings.ToUpper(text)
 }
 
-func StringToUnixTime(dateTimeString string) string {
+func RCF3339toUnix(dateTimeString string) string {
 	date, err := time.Parse(time.RFC3339, dateTimeString)
 
 	if err != nil {
@@ -49,14 +49,26 @@ func StringToUnixTime(dateTimeString string) string {
 		return ""
 	}
 
-	return date.Format(time.UnixDate)
+	return date.Format(time.RFC1123)
+}
+
+func RCF3339NanotoUnix(dateTimeString string) string {
+	date, err := time.Parse(time.RFC3339Nano, dateTimeString)
+
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	return date.Format(time.RFC1123)
 }
 
 var usefulFuncs = template.FuncMap{
-	"FixNames":         FixNames,
-	"AllLowerCase":     AllLowerCase,
-	"AllUpperCase":     AllUpperCase,
-	"StringToUnixTime": StringToUnixTime,
+	"FixNames":          FixNames,
+	"AllLowerCase":      AllLowerCase,
+	"AllUpperCase":      AllUpperCase,
+	"RCF3339toUnix":     RCF3339toUnix,
+	"RCF3339NanotoUnix": RCF3339NanotoUnix,
 }
 
 var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl", "components/navbar.html"))

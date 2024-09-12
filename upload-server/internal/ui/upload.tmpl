@@ -83,27 +83,26 @@
 
                 <hr />
                 <div id="upload-list">
-                    <div id="upload-info">
+                    <div id="upload-status">
                         <strong>File Name:</strong> {{.Info.Manifest.received_file_name}}<br />
                         <strong>Sender ID:</strong> {{AllUpperCase .Info.Manifest.sender_id}}<br />
                         <strong>Upload ID:</strong> {{AllUpperCase .Info.Manifest.upload_id}}<br />
-                    </div>
-                    {{range .Info.Deliveries}}
-                        <div id="upload-status">
+                        {{range .Info.Deliveries}}
                             <strong>Upload Status: <span class="upload-{{AllLowerCase .Status}}">{{.Status}}</span></strong><br />
-                            <strong>Received At:</strong> {{.DeliveredAt}}
-                        </div>
-                    {{end}}
+                            <span id="location-highlight"><strong>Location:</strong> {{.Location}}</span><br />
+                            <strong>Received At:</strong> {{RCF3339toUnix .DeliveredAt}}
+                        {{end}}
+                    </div>
                     <div id="file-info">
                         <strong>File Size:</strong> {{.Info.FileInfo.size_bytes}} bytes<br />
-                        <strong>Updated At:</strong> {{.Info.FileInfo.updated_at}}
+                        <strong>Updated At:</strong> {{RCF3339NanotoUnix .Info.FileInfo.updated_at}}
                     </div>
                     <div id="upload-info-extra">
                         <strong>Version:</strong> {{.Info.Manifest.version}}<br />
                         <strong>Producer ID:</strong> {{AllUpperCase .Info.Manifest.data_producer_id}}<br />
                         <strong>Stream ID:</strong> {{AllUpperCase .Info.Manifest.data_stream_id}}<br />
                         <strong>Stream Route:</strong> {{AllUpperCase .Info.Manifest.data_stream_route}}<br />
-                        <strong>Ingest Date/Time:</strong> {{.Info.Manifest.dex_ingest_datetime}}<br />
+                        <strong>Ingest Date/Time:</strong> {{RCF3339toUnix .Info.Manifest.dex_ingest_datetime}}<br />
                         <strong>Jurisdiction:</strong> {{AllUpperCase .Info.Manifest.jurisdiction}}<br />
                     </div>
                 </div>
