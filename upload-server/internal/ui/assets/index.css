@@ -67,11 +67,16 @@ a.skip-main:active {
 a:visited {
   color: #000;
   text-decoration: none;
+  border-bottom: 1px solid #f4f4f4;
 }
 
 .nav-container a:hover {
   color: #000;
   border-bottom: 1px solid #000;
+}
+
+.nav-container .link-button:hover {
+  border-bottom: 0;
 }
 
 .nav-container img {
