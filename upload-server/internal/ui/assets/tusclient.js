@@ -12,6 +12,11 @@ const fileInput = document.querySelector("input[type=file]");
 const progressContainer = document.querySelector(".progress");
 const progressBar = progressContainer.querySelector(".bar");
 
+const UPLOAD_STATUS_LABEL_INITIALIZED = " Upload Initialized At: ";
+const UPLOAD_STATUS_LABEL_IN_PROGRESS = " Last Chunk Received At: ";
+const UPLOAD_STATUS_LABEL_COMPLETE = " Upload Completed At: ";
+const UPLOAD_STATUS_LABEL_DEFAULT = " Uploaded At: ";
+
 // ------------------------------------------
 // Functions
 // ------------------------------------------
@@ -81,13 +86,20 @@ function _showResumableUploadForm() {
 }
 
 // Sets the view up to only show the file info
-function _showReadOnlyFileInfo() {
+function _showReadOnlyFileInfo(statusLabel) {
   _toggleUploadContainer(false);
   _toggleInfoContainer(true);
+  _setUploadStatusLabel(statusLabel);
+}
+
+function _setUploadStatusLabel(text) {
+  document.querySelector("#upload-status-label").innerHTML = text;
 }
 
 function _updateUploadStatusInProgress() {
+  uploadStatusLevel = 1;
   document.querySelector("#upload-status-value").innerHTML = "In Progress";
+  _setUploadStatusLabel(UPLOAD_STATUS_LABEL_IN_PROGRESS);
 }
 
 function _updateLastChunkReceived() {
@@ -331,15 +343,15 @@ async function findResumableUpload() {
         isHost = true;
         _showResumableUploadForm();
       } else {
-        _showReadOnlyFileInfo();
+        _showReadOnlyFileInfo(UPLOAD_STATUS_LABEL_IN_PROGRESS);
       }
       break;
     case "2": // 2 is Complete
-      _showReadOnlyFileInfo();
+      _showReadOnlyFileInfo(UPLOAD_STATUS_LABEL_COMPLETE);
       break;
     default:
       console.error(`${uploadStatusLevel} is an invalid status`);
-      _showReadOnlyFileInfo();
+      _showReadOnlyFileInfo(UPLOAD_STATUS_LABEL_DEFAULT);
   }
 
   if (isHost) {

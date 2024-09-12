@@ -1,165 +1,184 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="/assets/index.css">
-        <link rel="stylesheet" href="/assets/form.css">
-        <link rel="stylesheet" href="/assets/progress.css">
-        <link rel="stylesheet" href="/assets/file-info.css">
-        <link rel="icon" type="image/x-icon" href="/assets/dex_logo.svg" />
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>DEX Upload</title>
-    </head>
-    <body>
-        {{template "navbar" .Navbar}}
-        <main id="main">
-            <div class="upload-container">
-                <div class="alert alert-warining hidden" id="support-alert">
-                    <b>Warning!</b> Your browser does not seem to support the features necessary to run tus-js-client. The buttons below may work but probably will fail silently.
-                </div>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="/assets/index.css" />
+    <link rel="stylesheet" type="text/css" href="/assets/form.css" />
+    <link rel="stylesheet" type="text/css" href="/assets/progress.css" />
+    <link rel="stylesheet" type="text/css" href="/assets/file-info.css" />
+    <link rel="icon" type="image/x-icon" href="/assets/dex_logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DEX Upload</title>
+  </head>
+  <body>
+    {{template "navbar" .Navbar}}
+    <main id="main">
+      <div class="upload-container">
+        <div class="alert alert-warining hidden" id="support-alert">
+          <b>Warning!</b> Your browser does not seem to support the features
+          necessary to run tus-js-client. The buttons below may work but
+          probably will fail silently.
+        </div>
 
-                <h1 class="new-upload">File Uploader</h1>
-                <h1 class="resume-upload">Resume Upload</h1>
-    
-                <div class="form-container">
-                    <div class="input-group new-upload">
-                        <label for="endpoint">
-                            Upload endpoint:
-                        </label>
-                        <input type="text" id="endpoint" name="endpoint" value="http://localhost:8080/files/">
-                        <!-- http://localhost:8080/files/ -->
-                        <!-- https://tusd.tusdemo.net/files/ -->
-                        <!-- https://apidev.cdc.gov/upload -->
-                    </div>
-                    <div class="input-group new-upload">
-                        <label for="chunksize">
-                            Chunk size (bytes):
-                        </label>
-                        <input type="number" id="chunksize" name="chunksize" value="40000000">
-                        <p><b>Note:</b> Chunksize should be set on the client for uploading files of large size (1GB or over).</p>
-                    </div>
-                    <div class="input-group new-upload">
-                        <label for="paralleluploads">
-                            Parallel upload requests:
-                        </label>
-                        <input type="number" id="paralleluploads" name="paralleluploads" value="1" disabled>
-                    </div>
-                    <div class="input-group">
-                        <label>
-                            Metadata JSON object (file name will be inferred from each file):
-                            <div class="file-container">
-                                <button onclick="files.click()">Browse Files</button>
-                                <input type="file" id="files">
-                            </div>
-                        </label>
-                    </div>
-                </div>
+        <h1 class="new-upload">File Uploader</h1>
+        <h1 class="resume-upload">Resume Upload</h1>
 
-                <div class="span8 progress-container">
-                    <div class="progress progress-striped progress-success hidden">
-                        <div class="bar hidden" style="width: 0%;"></div>
-                    </div>
-                </div>
-                <hr />
+        <div class="form-container">
+          <div class="input-group new-upload">
+            <label for="endpoint"> Upload endpoint: </label>
+            <input
+              type="text"
+              id="endpoint"
+              name="endpoint"
+              value="http://localhost:8080/files/"
+            />
+            <!-- http://localhost:8080/files/ -->
+            <!-- https://tusd.tusdemo.net/files/ -->
+            <!-- https://apidev.cdc.gov/upload -->
+          </div>
+          <div class="input-group new-upload">
+            <label for="chunksize"> Chunk size (bytes): </label>
+            <input
+              type="number"
+              id="chunksize"
+              name="chunksize"
+              value="40000000"
+            />
+            <p>
+              <b>Note:</b> Chunksize should be set on the client for uploading
+              files of large size (1GB or over).
+            </p>
+          </div>
+          <div class="input-group new-upload">
+            <label for="paralleluploads"> Parallel upload requests: </label>
+            <input
+              type="number"
+              id="paralleluploads"
+              name="paralleluploads"
+              value="1"
+              disabled
+            />
+          </div>
+          <div class="input-group">
+            <label>
+              Metadata JSON object (file name will be inferred from each file):
+              <div class="file-container">
+                <button onclick="files.click()">Browse Files</button>
+                <input type="file" id="files" />
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="span8 progress-container">
+          <div class="progress progress-striped progress-success hidden">
+            <div class="bar hidden" style="width: 0%"></div>
+          </div>
+        </div>
+        <hr />
+      </div>
+      <div class="file-info-container">
+        <div id="file-info-header">
+          <div class="file-id" id="file-id">
+            <h1>{{.Info.Manifest.received_filename}}</h1>
+            <strong>ID: {{.Info.Manifest.upload_id}}</strong>
+          </div>
+
+          <div class="file-info" id="upload-status">
+            <h1>
+              <span class="status-label">Upload Status: </span>
+              <span class="status-value upload-{{AllLowerCase .Info.UploadStatus.Status}}" id="upload-status-value">
+                {{.Info.UploadStatus.Status}}
+              </span>
+            </h1>
+            <div class="small-italics">
+                <span class="status-time-label" id="upload-status-label"> Uploaded At: </span>
+                <span class="status-time-value" id="upload-datetime-value">
+                  {{FormatDateTime .Info.UploadStatus.LastChunkReceived}}
+                </span>
             </div>
-            <div class="file-info-container">
-                <div class="file-info" id="upload-status">
-                    <h1>
-                        <div>
-                            Upload Status: 
-                        </div>
-                        <div class="item-value upload-{{AllLowerCase .Info.UploadStatus.Status}}" id="upload-status-value">
-                            {{.Info.UploadStatus.Status}}
-                        </div>
-                    </h1>
+          </div>
+        </div>
+
+        {{if .Info.Deliveries}}
+        <div class="file-info" id="file-deliveries">
+          <h2>Delivery Status</h2>
+          {{range .Info.Deliveries}}
+          <div class="file-delivery file-delivery-{{AllLowerCase .Status}}">
+            <div id="delivery-header">
+              <h3>{{AllUpperCase .Name}}</h3>
+              <div id="delivery-status">
+                <h3>
+                  <span class="status-label">Delivery Status:</span>
+                  <span class="status-value delivery-{{AllLowerCase .Status}}">{{.Status}}</span>
+                </h3>
+                <div class="small-italics">
+                  <span class="status-time-label"> Delivered At:</span>
+                  <span class="status-time-value">{{FormatDateTime .DeliveredAt}}</span>
                 </div>
-                <div class="file-info" id="file-info">
-                    <div class="info-item">
-                        <div class="item-name">File Name:</div>
-                        <div class="item-value">{{.Info.Manifest.received_filename}}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="item-name">Upload ID:</div>
-                        <div class="item-value">{{AllUpperCase .Info.Manifest.upload_id}}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="item-name">Last Chunk Received:</div>
-                        <div class="item-value" id="upload-datetime-value">{{FormatDateTime .Info.UploadStatus.LastChunkReceived}}</div>
-                    </div>
-                </div>
-                {{if .Info.Deliveries}}
-                    <div class="file-info" id="file-deliveries">
-                        <h2>Delivery Status</h2>
-                        {{range .Info.Deliveries}}
-                        <div class="file-delivery file-delivery-{{AllLowerCase .Status}}">
-                            <div class="info-item">
-                                <div class="item-name">Name:</div>
-                                <div class="item-value">{{.Name}}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="item-name">Location:</div>
-                                <div class="item-value">{{.Location}}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="item-name">Delivery Status:</div>
-                                <div class="item-value delivery-{{AllLowerCase .Status}}">{{.Status}}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="item-name">Delivered At:</div>
-                                <div class="item-value">{{FormatDateTime .DeliveredAt}}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="item-name">Issues:</div>
-                                <div class="item-value">
-                                {{if .Issues}}
-                                    <ul>
-                                    {{range .Issues}}
-                                        <li>{{.}}</li>
-                                    {{end}}
-                                    </ul>
-                                {{else}}
-                                    No issues
-                                {{end}}
-                                </div>
-                            </div>
-                        </div>
-                        {{end}}
-                    </div>
+              </div>
+            </div>
+            <div class="info-item">
+              <div class="item-name">Location:</div>
+              <div class="item-value">{{.Location}}</div>
+            </div>
+          
+            {{if .Issues}}
+            <div class="info-item">
+              <h3>Issues:</h3>
+              <div class="item-value">    
+                <ul>
+                {{range .Issues}}
+                  <li>{{.}}</li>
                 {{end}}
-                <div class="file-info" id="file-details">
-                    <h2>Upload Details</h2>
-                    <div class="info-item">
-                        <div class="item-name">File Size:</div>
-                        <div class="item-value">{{.Info.FileInfo.size_bytes}} bytes</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="item-name">Sender ID:</div>
-                        <div class="item-value">{{AllUpperCase .Info.Manifest.sender_id}}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="item-name">Producer ID:</div>
-                        <div class="item-value">{{AllUpperCase .Info.Manifest.data_producer_id}}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="item-name">Stream ID:</div>
-                        <div class="item-value">{{AllUpperCase .Info.Manifest.data_stream_id}}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="item-name">Stream Route:</div>
-                        <div class="item-value">{{AllUpperCase .Info.Manifest.data_stream_route}}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="item-name">Jurisdiction:</div>
-                        <div class="item-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
-                    </div>
-                </div>
-                {{template "newuploadbtn" .Newuploadbtn}}
+                </ul>   
+              </div>
             </div>
-        </main>
-    </body>
+            {{end}}
+          </div>
+          {{end}}
+        </div>
+        {{end}}
 
-    <script>const uploadUrl="{{.UploadUrl}}"</script>
-    <script>const uploadStatusLevel="{{.UploadStatusLevel}}"</script>
-    <script src="https://cdn.jsdelivr.net/npm/tus-js-client@latest/dist/tus.js"></script>
-    <script src="/assets/tusclient.js"></script>
+        <div class="file-info" id="file-details">
+          <h2>Upload Details</h2>
+          <div class="info-item">
+            <div class="item-name">File Size:</div>
+            <div class="item-value">{{.Info.FileInfo.size_bytes}} bytes</div>
+          </div>
+          <div class="info-item">
+            <div class="item-name">Sender ID:</div>
+            <div class="item-value">{{AllUpperCase .Info.Manifest.sender_id}}</div>
+          </div>
+          <div class="info-item">
+            <div class="item-name">Producer ID:</div>
+            <div class="item-value">{{AllUpperCase .Info.Manifest.data_producer_id}}</div>
+          </div>
+          <div class="info-item">
+            <div class="item-name">Stream ID:</div>
+            <div class="item-value">{{AllUpperCase .Info.Manifest.data_stream_id}}</div>
+          </div>
+          <div class="info-item">
+            <div class="item-name">Stream Route:</div>
+            <div class="item-value">{{AllUpperCase .Info.Manifest.data_stream_route}}</div>
+          </div>
+          <div class="info-item">
+            <div class="item-name">Jurisdiction:</div>
+            <div class="item-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
+          </div>
+        </div>
+
+        {{template "newuploadbtn" .Newuploadbtn}}
+      </div>
+    </main>
+  </body>
+
+  <script>
+    const uploadUrl = "{{.UploadUrl}}";
+  </script>
+  <script>
+    const uploadStatusLevel = "{{.UploadStatusLevel}}";
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/tus-js-client@latest/dist/tus.js"></script>
+  <script src="/assets/tusclient.js"></script>
 </html>
