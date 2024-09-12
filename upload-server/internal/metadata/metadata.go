@@ -5,6 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders"
@@ -15,14 +24,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/google/uuid"
-	"log/slog"
-	"net/http"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
-	"sync"
-	"time"
 
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
@@ -74,7 +75,7 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		return errors.New("cannot load metadata config from multiple locations")
 	}
 
-	if appConfig.AzureConnection != nil {
+	if appConfig.AzureConnection != nil && appConfig.AzureManifestConfigContainer != "" {
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
 		if err != nil {
 			return err
@@ -85,7 +86,7 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		}
 	}
 
-	if appConfig.S3Connection != nil {
+	if appConfig.S3Connection != nil && appConfig.S3ManifestConfigBucket != "" {
 		client, err := stores3.New(ctx, appConfig.S3Connection)
 		if err != nil {
 			return err

@@ -7,14 +7,16 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 	"github.com/eventials/go-tus"
 )
 
 type testCase struct {
-	metadata tus.Metadata
-	err      error
+	metadata   tus.Metadata
+	err        error
+	deliveries []info.FileDeliveryStatus
 }
 
 var Cases = map[string]testCase{
@@ -24,6 +26,9 @@ var Cases = map[string]testCase{
 			"meta_ext_event":      "testevent1",
 		},
 		nil,
+		[]info.FileDeliveryStatus{
+			{},
+		},
 	},
 	"missing meta_destination_id": {
 		tus.Metadata{
@@ -33,6 +38,9 @@ var Cases = map[string]testCase{
 		tus.ClientError{
 			Code: 400,
 			Body: []byte("meta_destination_id not found in manifest"),
+		},
+		[]info.FileDeliveryStatus{
+			{},
 		},
 	},
 	"missing meta_ext_event": {
@@ -44,6 +52,9 @@ var Cases = map[string]testCase{
 			Code: 400,
 			Body: []byte("meta_ext_event not found in manifest"),
 		},
+		[]info.FileDeliveryStatus{
+			{},
+		},
 	},
 	"unkown meta_ext_event": {
 		tus.Metadata{
@@ -53,6 +64,9 @@ var Cases = map[string]testCase{
 		tus.ClientError{
 			Code: 400,
 			Body: []byte("configuration not found"),
+		},
+		[]info.FileDeliveryStatus{
+			{},
 		},
 	},
 	"v2 good": {
@@ -66,6 +80,9 @@ var Cases = map[string]testCase{
 			"received_filename": "test",
 		},
 		nil,
+		[]info.FileDeliveryStatus{
+			{},
+		},
 	},
 	"eicr v2 bad (missing things)": {
 		tus.Metadata{
@@ -78,6 +95,9 @@ var Cases = map[string]testCase{
 		},
 		tus.ClientError{
 			Code: 400,
+		},
+		[]info.FileDeliveryStatus{
+			{},
 		},
 	},
 	"eicr v2 good": {
@@ -93,6 +113,9 @@ var Cases = map[string]testCase{
 			"meta_ext_file_timestamp": "test",
 		},
 		nil,
+		[]info.FileDeliveryStatus{
+			{},
+		},
 	},
 	"ndlp v1 good": {
 		tus.Metadata{
@@ -107,6 +130,9 @@ var Cases = map[string]testCase{
 			"meta_ext_entity":           "AKA",
 		},
 		nil,
+		[]info.FileDeliveryStatus{
+			{},
+		},
 	},
 }
 
@@ -162,6 +188,7 @@ func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
 
 		tuid = filepath.Base(uploader.Url())
 
+		time.Sleep(1 * time.Second)
 		// check the file
 		resp, err := http.Get(url + "/info/" + tuid)
 		if err != nil {
@@ -189,6 +216,10 @@ func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
 		_, ok = infoJson.Manifest["dex_ingest_datetime"]
 		if !ok {
 			return "", fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
+		}
+
+		if len(infoJson.Deliveries) != len(c.deliveries) {
+			return "", fmt.Errorf("incorrect deliveries: %+v %+v", infoJson.Deliveries, c.deliveries)
 		}
 	}
 

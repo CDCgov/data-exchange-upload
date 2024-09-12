@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  upload-server:
+    command: go test ./cmd -tags=integration
+    depends_on:
+      - minio
+      - azurite
+      - cache

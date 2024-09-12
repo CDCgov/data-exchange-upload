@@ -56,6 +56,16 @@ func init() {
 	}
 	os.Setenv("SERVER_PORT", fmt.Sprintf("%d", port))
 	os.Setenv("UPLOAD_CONFIG_PATH", "../../upload-configs")
+	os.Setenv("S3_ENDPOINT", "http://minio:8000")
+	os.Setenv("S3_BUCKET_NAME", "test-bucket")
+	os.Setenv("AWS_REGION", "us-east-1")
+	os.Setenv("AWS_ACCESS_KEY_ID", "minioadmin")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "minioadmin")
+
+	os.Setenv("EDAV_STORAGE_ACCOUNT", "devstoreaccount1")
+	os.Setenv("EDAV_STORAGE_KEY", "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==")
+	os.Setenv("EDAV_ENDPOINT", "http://azurite:10000/devstoreaccount1")
+	os.Setenv("EDAV_CHECKPOINT_CONTAINER_NAME", "edav")
 }
 
 func TestMain(m *testing.M) {
