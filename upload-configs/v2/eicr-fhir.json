@@ -60,7 +60,7 @@
 	"copy_config": {
 		"filename_suffix": "upload_id",
 		"folder_structure": "date_YYYY_MM_DD",
-		"path_template": "DDTP/eICR Learning Pilot(eICRLRNG)/DEX-{{.Env}}/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}",
+		"path_template": "${EICR_PATH_TEMPLATE}",
 		"targets": [
 			"eicr"
 		]
