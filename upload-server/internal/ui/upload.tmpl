@@ -6,6 +6,7 @@
         <link rel="stylesheet" href="/assets/form.css">
         <link rel="stylesheet" href="/assets/progress.css">
         <link rel="stylesheet" href="/assets/status.css">
+        <link rel="stylesheet" href="/assets/file-info.css">
         <link rel="icon" type="image/x-icon" href="/assets/dex_logo.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>DEX Upload</title>
@@ -75,23 +76,86 @@
                     <div class="progress progress-striped progress-success hidden">
                         <div class="bar hidden" style="width: 0%;"></div>
                     </div>
-                    </div>
-                    <!-- <div class="span4">
-                    <button class="btn stop" id="toggle-btn">start upload</button>
-                    </div> -->
                 </div>
-
                 <hr />
-                <div id="upload-list">
-                    <div id="upload-info">
-                        <strong>File Name:</strong> {{.Info.Manifest.received_file_name}}<br />
-                        <strong>Sender ID:</strong> {{AllUpperCase .Info.Manifest.sender_id}}<br />
-                        <strong>Upload ID:</strong> {{AllUpperCase .Info.Manifest.upload_id}}<br />
+            </div>
+            <div class="file-info-container">
+                <div class="file-info">
+                    <h2>Upload Status: <span class="upload-{{AllLowerCase .Info.UploadStatus.Status}}">{{.Info.UploadStatus.Status}}</span></h2>
+                    <div class="info-item">
+                        <div class="item-name">File Name:</div>
+                        <div class="item-value">{{.Info.Manifest.received_filename}}</div>
                     </div>
-                    {{range .Info.Deliveries}}
-                        <div id="upload-status">
-                            <strong>Upload Status: <span class="upload-{{AllLowerCase .Status}}">{{.Status}}</span></strong><br />
-                            <strong>Received At:</strong> {{.DeliveredAt}}
+                    <div class="info-item">
+                        <div class="item-name">Upload ID:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.upload_id}}</div>
+                    </div>
+                </div>
+                <div class="file-info">
+                    <h2>File Details</h2>
+                    <div class="info-item">
+                        <div class="item-name">Sender ID:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.sender_id}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Producer ID:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.data_producer_id}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Stream ID:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.data_stream_id}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Stream Route:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.data_stream_route}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">Jurisdiction:</div>
+                        <div class="item-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="item-name">File Size:</div>
+                        <div class="item-value">{{.Info.FileInfo.size_bytes}} bytes</div>
+                    </div>
+                </div>
+                <div class="file-info">
+                    {{if .Info.Deliveries}}
+                        <div class="file-info" id="file-deliveries">
+                            <h2>Delivery Status</h2>
+                            {{range .Info.Deliveries}}
+                            <div class="file-delivery file-delivery-{{AllLowerCase .Status}}">
+                                <div class="info-item">
+                                    <div class="item-name">Name:</div>
+                                    <div class="item-value">{{.Name}}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="item-name">Location:</div>
+                                    <div class="item-value">{{.Location}}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="item-name">Delivery Status:</div>
+                                    <div class="item-value delivery-{{AllLowerCase .Status}}">{{.Status}}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="item-name">Delivered At:</div>
+                                    <div class="item-value">{{.DeliveredAt}}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="item-name">Issues:</div>
+                                    <div class="item-value">
+                                    {{if .Issues}}
+                                        <ul>
+                                        {{range .Issues}}
+                                            <li>{{.}}</li>
+                                        {{end}}
+                                        </ul>
+                                    {{else}}
+                                        No issues
+                                    {{end}}
+                                    </div>
+                                </div>
+                            </div>
+                            {{end}}
                         </div>
                     {{end}}
                     <div id="file-info">

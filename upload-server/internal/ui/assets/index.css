@@ -13,6 +13,11 @@ body {
   margin: 0 auto;
 }
 
+main, nav {
+  margin: 0 auto;
+  max-width: 750px;
+}
+
 a.skip-main {
     left:-999px;
     position:absolute;
