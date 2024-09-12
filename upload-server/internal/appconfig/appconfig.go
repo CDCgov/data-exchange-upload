@@ -56,7 +56,7 @@ type AppConfig struct {
 	LocalEDAVFolder       string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
 	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
 	LocalEhdiFolder       string `env:"LOCAL_EHDI_FOLDER, default=./uploads/ehdi"`
-	LocalEicrFolder string `env:"LOCAL_EICR_FOLDER, default=./uploads/eicr"`
+	LocalEicrFolder       string `env:"LOCAL_EICR_FOLDER, default=./uploads/eicr"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
@@ -73,7 +73,7 @@ type AppConfig struct {
 	EdavConnection       *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
 	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
 	EhdiConnection       *AzureStorageConfig `env:", prefix=EHDI_, noinit"`
-	EicrConnection *AzureStorageConfig `env:", prefix=EICR_, noinit"`
+	EicrConnection       *AzureStorageConfig `env:", prefix=EICR_, noinit"`
 	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
 	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
 
@@ -97,7 +97,7 @@ type AppConfig struct {
 	EdavCheckpointContainer    string `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
 	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
 	EhdiCheckpointContainer    string `env:"EHDI_CHECKPOINT_CONTAINER_NAME, default=ehdi-checkpoint"`
-	EicrCheckpointContainer string `env:"EICR_CHECKPOINT_CONTAINER_NAME, default=eicr-checkpoint"`
+	EicrCheckpointContainer    string `env:"EICR_CHECKPOINT_CONTAINER_NAME, default=eicr-checkpoint"`
 
 	Metrics MetricsConfig `env:", prefix=METRICS_"`
 } // .AppConfig
@@ -193,7 +193,7 @@ func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 	case DeliveryTargetEicr:
 		return &AzureContainerConfig{
 			AzureStorageConfig: *LoadedConfig.EicrConnection,
-			ContainerName: LoadedConfig.EicrCheckpointContainer,
+			ContainerName:      LoadedConfig.EicrCheckpointContainer,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported azure target %s", target)
