@@ -3,26 +3,73 @@
   padding: 1.2rem;
 }
 
-.file-info-container #file-delivery .delivery-success {
-  color: rgb(6, 162, 6);
-}
-
 .file-info {
   margin-bottom: 2.5rem;
 }
 
-.file-info h2 {
+.file-info h1 {
   margin-top: 0;
   margin-bottom: 0.75rem;
 }
 
-.file-info .info-item {
-  line-height: 1.8rem;
+#upload-status {
   display: flex;
   flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.file-info .info-item {
+  line-height: 2rem;
+  display: flex;
+  flex-direction: row;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+}
+
+.file-info .info-item:not(:last-child) {
+  border-bottom: 1px solid #ccc;
+}
+
+.file-info .file-delivery .info-item{
+  border-bottom: 0;
+  padding: 0;
+}
+
+.file-delivery {
+  border: 3px solid #ccc;
+  border-radius: 5px;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.file-delivery-success {
+  border-color:rgb(6, 162, 6);
+  background-color:rgba(6, 162, 6, .05);
+}
+
+.file-delivery-failure {
+  border-color: rgb(155, 0, 0);
+  background-color:rgba(155, 0, 0, .05);
 }
 
 .file-info .info-item .item-name {
   font-weight: bold;
   min-width: 18rem;
+}
+
+.delivery-success, .upload-complete, .upload-failure {
+  font-weight: 700;
+}
+
+.delivery-success, .upload-complete {
+  color: rgb(2, 119, 2);
+}
+
+.upload-failure {
+  color: rgb(155, 0, 0);
+}
+
+.link-button {
+  text-decoration: none;
 }

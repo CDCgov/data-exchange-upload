@@ -14,6 +14,11 @@ body {
   width: 100vw;
 }
 
+main, nav {
+  margin: 0 auto;
+  max-width: 750px;
+}
+
 a.skip-main {
   left: -999px;
   position: absolute;

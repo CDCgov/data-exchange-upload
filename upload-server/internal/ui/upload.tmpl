@@ -63,8 +63,15 @@
                 <hr />
             </div>
             <div class="file-info-container">
-                <div class="file-info" id="manifest-info">
-                    <h2>Manifest</h2>
+                <div class="file-info" id="upload-status">
+                    <h1>
+                        Upload Status: <span class="item-value upload-{{AllLowerCase .Info.UploadStatus.Status}}" id="upload-status-value">{{.Info.UploadStatus.Status}}</span>
+                    </h1>
+                    <div>
+                        <a href="/" class="link-button">New Upload</a>
+                    </div>
+                </div>
+                <div class="file-info" id="file-info">
                     <div class="info-item">
                         <div class="item-name">File Name:</div>
                         <div class="item-value">{{.Info.Manifest.received_filename}}</div>
@@ -74,8 +81,54 @@
                         <div class="item-value">{{AllUpperCase .Info.Manifest.upload_id}}</div>
                     </div>
                     <div class="info-item">
-                        <div class="item-name">Version:</div>
-                        <div class="item-value">{{.Info.Manifest.version}}</div>
+                        <div class="item-name">Last Chunk Received:</div>
+                        <div class="item-value" id="upload-datetime-value">{{FormatDateTime .Info.UploadStatus.LastChunkReceived}}</div>
+                    </div>
+                </div>
+                {{if .Info.Deliveries}}
+                    <div class="file-info" id="file-deliveries">
+                        <h2>Delivery Status</h2>
+                        {{range .Info.Deliveries}}
+                        <div class="file-delivery file-delivery-{{AllLowerCase .Status}}">
+                            <div class="info-item">
+                                <div class="item-name">Name:</div>
+                                <div class="item-value">{{.Name}}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="item-name">Location:</div>
+                                <div class="item-value">{{.Location}}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="item-name">Delivery Status:</div>
+                                <div class="item-value delivery-{{AllLowerCase .Status}}">{{.Status}}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="item-name">Delivered At:</div>
+                                <div class="item-value">{{FormatDateTime .DeliveredAt}}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="item-name">Issues:</div>
+                                <div class="item-value">
+                                {{if .Issues}}
+                                    <ul>
+                                    {{range .Issues}}
+                                        <li>{{.}}</li>
+                                    {{end}}
+                                    </ul>
+                                {{else}}
+                                    No issues
+                                {{end}}
+                                </div>
+                            </div>
+                        </div>
+                        {{end}}
+                    </div>
+                {{end}}
+                <div class="file-info" id="file-details">
+                    <h2>Upload Details</h2>
+                    <div class="info-item">
+                        <div class="item-name">File Size:</div>
+                        <div class="item-value">{{.Info.FileInfo.size_bytes}} bytes</div>
                     </div>
                     <div class="info-item">
                         <div class="item-name">Sender ID:</div>
@@ -97,73 +150,10 @@
                         <div class="item-name">Jurisdiction:</div>
                         <div class="item-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
                     </div>
-                    <div class="info-item">
-                        <div class="item-name">Ingest Date/Time:</div>
-                        <div class="item-value">{{FormatDateTime .Info.Manifest.dex_ingest_datetime}}</div>
-                    </div>
                 </div>
-                <div class="file-info" id="file-info">
-                    <h2>File Information</h2>
-                    <div class="info-item">
-                        <div class="item-name">File Size:</div>
-                        <div class="item-value">{{.Info.FileInfo.size_bytes}} bytes</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="item-name">Updated At:</div>
-                        <div class="item-value">{{FormatDateTime .Info.FileInfo.updated_at}}</div>
-                    </div>
+                <div>
+                    <a href="/" class="link-button">New Upload</a>
                 </div>
-                <div class="file-info" id="upload-status">
-                    <h2>Upload Status</h2>
-                    <div class="info-item">
-                        <div class="item-name">Upload Status:</div>
-                        <div class="item-value" id="upload-status-value">{{.Info.UploadStatus.Status}}</div>
-                    </div>
-                    <div class="info-item">
-                        <div class="item-name">Last Chunk Received:</div>
-                        <div class="item-value" id="upload-datetime-value">{{FormatDateTime .Info.UploadStatus.LastChunkReceived}}</div>
-                    </div>
-                </div>
-
-                {{if .Info.Deliveries}}
-                <div class="file-info" id="file-deliveries">
-                    <h2>Delivery Status</h2>
-                    {{range .Info.Deliveries}}
-                    <div id="file-delivery">
-                        <div class="info-item">
-                            <div class="item-name">Name:</div>
-                            <div class="item-value">{{.Name}}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="item-name">Location:</div>
-                            <div class="item-value">{{.Location}}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="item-name">Delivery Status:</div>
-                            <div class="item-value delivery-{{AllLowerCase .Status}}">{{.Status}}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="item-name">Delivered At:</div>
-                            <div class="item-value">{{FormatDateTime .DeliveredAt}}</div>
-                        </div>
-                        <div class="info-item">
-                            <div class="item-name">Issues:</div>
-                            <div class="item-value">
-                            {{if .Issues}}
-                                <ul>
-                                {{range .Issues}}
-                                    <li>{{.}}</li>
-                                {{end}}
-                                </ul>
-                            {{else}}
-                                No issues
-                            {{end}}
-                            </div>
-                        </div>
-                    </div>
-                    {{end}}
-                </div>
-                {{end}}
             </div>
         </main>
     </body>
