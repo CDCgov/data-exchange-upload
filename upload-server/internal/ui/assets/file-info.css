@@ -11,12 +11,26 @@
   }
 }
 
+.file-info-container #upload-status {
+  h2 {
+    margin-bottom: 0.5rem;
+  }
+}
+
+.file-info-container #file-delivery {
+  border-radius: 2rem;
+  padding: 2rem;
+  border-width: 0.5rem;
+}
+
 .file-info-container #file-delivery .delivery-success {
-  color: rgb(6, 162, 6);
+  background-color: rgba(6, 162, 6, 0.5);
+  border-color: rgb(6, 162, 6);
 }
 
 .file-info-container #file-delivery .delivery-failure {
-  color: rgb(162, 6, 6);
+  background-color: rgba(162, 6, 6, 0.5);
+  border-color: rgb(162, 6, 6);
 }
 
 .file-info {

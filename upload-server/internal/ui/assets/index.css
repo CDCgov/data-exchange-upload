@@ -67,3 +67,8 @@ a:visited {
 .nav-container img {
   width: 7.5rem !important;
 }
+
+.small-italics {
+  font-size: small;
+  font-style: italic;
+}

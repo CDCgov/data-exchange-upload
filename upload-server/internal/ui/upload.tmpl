@@ -93,7 +93,7 @@
               {{.Info.UploadStatus.Status}}
             </span>
           </h2>
-          <div class="small-italic">
+          <div class="small-italics">
             <div class="upload-in-progress">
               <span class="label"> Last Partial Upload At: </span>
               <span id="upload-datetime-value">
@@ -111,13 +111,11 @@
         <div class="file-info" id="file-deliveries">
           <h2>Delivery Status</h2>
           {{range .Info.Deliveries}}
-          <div id="file-delivery">
+          <div id="file-delivery" class="delivery-{{AllLowerCase .Status}}">
             <h3>{{.Name}}</h3>
             <div class="info-item">
               <div class="item-name">Delivery Status:</div>
-              <div class="item-value delivery-{{AllLowerCase .Status}}">
-                {{.Status}}
-              </div>
+              <div class="item-value">{{.Status}}</div>
             </div>
             <div class="info-item">
               <div class="item-name">Location:</div>

@@ -49,7 +49,7 @@ func FormatDateTime(dateTimeString string) string {
 		return ""
 	}
 
-	return date.Format(time.RFC850)
+	return date.UTC().Format(time.RFC850)
 }
 
 var usefulFuncs = template.FuncMap{
