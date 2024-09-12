@@ -120,18 +120,18 @@
             </div>
 
             <div class="info-item" id="location-info">
-              <div class="location-label">Location:</div>
+              <div class="location-label">Delivered to:</div>
               <div class="lcoation-value">{{.Location}}</div>
             </div>
           
             {{if .Issues}}
             <div class="file-info delivery-issues">
-              <h3>Issues:</h3>
-              <div class="issue-list">    
+              <h3>Issues</h3>
+              <div class="issue-list">
               {{range .Issues}}
-                <div class="info-item">
-                  <span class="item-name issue-level-{{AllLowerCase .Level}}">{{.Level}}</span>
-                  <span class="item-value issue-message">{{.Message}}</span>
+                <div class="issue-item">
+                  <div class="issue-level issue-level-{{AllLowerCase .Level}}">{{.Level}}:</div>
+                  <div class="issue-message">{{.Message}}</div>
                 </div>
               {{end}}
               </div>

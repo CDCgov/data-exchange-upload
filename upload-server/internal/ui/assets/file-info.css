@@ -75,7 +75,8 @@
   align-items: end;
 }
 
-.file-info .info-item {
+.file-info .info-item,
+.delivery-issues .issue-item {
   line-height: 2rem;
   display: flex;
   flex-direction: row;
@@ -83,7 +84,8 @@
   padding: 0.5rem;
 }
 
-.file-info .info-item:not(:last-child) {
+.file-info .info-item:not(:last-child),
+.delivery-issues .issue-item:not(:last-child) {
   border-bottom: 1px solid #ccc;
 }
 
@@ -120,6 +122,31 @@
   min-width: 18rem;
 }
 
+.delivery-issues {
+  padding-top: 2rem;
+  border-top: 1px solid #ccc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.delivery-issues .issue-list {
+  width: 100%;
+}
+
+.delivery-issues .issue-level {
+  font-weight: 600;
+  width: 10rem;
+}
+
+.issue-item .issue-level-error {
+  color: rgb(155, 0, 0);
+}
+
+.issue-item .issue-level-warning {
+  color: rgb(255, 204, 0);
+}
+
 .delivery-success,
 .upload-complete,
 .upload-failure {
@@ -131,6 +158,7 @@
   color: rgb(2, 119, 2);
 }
 
+.delivery-failure,
 .upload-failure {
   color: rgb(155, 0, 0);
 }
@@ -144,26 +172,8 @@
   gap: 1rem;
 }
 
-#location-info .location-label {
-}
-
-#location-info .location-value {
-}
-
-#issue-info .issue-list .issue-item {
-  padding: 0.5rem 0;
-}
-
-.issue-item .issue-level {
-  font-weight: bolder;
-}
-
-.issue-item .issue-level-error {
-  color: rgb(155, 0, 0);
-}
-
-.issue-item .issue-level-warning {
-  color: rgb(255, 204, 0);
+.location-label {
+  font-weight: 600;
 }
 
 .item-value {
