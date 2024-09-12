@@ -99,9 +99,6 @@ type AppConfig struct {
 	EhdiCheckpointContainer    string `env:"EHDI_CHECKPOINT_CONTAINER_NAME, default=ehdi-checkpoint"`
 	EicrCheckpointContainer    string `env:"EICR_CHECKPOINT_CONTAINER_NAME, default=eicr-checkpoint"`
 
-	// Path templates
-	EhdiPathTemplate string `env:"EHDI_PATH_TEMPLATE, default=DHDD/EHDI/DEX-{{.Env}}/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"`
-
 	Metrics MetricsConfig `env:", prefix=METRICS_"`
 } // .AppConfig
 
