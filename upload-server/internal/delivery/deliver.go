@@ -1,13 +1,17 @@
 package delivery
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"text/template"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
@@ -52,6 +56,14 @@ type Destination interface {
 	Upload(context.Context, string, io.Reader, map[string]string) (string, error)
 }
 
+type PathInfo struct {
+	Year     string
+	Month    string
+	Day      string
+	UploadId string
+	Filename string
+}
+
 // Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
 	var src Source
@@ -62,7 +74,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 
 	var edavDeliverer Destination
-	edavDeliverer, err = NewFileDestination(ctx, "edav", &appConfig)
+	edavDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEdav, &appConfig)
 	if err != nil {
 		return err
 	}
@@ -71,9 +83,19 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	if err != nil {
 		return err
 	}
+	var ehdiDeliverer Destination
+	ehdiDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEhdi, &appConfig)
+	if err != nil {
+		return err
+	}
+	var eicrDeliverer Destination
+	eicrDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEicr, &appConfig)
+	if err != nil {
+		return err
+	}
 
 	if appConfig.EdavConnection != nil {
-		edavDeliverer, err = NewAzureDestination(ctx, "edav")
+		edavDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEdav)
 		if err != nil {
 			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
 		}
@@ -84,9 +106,21 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
 		}
 	}
+	if appConfig.EhdiConnection != nil {
+		ehdiDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEhdi)
+		if err != nil {
+			return fmt.Errorf("failed to connect to ehdi deliverer target %w", err)
+		}
+	}
+	if appConfig.EicrConnection != nil {
+		eicrDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEicr)
+		if err != nil {
+			return fmt.Errorf("failed to connect to eicr deliverer target %w", err)
+		}
+	}
 
 	if appConfig.EdavS3Connection != nil {
-		edavDeliverer, err = NewS3Destination(ctx, "edav", appConfig.EdavS3Connection)
+		edavDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetEdav, appConfig.EdavS3Connection)
 		if err != nil {
 			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
 		}
@@ -118,16 +152,18 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		src = &S3Source{
 			FromClient: s3Client,
 			BucketName: appConfig.S3Connection.BucketName,
-			Prefix: appConfig.TusUploadPrefix,
+			Prefix:     appConfig.TusUploadPrefix,
 		}
 	}
 
-	RegisterDestination("edav", edavDeliverer)
+	RegisterDestination(appconfig.DeliveryTargetEdav, edavDeliverer)
 	RegisterDestination("routing", routingDeliverer)
+	RegisterDestination(appconfig.DeliveryTargetEhdi, ehdiDeliverer)
+	RegisterDestination(appconfig.DeliveryTargetEicr, eicrDeliverer)
 
 	RegisterSource("upload", src)
 
-	if err := health.Register(edavDeliverer, routingDeliverer, src); err != nil {
+	if err := health.Register(edavDeliverer, routingDeliverer, ehdiDeliverer, eicrDeliverer, src); err != nil {
 		slog.Error("failed to register some health checks", "error", err)
 	}
 
@@ -152,12 +188,42 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 	return d.Upload(ctx, path, r, manifest)
 }
 
-func getDeliveredFilename(ctx context.Context, target string, tuid string, manifest map[string]string) (string, error) {
+func getDeliveredFilename(ctx context.Context, tuid string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadataPkg.GetFilename(manifest)
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 
+	c, err := metadata.GetConfigFromManifest(ctx, manifest)
+
+	if c.Copy.PathTemplate != "" {
+		// Use path template to form the full name.
+		t := time.Now().UTC()
+		pathInfo := &PathInfo{
+			Year:     strconv.Itoa(t.Year()),
+			Month:    strconv.Itoa(int(t.Month())),
+			Day:      strconv.Itoa(t.Day()),
+			Filename: filenameWithoutExtension,
+			UploadId: tuid,
+		}
+		tmpl, err := template.New("path").Parse(c.Copy.PathTemplate)
+		if err != nil {
+			return "", err
+		}
+		b := new(bytes.Buffer)
+		err = tmpl.Execute(b, pathInfo)
+		if err != nil {
+			return "", err
+		}
+
+		if extension != "" {
+			return fmt.Sprintf("%s.%s", b.String(), extension), nil
+		}
+
+		return b.String(), nil
+	}
+
+	// Otherwise, use the suffix and folder structure values
 	suffix, err := metadata.GetFilenameSuffix(ctx, manifest, tuid)
 	if err != nil {
 		return "", err
@@ -165,15 +231,11 @@ func getDeliveredFilename(ctx context.Context, target string, tuid string, manif
 	blobName := filenameWithoutExtension + suffix + extension
 
 	// Next, need to set the filename prefix based on config and target.
-	// edav, routing -> use config
 	prefix := ""
 
-	switch target {
-	case "routing", "edav":
-		prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
-		if err != nil {
-			return "", err
-		}
+	prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
+	if err != nil {
+		return "", err
 	}
 
 	return prefix + "/" + blobName, nil

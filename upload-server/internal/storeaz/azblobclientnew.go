@@ -3,7 +3,6 @@ package storeaz
 import (
 	"errors"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"os"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -13,8 +12,6 @@ import (
 
 var (
 	tusPrefix                        = "Tus storage"
-	routerPrefix                     = "Router storage"
-	edavPrefix                       = "Edav storage"
 	errStorageNameEmpty              = errors.New("error storage name from app config is empty")
 	errStorageKeyEmpty               = errors.New("error storage key from app config is empty")
 	errStorageContainerEndpointEmpty = errors.New("error storage container endpoint from app config is empty")
@@ -29,7 +26,7 @@ func NewBlobClient(conf appconfig.AzureStorageConfig) (*azblob.Client, error) {
 			conf.ContainerEndpoint)
 	}
 
-	if canUseServicePrinciple() {
+	if canUseServicePrinciple(conf) {
 		return newAzBlobClientByServicePrinciple(conf)
 	}
 
@@ -45,7 +42,7 @@ func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string)
 			containerName)
 	}
 
-	if canUseServicePrinciple() {
+	if canUseServicePrinciple(conf) {
 		return newContainerClientByServicePrinciple(conf, containerName)
 	}
 
@@ -53,7 +50,7 @@ func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string)
 }
 
 func newContainerClientByServicePrinciple(conf appconfig.AzureStorageConfig, containerName string) (*container.Client, error) {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	cred, err := azidentity.NewClientSecretCredential(conf.TenantId, conf.ClientId, conf.ClientSecret, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -121,6 +118,6 @@ func canUseStorageKey(conf appconfig.AzureStorageConfig) bool {
 	return conf.StorageKey != ""
 }
 
-func canUseServicePrinciple() bool {
-	return os.Getenv("AZURE_CLIENT_ID") != "" && os.Getenv("AZURE_CLIENT_SECRET") != "" && os.Getenv("AZURE_TENANT_ID") != ""
+func canUseServicePrinciple(conf appconfig.AzureStorageConfig) bool {
+	return conf.TenantId != "" && conf.ClientId != "" && conf.ClientSecret != ""
 }

@@ -9,16 +9,7 @@
   </head>
 
   <body>
-    <div>
-      <a class="skip-main" href="#main" tabindex="0">Skip to main content</a>
-      <div class="nav-container">
-        <nav  role="navigation" id="nav">
-          <a href="/">
-            <img src="/assets/dex_logo.svg" alt="DEX logo" /> Upload
-          </a>
-        </nav>
-      </div>
-    </div>
+    {{template "navbar" .Navbar}}
     <main id="main" class="upload-container">
       <h1>Welcome to DEX Upload</h1>
       <h2>Start the upload process by entering a data stream and route.</h2>
@@ -44,5 +35,4 @@
       </div>
     </main>
   </body>
-  <script src="/assets/banner.js"></script>
 </html>
