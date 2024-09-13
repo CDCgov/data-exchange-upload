@@ -109,8 +109,11 @@ func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.Ma
 		if err != nil {
 			return nil, err
 		}
+
+		// Expand config string to substitute any env var placeholders within.
+		expandedConf := os.ExpandEnv(string(b))
 		mc := &validation.ManifestConfig{}
-		if err := json.Unmarshal(b, mc); err != nil {
+		if err := json.Unmarshal([]byte(expandedConf), mc); err != nil {
 			return nil, err
 		}
 		c.SetConfig(key, mc)
