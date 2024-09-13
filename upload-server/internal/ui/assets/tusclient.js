@@ -97,7 +97,6 @@ function _setUploadStatusLabel(text) {
 }
 
 function _updateUploadStatusInProgress() {
-  uploadStatusLevel = 1;
   document.querySelector("#upload-status-value").innerHTML = "In Progress";
   _setUploadStatusLabel(UPLOAD_STATUS_LABEL_IN_PROGRESS);
 }
@@ -332,6 +331,7 @@ async function findResumableUpload() {
   // initializes what is hidden/shown on the page
   // based on the uploadStatusLevel on the local storage
   let isHost = false;
+
   switch (uploadStatusLevel) {
     case "0": // 0 is Initiated
       isHost = true;

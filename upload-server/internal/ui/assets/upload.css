@@ -1,4 +1,4 @@
-.file-info-container {
+.file-detail-container {
   border-top: 1px solid #ccc;
   margin: 0 auto;
   padding: 1.2rem;
@@ -10,7 +10,7 @@
 
 .file-header-container,
 .file-deliveries-container,
-.file-manifest-container {
+.file-details-container {
   margin-bottom: 4rem;
 }
 
@@ -91,7 +91,7 @@
 /* ----------------------- */
 
 .issue-container,
-.info-container {
+.detail-container {
   line-height: 2rem;
   display: flex;
   flex-direction: row;
@@ -101,7 +101,7 @@
 }
 
 .issue-container:not(:last-child),
-.info-container:not(:last-child) {
+.detail-container:not(:last-child) {
   border-bottom: 1px solid #ccc;
 }
 
@@ -118,11 +118,11 @@
   color: rgb(255, 117, 24);
 }
 
-.info-container .info-label {
+.detail-container .detail-label {
   font-weight: bold;
   min-width: 18rem;
 }
 
-.info-container .info-value {
+.detail-container .detail-value {
   word-break: break-all;
 }

@@ -74,14 +74,14 @@
           </div>
         </div>
 
-        <div class="progress-container">
+        <div class="span8 progress-container">
           <div class="progress progress-striped progress-success hidden">
             <div class="bar hidden" style="width: 0%"></div>
           </div>
         </div>
       </div>
 
-      <div class="file-info-container">
+      <div class="file-detail-container">
         <div class="file-header-container">
           <div class="file-id-container">
             <h1>{{.Info.Manifest.received_filename}}</h1>
@@ -90,7 +90,7 @@
 
           <div class="upload-status-container">
             <h1>
-              Upload Status:
+              <span id="upload-status-label">Upload Status:</span>
               <span id="upload-status-value" class="upload-{{AllLowerCase .Info.UploadStatus.Status}}">
                 {{.Info.UploadStatus.Status}}
               </span>
@@ -149,29 +149,29 @@
 
         <div class="file-details-container">
           <h2>Upload Details</h2>
-          <div class="info-container">
-            <div class="info-label">File Size:</div>
-            <div class="info-value">{{.Info.FileInfo.size_bytes}} bytes</div>
+          <div class="detail-container">
+            <div class="detail-label">File Size:</div>
+            <div class="detail-value">{{.Info.FileInfo.size_bytes}} bytes</div>
           </div>
-          <div class="info-container">
-            <div class="info-label">Sender ID:</div>
-            <div class="info-value">{{AllUpperCase .Info.Manifest.sender_id}}</div>
+          <div class="detail-container">
+            <div class="detail-label">Sender ID:</div>
+            <div class="detail-value">{{AllUpperCase .Info.Manifest.sender_id}}</div>
           </div>
-          <div class="info-container">
-            <div class="info-label">Producer ID:</div>
-            <div class="info-value">{{AllUpperCase .Info.Manifest.data_producer_id}}</div>
+          <div class="detail-container">
+            <div class="detail-label">Producer ID:</div>
+            <div class="detail-value">{{AllUpperCase .Info.Manifest.data_producer_id}}</div>
           </div>
-          <div class="info-container">
-            <div class="info-label">Stream ID:</div>
-            <div class="info-value">{{AllUpperCase .Info.Manifest.data_stream_id}}</div>
+          <div class="detail-container">
+            <div class="detail-label">Stream ID:</div>
+            <div class="detail-value">{{AllUpperCase .Info.Manifest.data_stream_id}}</div>
           </div>
-          <div class="info-container">
-            <div class="info-label">Stream Route:</div>
-            <div class="info-value">{{AllUpperCase .Info.Manifest.data_stream_route}}</div>
+          <div class="detail-container">
+            <div class="detail-label">Stream Route:</div>
+            <div class="detail-value">{{AllUpperCase .Info.Manifest.data_stream_route}}</div>
           </div>
-          <div class="info-container">
-            <div class="info-label">Jurisdiction:</div>
-            <div class="info-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
+          <div class="detail-container">
+            <div class="detail-label">Jurisdiction:</div>
+            <div class="detail-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
           </div>
         </div>
 
@@ -180,8 +180,8 @@
   </body>
 
   <script>
-    const uploadUrl = "{{.UploadUrl}}";
-    const uploadStatusLevel = "{{.UploadStatusLevel}}";
+    const uploadUrl = "{{.UploadUrl}}";</script>
+    <script>const uploadStatusLevel = "{{.UploadStatusLevel}}";
   </script>
   <script src="https://cdn.jsdelivr.net/npm/tus-js-client@latest/dist/tus.js"></script>
   <script src="/assets/tusclient.js"></script>
