@@ -1,0 +1,128 @@
+.file-info-container {
+  border-top: 1px solid #ccc;
+  margin: 0 auto;
+  padding: 1.2rem;
+}
+
+/* -------------------------- */
+/* File ID and Status Styling */
+/* -------------------------- */
+
+.file-header-container,
+.file-deliveries-container,
+.file-manifest-container {
+  margin-bottom: 4rem;
+}
+
+.file-header-container,
+.delivery-header-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: start;
+}
+
+.file-header-container .file-id-container,
+.file-header-container .upload-status-container,
+.delivery-header-container.delivery-id-container,
+.delivery-header-container .delivery-status-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+}
+
+.file-header-container .upload-status-container,
+.delivery-header-container .delivery-status-container {
+  align-items: end;
+}
+
+.file-header-container .file-id-container h1,
+.file-header-container .upload-status-container h1 {
+  margin-bottom: 0.5rem;
+}
+
+.upload-complete,
+.delivery-success {
+  color: rgb(2, 119, 2);
+}
+
+.upload-failure,
+.delivery-failure {
+  color: rgb(155, 0, 0);
+}
+
+/* ----------------------- */
+/* File Deliveries Styling */
+/* ----------------------- */
+
+.file-delivery-container {
+  border: 3px solid #ccc;
+  border-radius: 5px;
+  margin-bottom: 2rem;
+  padding: 1rem 2rem;
+  align-items: start;
+}
+
+.file-delivery-success {
+  border-color: rgb(6, 162, 6);
+  background-color: rgba(6, 162, 6, 0.05);
+}
+
+.file-delivery-failure {
+  border-color: rgb(155, 0, 0);
+  background-color: rgba(155, 0, 0, 0.05);
+}
+
+.delivery-status-container h3 {
+  margin-bottom: 0.25rem;
+}
+
+.delivery-location-container {
+  padding: 3rem 0;
+  font-size: larger;
+  font-weight: 500;
+  width: 100%;
+  text-align: center;
+}
+
+/* ----------------------- */
+/* Issues and Info Styling */
+/* ----------------------- */
+
+.issue-container,
+.info-container {
+  line-height: 2rem;
+  display: flex;
+  flex-direction: row;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  align-items: start;
+}
+
+.issue-container:not(:last-child),
+.info-container:not(:last-child) {
+  border-bottom: 1px solid #ccc;
+}
+
+.issue-container .issue-level {
+  font-weight: 600;
+  width: 10rem;
+}
+
+.issue-container .issue-level-error {
+  color: rgb(155, 0, 0);
+}
+
+.issue-container .issue-level-warning {
+  color: rgb(255, 117, 24);
+}
+
+.info-container .info-label {
+  font-weight: bold;
+  min-width: 18rem;
+}
+
+.info-container .info-value {
+  word-break: break-all;
+}

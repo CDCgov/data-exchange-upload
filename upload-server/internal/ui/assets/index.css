@@ -14,7 +14,8 @@ body {
   width: 100vw;
 }
 
-main, nav {
+main,
+nav {
   margin: 0 auto;
   max-width: 750px;
 }
@@ -33,6 +34,7 @@ a.skip-main {
   overflow: hidden;
   z-index: -999;
 }
+
 a.skip-main:focus,
 a.skip-main:active {
   color: #fff;
@@ -54,6 +56,15 @@ a.skip-main:active {
 .hidden {
   display: none;
 }
+
+.small-italics {
+  font-size: small;
+  font-style: italic;
+}
+
+/* -------------- */
+/* Navbar Styling */
+/* -------------- */
 
 .nav-container {
   background-color: #f4f4f4;
@@ -83,7 +94,112 @@ a:visited {
   width: 7.5rem !important;
 }
 
-.small-italics {
+/* ------------------- */
+/* Link Button Styling */
+/* ------------------- */
+
+.link-button {
+  color: rgb(0, 94, 201) !important;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.link-button-container {
+  background-color: rgba(0, 119, 255, 0.1);
+  border: 2px solid rgb(0, 94, 201);
+  border-radius: 5px;
+  margin: auto 0;
+  padding: 0.5rem 1rem;
+  text-align: center;
+}
+
+.link-button-container:hover {
+  background-color: rgb(0, 94, 201);
+  color: white;
+  cursor: pointer;
+}
+
+/* ------------ */
+/* Form Styling */
+/* ------------ */
+
+.upload-container {
+  margin: 0 auto;
+  padding: 1.2rem;
+}
+
+.form-container {
+  margin: 0;
+  max-width: 550px;
+}
+
+.form-container button {
+  background: #0057b7;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  display: inline-block;
+  margin: 5px 0;
+  font-size: 16px;
+  padding: 10px;
+  width: 100%;
+}
+
+.form-container .submit-button {
+  margin: 20px 0 10px 0;
+}
+
+.form-container input {
+  background: #f1f1f1;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  display: inline-block;
+  margin: 5px 0;
+  padding: 10px;
+  width: 100%;
+}
+
+.form-container input[type="file"] {
+  display: block;
+  font-style: oblique;
+  margin-left: 15px;
+}
+
+.form-container input[type="file"]::file-selector-button {
+  display: none;
+}
+
+.form-container label {
+  display: block;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.form-container label .input-tip {
+  font-weight: normal;
   font-size: small;
   font-style: italic;
+}
+
+.form-container select {
+  background: #f1f1f1;
+  border: 1px solid #aaa;
+  border-radius: 5px;
+  display: inline-block;
+  margin: 5px 0;
+  padding: 10px;
+  width: 100%;
+}
+
+.form-container .file-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.form-container .file-container input {
+  background: none;
+  border: none;
 }

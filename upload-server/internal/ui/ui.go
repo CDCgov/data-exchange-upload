@@ -59,9 +59,17 @@ var usefulFuncs = template.FuncMap{
 	"FormatDateTime": FormatDateTime,
 }
 
-var indexTemplate = template.Must(template.ParseFS(content, "index.html", "components/navbar.html"))
-var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl", "components/navbar.html", "components/newuploadbtn.html"))
-var uploadTemplate = template.Must(template.New("upload.tmpl").Funcs(usefulFuncs).ParseFS(content, "upload.tmpl", "components/navbar.html", "components/newuploadbtn.html"))
+func generateTemplate(templatePath string, useFuncs bool) (*template.Template) {
+	var templatePaths = []string{ templatePath, "components/navbar.html", "components/newuploadbtn.html" }
+	if (useFuncs) {
+		return template.Must(template.New(templatePath).Funcs(usefulFuncs).ParseFS(content, templatePaths...))		
+	}
+	return template.Must(template.ParseFS(content, templatePaths...))
+}
+
+var indexTemplate = generateTemplate("index.html", false)
+var manifestTemplate = generateTemplate("manifest.tmpl", true)
+var uploadTemplate = generateTemplate("upload.tmpl", true)
 
 type ManifestTemplateData struct {
 	DataStream      string
@@ -71,11 +79,11 @@ type ManifestTemplateData struct {
 }
 
 type UploadTemplateData struct {
-	Navbar            components.Navbar
 	UploadUrl         string
 	UploadStatusLevel int
 	Info              info.InfoResponse
-	Newuploadbtn      components.Newuploadbtn
+	Navbar            components.Navbar
+	NewUploadBtn 			components.NewUploadBtn
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -104,11 +112,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			DataStream:      dataStream,
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
-			Navbar: components.Navbar{
-				Newuploadbtn: components.Newuploadbtn{
-					HideBtn: true,
-				},
-			},
+			Navbar: components.NewNavbar(false),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -228,14 +232,10 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
 			UploadUrl: uploadUrl,
-			Navbar: components.Navbar{
-				Newuploadbtn: components.Newuploadbtn{
-					HideBtn: false,
-				},
-			},
 			Info:              fileInfo,
 			UploadStatusLevel: uploadStatusLevel,
-			Newuploadbtn:      components.Newuploadbtn{},
+			Navbar: components.NewNavbar(true),
+			NewUploadBtn: components.NewUploadBtn{},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)

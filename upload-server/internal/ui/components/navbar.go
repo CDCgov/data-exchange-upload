@@ -1,5 +1,13 @@
 package components
 
 type Navbar struct {
-	Newuploadbtn Newuploadbtn
+	ShouldShowActions bool
+	NewUploadBtn NewUploadBtn
+}
+
+func NewNavbar(ShouldShowActions bool) Navbar {
+	return Navbar{
+		ShouldShowActions: ShouldShowActions,
+		NewUploadBtn: NewUploadBtn{},
+	}
 }
