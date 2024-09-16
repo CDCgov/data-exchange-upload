@@ -8,6 +8,8 @@ let uploadIsRunning = false;
 let file = null;
 
 const fileInput = document.querySelector("input[type=file]");
+const pauseButton = document.querySelector("#pause-upload-button");
+const resumeButton = document.querySelector("#resume-upload-button");
 
 const progressContainer = document.querySelector(".progress");
 const progressBar = progressContainer.querySelector(".bar");
@@ -38,8 +40,31 @@ function _toggleVisibility(element, show) {
 
 // Hides or shows the progress bar
 function _toggleProgressBar(show) {
+  const uploaderContainer = document.querySelector(".uploader-container");
+  _toggleVisibility(uploaderContainer, show);
   _toggleVisibility(progressContainer, show);
   _toggleVisibility(progressBar, show);
+
+  const pauseResumeContainer = document.querySelector(
+    ".pause-resume-upload-container"
+  );
+  _toggleVisibility(pauseResumeContainer, show);
+  if (show) {
+    _togglePauseButton(show);
+  } else {
+    _toggleVisibility(pauseButton, false);
+    _toggleVisibility(resumeButton, false);
+  }
+}
+
+function _togglePauseButton(pause) {
+  if (pause) {
+    _toggleVisibility(pauseButton, true);
+    _toggleVisibility(resumeButton, false);
+  } else {
+    _toggleVisibility(pauseButton, false);
+    _toggleVisibility(resumeButton, true);
+  }
 }
 
 // Hides or shows the upload forms and the progress bar
@@ -331,6 +356,36 @@ async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
   upload.start();
 }
 
+function resumeUpload() {
+  if (!upload) {
+    console.log(`No upload client, please try uploading again`);
+    return;
+  }
+
+  // Check if there are any previous uploads to continue.
+  upload.findPreviousUploads().then(function (previousUploads) {
+    // Found previous uploads so we select the first one.
+    if (previousUploads.length) {
+      previousUpload = previousUploads[0];
+      upload.resumeFromPreviousUpload(previousUploads[0]);
+    }
+
+    // Start the upload
+    upload.start();
+    _togglePauseButton(true);
+  });
+}
+
+function pauseUpload() {
+  if (!upload) {
+    console.log(`No upload client, please try uploading again`);
+    return;
+  }
+
+  upload.abort();
+  _togglePauseButton(false);
+}
+
 // checks the local storage to see if there is a previous upload
 // that was not completed and has the same uploadUrl
 async function findResumableUpload() {
@@ -378,6 +433,9 @@ async function findResumableUpload() {
     if (!tus.isSupported) {
       document.querySelector("#support-alert").classList.remove("hidden");
     } // .if
-    fileInput.addEventListener("change", submitUploadForm);
+
+    fileInput.addEventListener("change", () => submitUploadForm());
+    pauseButton.addEventListener("click", () => pauseUpload());
+    resumeButton.addEventListener("click", () => resumeUpload());
   }
 })();

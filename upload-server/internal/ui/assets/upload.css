@@ -4,6 +4,21 @@
   padding: 1.2rem;
 }
 
+.uploader-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: start;
+  align-items: center;
+  gap: 2rem;
+}
+
+.uploader-container .progress-container {
+  flex-grow: 1;
+}
+.uploader-container .pause-resume-upload-container {
+  flex-grow: 1;
+}
+
 /* -------------------------- */
 /* File ID and Status Styling */
 /* -------------------------- */
