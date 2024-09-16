@@ -703,22 +703,24 @@ components:
         deliveries:
           type: array
           description: Information about the file destination delivery to target locations.
-          properties:
-            status:
-              type: string
-              description: Status of the file destination delivery.
-            name:
-              type: string
-              description: Name of the file destination delivery target.
-            location:
-              type: string
-              description: Location path of the file destination delivery target. 
-            delivered_at:
-              type: string
-              description: Timestamp of the file delivery to the target destination location.
-            issues:
-              type: object
-              description: Details issues encountered with file destination delivery.
+          items: 
+            type: object
+            properties:
+              status:
+                type: string
+                description: Status of the file destination delivery.
+              name:
+                type: string
+                description: Name of the file destination delivery target.
+              location:
+                type: string
+                description: Location path of the file destination delivery target. 
+              delivered_at:
+                type: string
+                description: Timestamp of the file delivery to the target destination location.
+              issues:
+                type: object
+                description: Details issues encountered with file destination delivery.
     Health-Response:
       type: object
       properties:
