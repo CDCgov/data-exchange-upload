@@ -88,7 +88,9 @@ func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 	}
 
 	if mp.Chan != nil {
-		mp.Chan <- event
+		go func() {
+			mp.Chan <- event
+		}()
 	}
 	return nil
 }
