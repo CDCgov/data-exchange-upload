@@ -4,7 +4,7 @@ info:
   description: Swagger definition of the tusd / Data Exchange Upload API.
   version: "1.1"
   contact:
-    email: tpz7@cdc.gov
+    email: knu1@cdc.gov
 servers:
   - url: 'https://apidev.cdc.gov'
     description: Development server
@@ -659,16 +659,68 @@ components:
         manifest:
           type: object
           description: Set of key-value pairs that were attached to the file during upload.
+          properties:
+            upload_id:
+              type: string
+              description: Unique identifier of the uploaded file assigned by the API.
+            dex_ingest_datetime:
+              type: string
+              description: Timestamp of the API's first interaction with the uploaded file. 
+            version:
+              type: string
+              description: The version of the sender manifest utilized for the uploaded file.
+            data_stream_id:
+              type: string
+              description: Identifier for the data stream of the uploaded file.
+            data_stream_route:
+              type: string
+              description: Identifier for the route of the data stream of the uploaded file.
+            sender_id:
+              type: string
+              description: Identifier for the sender of the uploaded file.
+            data_producer_id:
+              type: string
+              description: Identifier for the producer of the uploaded file.
+            jurisdiction:
+              type: string
+              description: Identifier for the jurisdiction pertaining to the uploaded file.
+            received_filename:
+              type: string
+              description: The name of the original uploaded file.
+            custom_metadata:
+              type: string
+              description: Data stream specific metadata fields; varies per data stream.           
         file_info:
           type: object
           description: Information about the file that was uploaded.
           properties:
+            size_bytes:
+              type: integer
+              description: Current size of the file in bytes.          
             updated_at:
               type: string
               description: Timestamp of the most recent time the file was changed.
-            size_bytes:
-              type: integer
-              description: Current size of the file in bytes.
+        deliveries:
+          type: array
+          description: Information about the file destination delivery to target locations.
+          items: 
+            type: object
+            properties:
+              status:
+                type: string
+                description: Status of the file destination delivery.
+              name:
+                type: string
+                description: Name of the file destination delivery target.
+              location:
+                type: string
+                description: Location path of the file destination delivery target. 
+              delivered_at:
+                type: string
+                description: Timestamp of the file delivery to the target destination location.
+              issues:
+                type: object
+                description: Details issues encountered with file destination delivery.
     Health-Response:
       type: object
       properties:
