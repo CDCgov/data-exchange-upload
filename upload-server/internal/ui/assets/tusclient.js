@@ -12,6 +12,12 @@ const fileInput = document.querySelector("input[type=file]");
 const progressContainer = document.querySelector(".progress");
 const progressBar = progressContainer.querySelector(".bar");
 
+// Values also set in upload-server/pkg/info/info.go
+// these values must match
+const UPLOAD_INITIATED = "Initiated";
+const UPLOAD_IN_PROGRESS = "In Progress";
+const UPLOAD_COMPLETE = "Complete";
+
 const UPLOAD_STATUS_LABEL_INITIALIZED = " Upload Initialized At: ";
 const UPLOAD_STATUS_LABEL_IN_PROGRESS = " Last Chunk Received At: ";
 const UPLOAD_STATUS_LABEL_COMPLETE = " Upload Completed At: ";
@@ -65,40 +71,56 @@ function _toggleFormContainer(show) {
 
 // Hides or shows the file info
 function _toggleInfoContainer(show) {
-  const infoContainer = document.querySelector(".file-info-container");
+  const infoContainer = document.querySelector(".file-detail-container");
   _toggleVisibility(infoContainer, show);
+}
+
+function _toggleNewUploadButtonContainer(show) {
+  const buttonContainer = document.querySelector(
+    ".new-upload-button-container"
+  );
+  _toggleVisibility(buttonContainer, show);
 }
 
 // Sets the view up as the initial upload form
 function _showInitiatedUploadForm() {
+  _toggleUploadContainer(true);
   _toggleNewUploadForm(true);
   _toggleResumeUploadForm(false);
   _toggleProgressBar(false);
   _toggleInfoContainer(false);
+  _toggleNewUploadButtonContainer(false);
 }
 
 // Set the view up as the resume upload form
 function _showResumableUploadForm() {
+  _toggleUploadContainer(true);
   _toggleNewUploadForm(false);
   _toggleResumeUploadForm(true);
   _toggleProgressBar(false);
   _toggleInfoContainer(true);
+  _toggleNewUploadButtonContainer(false);
 }
 
 // Sets the view up to only show the file info
 function _showReadOnlyFileInfo(statusLabel) {
   _toggleUploadContainer(false);
   _toggleInfoContainer(true);
-  _setUploadStatusLabel(statusLabel);
-}
-
-function _setUploadStatusLabel(text) {
-  document.querySelector("#upload-status-label").innerHTML = text;
+  _toggleNewUploadButtonContainer(true);
+  _setUploadLastChunkReceivedLabel(statusLabel);
 }
 
 function _updateUploadStatusInProgress() {
-  document.querySelector("#upload-status-value").innerHTML = "In Progress";
-  _setUploadStatusLabel(UPLOAD_STATUS_LABEL_IN_PROGRESS);
+  const statusValue = document.querySelector("#upload-status-value");
+  statusValue.innerHTML = "In Progress";
+  statusValue.classList.remove("upload-initiated");
+  statusValue.classList.remove("upload-complete");
+  statusValue.classList.add("upload-in-progress");
+  _setUploadLastChunkReceivedLabel(UPLOAD_STATUS_LABEL_IN_PROGRESS);
+}
+
+function _setUploadLastChunkReceivedLabel(text) {
+  document.querySelector("#upload-datetime-label").innerHTML = text;
 }
 
 function _updateLastChunkReceived() {
@@ -118,17 +140,13 @@ async function submitUploadForm() {
   // IE will trigger a change event even if we reset the input element
   // using reset() and we do not want to blow up later.
 
-  if (!fileList) {
+  if (!fileList || fileList.length < 1) {
     return;
   }
 
   // Retrieving the first file because this is only handling uploading
   // one file at a time
   file = fileList[0];
-
-  if (!file) {
-    return;
-  }
 
   let endpoint;
   let chunkSize;
@@ -328,16 +346,16 @@ async function findResumableUpload() {
 }
 
 (async () => {
-  // initializes what is hidden/shown on the page
-  // based on the uploadStatusLevel on the local storage
+  // initializes what is hidden/shown on the page base on
+  // the uploadStatus and upload data in the local storage
   let isHost = false;
 
-  switch (uploadStatusLevel) {
-    case "0": // 0 is Initiated
+  switch (uploadStatus) {
+    case UPLOAD_INITIATED:
       isHost = true;
       _showInitiatedUploadForm();
       break;
-    case "1": // 1 is In Progress
+    case UPLOAD_IN_PROGRESS:
       previousUpload = await findResumableUpload();
       if (previousUpload) {
         isHost = true;
@@ -346,11 +364,11 @@ async function findResumableUpload() {
         _showReadOnlyFileInfo(UPLOAD_STATUS_LABEL_IN_PROGRESS);
       }
       break;
-    case "2": // 2 is Complete
+    case UPLOAD_COMPLETE:
       _showReadOnlyFileInfo(UPLOAD_STATUS_LABEL_COMPLETE);
       break;
     default:
-      console.error(`${uploadStatusLevel} is an invalid status`);
+      console.error(`${uploadStatus} is an invalid status`);
       _showReadOnlyFileInfo(UPLOAD_STATUS_LABEL_DEFAULT);
   }
 

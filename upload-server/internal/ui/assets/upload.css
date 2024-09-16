@@ -1,5 +1,5 @@
 .file-detail-container {
-  border-top: 1px solid #ccc;
+  border-top: 1px solid var(--upload-border-color);
   margin: 0 auto;
   padding: 1.2rem;
 }
@@ -44,12 +44,16 @@
 
 .upload-complete,
 .delivery-success {
-  color: rgb(2, 119, 2);
+  color: var(--upload-success);
+}
+
+.upload-in-progress {
+  color: var(--upload-active);
 }
 
 .upload-failure,
 .delivery-failure {
-  color: rgb(155, 0, 0);
+  color: var(--upload-failure);
 }
 
 /* ----------------------- */
@@ -57,7 +61,7 @@
 /* ----------------------- */
 
 .file-delivery-container {
-  border: 3px solid #ccc;
+  border: 3px solid var(--upload-border-color);
   border-radius: 5px;
   margin-bottom: 2rem;
   padding: 1rem 2rem;
@@ -65,13 +69,13 @@
 }
 
 .file-delivery-success {
-  border-color: rgb(6, 162, 6);
-  background-color: rgba(6, 162, 6, 0.05);
+  border-color: var(--upload-success);
+  background-color: var(--upload-success-alpha);
 }
 
 .file-delivery-failure {
-  border-color: rgb(155, 0, 0);
-  background-color: rgba(155, 0, 0, 0.05);
+  border-color: var(--upload-failure);
+  background-color: var(--upload-failure-alpha);
 }
 
 .delivery-status-container h3 {
@@ -102,7 +106,7 @@
 
 .issue-container:not(:last-child),
 .detail-container:not(:last-child) {
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid var(--upload-border-color);
 }
 
 .issue-container .issue-level {
@@ -111,11 +115,11 @@
 }
 
 .issue-container .issue-level-error {
-  color: rgb(155, 0, 0);
+  color: var(--upload-failure);
 }
 
 .issue-container .issue-level-warning {
-  color: rgb(255, 117, 24);
+  color: var(--upload-warning);
 }
 
 .detail-container .detail-label {

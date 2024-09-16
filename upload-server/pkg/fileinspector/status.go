@@ -30,7 +30,6 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ contex
 		}
 		return deliveries, err
 	}
-	defer f.Close()
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -67,10 +66,12 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ contex
 func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx context.Context, id string) (info.FileUploadStatus, error) {
 	// check if the upload-completed file exists
 	uploadCompletedReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadCompleted)
-	uploadCompletedFileInfo, errComplete := os.Stat(uploadCompletedReportFilename)
-	if errComplete == nil {
+	uploadCompletedFileInfo, err := os.Stat(uploadCompletedReportFilename)
+	if err == nil {
+		// if there are no errors, then the upload-complete file has been created
+		// we can stop here and set the status to Complete and set the last chunk received
+		// to the time the file was created, no other calculations are needed
 		lastChunkReceived := uploadCompletedFileInfo.ModTime().UTC().Format(time.RFC3339)
-		// if the upload-completed file exists then the file is finished uploading
 		return info.FileUploadStatus{
 			Status: info.UploadComplete,
 			LastChunkReceived: lastChunkReceived,
@@ -79,28 +80,28 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 
 	// if the error from checking the upload-completed file is something other than
 	// the file not existing, return the error
-	if !errors.Is(errComplete, os.ErrNotExist) {
-		return info.FileUploadStatus{}, errComplete
+	if !errors.Is(err, os.ErrNotExist) {
+		return info.FileUploadStatus{}, err
 	}
 
 	// get the file info for the upload-started file
 	uploadStartedReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadStarted)
-	uploadStartedFileInfo, errStart := os.Stat(uploadStartedReportFilename)
-	if errStart != nil {
-		if errors.Is(errStart, os.ErrNotExist) {
-			return info.FileUploadStatus{}, errors.Join(errStart, info.ErrNotFound)
+	uploadStartedFileInfo, err := os.Stat(uploadStartedReportFilename)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return info.FileUploadStatus{}, errors.Join(err, info.ErrNotFound)
 		}
-		return info.FileUploadStatus{}, errStart
+		return info.FileUploadStatus{}, err
 	}
 
 	// get the file info for the upload-status file
 	uploadStatusReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadStatus)
-	uploadStatusReportFileInfo, errStatus := os.Stat(uploadStatusReportFilename)
-	if errStatus != nil {
-		if errors.Is(errStatus, os.ErrNotExist) {
-			return info.FileUploadStatus{}, errors.Join(errStatus, info.ErrNotFound)
+	uploadStatusReportFileInfo, err := os.Stat(uploadStatusReportFilename)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return info.FileUploadStatus{}, errors.Join(err, info.ErrNotFound)
 		}
-		return info.FileUploadStatus{}, errStatus
+		return info.FileUploadStatus{}, err
 	}
 
 	uploadStartedModTime := uploadStartedFileInfo.ModTime()

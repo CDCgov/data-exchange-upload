@@ -10,6 +10,8 @@ var (
 	ErrNotFound = errors.New("expected file not found")
 )
 
+// Values also set in the tusclient.js
+// these values must match
 const (
 	UploadInitiated string = "Initiated"
 	UploadInProgress string = "In Progress"

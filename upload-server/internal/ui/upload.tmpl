@@ -12,7 +12,7 @@
   <body>
     {{template "navbar" .Navbar}}
     <main id="main">
-      <div class="upload-container">
+      <div class="upload-container hidden">
         <div class="alert alert-warning hidden" id="support-alert">
           <b>Warning!</b> Your browser does not seem to support the features
           necessary to run tus-js-client. The buttons below may work but
@@ -24,7 +24,7 @@
 
         <div class="form-container">
           <div class="input-container new-upload">
-            <label for="endpoint">Upload endpoint</label>
+            <label for="endpoint">Upload Endpoint</label>
             <input
               type="text"
               id="endpoint"
@@ -37,7 +37,7 @@
           </div>
           <div class="input-container new-upload">
             <label for="chunksize">
-              Chunk size (bytes)
+              Chunk Size (bytes)
               <div class="input-tip">
                 <b>Note:</b> Chunksize should be set on the client for uploading
                 files of large size (1GB or over).
@@ -51,7 +51,7 @@
             />
           </div>
           <div class="input-container new-upload">
-            <label for="paralleluploads">Parallel upload requests</label>
+            <label for="paralleluploads">Parallel Upload Requests</label>
             <input
               type="number"
               id="paralleluploads"
@@ -62,7 +62,7 @@
           </div>
           <div class="input-container">
             <label>
-              Metadata JSON object
+              Metadata JSON Object
               <div class="input-tip">
                 <b>Note:</b> File name will be inferred from each file
               </div>
@@ -81,7 +81,7 @@
         </div>
       </div>
 
-      <div class="file-detail-container">
+      <div class="file-detail-container hidden">
         <div class="file-header-container">
           <div class="file-id-container">
             <h1>{{.Info.Manifest.received_filename}}</h1>
@@ -90,13 +90,13 @@
 
           <div class="upload-status-container">
             <h1>
-              <span id="upload-status-label">Upload Status:</span>
-              <span id="upload-status-value" class="upload-{{AllLowerCase .Info.UploadStatus.Status}}">
+              Upload Status:
+              <span id="upload-status-value" class="upload-{{KebabCase .Info.UploadStatus.Status}}">
                 {{.Info.UploadStatus.Status}}
               </span>
             </h1>
             <div class="small-italics info-datetime">
-              Uploaded At:
+              <span id="upload-datetime-label">Uploaded At: </span>
               <span id="upload-datetime-value">
                 {{FormatDateTime .Info.UploadStatus.LastChunkReceived}}
               </span>
@@ -108,7 +108,7 @@
         <div class="file-deliveries-container">
           <h2>Delivery Status</h2>
           {{range .Info.Deliveries}}
-          <div class="file-delivery-container file-delivery-{{AllLowerCase .Status}}">
+          <div class="file-delivery-container file-delivery-{{KebabCase .Status}}">
             <div class="delivery-header-container">
               <div class="delivery-id-container">
                 <h2>{{AllUpperCase .Name}}</h2>
@@ -116,7 +116,7 @@
               <div class="delivery-status-container">
                 <h3>
                   Delivery Status:
-                  <span class="delivery-{{AllLowerCase .Status}}">{{.Status}}</span>
+                  <span class="delivery-{{KebabCase .Status}}">{{.Status}}</span>
                 </h3>
                 <div class="small-italics">
                   Delivered At:
@@ -135,7 +135,7 @@
               <div class="issue-list-container">
               {{range .Issues}}
                 <div class="issue-container">
-                  <div class="issue-level issue-level-{{AllLowerCase .Level}}">{{.Level}}:</div>
+                  <div class="issue-level issue-level-{{KebabCase .Level}}">{{.Level}}:</div>
                   <div class="issue-message">{{.Message}}</div>
                 </div>
               {{end}}
@@ -175,13 +175,15 @@
           </div>
         </div>
 
-        {{template "newuploadbtn" .NewUploadBtn}}
+        <div class="new-upload-button-container">
+          {{template "newuploadbtn" .NewUploadBtn}}
+        </div>
     </main>
   </body>
 
   <script>
-    const uploadUrl = "{{.UploadUrl}}";</script>
-    <script>const uploadStatusLevel = "{{.UploadStatusLevel}}";
+    const uploadUrl = "{{.UploadUrl}}";
+    const uploadStatus = "{{.UploadStatus}}";
   </script>
   <script src="https://cdn.jsdelivr.net/npm/tus-js-client@latest/dist/tus.js"></script>
   <script src="/assets/tusclient.js"></script>

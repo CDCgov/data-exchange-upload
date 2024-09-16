@@ -87,7 +87,7 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 	}
 
 	if appConfig.S3Connection != nil {
-		client, err := stores3.NewContainerClient(ctx, appConfig.S3Connection)
+		client, err := stores3.New(ctx, appConfig.S3Connection)
 		if err != nil {
 			return err
 		}

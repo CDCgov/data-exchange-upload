@@ -8,7 +8,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 )
 
-func NewContainerClient(ctx context.Context, s3Config *appconfig.S3StorageConfig) (*s3.Client, error) {
+func New(ctx context.Context, s3Config *appconfig.S3StorageConfig) (*s3.Client, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 
 	if err != nil {

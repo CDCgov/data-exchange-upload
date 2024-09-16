@@ -145,7 +145,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 
 	if appConfig.S3Connection != nil {
-		s3Client, err := stores3.NewContainerClient(ctx, appConfig.S3Connection)
+		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
 		if err != nil {
 			return err
 		}

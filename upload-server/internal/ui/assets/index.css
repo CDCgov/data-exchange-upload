@@ -12,6 +12,21 @@ body {
   font-size: 1.4rem;
   margin: 0 auto;
   width: 100vw;
+
+  --upload-light-text: #fff;
+  --upload-dark-text: #000;
+  --upload-secondary-bg: #f4f4f4;
+  --upload-border-color: #aaa;
+
+  --upload-accent: rgb(0, 94, 201);
+  --upload-accent-alpha: rgba(0, 119, 255, 0.1);
+  --upload-active: rgb(243, 186, 17);
+
+  --upload-success: rgb(2, 119, 2);
+  --upload-success-alpha: rgba(6, 162, 6, 0.05);
+  --upload-failure: rgb(155, 0, 0);
+  --upload-failure-alpha: rgba(155, 0, 0, 0.05);
+  --upload-warning: rgb(255, 117, 24);
 }
 
 main,
@@ -37,8 +52,8 @@ a.skip-main {
 
 a.skip-main:focus,
 a.skip-main:active {
-  color: #fff;
-  background-color: #000;
+  color: var(--upload-light-text);
+  background-color: var(--upload-dark-text);
   left: auto;
   top: auto;
   width: 30%;
@@ -47,7 +62,7 @@ a.skip-main:active {
   margin: 10px 35%;
   padding: 5px;
   border-radius: 15px;
-  border: 4px solid yellow;
+  border: 4px solid var(--upload-active);
   text-align: center;
   font-size: 1.2em;
   z-index: 999;
@@ -67,8 +82,8 @@ a.skip-main:active {
 /* -------------- */
 
 .nav-container {
-  background-color: #f4f4f4;
-  border-bottom: 1px solid #c5c5c5;
+  background-color: var(--upload-secondary-bg);
+  border-bottom: 1px solid var(--upload-border-color);
   font-size: 1.6rem;
   font-weight: 700;
   padding: 1rem;
@@ -76,14 +91,14 @@ a.skip-main:active {
 
 .nav-container a,
 a:visited {
-  color: #000;
+  color: var(--upload-dark-text);
   text-decoration: none;
-  border-bottom: 1px solid #f4f4f4;
+  border-bottom: 1px solid var(--upload-secondary-bg);
 }
 
 .nav-container a:hover {
-  color: #000;
-  border-bottom: 1px solid #000;
+  color: var(--upload-dark-text);
+  border-bottom: 1px solid var(--upload-border-color);
 }
 
 .nav-container .link-button:hover {
@@ -99,14 +114,14 @@ a:visited {
 /* ------------------- */
 
 .link-button {
-  color: rgb(0, 94, 201) !important;
+  color: var(--upload-accent) !important;
   font-weight: 700;
   text-decoration: none;
 }
 
 .link-button-container {
-  background-color: rgba(0, 119, 255, 0.1);
-  border: 2px solid rgb(0, 94, 201);
+  background-color: var(--upload-accent-alpha);
+  border: 2px solid var(--upload-accent);
   border-radius: 5px;
   margin: auto 0;
   padding: 0.5rem 1rem;
@@ -114,8 +129,8 @@ a:visited {
 }
 
 .link-button-container:hover {
-  background-color: rgb(0, 94, 201);
-  color: white;
+  background-color: var(--upload-accent);
+  color: var(--upload-light-text);
   cursor: pointer;
 }
 
@@ -134,10 +149,10 @@ a:visited {
 }
 
 .form-container button {
-  background: #0057b7;
+  background: var(--upload-accent);
   border: none;
   border-radius: 5px;
-  color: white;
+  color: var(--upload-light-text);
   cursor: pointer;
   display: inline-block;
   margin: 5px 0;
@@ -151,8 +166,8 @@ a:visited {
 }
 
 .form-container input {
-  background: #f1f1f1;
-  border: 1px solid #aaa;
+  background: var(--upload-secondary-bg);
+  border: 1px solid var(--upload-border-color);
   border-radius: 5px;
   display: inline-block;
   margin: 5px 0;
@@ -183,8 +198,8 @@ a:visited {
 }
 
 .form-container select {
-  background: #f1f1f1;
-  border: 1px solid #aaa;
+  background: var(--upload-secondary-bg);
+  border: 1px solid var(--upload-border-color);
   border-radius: 5px;
   display: inline-block;
   margin: 5px 0;

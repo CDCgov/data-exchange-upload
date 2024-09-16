@@ -16,7 +16,7 @@ import (
 )
 
 func NewS3Destination(ctx context.Context, target string, conn *appconfig.S3StorageConfig) (*S3Destination, error) {
-	c, err := stores3.NewContainerClient(ctx, conn)
+	c, err := stores3.New(ctx, conn)
 	if err != nil {
 		return nil, err
 	}

@@ -20,6 +20,8 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/eventials/go-tus"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // content holds our static web server content.
@@ -29,16 +31,16 @@ var content embed.FS
 
 func FixNames(name string) string {
 	removeChars := strings.ReplaceAll(name, "_", " ")
-	newName := strings.Title(strings.ToLower(removeChars))
+	
+	caser := cases.Title(language.English)
+	newName := caser.String(removeChars)
+
 	return newName
 }
 
-func AllLowerCase(text string) string {
-	return strings.ToLower(text)
-}
-
-func AllUpperCase(text string) string {
-	return strings.ToUpper(text)
+func KebabCase(value string) string {
+	kebabValue := strings.ReplaceAll(value, " ", "-");
+	return strings.ToLower(kebabValue);
 }
 
 func FormatDateTime(dateTimeString string) string {
@@ -54,9 +56,10 @@ func FormatDateTime(dateTimeString string) string {
 
 var usefulFuncs = template.FuncMap{
 	"FixNames":       FixNames,
-	"AllLowerCase":   AllLowerCase,
-	"AllUpperCase":   AllUpperCase,
+	"AllLowerCase":   strings.ToLower,
+	"AllUpperCase":   strings.ToUpper,
 	"FormatDateTime": FormatDateTime,
+	"KebabCase": 			KebabCase,
 }
 
 func generateTemplate(templatePath string, useFuncs bool) (*template.Template) {
@@ -80,7 +83,7 @@ type ManifestTemplateData struct {
 
 type UploadTemplateData struct {
 	UploadUrl         string
-	UploadStatusLevel int
+	UploadStatus 			string
 	Info              info.InfoResponse
 	Navbar            components.Navbar
 	NewUploadBtn 			components.NewUploadBtn
@@ -109,10 +112,10 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		}
 
 		err = manifestTemplate.Execute(rw, &ManifestTemplateData{
-			DataStream:      dataStream,
-			DataStreamRoute: dataStreamRoute,
-			MetadataFields:  filterMetadataFields(config),
-			Navbar: components.NewNavbar(false),
+			DataStream:      	dataStream,
+			DataStreamRoute: 	dataStreamRoute,
+			MetadataFields:  	filterMetadataFields(config),
+			Navbar: 					components.NewNavbar(false),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -218,24 +221,12 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			return
 		}
 
-		var uploadStatusLevel int
-		switch fileInfo.UploadStatus.Status {
-		case info.UploadInitiated:
-			uploadStatusLevel = 0
-		case info.UploadInProgress:
-			uploadStatusLevel = 1
-		case info.UploadComplete:
-			uploadStatusLevel = 2
-		default:
-			uploadStatusLevel = -1
-		}
-
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
-			UploadUrl: uploadUrl,
-			Info:              fileInfo,
-			UploadStatusLevel: uploadStatusLevel,
-			Navbar: components.NewNavbar(true),
-			NewUploadBtn: components.NewUploadBtn{},
+			UploadUrl: 					uploadUrl,
+			Info:              	fileInfo,
+			UploadStatus: 			fileInfo.UploadStatus.Status,
+			Navbar: 						components.NewNavbar(true),
+			NewUploadBtn: 			components.NewUploadBtn{},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
