@@ -701,7 +701,7 @@ components:
               type: string
               description: Timestamp of the most recent time the file was changed.
         deliveries:
-          type: object
+          type: array
           description: Information about the file destination delivery to target locations.
           properties:
             status:
