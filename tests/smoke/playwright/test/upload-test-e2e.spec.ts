@@ -8,7 +8,7 @@ test.describe("Upload End to End Tests", () => {
         await page.goto(`/`);
         await page.getByLabel('Data Stream', {exact: true}).fill(dataStream);
         await page.getByLabel('Data Stream Route').fill(route);
-        await page.getByRole('button', {name: /submit/i }).click();
+        await page.getByRole('button', {name: /next/i }).click();
 
         await page.getByLabel('Sender Id').fill('Sender123')
         await page.getByLabel('Data Producer Id').fill('Producer123')
@@ -22,7 +22,7 @@ test.describe("Upload End to End Tests", () => {
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles('../upload-files/10KB-test-file');     
 
-        await page.getByText('Download 10KB-test-file')
+        await expect(page.getByText('Upload Status: Complete')).toBeVisible();
     })
 })    
 
