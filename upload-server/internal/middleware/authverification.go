@@ -78,19 +78,19 @@ func validateJWT(ctx context.Context, token string) error {
 
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
-		return NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("failed to get provider: %v", err))
+		return NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to get provider: %v", err))
 	}
 
 	verifier := provider.Verifier(&oidc.Config{SkipClientIDCheck: true})
 
 	idToken, err := verifier.Verify(ctx, token)
 	if err != nil {
-		return NewHTTPError(http.StatusUnauthorized, "failed to verify token")
+		return NewHTTPError(http.StatusUnauthorized, fmt.Sprintf("Failed to verify token: %v", err))
 	}
 
 	var claims Claims
 	if err := idToken.Claims(&claims); err != nil {
-		return NewHTTPError(http.StatusUnauthorized, "failed to parse token claims")
+		return NewHTTPError(http.StatusUnauthorized, "Failed to parse token claims")
 	}
 
 	actualScopes := strings.Split(claims.Scopes, " ")
@@ -100,7 +100,7 @@ func validateJWT(ctx context.Context, token string) error {
 	}
 
 	if !hasRequiredScopes(actualScopes, requiredScopes) {
-		return NewHTTPError(http.StatusForbidden, "one or more required scopes not found")
+		return NewHTTPError(http.StatusForbidden, "One or more required scopes not found")
 	}
 
 	return nil
