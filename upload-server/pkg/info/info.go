@@ -13,16 +13,16 @@ var (
 // Values also set in the tusclient.js
 // these values must match
 const (
-	UploadInitiated 	string = "Initiated"
-	UploadInProgress 	string = "In Progress"
-	UploadComplete 		string = "Complete"
+	UploadInitiated  string = "Initiated"
+	UploadInProgress string = "In Progress"
+	UploadComplete   string = "Complete"
 )
 
 type InfoResponse struct {
-	Manifest   		map[string]any       	`json:"manifest"`
-	FileInfo   		map[string]any       	`json:"file_info"`
-	UploadStatus 	FileUploadStatus 			`json:"upload_status"`
-	Deliveries 		[]FileDeliveryStatus 	`json:"deliveries"`
+	Manifest     map[string]any       `json:"manifest"`
+	FileInfo     map[string]any       `json:"file_info"`
+	UploadStatus FileUploadStatus     `json:"upload_status"`
+	Deliveries   []FileDeliveryStatus `json:"deliveries"`
 }
 
 type InfoFileData struct {
@@ -30,15 +30,14 @@ type InfoFileData struct {
 }
 
 type FileUploadStatus struct {
-	Status 						string `json:"status"`
+	Status            string `json:"status"`
 	LastChunkReceived string `json:"chunk_received_at"`
 }
 
 type FileDeliveryStatus struct {
-	Status      string   							`json:"status"`
-	Name        string   							`json:"name"`
-	Location    string   							`json:"location"`
-	DeliveredAt string   							`json:"delivered_at"`
-	Issues      []reports.ReportIssue	`json:"issues"`
+	Status      string                `json:"status"`
+	Name        string                `json:"name"`
+	Location    string                `json:"location"`
+	DeliveredAt string                `json:"delivered_at"`
+	Issues      []reports.ReportIssue `json:"issues"`
 }
-

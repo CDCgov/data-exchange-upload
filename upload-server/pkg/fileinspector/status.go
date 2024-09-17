@@ -65,7 +65,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ contex
 
 func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx context.Context, id string) (info.FileUploadStatus, error) {
 	// check if the upload-completed file exists
-	uploadCompletedReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadCompleted)
+	uploadCompletedReportFilename := filepath.Join(fsusi.ReportsDir, id+event.TypeSeparator+reports.StageUploadCompleted)
 	uploadCompletedFileInfo, err := os.Stat(uploadCompletedReportFilename)
 	if err == nil {
 		// if there are no errors, then the upload-complete file has been created
@@ -73,10 +73,10 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 		// to the time the file was created, no other calculations are needed
 		lastChunkReceived := uploadCompletedFileInfo.ModTime().UTC().Format(time.RFC3339)
 		return info.FileUploadStatus{
-			Status: info.UploadComplete,
+			Status:            info.UploadComplete,
 			LastChunkReceived: lastChunkReceived,
 		}, nil
-	} 
+	}
 
 	// if the error from checking the upload-completed file is something other than
 	// the file not existing, return the error
@@ -85,7 +85,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 	}
 
 	// get the file info for the upload-started file
-	uploadStartedReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadStarted)
+	uploadStartedReportFilename := filepath.Join(fsusi.ReportsDir, id+event.TypeSeparator+reports.StageUploadStarted)
 	uploadStartedFileInfo, err := os.Stat(uploadStartedReportFilename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -95,7 +95,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 	}
 
 	// get the file info for the upload-status file
-	uploadStatusReportFilename := filepath.Join(fsusi.ReportsDir, id + event.TypeSeparator + reports.StageUploadStatus)
+	uploadStatusReportFilename := filepath.Join(fsusi.ReportsDir, id+event.TypeSeparator+reports.StageUploadStatus)
 	uploadStatusReportFileInfo, err := os.Stat(uploadStatusReportFilename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -109,21 +109,21 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 
 	lastChunkReceived := uploadStatusModTime.UTC().Format(time.RFC3339)
 
-	if (uploadStartedModTime.Unix() == uploadStatusModTime.Unix()) {
-		// when the file upload is initiated the upload-started and upload-status reports 
-		// are created at the same time, so if the file modified times are still equal 
+	if uploadStartedModTime.Unix() == uploadStatusModTime.Unix() {
+		// when the file upload is initiated the upload-started and upload-status reports
+		// are created at the same time, so if the file modified times are still equal
 		// it means the file hasn't started uploading yet
 		return info.FileUploadStatus{
-			Status: info.UploadInitiated,
+			Status:            info.UploadInitiated,
 			LastChunkReceived: lastChunkReceived,
 		}, nil
 	}
 
-	if (uploadStartedModTime.Unix() < uploadStatusModTime.Unix()) {
+	if uploadStartedModTime.Unix() < uploadStatusModTime.Unix() {
 		// if the file modified time of the upload-status report is later than the
 		// upload-started report, then the file is being uploaded
 		return info.FileUploadStatus{
-			Status: info.UploadInProgress,
+			Status:            info.UploadInProgress,
 			LastChunkReceived: lastChunkReceived,
 		}, nil
 	}

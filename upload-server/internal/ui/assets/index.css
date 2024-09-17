@@ -185,13 +185,15 @@ a:visited {
   display: none;
 }
 
-.form-container label {
+.form-container label,
+.form-container .label {
   display: block;
   font-weight: 600;
   margin-top: 1rem;
 }
 
-.form-container label .input-tip {
+.form-container label .input-tip,
+.form-container .label .input-tip {
   font-weight: normal;
   font-size: small;
   font-style: italic;

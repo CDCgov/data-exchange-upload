@@ -20,10 +20,10 @@ type S3UploadInspector struct {
 
 func NewS3UploadInspector(containerClient *s3.Client, bucketName string, tusPrefix string) *S3UploadInspector {
 	return &S3UploadInspector{
-			Client:     containerClient,
-			BucketName: bucketName,
-			TusPrefix:  tusPrefix,
-		}
+		Client:     containerClient,
+		BucketName: bucketName,
+		TusPrefix:  tusPrefix,
+	}
 }
 
 func (sui *S3UploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {

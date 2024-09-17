@@ -215,11 +215,6 @@ async function submitUploadForm() {
     // multiple uploads can be started concurrent ( new tus.Upload ), however each one sends chunks serially to the server
     // tusd azure does not support chunks concatenation, ref: https://github.com/tus/tusd/issues/843
     parallelUploads = 1;
-    // const parallelInput = document.querySelector("#paralleluploads");
-    // parallelUploads = parseInt(parallelInput.value, 10);
-    // if (Number.isNaN(parallelUploads)) {
-    //   parallelUploads = 1;
-    // }
   }
 
   // hide the forms
@@ -332,10 +327,7 @@ async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
 
       fileInput.value = "";
 
-      // show the file info
-      _showReadOnlyFileInfo();
-
-      location.reload();
+      window.location = window.location;
     },
   };
 

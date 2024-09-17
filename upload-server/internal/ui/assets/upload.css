@@ -145,3 +145,8 @@
 .detail-container .detail-value {
   word-break: break-all;
 }
+
+.file-size-initiated,
+.file-size-in-progress {
+  display: none;
+}

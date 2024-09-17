@@ -1,3 +1,3 @@
 package components
 
-type NewUploadBtn struct {}
+type NewUploadBtn struct{}

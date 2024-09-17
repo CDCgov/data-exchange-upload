@@ -61,16 +61,16 @@
             />
           </div>
           <div class="input-container">
-            <label>
+            <div class="label">
               Metadata JSON Object
               <div class="input-tip">
                 <b>Note:</b> File name will be inferred from each file
               </div>
-              <div class="file-container">
-                <button onclick="files.click()">Browse Files</button>
-                <input type="file" id="files" />
-              </div>
-            </label>
+            </div>
+            <div class="file-container">
+              <button onclick="files.click()" name="Browse files to upload">Browse Files</button>
+              <input type="file" id="files" />
+            </div>
           </div>
         </div>
 
@@ -155,29 +155,29 @@
 
         <div class="file-details-container">
           <h2>Upload Details</h2>
-          <div class="detail-container">
+          <div class="detail-container file-size-{{KebabCase .Info.UploadStatus.Status}}">
             <div class="detail-label">File Size:</div>
-            <div class="detail-value">{{.Info.FileInfo.size_bytes}} bytes</div>
+            <div class="detail-value">{{FormatBytes .Info.FileInfo.size_bytes}}</div>
           </div>
           <div class="detail-container">
             <div class="detail-label">Sender ID:</div>
-            <div class="detail-value">{{AllUpperCase .Info.Manifest.sender_id}}</div>
+            <div class="detail-value">{{.Info.Manifest.sender_id}}</div>
           </div>
           <div class="detail-container">
             <div class="detail-label">Producer ID:</div>
-            <div class="detail-value">{{AllUpperCase .Info.Manifest.data_producer_id}}</div>
+            <div class="detail-value">{{.Info.Manifest.data_producer_id}}</div>
           </div>
           <div class="detail-container">
             <div class="detail-label">Stream ID:</div>
-            <div class="detail-value">{{AllUpperCase .Info.Manifest.data_stream_id}}</div>
+            <div class="detail-value">{{.Info.Manifest.data_stream_id}}</div>
           </div>
           <div class="detail-container">
             <div class="detail-label">Stream Route:</div>
-            <div class="detail-value">{{AllUpperCase .Info.Manifest.data_stream_route}}</div>
+            <div class="detail-value">{{.Info.Manifest.data_stream_route}}</div>
           </div>
           <div class="detail-container">
             <div class="detail-label">Jurisdiction:</div>
-            <div class="detail-value">{{AllUpperCase .Info.Manifest.jurisdiction}}</div>
+            <div class="detail-value">{{.Info.Manifest.jurisdiction}}</div>
           </div>
         </div>
 

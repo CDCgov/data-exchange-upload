@@ -64,10 +64,10 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	response := &info.InfoResponse{
-		Manifest: fileInfo,
-		FileInfo: uploadedFileInfo,
+		Manifest:     fileInfo,
+		FileInfo:     uploadedFileInfo,
 		UploadStatus: uploadStatus,
-		Deliveries: deliveries,
+		Deliveries:   deliveries,
 	}
 
 	rw.Header().Set("Content-Type", "application/json")
@@ -94,12 +94,12 @@ func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (Uploa
 		return azureinspector.NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
 	}
 	if appConfig.S3Connection != nil {
-		containerClient, err := stores3.New(ctx, appConfig.S3Connection)
+		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
 		if err != nil {
 			return nil, err
 		}
 
-		return s3inspector.NewS3UploadInspector(containerClient, appConfig.S3Connection.BucketName, appConfig.TusUploadPrefix), nil
+		return s3inspector.NewS3UploadInspector(s3Client, appConfig.S3Connection.BucketName, appConfig.TusUploadPrefix), nil
 	}
 	if appConfig.LocalFolderUploadsTus != "" {
 		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
