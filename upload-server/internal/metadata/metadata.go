@@ -87,12 +87,17 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 
 	if appConfig.S3Connection != nil {
 		client, err := stores3.New(ctx, appConfig.S3Connection)
+		bucket := appConfig.S3Connection.BucketName
+		if appConfig.S3ManifestConfigBucket != "" {
+			bucket = appConfig.S3ManifestConfigBucket
+		}
 		if err != nil {
 			return err
 		}
 		Cache.Loader = &loaders.S3ConfigLoader{
 			Client:     client,
-			BucketName: appConfig.S3ManifestConfigBucket,
+			BucketName: bucket,
+			Folder:     appConfig.S3ManifestConfigFolder,
 		}
 	}
 

@@ -9,12 +9,17 @@ import (
 type S3ConfigLoader struct {
 	Client     *s3.Client
 	BucketName string
+	Folder     string
 }
 
 func (l *S3ConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte, error) {
+	key := path
+	if l.Folder != "" {
+		key = l.Folder + "/" + key
+	}
 	output, err := l.Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &l.BucketName,
-		Key:    &path,
+		Key:    &key,
 	})
 	defer output.Body.Close()
 	if err != nil {
