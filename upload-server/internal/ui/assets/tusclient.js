@@ -155,10 +155,11 @@ function _updateLastChunkReceived() {
 }
 
 function _refreshPage() {
-  // window.location = window.location
-  // seems to be a smoother transition than
-  // location.reload();
-  window.location = window.location;
+  // Adding a 1 second wait to make the refresh look a little smoother
+  // when the file uploads really quickly
+  setTimeout(() => {
+    location.reload();
+  }, 1000);
 }
 
 // Triggered by a file being selected. Gets the file from
@@ -351,9 +352,10 @@ async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
 
   // Start the upload
   uploadIsRunning = true;
+  upload.start();
+
   _updateUploadStatusInProgress();
   _toggleInfoContainer(true);
-  upload.start();
 }
 
 function resumeUpload() {

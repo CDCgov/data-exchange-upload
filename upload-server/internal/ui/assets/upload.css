@@ -1,7 +1,10 @@
 .file-detail-container {
-  border-top: 1px solid var(--upload-border-color);
   margin: 0 auto;
   padding: 1.2rem;
+}
+
+main > div:first-child:not(.hidden) + .file-detail-container {
+  border-top: 1px solid var(--upload-border-color);
 }
 
 .uploader-container {
