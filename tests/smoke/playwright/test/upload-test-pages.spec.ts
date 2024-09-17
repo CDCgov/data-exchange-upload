@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test.describe.configure({ mode: 'parallel' });
+
 test.describe("Upload Landing Page", () => {
     test("has the expected elements to start a file upload process", async ({page}) => {
         await page.goto(`/`);
@@ -11,7 +12,7 @@ test.describe("Upload Landing Page", () => {
         await expect(page.getByRole('heading', { level: 2 })).toHaveText('Start the upload process by entering a data stream and route.')
         await expect(page.getByRole("textbox", { name: "Data Stream", exact: true })).toBeVisible()
         await expect(page.getByRole("textbox", { name: "Data Stream Route", exact: true })).toBeVisible()
-        await expect(page.getByRole("button", {name: "Submit"})).toBeVisible()
+        await expect(page.getByRole("button", {name: "Next"})).toBeVisible()
     })
 });
 
@@ -63,16 +64,16 @@ test.describe("File Uploader Page", () => {
         await page.getByRole('button', { name: /next/i }).click();
     
         await expect(page.getByRole('heading', { level: 1, includeHidden: false }).nth(0)).toHaveText('File Uploader')
-        const uploadEndpoint = page.getByRole('textbox', { name: 'Upload endpoint:' });
+        const uploadEndpoint = page.getByRole('textbox', { name: 'Upload Endpoint' });
         // not the greatest way to interpret the endpoint value here, but this will have to work for now...
         await expect(uploadEndpoint).toHaveValue(`${apiURL}/files/`)
 
-        const chunkSize = page.getByRole('spinbutton', { name: 'Chunk size (bytes):' });
+        const chunkSize = page.getByLabel('Chunk size (bytes)');
+        const chunkSizeLabel = page.locator('label', { hasText: 'Chunk size (bytes)' })
+        await expect(chunkSizeLabel).toContainText('Note: Chunksize should be set on the client for uploading files of large size (1GB or over).')
         await expect(chunkSize).toHaveValue('40000000')
-   
-        await expect(chunkSize.locator('..').locator('p')).toHaveText("Note: Chunksize should be set on the client for uploading files of large size (1GB or over).")
 
-        const parallelUploadRequests = page.getByRole('spinbutton', { name: 'Parallel upload requests:' })
+        const parallelUploadRequests = page.getByRole('spinbutton', { name: 'Parallel upload requests' })
         await expect(parallelUploadRequests).toHaveValue('1')
 
         const browseFilesButton = page.getByLabel('Browse Files')
@@ -86,20 +87,24 @@ test.describe("Upload Status Page", () => {
         const apiURL = baseURL.replace('8081', '8080')
         const dataStream = 'dextesting';
         const route = 'testevent1';
-
+        const expectedFileName = 'small-test-file'
+        const expectedSender = 'Sender123'
+        const expectedDataProducer = 'Producer123'
+        const expectedJurisdiction = 'Jurisdiction123'
+    
         await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
         
-        await page.getByLabel('Sender Id').fill('Sender123')
-        await page.getByLabel('Data Producer Id').fill('Producer123')
-        await page.getByLabel('Jurisdiction').fill('Jurisdiction123')
-        await page.getByLabel('Received Filename').fill('small-test-file')
+        await page.getByLabel('Sender Id').fill(expectedSender)
+        await page.getByLabel('Data Producer Id').fill(expectedDataProducer)
+        await page.getByLabel('Jurisdiction').fill(expectedJurisdiction)
+        await page.getByLabel('Received Filename').fill(expectedFileName)
         await page.getByRole('button', {name: /next/i }).click();
 
         const fileChooserPromise = page.waitForEvent('filechooser');
         const uploadId = page.url().split('/').slice(-1)[0]
     
         const uploadHeadResponsePromise = page.waitForResponse(response =>
-            response.url() === `${apiURL}}/files/${uploadId}` && response.status() === 200
+            response.url() === `${apiURL}/files/${uploadId}` && response.status() === 200
                 && response.request().method() === 'HEAD'
         );
         
@@ -108,15 +113,35 @@ test.describe("Upload Status Page", () => {
                 && response.request().method() === 'PATCH'
         );
 
-        // await page.locator('input[type="file"]').click();
-        await page.locator('button').click();
+        await page.getByRole('button', {name: /Metadata JSON Object/}).click();
+        // await page.getByRole('button', {name: 'Browse Files'}).click();  // want to be able to do this instead, accessible name is wrong?
+
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles('../upload-files/10KB-test-file');
 
-        await uploadPatchResponsePromise
-        await uploadHeadResponsePromise
+        await expect((await uploadPatchResponsePromise).ok()).toBeTruthy()
+        await expect((await uploadHeadResponsePromise).ok()).toBeTruthy()
 
-        page.goto(`/status/${uploadId}`)
+        await page.reload();
 
+        const fileHeaderContainer= page.locator('.file-header-container')
+        await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(0)).toHaveText(expectedFileName)
+        await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(1)).toHaveText("Upload Status: Complete")
+        await expect(fileHeaderContainer).toContainText(`ID: ${uploadId}`)
+    
+        const fileDeliveriesContainer = page.locator('.file-deliveries-container');
+        await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
+        await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(1)).toHaveText('EDAV')
+        await expect(fileDeliveriesContainer.getByRole('heading', {level: 3})).toHaveText('Delivery Status: SUCCESS')
+        await expect(fileDeliveriesContainer).toContainText(`Location: uploads/edav/${uploadId}`)
+
+        const uploadDetailsContainer = page.locator('.file-details-container')
+        await expect(uploadDetailsContainer.getByRole('heading', { level: 2 })).toHaveText('Upload Details')
+        await expect(uploadDetailsContainer).toContainText(`File Size: 10240 bytes`)
+        await expect(uploadDetailsContainer).toContainText(`Sender ID: ${expectedSender.toUpperCase()}`)
+        await expect(uploadDetailsContainer).toContainText(`Producer ID: ${expectedDataProducer.toUpperCase()}`)
+        await expect(uploadDetailsContainer).toContainText(`Stream ID: ${dataStream.toUpperCase()}`)
+        await expect(uploadDetailsContainer).toContainText(`Stream Route: ${route.toUpperCase()}`)
+        await expect(uploadDetailsContainer).toContainText(`Jurisdiction: ${expectedJurisdiction.toUpperCase()}`)
     })
 })
