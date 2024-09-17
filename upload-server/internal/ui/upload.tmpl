@@ -61,14 +61,14 @@
             />
           </div>
           <div class="input-container">
-            <div class="label">
+            <label for="files">
               Metadata JSON Object
               <div class="input-tip">
                 <b>Note:</b> File name will be inferred from each file
               </div>
-            </div>
+            </label>
             <div class="file-container">
-              <button onclick="files.click()" name="Browse files to upload">Browse Files</button>
+              <button type="button" onclick="files.click()" name="Browse files to upload" id="browse-files">Browse Files</button>
               <input type="file" id="files" />
             </div>
           </div>
@@ -81,8 +81,8 @@
             </div>
           </div>
           <div class="pause-resume-upload-container">
-            <button id="pause-upload-button" class="hidden">Pause</button>
-            <button id="resume-upload-button" class="hidden">Resume</button>
+            <button type="button" id="pause-upload-button" class="hidden">Pause</button>
+            <button type="button" id="resume-upload-button" class="hidden">Resume</button>
           </div>
         </div>
       </div>
