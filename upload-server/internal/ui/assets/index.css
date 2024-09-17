@@ -26,7 +26,7 @@ body {
   --upload-success-alpha: rgba(6, 162, 6, 0.05);
   --upload-failure: rgb(155, 0, 0);
   --upload-failure-alpha: rgba(155, 0, 0, 0.05);
-  --upload-warning: rgb(255, 117, 24);
+  --upload-warning: rgb(187, 77, 0);
 }
 
 main,
