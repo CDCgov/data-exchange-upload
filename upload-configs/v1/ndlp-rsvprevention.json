@@ -13,7 +13,8 @@
 			{
 				"field_name": "meta_ext_sourceversion",
 				"allowed_values": [
-					"V2023-09-01"
+					"V2023-09-01",
+					"V2024-09-04"
 				],
 				"required": true,
 				"description": "Aligns with version of the specification."
@@ -115,7 +116,8 @@
 					"HH2",
 					"HR2",
 					"DV3",
-					"FD3"
+					"FD3",
+					"XXA"
 				],
 				"required": true,
 				"description": "Drives metrics for vaccine admin progress at entity grouping level."
