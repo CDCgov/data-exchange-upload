@@ -154,6 +154,13 @@ function _updateLastChunkReceived() {
     currTime.toUTCString();
 }
 
+function _refreshPage() {
+  // window.location = window.location
+  // seems to be a smoother transition than
+  // location.reload();
+  window.location = window.location;
+}
+
 // Triggered by a file being selected. Gets the file from
 // the file input. Gets the other values from the form, if
 // this is a new upload, or from the previous upload metadata,
@@ -327,7 +334,8 @@ async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
 
       fileInput.value = "";
 
-      window.location = window.location;
+      // refresh the page for the complete upload info
+      _refreshPage();
     },
   };
 
