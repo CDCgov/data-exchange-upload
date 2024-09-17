@@ -3,10 +3,11 @@ package cli
 import (
 	"context"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
-	"github.com/tus/tusd/v2/pkg/s3store"
 	"os"
 	"path/filepath"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
+	"github.com/tus/tusd/v2/pkg/s3store"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"

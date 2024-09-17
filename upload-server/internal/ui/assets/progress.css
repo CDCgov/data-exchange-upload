@@ -1,18 +1,18 @@
 .progress-container {
-	height: 32px;
+  height: 32px;
   width: 50%;
   max-width: 400px;
 }
 
 .progress {
-  border: 1px solid #aaa;
-	height: 100%;
+  border: 1px solid var(--upload-border-color);
+  height: 100%;
   width: 100%;
 }
 
 .bar {
-  background-color: rgb(6, 162, 6);
-  color: white;
+  background-color: var(--upload-success);
+  color: var(--upload-light-text);
   line-height: 30px;
   height: 100%;
   margin: auto 0;
