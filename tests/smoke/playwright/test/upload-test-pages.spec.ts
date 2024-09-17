@@ -76,7 +76,7 @@ test.describe("File Uploader Page", () => {
         const parallelUploadRequests = page.getByRole('spinbutton', { name: 'Parallel upload requests' })
         await expect(parallelUploadRequests).toHaveValue('1')
 
-        const browseFilesButton = page.getByLabel('Browse Files')
+        const browseFilesButton = page.getByRole('button', { name: 'Browse Files' })
         await expect(browseFilesButton).toHaveAttribute("onclick", "files.click()")
     })
 })
@@ -113,8 +113,7 @@ test.describe("Upload Status Page", () => {
                 && response.request().method() === 'PATCH'
         );
 
-        await page.getByRole('button', {name: /Metadata JSON Object/}).click();
-        // await page.getByRole('button', {name: 'Browse Files'}).click();  // want to be able to do this instead, accessible name is wrong?
+        await page.getByRole('button', {name: 'Browse Files'}).click(); 
 
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles('../upload-files/10KB-test-file');
@@ -137,11 +136,11 @@ test.describe("Upload Status Page", () => {
 
         const uploadDetailsContainer = page.locator('.file-details-container')
         await expect(uploadDetailsContainer.getByRole('heading', { level: 2 })).toHaveText('Upload Details')
-        await expect(uploadDetailsContainer).toContainText(`File Size: 10240 bytes`)
-        await expect(uploadDetailsContainer).toContainText(`Sender ID: ${expectedSender.toUpperCase()}`)
-        await expect(uploadDetailsContainer).toContainText(`Producer ID: ${expectedDataProducer.toUpperCase()}`)
-        await expect(uploadDetailsContainer).toContainText(`Stream ID: ${dataStream.toUpperCase()}`)
-        await expect(uploadDetailsContainer).toContainText(`Stream Route: ${route.toUpperCase()}`)
-        await expect(uploadDetailsContainer).toContainText(`Jurisdiction: ${expectedJurisdiction.toUpperCase()}`)
+        await expect(uploadDetailsContainer).toContainText(`File Size: 10 KB`)
+        await expect(uploadDetailsContainer).toContainText(`Sender ID: ${expectedSender}`)
+        await expect(uploadDetailsContainer).toContainText(`Producer ID: ${expectedDataProducer}`)
+        await expect(uploadDetailsContainer).toContainText(`Stream ID: ${dataStream}`)
+        await expect(uploadDetailsContainer).toContainText(`Stream Route: ${route}`)
+        await expect(uploadDetailsContainer).toContainText(`Jurisdiction: ${expectedJurisdiction}`)
     })
 })

@@ -18,7 +18,7 @@ test.describe("Upload End to End Tests", () => {
 
         const fileChooserPromise = page.waitForEvent('filechooser');
     
-        await page.locator('input[type="file"]').click();
+        await page.getByRole('button', {name: 'Browse Files'}).click(); 
         const fileChooser = await fileChooserPromise;
         await fileChooser.setFiles('../upload-files/10KB-test-file');     
 
