@@ -275,7 +275,7 @@
 	},
 	"copy_config": {
 		"folder_structure": "date_YYYY_MM_DD",
-		"path_template": "routine-immunization-zip/{.Year}/{.Month}/{.Day}",
+		"path_template": "routine-immunization-zip/{.Year}/{.Month}/{.Day}/{.Filename}",
 		"targets": [
 			"ncird"
 		]
