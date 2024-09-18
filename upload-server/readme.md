@@ -145,3 +145,4 @@ go run ./cmd/main.go -appconf ./env
 }
 ```
 
+Test change to trigger fortify scan
