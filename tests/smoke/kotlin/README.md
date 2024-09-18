@@ -9,7 +9,7 @@ locally on a machine within the CDC network.
 
 The following tools need to be installed on your machine:
 
-- Java JDK 11
+- Java JDK 17
 - Gradle
 
 ### Install Gradle Dependencies
