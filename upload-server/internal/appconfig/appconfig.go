@@ -89,6 +89,7 @@ type AppConfig struct {
 	// S3
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
 	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
+	S3ManifestConfigFolder string           `env:"DEX_S3_MANIFEST_CONFIG_FOLDER_NAME"`
 	EdavS3Connection       *S3StorageConfig `env:", prefix=EDAV_S3_, noinit"`
 	RoutingS3Connection    *S3StorageConfig `env:", prefix=ROUTING_S3_, noinit"`
 

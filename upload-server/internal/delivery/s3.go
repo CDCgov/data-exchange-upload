@@ -3,15 +3,16 @@ package delivery
 import (
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
+	"strings"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
-	"io"
-	"log/slog"
-	"strings"
 )
 
 func NewS3Destination(ctx context.Context, target string, conn *appconfig.S3StorageConfig) (*S3Destination, error) {
