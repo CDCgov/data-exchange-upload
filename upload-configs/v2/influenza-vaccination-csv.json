@@ -276,7 +276,7 @@
 	"copy_config": {
 		"folder_structure": "date_YYYY_MM_DD",
 		"targets": [
-			"routing"
+			"ncird"
 		]
 	}
 }
