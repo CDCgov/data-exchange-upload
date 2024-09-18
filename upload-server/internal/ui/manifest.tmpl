@@ -14,7 +14,7 @@
       <h1>Please fill in the sender manifest form for your file</h1>
       <p> * indicates a required field </p>
       <div class="form-container">
-        <form method="POST" action="/upload">
+        <form method="POST" action="{{.FormActionUrl}}">
           {{range .MetadataFields}}
             <div class="input-container">
               <label for="{{.FieldName}}">
