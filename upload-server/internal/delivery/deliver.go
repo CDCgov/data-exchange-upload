@@ -93,6 +93,11 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	if err != nil {
 		return err
 	}
+	var ncirdDeliverer Destination
+	ncirdDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetNcird, &appConfig)
+	if err != nil {
+		return err
+	}
 
 	if appConfig.EdavConnection != nil {
 		edavDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEdav)
@@ -118,11 +123,23 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 			return fmt.Errorf("failed to connect to eicr deliverer target %w", err)
 		}
 	}
+	if appConfig.NcirdConnection != nil {
+		ncirdDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetNcird)
+		if err != nil {
+			return fmt.Errorf("failed to connect to ncird deliverer target %w", err)
+		}
+	}
 
 	if appConfig.EdavS3Connection != nil {
 		edavDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetEdav, appConfig.EdavS3Connection)
 		if err != nil {
 			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
+		}
+	}
+	if appConfig.NcirdS3Connection != nil {
+		ncirdDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetNcird, appConfig.NcirdS3Connection)
+		if err != nil {
+			return fmt.Errorf("failed to connect to ncird deliverer target %w", err)
 		}
 	}
 	if appConfig.RoutingS3Connection != nil {
@@ -160,10 +177,11 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	RegisterDestination("routing", routingDeliverer)
 	RegisterDestination(appconfig.DeliveryTargetEhdi, ehdiDeliverer)
 	RegisterDestination(appconfig.DeliveryTargetEicr, eicrDeliverer)
+	RegisterDestination(appconfig.DeliveryTargetNcird, ncirdDeliverer)
 
 	RegisterSource("upload", src)
 
-	if err := health.Register(edavDeliverer, routingDeliverer, ehdiDeliverer, eicrDeliverer, src); err != nil {
+	if err := health.Register(edavDeliverer, routingDeliverer, ehdiDeliverer, eicrDeliverer, ncirdDeliverer, src); err != nil {
 		slog.Error("failed to register some health checks", "error", err)
 	}
 
