@@ -38,17 +38,17 @@ func NewFromManifest(manifest handler.MetaData) (validation.ConfigLocation, erro
 
 func Hydrate(m map[string]string, config *validation.ManifestConfig) (map[string]string, []reports.MetadataTransformContent) {
 	transforms := make([]reports.MetadataTransformContent, len(config.Metadata.Fields))
-	for _, field := range config.Metadata.Fields {
+	for i, field := range config.Metadata.Fields {
 		if field.CompatFieldName == "" {
 			continue
 		}
-		if v, ok := m[field.FieldName]; ok {
-			m[field.CompatFieldName] = v
-			transforms = append(transforms, reports.MetadataTransformContent{
+		if v, ok := m[field.CompatFieldName]; ok {
+			m[field.FieldName] = v
+			transforms[i] = reports.MetadataTransformContent{
 				Action: "append",
 				Field:  field.FieldName,
 				Value:  v,
-			})
+			}
 		}
 	}
 	m["version"] = "2.0"
