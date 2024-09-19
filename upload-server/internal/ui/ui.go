@@ -194,13 +194,13 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			return
 		}
 		loc := resp.Header.Get("Location")
-		uuid, err := uuid.Parse(loc)
+		uuid, err := uuid.Parse(filepath.Base(loc))
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		http.Redirect(rw, r, fmt.Sprintf("/status/%s", filepath.Base(uuid.String())), http.StatusFound)
+		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid.String()), http.StatusFound)
 	})
 	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("upload_id")
