@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"slices"
@@ -36,7 +35,11 @@ func NewHTTPError(code int, msg string) *HTTPError {
 
 func OAuthTokenVerificationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		authEnabled := appconfig.LoadedConfig.OauthConfig.AuthEnabled
+		if !authEnabled {
+			next.ServeHTTP(w, r)
+			return
+		}
 
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -54,10 +57,10 @@ func OAuthTokenVerificationMiddleware(next http.Handler) http.Handler {
 		var err error
 		if strings.Count(token, ".") == 2 {
 			// Token is JWT, validate using oidc verifier
-			err = validateJWT(ctx, token)
+			err = validateJWT(r.Context(), token)
 		} else {
 			// Token is opaque, validate using introspection
-			err = validateOpaqueToken(ctx, token)
+			err = validateOpaqueToken()
 		}
 
 		if err != nil {
@@ -71,6 +74,10 @@ func OAuthTokenVerificationMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func OAuthTokenVerificationHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
+	return OAuthTokenVerificationMiddleware(handlerFunc).ServeHTTP
 }
 
 func validateJWT(ctx context.Context, token string) error {
@@ -106,41 +113,8 @@ func validateJWT(ctx context.Context, token string) error {
 	return nil
 }
 
-func validateOpaqueToken(ctx context.Context, token string) error {
-	introspectionURL := appconfig.LoadedConfig.OauthConfig.IntrospectionUrl
-
-	req, err := http.NewRequestWithContext(ctx, "POST", introspectionURL, strings.NewReader("token="+token))
-	if err != nil {
-		return NewHTTPError(http.StatusInternalServerError, "failed to create introspection request")
-	}
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return NewHTTPError(http.StatusUnauthorized, "failed to validate opaque token")
-	}
-	defer resp.Body.Close()
-
-	var introspectionResponse IntrospectionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&introspectionResponse); err != nil {
-		return NewHTTPError(http.StatusInternalServerError, "failed to parse introspection response")
-	}
-
-	if !introspectionResponse.Active {
-		return NewHTTPError(http.StatusUnauthorized, "inactive token")
-	}
-
-	actualScopes := strings.Split(introspectionResponse.Scope, " ")
-	requiredScopes := []string{}
-	if appconfig.LoadedConfig.OauthConfig.RequiredScopes != "" {
-		requiredScopes = strings.Split(appconfig.LoadedConfig.OauthConfig.RequiredScopes, " ")
-	}
-
-	if !hasRequiredScopes(actualScopes, requiredScopes) {
-		return NewHTTPError(http.StatusForbidden, "one or more required scopes not found")
-	}
-
+func validateOpaqueToken() error {
+	// TODO: work out opaque token validation logic
 	return nil
 }
 

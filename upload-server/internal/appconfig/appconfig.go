@@ -145,8 +145,9 @@ type LocalStorageConfig struct {
 }
 
 type OauthConfig struct {
-	IntrospectionUrl string `env:"INTROSPECTION_URL, default=https://apigw-stg.cdc.gov:8443"`
-	IssuerUrl        string `env:"ISSUER_URL, default=https://apigw-stg.cdc.gov:8443"`
+	AuthEnabled      bool   `env:"AUTH_ENABLED, default=true"`
+	IntrospectionUrl string `env:"INTROSPECTION_URL"`
+	IssuerUrl        string `env:"ISSUER_URL"`
 	RequiredScopes   string `env:"REQUIRED_SCOPES"`
 }
 
