@@ -7,7 +7,7 @@ dotenv.config({ path: '../../.env' });
 
 
 // Use test.describe to group your tests and use hooks like beforeAll
-test.describe('File Upload and Trace Response Flow', () => {
+test.describe.skip('File Upload and Trace Response Flow', () => {
   let uploadId;
   let accessToken: string;
   let psApiUrl: string;

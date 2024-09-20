@@ -5,6 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/loaders"
@@ -15,14 +24,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/google/uuid"
-	"log/slog"
-	"net/http"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strings"
-	"sync"
-	"time"
 
 	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
 	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
@@ -87,12 +88,17 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 
 	if appConfig.S3Connection != nil {
 		client, err := stores3.New(ctx, appConfig.S3Connection)
+		bucket := appConfig.S3Connection.BucketName
+		if appConfig.S3ManifestConfigBucket != "" {
+			bucket = appConfig.S3ManifestConfigBucket
+		}
 		if err != nil {
 			return err
 		}
 		Cache.Loader = &loaders.S3ConfigLoader{
 			Client:     client,
-			BucketName: appConfig.S3ManifestConfigBucket,
+			BucketName: bucket,
+			Folder:     appConfig.S3ManifestConfigFolder,
 		}
 	}
 
@@ -109,8 +115,11 @@ func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.Ma
 		if err != nil {
 			return nil, err
 		}
+
+		// Expand config string to substitute any env var placeholders within.
+		expandedConf := os.ExpandEnv(string(b))
 		mc := &validation.ManifestConfig{}
-		if err := json.Unmarshal(b, mc); err != nil {
+		if err := json.Unmarshal([]byte(expandedConf), mc); err != nil {
 			return nil, err
 		}
 		c.SetConfig(key, mc)
@@ -170,7 +179,7 @@ func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, 
 		// Get UTC year, month, and day
 		t := time.Now().UTC()
 		datePrefix := fmt.Sprintf("%d/%02d/%02d", t.Year(), t.Month(), t.Day())
-		p = filepath.Join(p, datePrefix)
+		p = p + "/" + datePrefix
 	}
 
 	return p, nil
@@ -291,7 +300,7 @@ func (v *SenderManifestVerification) getHydrationConfig(ctx context.Context, man
 		return nil, err
 	}
 	if c.CompatConfigFilename != "" {
-		return v.Configs.GetConfig(ctx, "v2/" + c.CompatConfigFilename)
+		return v.Configs.GetConfig(ctx, "v2/"+c.CompatConfigFilename)
 	}
 
 	return c, nil

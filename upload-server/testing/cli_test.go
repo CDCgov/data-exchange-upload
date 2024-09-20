@@ -7,6 +7,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"os"
+	"slices"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -16,24 +28,20 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/tus/tusd/v2/pkg/handler"
-	"io"
-	"log"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"os"
-	"path/filepath"
-	"slices"
-	"strings"
-	"sync"
-	"testing"
-	"time"
 )
 
 var (
-	ts           *httptest.Server
-	testUIServer *httptest.Server
-	testContext  context.Context
+	ts            *httptest.Server
+	testUIServer  *httptest.Server
+	testContext   context.Context
+	trackedStages = []string{
+		reports.StageMetadataVerify,
+		reports.StageMetadataTransform,
+		reports.StageUploadCompleted,
+		reports.StageUploadStarted,
+		reports.StageUploadStatus,
+		reports.StageFileCopy,
+	}
 )
 
 func TestTus(t *testing.T) {
@@ -57,9 +65,9 @@ func TestTus(t *testing.T) {
 					expectedMetadataTransformReportCount = 3
 				}
 
-				reportSummary, err := readReportFile(tuid)
+				reportSummary, err := readReportFiles(tuid, trackedStages)
 				if err != nil {
-					t.Error("failed to read report file for", "tuid", tuid)
+					t.Error("failed to read report file for", "tuid", tuid, err.Error())
 				}
 				err = checkReportSummary(reportSummary, reports.StageMetadataVerify, 1)
 				if err != nil {
@@ -105,7 +113,7 @@ func TestTus(t *testing.T) {
 				}
 
 				// Post-processing
-				events, err := readEventFile(tuid)
+				events, err := readEventFile(tuid, event.FileReadyEventType)
 				if err != nil {
 					t.Error("no events found for tuid", "tuid", tuid)
 				}
@@ -138,7 +146,8 @@ func TestTus(t *testing.T) {
 						t.Error("failed to retry routing")
 					}
 					if resp.StatusCode != http.StatusOK {
-						t.Error("expected 200 when retrying route but got", resp.StatusCode)
+						b, _ := io.ReadAll(resp.Body)
+						t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
 					}
 					time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
 					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
@@ -236,7 +245,7 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	prefixTokens := strings.Split(p, string(filepath.Separator))
+	prefixTokens := strings.Split(p, "/")
 	if len(prefixTokens) != 4 {
 		t.Error("prefix not properly formatted", p)
 	}
@@ -521,6 +530,7 @@ func TestMain(m *testing.M) {
 		LocalRoutingFolder:    "test/routing",
 		TusdHandlerBasePath:   "/files/",
 	}
+	appconfig.LoadedConfig = &appConfig
 
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
@@ -528,7 +538,7 @@ func TestMain(m *testing.M) {
 	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
 	err := cli.InitReporters(testContext, appConfig)
-	defer reports.DefaultReporter.Close()
+	defer reports.CloseAll()
 	err = event.InitFileReadyPublisher(testContext, appConfig)
 	defer event.FileReadyPublisher.Close()
 	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
@@ -566,10 +576,58 @@ type ReportFileSummary struct {
 	Summaries map[string]ReportSummary
 }
 
+func readReportFiles(tuid string, stages []string) (ReportFileSummary, error) {
+	summary := ReportFileSummary{
+		Tuid:      tuid,
+		Summaries: map[string]ReportSummary{},
+	}
+
+	for _, stage := range stages {
+		filename := tuid + event.TypeSeparator + stage
+		f, err := os.Open("test/reports/" + filename)
+		if err != nil {
+			return summary, fmt.Errorf("failed to open report file for %s; inner error %w", filename, err)
+		}
+		b, err := io.ReadAll(f)
+		if err != nil {
+			return summary, fmt.Errorf("failed to read report file %s; inner error %w", f.Name(), err)
+		}
+
+		rScanner := bufio.NewScanner(strings.NewReader(string(b)))
+		for rScanner.Scan() {
+			rLine := rScanner.Text()
+			rLineBytes := []byte(rLine)
+
+			r, err := unmarshalReport(rLineBytes)
+			if err != nil {
+				return summary, err
+			}
+
+			appendReport(summary, r)
+		}
+	}
+
+	return summary, nil
+}
+
 func readReportFile(tuid string) (ReportFileSummary, error) {
 	summary := ReportFileSummary{
 		Tuid:      tuid,
 		Summaries: map[string]ReportSummary{},
+	}
+
+	// Steps for categorized report files
+	// 1. get list of report types we want to track
+	// 2. for each type, read file for that type and upload id
+	// 3. for each line, unmarshal and count
+
+	trackedStages := []string{
+		reports.StageMetadataVerify,
+		reports.StageMetadataTransform,
+		reports.StageUploadCompleted,
+		reports.StageUploadStarted,
+		reports.StageUploadStatus,
+		reports.StageFileCopy,
 	}
 
 	f, err := os.Open("test/reports/" + tuid)
@@ -580,15 +638,6 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 	b, err := io.ReadAll(f)
 	if err != nil {
 		return summary, fmt.Errorf("failed to read report file %s; inner error %w", f.Name(), err)
-	}
-
-	trackedStages := []string{
-		reports.StageMetadataVerify,
-		reports.StageMetadataTransform,
-		reports.StageUploadCompleted,
-		reports.StageUploadStarted,
-		reports.StageUploadStatus,
-		reports.StageFileCopy,
 	}
 
 	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
@@ -644,9 +693,9 @@ func checkReportSummary(fileSummary ReportFileSummary, stageName string, expecte
 	return nil
 }
 
-func readEventFile(tuid string) ([]event.Event, error) {
+func readEventFile(tuid string, eType string) ([]event.Event, error) {
 	var events []event.Event
-	f, err := os.Open("test/events/" + tuid)
+	f, err := os.Open("test/events/" + tuid + event.TypeSeparator + eType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open event file file for %s; inner error %w", tuid, err)
 	}

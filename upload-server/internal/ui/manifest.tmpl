@@ -1,53 +1,53 @@
 
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="/assets/index.css">
-        <link rel="stylesheet" href="/assets/form.css" >
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Manifest</title>
-    </head>
-    <body>
-      <main>
-      <div id="upload-container">
-        <h1>Please fill in the sender manifest form for your file</h1>
-        <p>
-          * indicates a required field
-        </p>
-        <div class="form-container">
-          <form method="POST" action="/upload">
-            {{range .MetadataFields}}
-            <div>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="/assets/dex_logo.svg" />
+    <link rel="stylesheet" href="/assets/index.css">
+    <title>Manifest</title>
+  </head>
+  <body>
+    {{template "navbar" .Navbar}}
+    <main id="main" class="upload-container">
+      <h1>Please fill in the sender manifest form for your file</h1>
+      <p> * indicates a required field </p>
+      <div class="form-container">
+        <form method="POST" action="/upload">
+          {{range .MetadataFields}}
+            <div class="input-container">
               <label for="{{.FieldName}}">
                 {{FixNames .FieldName}} {{if .Required}}*{{end}}
               </label>
               {{if not .AllowedValues}}
                 {{ if .Required }}
-                  <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" required/>
+                  <input type="text" id="{{.FieldName}}" name="{{.FieldName}}" required/>
                 {{ else }}
-                  <input id="{{.FieldName}}" name="{{.FieldName}}" type="text" />
+                  <input type="text" id="{{.FieldName}}" name="{{.FieldName}}" />
                 {{ end }}
               {{ else }}
-              <select name="{{.FieldName}}" id="{{.FieldName}}">
-                {{range .AllowedValues}}
-                  <option value="{{.}}">{{.}}</option>
-                {{end}}
-              </select>
+                <select id="{{.FieldName}}" name="{{.FieldName}}">
+                  {{range .AllowedValues}}
+                    <option value="{{.}}">{{.}}</option>
+                  {{end}}
+                </select>
               {{ end }}
             </div>
-            {{end}}
-            <div class="hidden">
-              <label for="data_stream_id">Data Stream ID</label>
-              <input id="data_stream_id" name="data_stream_id" type="text" value="{{.DataStream}}" />
-            </div>
-            <div class="hidden">
-              <label for="data_stream_route">Data Stream Route</label>
-              <input id="data_stream_route" name="data_stream_route" type="text" value="{{.DataStreamRoute}}" />
-            </div>
+          {{end}}
+          <div class="hidden">
+            <label for="data_stream_id">Data Stream ID</label>
+            <input type="text" id="data_stream_id" name="data_stream_id" value="{{.DataStream}}" />
+          </div>
+          <div class="hidden">
+            <label for="data_stream_route">Data Stream Route</label>
+            <input type="text" id="data_stream_route" name="data_stream_route" value="{{.DataStreamRoute}}" />
+          </div>
+          <div class="submit-button">
             <button type="submit">Next</button>
-          </form>
-        </div>
-      </main>
-    </body>
+          </div>
+        </form>
+      </div>
+    </main>
+  </body>
 </html>

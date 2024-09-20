@@ -8,7 +8,7 @@
     "test": "npx playwright test"
   },
   "dependencies": {
-    "dotenv": "^16.4.5",   
+    "dotenv": "^16.4.5",
     "tus-js-client": "^4.0.1",
     "uuid": "^9.0.1"
   },
@@ -16,9 +16,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
     "@playwright/test": "^1.42.0",
     "@types/express": "^4.17.1",
-    "@types/node": "^20.11.22",   
+    "@types/node": "^20.11.22",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }

@@ -1,6 +1,7 @@
 package postprocessing
 
 import (
+	"context"
 	evt "github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -9,6 +10,7 @@ import (
 
 func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
 	return func(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+		ctx := context.TODO()
 		id := event.Upload.ID
 		var targets []string
 		meta := event.Upload.MetaData
@@ -21,7 +23,7 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 		if err != nil {
 			return resp, err
 		}
-		config, err := metadata.Cache.GetConfig(event.Context, path)
+		config, err := metadata.Cache.GetConfig(ctx, path)
 		if err != nil {
 			return resp, err
 		}
@@ -29,7 +31,7 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 
 		for _, target := range targets {
 			e := evt.NewFileReadyEvent(id, meta, target)
-			err := evt.FileReadyPublisher.Publish(event.Context, e)
+			err := evt.FileReadyPublisher.Publish(ctx, e)
 			if err != nil {
 				return resp, err
 			}

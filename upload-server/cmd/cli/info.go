@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/azureinspector"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/fileinspector"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/s3inspector"
-	"net/http"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
@@ -22,7 +23,8 @@ type UploadInspector interface {
 }
 
 type InfoHandler struct {
-	inspector UploadInspector
+	inspector       UploadInspector
+	statusInspector UploadStatusInspector
 }
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -34,10 +36,6 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := &info.InfoResponse{
-		Manifest: fileInfo,
-	}
-
 	uploadedFileInfo, err := ih.inspector.InspectUploadedFile(r.Context(), id)
 	if err != nil {
 		// skip not found errors to handle deferred uploads.
@@ -47,8 +45,32 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response.FileInfo = uploadedFileInfo
+	uploadStatus, err := ih.statusInspector.InspectFileUploadStatus(r.Context(), id)
+	if err != nil {
+		// skip not found errors to handle deferred uploads.
+		if !errors.Is(err, info.ErrNotFound) {
+			http.Error(rw, fmt.Sprintf("error getting file upload status.  Manifest: %#v", fileInfo), getStatusFromError(err))
+			return
+		}
+	}
 
+	deliveries, err := ih.statusInspector.InspectFileDeliveryStatus(r.Context(), id)
+	if err != nil {
+		// skip not found errors to handle deferred uploads.
+		if !errors.Is(err, info.ErrNotFound) {
+			http.Error(rw, fmt.Sprintf("error getting file delivery status.  Manifest: %#v", fileInfo), getStatusFromError(err))
+			return
+		}
+	}
+
+	response := &info.InfoResponse{
+		Manifest:     fileInfo,
+		FileInfo:     uploadedFileInfo,
+		UploadStatus: uploadStatus,
+		Deliveries:   deliveries,
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(rw)
 	enc.Encode(response)
 }
@@ -77,11 +99,7 @@ func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (Uploa
 			return nil, err
 		}
 
-		return &s3inspector.S3UploadInspector{
-			Client:     s3Client,
-			BucketName: appConfig.S3Connection.BucketName,
-			TusPrefix:  appConfig.TusUploadPrefix,
-		}, nil
+		return s3inspector.NewS3UploadInspector(s3Client, appConfig.S3Connection.BucketName, appConfig.TusUploadPrefix), nil
 	}
 	if appConfig.LocalFolderUploadsTus != "" {
 		return fileinspector.NewFileSystemUploadInspector(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix), nil
@@ -94,5 +112,9 @@ func GetUploadInfoHandler(ctx context.Context, appConfig *appconfig.AppConfig) (
 	i, err := createInspector(ctx, appConfig)
 	return &InfoHandler{
 		i,
+		&fileinspector.FileSystemUploadStatusInspector{
+			BaseDir:    appConfig.TusUploadPrefix,
+			ReportsDir: appConfig.LocalReportsFolder,
+		},
 	}, err
 }

@@ -1,18 +1,222 @@
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 html {
-    /* 1 rem = 10px */
-    font-size: 62.5%
+  /* 1 rem = 10px */
+  font-size: 62.5%;
 }
 
 body {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 1.4rem;
   margin: 0 auto;
+  width: 100vw;
+
+  --upload-light-text: #fff;
+  --upload-dark-text: #000;
+  --upload-secondary-bg: #f4f4f4;
+  --upload-border-color: #aaa;
+
+  --upload-accent: rgb(0, 94, 201);
+  --upload-accent-alpha: rgba(0, 119, 255, 0.1);
+  --upload-active: rgb(243, 186, 17);
+
+  --upload-success: rgb(2, 119, 2);
+  --upload-success-alpha: rgba(6, 162, 6, 0.05);
+  --upload-failure: rgb(155, 0, 0);
+  --upload-failure-alpha: rgba(155, 0, 0, 0.05);
+  --upload-warning: rgb(187, 77, 0);
+}
+
+main,
+nav {
+  margin: 0 auto;
+  max-width: 750px;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+}
+
+a.skip-main {
+  left: -999px;
+  position: absolute;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: -999;
+}
+
+a.skip-main:focus,
+a.skip-main:active {
+  color: var(--upload-light-text);
+  background-color: var(--upload-dark-text);
+  left: auto;
+  top: auto;
+  width: 30%;
+  height: auto;
+  overflow: auto;
+  margin: 10px 35%;
+  padding: 5px;
+  border-radius: 15px;
+  border: 4px solid var(--upload-active);
+  text-align: center;
+  font-size: 1.2em;
+  z-index: 999;
+}
+
+button {
+  background: var(--upload-accent);
+  border: none;
+  border-radius: 5px;
+  color: var(--upload-light-text);
+  cursor: pointer;
+  display: inline-block;
+  margin: 5px 0;
+  font-size: 16px;
+  padding: 10px;
+  width: 100%;
 }
 
 .hidden {
-    display: none;
+  display: none;
+}
+
+.small-italics {
+  font-size: small;
+  font-style: italic;
+}
+
+/* -------------- */
+/* Navbar Styling */
+/* -------------- */
+
+.nav-container {
+  background-color: var(--upload-secondary-bg);
+  border-bottom: 1px solid var(--upload-border-color);
+  font-size: 1.6rem;
+  font-weight: 700;
+  padding: 1rem;
+}
+
+.nav-container a,
+a:visited {
+  color: var(--upload-dark-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--upload-secondary-bg);
+}
+
+.nav-container a:hover {
+  color: var(--upload-dark-text);
+  border-bottom: 1px solid var(--upload-border-color);
+}
+
+.nav-container .link-button:hover {
+  border-bottom: 0;
+}
+
+.nav-container img {
+  width: 7.5rem !important;
+}
+
+/* ------------------- */
+/* Link Button Styling */
+/* ------------------- */
+
+.link-button {
+  color: var(--upload-accent) !important;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.link-button-container {
+  background-color: var(--upload-accent-alpha);
+  border: 2px solid var(--upload-accent);
+  border-radius: 5px;
+  margin: auto 0;
+  padding: 0.5rem 1rem;
+  text-align: center;
+}
+
+.link-button-container:hover {
+  background-color: var(--upload-accent);
+  color: var(--upload-light-text);
+  cursor: pointer;
+}
+
+/* ------------ */
+/* Form Styling */
+/* ------------ */
+
+.upload-container {
+  margin: 0 auto;
+  padding: 1.2rem;
+}
+
+.form-container {
+  margin: 0;
+  max-width: 550px;
+}
+
+.form-container .submit-button {
+  margin: 20px 0 10px 0;
+}
+
+.form-container input {
+  background: var(--upload-secondary-bg);
+  border: 1px solid var(--upload-border-color);
+  border-radius: 5px;
+  display: inline-block;
+  margin: 5px 0;
+  padding: 10px;
+  width: 100%;
+}
+
+.form-container input[type="file"] {
+  display: block;
+  font-style: oblique;
+  margin-left: 15px;
+}
+
+.form-container input[type="file"]::file-selector-button {
+  display: none;
+}
+
+.form-container label,
+.form-container .label {
+  display: block;
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+.form-container label .input-tip,
+.form-container .label .input-tip {
+  font-weight: normal;
+  font-size: small;
+  font-style: italic;
+}
+
+.form-container select {
+  background: var(--upload-secondary-bg);
+  border: 1px solid var(--upload-border-color);
+  border-radius: 5px;
+  display: inline-block;
+  margin: 5px 0;
+  padding: 10px;
+  width: 100%;
+}
+
+.form-container .file-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.form-container .file-container input {
+  background: none;
+  border: none;
 }

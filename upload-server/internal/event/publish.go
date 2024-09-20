@@ -13,12 +13,15 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 )
 
 var logger *slog.Logger
 var FileReadyPublisher Publisher[*FileReady]
+
+const TypeSeparator = "_"
 
 func init() {
 	type Empty struct{}
@@ -65,12 +68,12 @@ type MemoryPublisher[T Identifiable] struct {
 }
 
 func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
-	err := os.Mkdir(mp.Dir, 0750)
+	err := os.MkdirAll(mp.Dir, 0750)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
 
-	filename := mp.Dir + "/" + event.Identifier()
+	filename := filepath.Join(mp.Dir, event.Identifier()+TypeSeparator+event.Type())
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -85,7 +88,9 @@ func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 	}
 
 	if mp.Chan != nil {
-		mp.Chan <- event
+		go func() {
+			mp.Chan <- event
+		}()
 	}
 	return nil
 }
