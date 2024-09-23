@@ -43,7 +43,10 @@ type AppConfig struct {
 	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
 	// Server
-	ServerPort string `env:"SERVER_PORT, default=8080"`
+	ServerPort     string `env:"SERVER_PORT, default=8080"`
+	ServerCertFile string `env:"SERVER_CERT_FILE, noinit"`
+	ServerKeyFile  string `env:"SERVER_KEY_FILE, noinit"`
+
 	//QUESTION: this is arbitrary so is it useful?
 	Environment        string `env:"ENVIRONMENT, default=DEV"`
 	EventMaxRetryCount int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
@@ -67,6 +70,8 @@ type AppConfig struct {
 	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
 	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
 	UIPort               string `env:"UI_PORT, default=:8081"`
+	UICertFile           string `env:"SERVER_CERT_FILE, noinit"`
+	UIKeyFile            string `env:"SERVER_KEY_FILE, noinit"`
 
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`

@@ -21,6 +21,9 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/dustin/go-humanize"
 	"github.com/eventials/go-tus"
+	"github.com/gorilla/csrf"
+	"github.com/gorilla/mux"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -88,6 +91,7 @@ type ManifestTemplateData struct {
 	DataStreamRoute string
 	MetadataFields  []validation.FieldConfig
 	Navbar          components.Navbar
+	CsrfField       template.HTML
 }
 
 type UploadTemplateData struct {
@@ -96,6 +100,12 @@ type UploadTemplateData struct {
 	Info         info.InfoResponse
 	Navbar       components.Navbar
 	NewUploadBtn components.NewUploadBtn
+	CsrfField    template.HTML
+}
+
+type IndexTemplateData struct {
+	Navbar    components.Navbar
+	CsrfField template.HTML
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -103,16 +113,22 @@ var StaticHandler = http.FileServer(http.FS(content))
 func NewServer(addr string, uploadUrl string, infoUrl string) *http.Server {
 	s := &http.Server{
 		Addr:    addr,
-		Handler: GetRouter(uploadUrl, infoUrl),
+		Handler: *GetRouter(uploadUrl, infoUrl),
 	}
 	return s
 }
 
-func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
-	router := http.NewServeMux()
+func GetRouter(uploadUrl string, infoUrl string) *http.Handler {
+	router := mux.NewRouter()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
-		dataStream := r.FormValue("data_stream")
-		dataStreamRoute := r.FormValue("data_stream_route")
+		err := r.ParseForm()
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		dataStream := r.PostForm.Get("data_stream")
+		dataStreamRoute := r.PostForm.Get("data_stream_route")
 
 		config, err := metadata.Cache.GetConfig(r.Context(), fmt.Sprintf("v2/%s-%s.json", dataStream, dataStreamRoute))
 		if err != nil {
@@ -243,7 +259,9 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		}
 	})
 	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		err := indexTemplate.Execute(rw, nil)
+		err := indexTemplate.Execute(rw, &IndexTemplateData{
+			CsrfField: csrf.TemplateField(r),
+		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -251,13 +269,18 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 	})
 	router.Handle("/assets/", StaticHandler)
 
-	return router
+	secureRouter := csrf.Protect(
+		[]byte("32-byte-long-auth-key"),
+		csrf.Secure(false), // TODO: make dynamic when supporting TLS
+	)(router)
+	return &secureRouter
 }
 
 var DefaultServer *http.Server
 
 func Start(uiPort string, uploadURL string, infoURL string) error {
 	DefaultServer = NewServer(uiPort, uploadURL, infoURL)
+
 	return DefaultServer.ListenAndServe()
 }
 
