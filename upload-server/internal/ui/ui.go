@@ -84,16 +84,10 @@ var indexTemplate = generateTemplate("index.html", false)
 var manifestTemplate = generateTemplate("manifest.tmpl", true)
 var uploadTemplate = generateTemplate("upload.tmpl", true)
 
-type IndexTemplateData struct {
-	FormActionUrl string
-	Navbar        components.Navbar
-}
-
 type ManifestTemplateData struct {
 	DataStream      string
 	DataStreamRoute string
 	MetadataFields  []validation.FieldConfig
-	FormActionUrl   string
 	Navbar          components.Navbar
 }
 
@@ -106,14 +100,6 @@ type UploadTemplateData struct {
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
-
-func getFullUrl(r *http.Request) string {
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
-	}
-	return fmt.Sprintf("%v://%v", scheme, r.Host)
-}
 
 func NewServer(addr string, uploadUrl string, infoUrl string) *http.Server {
 	s := &http.Server{
@@ -135,13 +121,10 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			return
 		}
 
-		formActionUrl := fmt.Sprintf("%s/upload", getFullUrl(r))
-
 		err = manifestTemplate.Execute(rw, &ManifestTemplateData{
 			DataStream:      dataStream,
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
-			FormActionUrl:   formActionUrl,
 			Navbar:          components.NewNavbar(false),
 		})
 		if err != nil {
@@ -267,11 +250,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		}
 	})
 	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		formActionUrl := fmt.Sprintf("%s/manifest", getFullUrl(r))
-		err := indexTemplate.Execute(rw, &IndexTemplateData{
-			FormActionUrl: formActionUrl,
-			Navbar:        components.NewNavbar(false),
-		})
+		err := indexTemplate.Execute(rw, nil)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
