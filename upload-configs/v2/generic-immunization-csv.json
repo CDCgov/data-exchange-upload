@@ -238,7 +238,7 @@
 				"field_name": "data_stream_route",
 				"required": true,
 				"allowed_values": [
-					"other"
+					"csv"
 				],
 				"description": "This recieved is the route of the data stream.",
 				"compat_field_name": "meta_ext_event"				
@@ -282,7 +282,7 @@
 	"copy_config": {
 		"folder_structure": "date_YYYY_MM_DD",
 		"targets": [
-			"routing"
+			"ncird"
 		]
 	}
 }

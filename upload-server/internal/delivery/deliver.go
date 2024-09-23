@@ -217,10 +217,12 @@ func getDeliveredFilename(ctx context.Context, tuid string, manifest map[string]
 	if c.Copy.PathTemplate != "" {
 		// Use path template to form the full name.
 		t := time.Now().UTC()
+		m := fmt.Sprintf("%02d", t.Month())
+		d := fmt.Sprintf("%02d", t.Day())
 		pathInfo := &PathInfo{
 			Year:     strconv.Itoa(t.Year()),
-			Month:    strconv.Itoa(int(t.Month())),
-			Day:      strconv.Itoa(t.Day()),
+			Month:    m,
+			Day:      d,
 			Filename: filenameWithoutExtension,
 			UploadId: tuid,
 		}
