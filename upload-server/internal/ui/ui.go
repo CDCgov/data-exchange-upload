@@ -3,19 +3,26 @@ package ui
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 
 	"html/template"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
+	"github.com/dustin/go-humanize"
 	"github.com/eventials/go-tus"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // content holds our static web server content.
@@ -25,17 +32,56 @@ var content embed.FS
 
 func FixNames(name string) string {
 	removeChars := strings.ReplaceAll(name, "_", " ")
-	newName := strings.Title(strings.ToLower(removeChars))
+
+	caser := cases.Title(language.English)
+	newName := caser.String(removeChars)
+
 	return newName
 }
 
-var usefulFuncs = template.FuncMap{
-	"FixNames": FixNames,
+func KebabCase(value string) string {
+	kebabValue := strings.ReplaceAll(value, " ", "-")
+	return strings.ToLower(kebabValue)
 }
 
-var indexTemplate = template.Must(template.ParseFS(content, "index.html", "components/navbar.html"))
-var manifestTemplate = template.Must(template.New("manifest.tmpl").Funcs(usefulFuncs).ParseFS(content, "manifest.tmpl", "components/navbar.html"))
-var uploadTemplate = template.Must(template.ParseFS(content, "upload.tmpl", "components/navbar.html"))
+func FormatDateTime(dateTimeString string) string {
+	date, err := time.Parse(time.RFC3339, dateTimeString)
+
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	return date.UTC().Format(time.RFC850)
+}
+
+func FormatBytes(bytes float64) string {
+	intBytes := uint64(bytes)
+	strBytes := humanize.Bytes(intBytes)
+
+	return strings.ToUpper(strBytes)
+}
+
+var usefulFuncs = template.FuncMap{
+	"FixNames":       FixNames,
+	"AllLowerCase":   strings.ToLower,
+	"AllUpperCase":   strings.ToUpper,
+	"FormatDateTime": FormatDateTime,
+	"KebabCase":      KebabCase,
+	"FormatBytes":    FormatBytes,
+}
+
+func generateTemplate(templatePath string, useFuncs bool) *template.Template {
+	var templatePaths = []string{templatePath, "components/navbar.html", "components/newuploadbtn.html"}
+	if useFuncs {
+		return template.Must(template.New(templatePath).Funcs(usefulFuncs).ParseFS(content, templatePaths...))
+	}
+	return template.Must(template.ParseFS(content, templatePaths...))
+}
+
+var indexTemplate = generateTemplate("index.html", false)
+var manifestTemplate = generateTemplate("manifest.tmpl", true)
+var uploadTemplate = generateTemplate("upload.tmpl", true)
 
 type ManifestTemplateData struct {
 	DataStream      string
@@ -45,8 +91,11 @@ type ManifestTemplateData struct {
 }
 
 type UploadTemplateData struct {
-	UploadURL string
-	Navbar    components.Navbar
+	UploadUrl    string
+	UploadStatus string
+	Info         info.InfoResponse
+	Navbar       components.Navbar
+	NewUploadBtn components.NewUploadBtn
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -75,7 +124,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			DataStream:      dataStream,
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
-			Navbar:          components.Navbar{},
+			Navbar:          components.NewNavbar(false),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -155,14 +204,23 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			http.Redirect(rw, r, "/", http.StatusFound)
 			return
 		}
+
+		// Get the response body
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		if resp.StatusCode != http.StatusOK {
-			var respMsg []byte
-			_, err := resp.Body.Read(respMsg)
-			if err != nil {
-				http.Error(rw, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			http.Error(rw, string(respMsg), resp.StatusCode)
+			http.Error(rw, string(body), resp.StatusCode)
+			return
+		}
+
+		var fileInfo info.InfoResponse
+		err = json.Unmarshal(body, &fileInfo)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -173,8 +231,11 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		}
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
-			UploadURL: uploadUrl,
-			Navbar:    components.Navbar{},
+			UploadUrl:    uploadUrl,
+			Info:         fileInfo,
+			UploadStatus: fileInfo.UploadStatus.Status,
+			Navbar:       components.NewNavbar(true),
+			NewUploadBtn: components.NewUploadBtn{},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)

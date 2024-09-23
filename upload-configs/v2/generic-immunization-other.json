@@ -8,7 +8,8 @@
 				"allowed_values": [
 					"IZGW"
 				],
-				"description": "This field is the identifier for the sender of the data."
+				"description": "This field is the identifier for the sender of the data.",
+				"compat_field_name": "meta_ext_source"				
 			},
 			{
 				"field_name": "data_producer_id",
@@ -214,29 +215,33 @@
 					"FD3",
 					"XXA"
 				],
-				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
+				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
+				"compat_field_name": "meta_ext_entity"				
 			},
 			{
 				"field_name": "received_filename",
 				"required": true,
 				"allowed_values": null,
-				"description": "This field is the name of the file when uploaded."
+				"description": "This field is the name of the file when uploaded.",
+				"compat_field_name": "meta_ext_filename"				
 			},
 			{
 				"field_name": "data_stream_id",
 				"required": true,
 				"allowed_values": [
-					"h5-influenza-vaccination"
+					"generic-immunization"
 				],
-				"description": "This field is the identifier for the data stream."
+				"description": "This field is the identifier for the data stream.",
+				"compat_field_name": "meta_destination_id"				
 			},
 			{
 				"field_name": "data_stream_route",
 				"required": true,
 				"allowed_values": [
-					"csv"
+					"other"
 				],
-				"description": "This recieved is the route of the data stream."
+				"description": "This recieved is the route of the data stream.",
+				"compat_field_name": "meta_ext_event"				
 			},
 			{
 				"field_name": "meta_ext_objectkey",
@@ -261,7 +266,8 @@
 				"required": true,
 				"allowed_values": [
 					"V2022-12-31",
-					"V2023-09-01"
+					"V2023-09-01",
+					"V2024-09-04"
 				],
 				"description": "Aligns with version of the specification."
 			},

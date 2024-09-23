@@ -13,8 +13,6 @@
             {
                 "field_name": "meta_ext_sourceversion",
                 "allowed_values": [
-                    "V2022-12-31",
-                    "V2023-09-01",
                     "V2024-09-04"
                 ],
                 "required": true,
@@ -155,5 +153,5 @@
             "edav"
         ]
     },
-	"compat_config_filename": "influenza-vaccination-csv.json"
+	"compat_config_filename": "generic-immunization-other.json"
 }

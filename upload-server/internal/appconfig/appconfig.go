@@ -20,6 +20,7 @@ import (
 var DeliveryTargetEdav = "edav"
 var DeliveryTargetEhdi = "ehdi"
 var DeliveryTargetEicr = "eicr"
+var DeliveryTargetNcird = "ncird"
 var logger *slog.Logger
 
 func init() {
@@ -57,6 +58,7 @@ type AppConfig struct {
 	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
 	LocalEhdiFolder       string `env:"LOCAL_EHDI_FOLDER, default=./uploads/ehdi"`
 	LocalEicrFolder       string `env:"LOCAL_EICR_FOLDER, default=./uploads/eicr"`
+	LocalNcirdFolder      string `env:"LOCAL_NCIRD_FOLDER, default=./uploads/ncird"`
 
 	// TUSD
 	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
@@ -74,6 +76,7 @@ type AppConfig struct {
 	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
 	EhdiConnection       *AzureStorageConfig `env:", prefix=EHDI_, noinit"`
 	EicrConnection       *AzureStorageConfig `env:", prefix=EICR_, noinit"`
+	NcirdConnection      *AzureStorageConfig `env:", prefix=NCIRD_, noinit"`
 	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
 	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
 
@@ -89,7 +92,9 @@ type AppConfig struct {
 	// S3
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
 	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
+	S3ManifestConfigFolder string           `env:"DEX_S3_MANIFEST_CONFIG_FOLDER_NAME"`
 	EdavS3Connection       *S3StorageConfig `env:", prefix=EDAV_S3_, noinit"`
+	NcirdS3Connection      *S3StorageConfig `env:", prefix=NCIRD_S3_, noinit"`
 	RoutingS3Connection    *S3StorageConfig `env:", prefix=ROUTING_S3_, noinit"`
 
 	// Upload processing
@@ -98,6 +103,7 @@ type AppConfig struct {
 	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
 	EhdiCheckpointContainer    string `env:"EHDI_CHECKPOINT_CONTAINER_NAME, default=ehdi-checkpoint"`
 	EicrCheckpointContainer    string `env:"EICR_CHECKPOINT_CONTAINER_NAME, default=eicr-checkpoint"`
+	NcirdCheckpointContainer   string `env:"NCIRD_CHECKPOINT_CONTAINER_NAME, default=ncird-checkpoint"`
 
 	Metrics MetricsConfig `env:", prefix=METRICS_"`
 } // .AppConfig
@@ -195,6 +201,11 @@ func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 			AzureStorageConfig: *LoadedConfig.EicrConnection,
 			ContainerName:      LoadedConfig.EicrCheckpointContainer,
 		}, nil
+	case DeliveryTargetNcird:
+		return &AzureContainerConfig{
+			AzureStorageConfig: *LoadedConfig.NcirdConnection,
+			ContainerName:      LoadedConfig.NcirdCheckpointContainer,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported azure target %s", target)
 	}
@@ -228,6 +239,12 @@ func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig,
 			FromPathStr: fromPathStr,
 			FromPath:    fromPath,
 			ToPath:      appConfig.LocalEicrFolder,
+		}, nil
+	case DeliveryTargetNcird:
+		return &LocalStorageConfig{
+			FromPathStr: fromPathStr,
+			FromPath:    fromPath,
+			ToPath:      appConfig.LocalNcirdFolder,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported local target %s", target)

@@ -88,12 +88,17 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 
 	if appConfig.S3Connection != nil && appConfig.S3ManifestConfigBucket != "" {
 		client, err := stores3.New(ctx, appConfig.S3Connection)
+		bucket := appConfig.S3Connection.BucketName
+		if appConfig.S3ManifestConfigBucket != "" {
+			bucket = appConfig.S3ManifestConfigBucket
+		}
 		if err != nil {
 			return err
 		}
 		Cache.Loader = &loaders.S3ConfigLoader{
 			Client:     client,
-			BucketName: appConfig.S3ManifestConfigBucket,
+			BucketName: bucket,
+			Folder:     appConfig.S3ManifestConfigFolder,
 		}
 	}
 
@@ -110,8 +115,11 @@ func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.Ma
 		if err != nil {
 			return nil, err
 		}
+
+		// Expand config string to substitute any env var placeholders within.
+		expandedConf := os.ExpandEnv(string(b))
 		mc := &validation.ManifestConfig{}
-		if err := json.Unmarshal(b, mc); err != nil {
+		if err := json.Unmarshal([]byte(expandedConf), mc); err != nil {
 			return nil, err
 		}
 		c.SetConfig(key, mc)

@@ -260,7 +260,8 @@
 				"required": true,
 				"allowed_values": [
 					"V2022-12-31",
-					"V2023-09-01"
+					"V2023-09-01",
+					"V2024-09-04"
 				],
 				"description": "Aligns with version of the specification."
 			},
@@ -275,7 +276,7 @@
 	"copy_config": {
 		"folder_structure": "date_YYYY_MM_DD",
 		"targets": [
-			"routing"
+			"ncird"
 		]
 	}
 }
