@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,80 +9,99 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 )
 
-// TestOAuthTokenVerificationMiddleware_AuthIsDisabled()
+// TestOAuthTokenVerificationMiddleware_TestCases
 //
-//	tests the OAuthTokenVerificationMiddleware function when
-//	the AuthEnabled flag is false (Disabled).
-func TestOAuthTokenVerificationMiddleware_AuthIsDisabled(t *testing.T) {
-	// Save & restore the orig config
+//	tests the OAuthTokenVerificationMiddleware_TestCases for the following cases:
+//	  - auth is disabled
+//	  - missing auth header
+//	  - invalid auth header format - TODO
+//	  - valid jwt token - TODO
+//	  - valid opaque token - TODO
+func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
+	// save & defer restore the orig config
 	originalConfig := appconfig.LoadedConfig
 	defer func() { appconfig.LoadedConfig = originalConfig }()
 
-	// Init the OauthConfig with AuthEnabled set to false
-	appconfig.LoadedConfig = &appconfig.AppConfig{
-		OauthConfig: &appconfig.OauthConfig{
-			AuthEnabled:    false,
-			IssuerUrl:      "https://issuer.example.com",
-			RequiredScopes: "",
-		},
-	}
-
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	rec := httptest.NewRecorder()
-
+	// setup handler for middleware
 	hasBeenCalled := false
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		hasBeenCalled = true
 		w.WriteHeader(http.StatusOK)
 	})
 
+	// create a test server with the middleware
 	middleware := OAuthTokenVerificationMiddleware(handler)
-	middleware.ServeHTTP(rec, req)
+	ts := httptest.NewServer(middleware)
+	defer ts.Close()
 
-	if !hasBeenCalled {
-		t.Fatal("expected handler to not be called when auth is disabled")
-	}
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("expected a not OK status, got %v", rec.Code)
-	}
-}
-
-// TestOAuthTokenVerificationMiddleware_AuthIsEnabled()
-//
-//	tests the OAuthTokenVerificationMiddleware function
-//	when the AuthEnabled flag is true (Enabled).
-func TestOAuthTokenVerificationMiddleware_AuthIsEnabled(t *testing.T) {
-	// Save & restore the orig config
-	originalConfig := appconfig.LoadedConfig
-	defer func() { appconfig.LoadedConfig = originalConfig }()
-
-	// Init the OauthConfig with AuthEnabled set to true
-	appconfig.LoadedConfig = &appconfig.AppConfig{
-		OauthConfig: &appconfig.OauthConfig{
-			AuthEnabled:    true,
-			IssuerUrl:      "https://issuer.example.com",
-			RequiredScopes: "",
+	// test cases
+	testCases := []struct {
+		name         string
+		authEnabled  bool
+		authHeader   string
+		expectStatus int
+		expectMesg   string
+		expectNext   bool
+	}{
+		{
+			name:         "Auth Disabled",
+			authEnabled:  false,
+			authHeader:   "",
+			expectStatus: http.StatusOK,
+			expectMesg:   "",
+			expectNext:   true,
+		},
+		{
+			name:         "Missing Authorization Header",
+			authEnabled:  true,
+			authHeader:   "",
+			expectStatus: http.StatusUnauthorized,
+			expectMesg:   "Authorization header missing\n",
+			expectNext:   false,
 		},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
-	rec := httptest.NewRecorder()
+	// run the test cases
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// reset the flag
+			hasBeenCalled = false
 
-	hasBeenCalled := false
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hasBeenCalled = true
-		w.WriteHeader(http.StatusOK)
-	})
+			// mock the configuration
+			appconfig.LoadedConfig = &appconfig.AppConfig{
+				OauthConfig: &appconfig.OauthConfig{
+					AuthEnabled: tc.authEnabled,
+				},
+			}
 
-	middleware := OAuthTokenVerificationMiddleware(handler)
-	middleware.ServeHTTP(rec, req)
+			// create a new request
+			req := httptest.NewRequest(http.MethodGet, ts.URL, nil)
+			if tc.authHeader != "" {
+				req.Header.Set("Authorization", tc.authHeader)
+			}
 
-	if hasBeenCalled {
-		t.Fatal("expected handler to be called when auth is enabled")
-	}
+			// record the response
+			rec := httptest.NewRecorder()
 
-	if rec.Code != http.StatusUnauthorized {
-		t.Fatalf("expected an unauthorized status 401, got %v", rec.Code)
+			// serve the request using the middleware
+			middleware.ServeHTTP(rec, req)
+
+			fmt.Printf("   rec.Code: %d  rec.Body.String(): %s\n\n", rec.Code, rec.Body.String())
+
+			// check the status code
+			if rec.Code != tc.expectStatus {
+				t.Errorf("expected status %d, got %d", tc.expectStatus, rec.Code)
+			}
+
+			// check the body for status message
+			if rec.Body.String() != tc.expectMesg {
+				t.Errorf("expected message %q, got %q", tc.expectMesg, rec.Body.String())
+			}
+
+			// check if the next handler was called
+			if hasBeenCalled != tc.expectNext {
+				t.Errorf("expected next handler to be called: %v, got: %v", tc.expectNext, hasBeenCalled)
+			}
+		})
 	}
 }
