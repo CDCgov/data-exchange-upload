@@ -93,7 +93,6 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	http.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
 
 	// initialize and route handler for DEX
-	http.Handle("/", appconfig.Handler())
 	http.Handle("/health", health.Handler())
 
 	// --------------------------------------------------------------
@@ -102,8 +101,12 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	http.Handle("/metrics", promhttp.Handler())
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
+	http.Handle("/info/", uploadInfoHandler)
+
 	http.Handle("/version", &VersionHandler{})
 	http.Handle("/route/{UploadID}", &Router{})
+
+	http.Handle("/", appconfig.Handler())
 
 	return http.DefaultServeMux, nil
 }

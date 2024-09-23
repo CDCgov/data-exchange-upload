@@ -43,9 +43,7 @@ type AppConfig struct {
 	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
 	// Server
-	ServerPort     string `env:"SERVER_PORT, default=8080"`
-	ServerCertFile string `env:"SERVER_CERT_FILE, noinit"`
-	ServerKeyFile  string `env:"SERVER_KEY_FILE, noinit"`
+	ServerPort string `env:"SERVER_PORT, default=8080"`
 
 	//QUESTION: this is arbitrary so is it useful?
 	Environment        string `env:"ENVIRONMENT, default=DEV"`
@@ -70,8 +68,7 @@ type AppConfig struct {
 	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
 	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
 	UIPort               string `env:"UI_PORT, default=:8081"`
-	UICertFile           string `env:"SERVER_CERT_FILE, noinit"`
-	UIKeyFile            string `env:"SERVER_KEY_FILE, noinit"`
+	CsrfToken            string `env:"CSRF_TOKEN, default=SwVgY4SfiXNyXCT4U6AvLNURDYS7J+Y/V2j4ng2UVp0XwQY0IUELUT5J5b/FATcE"`
 
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`

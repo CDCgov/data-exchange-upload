@@ -48,10 +48,13 @@ func KebabCase(value string) string {
 }
 
 func FormatDateTime(dateTimeString string) string {
+	if dateTimeString == "" {
+		return ""
+	}
+
 	date, err := time.Parse(time.RFC3339, dateTimeString)
 
 	if err != nil {
-		fmt.Println(err)
 		return ""
 	}
 
@@ -86,6 +89,11 @@ var indexTemplate = generateTemplate("index.html", false)
 var manifestTemplate = generateTemplate("manifest.tmpl", true)
 var uploadTemplate = generateTemplate("upload.tmpl", true)
 
+type IndexTemplateData struct {
+	Navbar    components.Navbar
+	CsrfField template.HTML
+}
+
 type ManifestTemplateData struct {
 	DataStream      string
 	DataStreamRoute string
@@ -100,25 +108,25 @@ type UploadTemplateData struct {
 	Info         info.InfoResponse
 	Navbar       components.Navbar
 	NewUploadBtn components.NewUploadBtn
-	CsrfField    template.HTML
-}
-
-type IndexTemplateData struct {
-	Navbar    components.Navbar
-	CsrfField template.HTML
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(addr string, uploadUrl string, infoUrl string) *http.Server {
+func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) *http.Server {
+	router := GetRouter(csrfToken, uploadUrl, infoUrl)
+	secureRouter := csrf.Protect(
+		[]byte(csrfToken),
+		csrf.Secure(false), // TODO: make dynamic when supporting TLS
+	)(router)
+
 	s := &http.Server{
 		Addr:    addr,
-		Handler: *GetRouter(uploadUrl, infoUrl),
+		Handler: secureRouter,
 	}
 	return s
 }
 
-func GetRouter(uploadUrl string, infoUrl string) *http.Handler {
+func GetRouter(csrfToken string, uploadUrl string, infoUrl string) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
@@ -141,12 +149,13 @@ func GetRouter(uploadUrl string, infoUrl string) *http.Handler {
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
 			Navbar:          components.NewNavbar(false),
+			CsrfField:       csrf.TemplateField(r),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-	})
+	}).Methods("POST")
 	router.HandleFunc("/upload", func(rw http.ResponseWriter, r *http.Request) {
 		// Tell the tus server we want to start an upload
 		// turn form values into map[string]string
@@ -193,9 +202,10 @@ func GetRouter(uploadUrl string, infoUrl string) *http.Handler {
 		}
 		loc := resp.Header.Get("Location")
 		http.Redirect(rw, r, fmt.Sprintf("/status/%s", filepath.Base(loc)), http.StatusFound)
-	})
+	}).Methods("POST")
 	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("upload_id")
+		vars := mux.Vars(r)
+		id := vars["upload_id"]
 
 		// Check for upload
 		u, err := url.Parse(infoUrl)
@@ -260,6 +270,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.Handler {
 	})
 	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
 		err := indexTemplate.Execute(rw, &IndexTemplateData{
+			Navbar:    components.NewNavbar(false),
 			CsrfField: csrf.TemplateField(r),
 		})
 		if err != nil {
@@ -267,19 +278,16 @@ func GetRouter(uploadUrl string, infoUrl string) *http.Handler {
 			return
 		}
 	})
-	router.Handle("/assets/", StaticHandler)
 
-	secureRouter := csrf.Protect(
-		[]byte("32-byte-long-auth-key"),
-		csrf.Secure(false), // TODO: make dynamic when supporting TLS
-	)(router)
-	return &secureRouter
+	router.PathPrefix("/assets/").Handler(StaticHandler)
+
+	return router
 }
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, uploadURL string, infoURL string) error {
-	DefaultServer = NewServer(uiPort, uploadURL, infoURL)
+func Start(uiPort string, csrfToken string, uploadURL string, infoURL string) error {
+	DefaultServer = NewServer(uiPort, csrfToken, uploadURL, infoURL)
 
 	return DefaultServer.ListenAndServe()
 }

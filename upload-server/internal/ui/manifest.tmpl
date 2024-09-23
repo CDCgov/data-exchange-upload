@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/x-icon" href="/assets/dex_logo.svg" />
-    <link rel="stylesheet" href="/assets/index.css">
+    <link rel="stylesheet" type="text/css" href="/assets/index.css">
     <title>Manifest</title>
   </head>
   <body>
@@ -43,6 +43,7 @@
             <label for="data_stream_route">Data Stream Route</label>
             <input type="text" id="data_stream_route" name="data_stream_route" value="{{.DataStreamRoute}}" />
           </div>
+          {{ .CsrfField }}
           <div class="submit-button">
             <button type="submit">Next</button>
           </div>
