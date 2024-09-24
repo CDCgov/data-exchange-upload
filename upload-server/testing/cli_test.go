@@ -557,7 +557,8 @@ func TestMain(m *testing.M) {
 	// Start ui server
 	appConfig.TusUIFileEndpointUrl = ts.URL + "/files"
 	appConfig.TusUIInfoEndpointUrl = ts.URL + "/info"
-	uiHandler := ui.GetRouter(appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl)
+	appConfig.CsrfToken = "abcdefghijklmnopqrstuvwxyz012345"
+	uiHandler := ui.GetRouter(appConfig.CsrfToken, appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()
