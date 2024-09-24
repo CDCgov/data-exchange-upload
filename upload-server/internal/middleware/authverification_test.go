@@ -9,6 +9,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,14 +32,7 @@ type testCase struct {
 	expectNext   bool
 }
 
-// TestOAuthTokenVerificationMiddleware_TestCases
-//
-//	tests the OAuthTokenVerificationMiddleware_TestCases for the following cases:
-//	  - auth is disabled
-//	  - missing auth header
-//	  - invalid auth header format - TODO
-//	  - valid jwt token - TODO
-//	  - valid opaque token - TODO
+// tests the OAuthTokenVerificationMiddleware for multiple cases
 func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 	// init RSA keys for signing and verification
 	err := initKeys()
@@ -69,9 +63,29 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 	defer ts.Close()
 
 	// setup up VALID mock token w/ +1-hour expire offset
-	mockTokenValid, err := createMockJWT(issuerURL, 1)
+	mockTokenValid, err := createMockJWT(issuerURL, 1, "")
 	if err != nil {
-		t.Fatalf("failed to create mock jwt token: %v", err)
+		t.Fatalf("failed to create valid mock jwt token: %v", err)
+	}
+
+	// concat to make an invalid signature
+	mockTokenInvalidSignature := mockTokenValid + "Z"
+
+	// setup up EXPIRED mock token w/ -1-hour expire offset
+	mockTokenExpired, err := createMockJWT(issuerURL, -1, "")
+	if err != nil {
+		t.Fatalf("failed to create expired mock jwt token: %v", err)
+	}
+
+	mockTokenWrongIssuer, err := createMockJWT("http://wrong-issuer.com", 1, "")
+	if err != nil {
+		t.Fatalf("failed to create wrong issuer mock jwt token: %v", err)
+	}
+
+	// setup up VALID mock token w/ +1-hour expire offset with scope
+	mockTokenValidWithScope, err := createMockJWT(issuerURL, 1, "testscope1 testscope2")
+	if err != nil {
+		t.Fatalf("failed to create valid mock jwt token: %v", err)
 	}
 
 	//fmt.Printf("\n\n   mockToken: %s", mockToken)
@@ -93,17 +107,53 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 			authEnabled:  true,
 			authHeader:   "",
 			expectStatus: http.StatusUnauthorized,
-			expectMesg:   "Authorization header missing\n",
+			expectMesg:   "Authorization header missing",
 			expectNext:   false,
 		},
 		{
 			name:         "Invalid Authorization Header Format",
 			issuerURL:    issuerURL,
 			authEnabled:  true,
-			authHeader:   "Bearer", // current checks for <len("Bearer ")
+			authHeader:   "Bearer", // related code checks for <len("Bearer ")
 			expectStatus: http.StatusUnauthorized,
-			expectMesg:   "Authorization header format is invalid\n",
+			expectMesg:   "Authorization header format is invalid",
 			expectNext:   false,
+		},
+		{
+			name:         "Expired JWT Token",
+			issuerURL:    issuerURL,
+			authEnabled:  true,
+			authHeader:   "Bearer " + mockTokenExpired,
+			expectStatus: http.StatusUnauthorized,
+			expectMesg:   "Failed to verify token: oidc: token is expired",
+			expectNext:   false,
+		},
+		{
+			name:         "Invalid JWT Signature",
+			issuerURL:    issuerURL,
+			authEnabled:  true,
+			authHeader:   "Bearer " + mockTokenInvalidSignature,
+			expectStatus: http.StatusUnauthorized,
+			expectMesg:   "Failed to verify token: failed to verify signature:",
+			expectNext:   false,
+		},
+		{
+			name:         "Invalid Issuer",
+			issuerURL:    issuerURL,
+			authEnabled:  true,
+			authHeader:   "Bearer " + mockTokenWrongIssuer,
+			expectStatus: http.StatusUnauthorized,
+			expectMesg:   "Failed to verify token: oidc: id token issued by a different provider",
+			expectNext:   false,
+		},
+		{
+			name:         "Valid JWT Has Scope Claim Server Does Not Require",
+			issuerURL:    issuerURL,
+			authEnabled:  true,
+			authHeader:   "Bearer " + mockTokenValidWithScope,
+			expectStatus: http.StatusOK,
+			expectMesg:   "",
+			expectNext:   true,
 		},
 		{
 			name:         "Valid JWT Token",
@@ -159,7 +209,7 @@ func runOAuthTokenVerificationTestCase(t *testing.T, ts *httptest.Server, middle
 		}
 
 		// Check the body for status message
-		if rec.Body.String() != tc.expectMesg {
+		if !strings.HasPrefix(rec.Body.String(), tc.expectMesg) {
 			t.Errorf("expected message %q, got %q", tc.expectMesg, rec.Body.String())
 		}
 
@@ -221,7 +271,7 @@ func mockOIDCServer() *httptest.Server {
 }
 
 // helper to create a mock jwt token
-func createMockJWT(issuerURL string, expireOffset time.Duration) (string, error) {
+func createMockJWT(issuerURL string, expireOffset time.Duration, scopes string) (string, error) {
 	// set the expiration time for offset (use negative to test expire)
 	expirationTime := time.Now().Add(expireOffset * time.Hour).Unix()
 
@@ -232,6 +282,11 @@ func createMockJWT(issuerURL string, expireOffset time.Duration) (string, error)
 		"iat":  time.Now().Unix(),
 		"iss":  issuerURL,
 		"exp":  expirationTime,
+	}
+
+	// add the "scope" claim if scopes is not empty
+	if scopes != "" {
+		claims["scope"] = scopes
 	}
 
 	// create a new token
