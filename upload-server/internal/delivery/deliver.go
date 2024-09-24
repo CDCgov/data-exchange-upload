@@ -60,6 +60,7 @@ type PathInfo struct {
 	Year     string
 	Month    string
 	Day      string
+	Hour     string
 	UploadId string
 	Filename string
 }
@@ -219,10 +220,12 @@ func getDeliveredFilename(ctx context.Context, tuid string, manifest map[string]
 		t := time.Now().UTC()
 		m := fmt.Sprintf("%02d", t.Month())
 		d := fmt.Sprintf("%02d", t.Day())
+		h := fmt.Sprintf("%02d", t.Hour())
 		pathInfo := &PathInfo{
 			Year:     strconv.Itoa(t.Year()),
 			Month:    m,
 			Day:      d,
+			Hour:     h,
 			Filename: filenameWithoutExtension,
 			UploadId: tuid,
 		}
