@@ -1,16 +1,37 @@
 package middleware
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/golang-jwt/jwt/v5"
 )
+
+// global private and public keys
+var privateKey *rsa.PrivateKey
+var publicKey rsa.PublicKey
+
+// initialize keys for testing
+func initKeys() error {
+	var err error
+	// generate private key
+	privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return err
+	}
+	// get the public key
+	publicKey = privateKey.PublicKey
+	return nil
+}
 
 // mock the oidc conf response
 func mockOIDCServer() *httptest.Server {
@@ -33,17 +54,15 @@ func mockOIDCServer() *httptest.Server {
 		json.NewEncoder(w).Encode(config)
 	})
 
-	// mock jwks endpoint needed for verification
 	mux.HandleFunc("/oauth2/jwks", func(w http.ResponseWriter, r *http.Request) {
+		key := map[string]interface{}{
+			"kty": "RSA",
+			"kid": "test-key-id",
+			"n":   base64.RawURLEncoding.EncodeToString(publicKey.N.Bytes()),                    // mod
+			"e":   base64.RawURLEncoding.EncodeToString(big.NewInt(int64(publicKey.E)).Bytes()), // exp
+		}
 		keys := map[string]interface{}{
-			"keys": []map[string]string{
-				{
-					"kty": "RSA",
-					"kid": "test-key-id",
-					"n":   "test-modulus",
-					"e":   "AQAB",
-				},
-			},
+			"keys": []map[string]interface{}{key},
 		}
 		json.NewEncoder(w).Encode(keys)
 	})
@@ -52,20 +71,39 @@ func mockOIDCServer() *httptest.Server {
 }
 
 // helper to create a mock jwt token
-func createMockJWT(issuerURL string, expireOffset time.Duration) string {
+func createMockJWT(issuerURL string, expireOffset time.Duration) (string, error) {
 	// set the expiration time for offset (use negative to test expire)
 	expirationTime := time.Now().Add(expireOffset * time.Hour).Unix()
 
-	// create a simple jwt
-	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","typ":"JWT"}`))
-	payload := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprintf(`{"sub":"1234567890","name":"John Doe","iat":1516239022,"iss":"%s","exp":%d}`, issuerURL, expirationTime)))
-	signature := base64.RawURLEncoding.EncodeToString([]byte("signature"))
+	// create claims
+	claims := jwt.MapClaims{
+		"sub":  "1234567890",
+		"name": "John Doe",
+		"iat":  time.Now().Unix(),
+		"iss":  issuerURL,
+		"exp":  expirationTime,
+	}
 
-	// return in the format: header.payload.signature
-	return header + "." + payload + "." + signature
+	// create a new token
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+
+	// sign the token w/ private key
+	signedToken, err := token.SignedString(privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	// return signedToken + "z", nil // test bad signature
+	return signedToken, nil
 }
 
 func TestOAuthTokenVerificationMiddleware_WithMockOIDC(t *testing.T) {
+	// init RSA keys for signing and verification
+	err := initKeys()
+	if err != nil {
+		t.Fatalf("failed to initialize keys: %v", err)
+	}
+
 	// start the mock server
 	mockOIDC := mockOIDCServer()
 	defer mockOIDC.Close()
@@ -86,7 +124,12 @@ func TestOAuthTokenVerificationMiddleware_WithMockOIDC(t *testing.T) {
 
 	// setup up mock token w/ +1-hour expire offset
 	//mockToken := createMockJWT(issuerURL, -1) // expired test
-	mockToken := createMockJWT(issuerURL, 1)
+	mockToken, err := createMockJWT(issuerURL, 1)
+	if err != nil {
+		t.Fatalf("failed to create mock jwt token: %v", err)
+	}
+
+	fmt.Printf("\n\n   mockToken: %s", mockToken)
 
 	// set up the handler
 	hasBeenCalled := false
