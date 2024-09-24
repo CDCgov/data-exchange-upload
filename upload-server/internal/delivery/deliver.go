@@ -240,7 +240,7 @@ func getDeliveredFilename(ctx context.Context, tuid string, manifest map[string]
 		}
 
 		if extension != "" {
-			return fmt.Sprintf("%s.%s", b.String(), extension), nil
+			return b.String() + extension, nil
 		}
 
 		return b.String(), nil
