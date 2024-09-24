@@ -8,6 +8,16 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 )
 
+// setup struct for individual testCase
+type testCase struct {
+	name         string
+	authEnabled  bool
+	authHeader   string
+	expectStatus int
+	expectMesg   string
+	expectNext   bool
+}
+
 // TestOAuthTokenVerificationMiddleware_TestCases
 //
 //	tests the OAuthTokenVerificationMiddleware_TestCases for the following cases:
@@ -34,14 +44,7 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 	defer ts.Close()
 
 	// test cases
-	testCases := []struct {
-		name         string
-		authEnabled  bool
-		authHeader   string
-		expectStatus int
-		expectMesg   string
-		expectNext   bool
-	}{
+	testCases := []testCase{
 		{
 			name:         "Auth Disabled",
 			authEnabled:  false,
@@ -68,7 +71,7 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 		},
 		//{
 		//	name:         "Valid JWT Token",
-		//	authEnabled:  true,
+		//	authEnabled:  truecould not import github.com/golang-jwt/jwt/v4 (no required module provides package "github.com/golang-jwt/jwt/v4,
 		//	authHeader:   "Bearer valid.jwt.token",
 		//	expectStatus: http.StatusOK,
 		//	expectMesg:   "",
@@ -78,44 +81,49 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 
 	// run the test cases
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// reset the flag
-			hasBeenCalled = false
-
-			// mock the configuration
-			appconfig.LoadedConfig = &appconfig.AppConfig{
-				OauthConfig: &appconfig.OauthConfig{
-					AuthEnabled: tc.authEnabled,
-					IssuerUrl:   "http://example.com/oauth2",
-				},
-			}
-
-			// create a new request
-			req := httptest.NewRequest(http.MethodGet, ts.URL, nil)
-			if tc.authHeader != "" {
-				req.Header.Set("Authorization", tc.authHeader)
-			}
-
-			// record the response
-			rec := httptest.NewRecorder()
-
-			// serve the request using the middleware
-			middleware.ServeHTTP(rec, req)
-
-			// check the status code
-			if rec.Code != tc.expectStatus {
-				t.Errorf("expected status %d, got %d", tc.expectStatus, rec.Code)
-			}
-
-			// check the body for status message
-			if rec.Body.String() != tc.expectMesg {
-				t.Errorf("expected message %q, got %q", tc.expectMesg, rec.Body.String())
-			}
-
-			// check if the next handler was called
-			if hasBeenCalled != tc.expectNext {
-				t.Errorf("expected next handler to be called: %v, got: %v", tc.expectNext, hasBeenCalled)
-			}
-		})
+		runOAuthTokenVerificationTestCase(t, ts, middleware, tc, &hasBeenCalled)
 	}
+}
+
+// test case function
+func runOAuthTokenVerificationTestCase(t *testing.T, ts *httptest.Server, middleware http.Handler, tc testCase, hasBeenCalled *bool) {
+	t.Run(tc.name, func(t *testing.T) {
+		// Reset the flag
+		*hasBeenCalled = false
+
+		// Mock the configuration
+		appconfig.LoadedConfig = &appconfig.AppConfig{
+			OauthConfig: &appconfig.OauthConfig{
+				AuthEnabled: tc.authEnabled,
+				IssuerUrl:   "http://example.com/oauth2",
+			},
+		}
+
+		// Create a new request
+		req := httptest.NewRequest(http.MethodGet, ts.URL, nil)
+		if tc.authHeader != "" {
+			req.Header.Set("Authorization", tc.authHeader)
+		}
+
+		// Record the response
+		rec := httptest.NewRecorder()
+
+		// Serve the request using the middleware
+		middleware.ServeHTTP(rec, req)
+
+		// Check the status code
+		if rec.Code != tc.expectStatus {
+			t.Errorf("expected status %d, got %d", tc.expectStatus, rec.Code)
+		}
+
+		// Check the body for status message
+		if rec.Body.String() != tc.expectMesg {
+			t.Errorf("expected message %q, got %q", tc.expectMesg, rec.Body.String())
+		}
+
+		// Check if the next handler was called
+		if *hasBeenCalled != tc.expectNext {
+			t.Errorf("expected next handler to be called: %v, got: %v", tc.expectNext, *hasBeenCalled)
+		}
+	})
 }
