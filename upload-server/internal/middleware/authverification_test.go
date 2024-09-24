@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -62,11 +61,19 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 		{
 			name:         "Invalid Authorization Header Format",
 			authEnabled:  true,
-			authHeader:   "Bearer", // NOTE: current checks for <len("Bearer ")
+			authHeader:   "Bearer", // current checks for <len("Bearer ")
 			expectStatus: http.StatusUnauthorized,
 			expectMesg:   "Authorization header format is invalid\n",
 			expectNext:   false,
 		},
+		//{
+		//	name:         "Valid JWT Token",
+		//	authEnabled:  true,
+		//	authHeader:   "Bearer valid.jwt.token",
+		//	expectStatus: http.StatusOK,
+		//	expectMesg:   "",
+		//	expectNext:   true,
+		//},
 	}
 
 	// run the test cases
@@ -79,6 +86,7 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 			appconfig.LoadedConfig = &appconfig.AppConfig{
 				OauthConfig: &appconfig.OauthConfig{
 					AuthEnabled: tc.authEnabled,
+					IssuerUrl:   "http://example.com/oauth2",
 				},
 			}
 
@@ -93,8 +101,6 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 
 			// serve the request using the middleware
 			middleware.ServeHTTP(rec, req)
-
-			fmt.Printf("   rec.Code: %d  rec.Body.String(): %s\n\n", rec.Code, rec.Body.String())
 
 			// check the status code
 			if rec.Code != tc.expectStatus {
