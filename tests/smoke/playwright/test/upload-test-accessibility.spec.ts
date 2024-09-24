@@ -23,7 +23,7 @@ test.describe('Upload Manifest Page', () => {
         { dataStream: "dextesting", route: "testevent1" },
         { dataStream: "ehdi", route: "csv" },
         { dataStream: "eicr", route: "fhir" },
-        { dataStream: "h5", route: "influenza-vaccination-csv" },
+        { dataStream: "generic", route: "immunization-csv" },
         { dataStream: "influenza", route: "vaccination-csv" },
         { dataStream: "ndlp", route: "covidallmonthlyvaccination" },
         { dataStream: "ndlp", route: "covidbridgevaccination" },
@@ -35,7 +35,11 @@ test.describe('Upload Manifest Page', () => {
         { dataStream: "rsv", route: "prevention-csv" },
     ].forEach(({ dataStream, route }) => {
         test(`Checks accessibility for individual mainfest page: ${dataStream} / ${route}`, async ({ page }) => {
-            await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
+            await page.goto(`/`);
+            await page.getByLabel('Data Stream', {exact: true}).fill(dataStream);
+            await page.getByLabel('Data Stream Route').fill(route);
+            await page.getByRole('button', {name: /next/i }).click();
+            //await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
             const results = await new AxeBuilder({ page })
                 .withTags(axeRuleTags)
                 .analyze();
@@ -46,7 +50,12 @@ test.describe('Upload Manifest Page', () => {
 
 test.describe('File Upload Page', () => {
     test(`Checks accessibliity for the upload page for the dextesting/testevent1 manifest`, async ({ page }) => {
-        await page.goto(`/manifest?data_stream=dextesting&data_stream_route=testevent1`);
+        const dataStream = 'dextesting'
+        const route = 'testevent1'
+        await page.goto(`/`);
+        await page.getByLabel('Data Stream', {exact: true}).fill(dataStream);
+        await page.getByLabel('Data Stream Route').fill(route);
+        await page.getByRole('button', {name: /next/i }).click();
         await page.getByLabel('Sender Id').fill('Sender123');
         await page.getByLabel('Data Producer Id').fill('Producer123');
         await page.getByLabel('Jurisdiction').fill('Jurisdiction123');
