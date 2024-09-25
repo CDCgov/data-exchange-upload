@@ -28,7 +28,9 @@
               required
             />
           </div>
-          {{ .CsrfField }}
+          <div class="hidden">
+            <input type="hidden" name="gorilla.csrf.Token" value="{{.CsrfToken}}">
+          </div>
           <div class="submit-button">
             <button type="submit">Next</button>
           </div>

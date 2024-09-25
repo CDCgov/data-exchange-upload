@@ -91,7 +91,7 @@ var uploadTemplate = generateTemplate("upload.tmpl", true)
 
 type IndexTemplateData struct {
 	Navbar    components.Navbar
-	CsrfField template.HTML
+	CsrfToken string
 }
 
 type ManifestTemplateData struct {
@@ -277,7 +277,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
 		err := indexTemplate.Execute(rw, &IndexTemplateData{
 			Navbar:    components.NewNavbar(false),
-			CsrfField: csrf.TemplateField(r),
+			CsrfToken: csrf.Token(r),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
