@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -47,9 +46,6 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 
 	// get the dynamic issuer url
 	issuerURL := mockOIDC.URL
-
-	fmt.Printf("\n\n   issuerURL: %s", issuerURL)
-	fmt.Printf("\n\n   mockOIDC.URL: %s", mockOIDC.URL)
 
 	// create handler for middleware
 	hasBeenCalled := false
@@ -238,8 +234,6 @@ func runOAuthTokenVerificationTestCase(t *testing.T, ts *httptest.Server, middle
 		if rec.Code != tc.expectStatus {
 			t.Errorf("expected status %d, got %d", tc.expectStatus, rec.Code)
 		}
-
-		fmt.Printf("\n  ----- Response Body: %s", rec.Body.String())
 
 		// check the body for status message
 		if !strings.HasPrefix(rec.Body.String(), tc.expectMesg) {
