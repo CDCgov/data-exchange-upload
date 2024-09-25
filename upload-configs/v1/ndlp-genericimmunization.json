@@ -153,5 +153,5 @@
             "edav"
         ]
     },
-	"compat_config_filename": "generic-immunization-other.json"
+	"compat_config_filename": "generic-immunization-csv.json"
 }

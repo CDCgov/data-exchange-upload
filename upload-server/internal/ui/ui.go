@@ -21,6 +21,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/dustin/go-humanize"
 	"github.com/eventials/go-tus"
+	"github.com/google/uuid"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -177,7 +178,13 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			return
 		}
 		loc := resp.Header.Get("Location")
-		http.Redirect(rw, r, fmt.Sprintf("/status/%s", filepath.Base(loc)), http.StatusFound)
+		uuid, err := uuid.Parse(filepath.Base(loc))
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid.String()), http.StatusFound)
 	})
 	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("upload_id")
