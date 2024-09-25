@@ -11,6 +11,9 @@
 		"jurisdiction": "test"
 	},
 	"time_limit": "11s",
+	"expected_delivery_targets": [
+		"edav"
+	],
 	"expected_reports": [
 		{
 			"stageName": "dex-metadata-transform"

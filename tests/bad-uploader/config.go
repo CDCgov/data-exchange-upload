@@ -103,14 +103,15 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 }
 
 type TestCase struct {
-	Chunk           float64
-	Size            float64
-	Manifest        map[string]string
-	TemplateFile    string
-	Templates       []SubTemplate
-	Repetitions     int
-	TimeLimit       Duration `json:"time_limit"`
-	ExpectedReports []Report `json:"expected_reports"`
+	Chunk                   float64
+	Size                    float64
+	Manifest                map[string]string
+	TemplateFile            string
+	Templates               []SubTemplate
+	Repetitions             int
+	TimeLimit               Duration `json:"time_limit"`
+	ExpectedDeliveryTargets []string `json:"expected_delivery_targets"`
+	ExpectedReports         []Report `json:"expected_reports"`
 }
 
 func (t *TestCase) String() string {

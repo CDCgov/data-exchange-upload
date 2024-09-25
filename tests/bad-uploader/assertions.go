@@ -11,12 +11,15 @@ import (
 	neturl "net/url"
 	"os"
 	"path"
+	"slices"
 	"sort"
 	"time"
 
 	"github.com/hasura/go-graphql-client"
 	"golang.org/x/oauth2"
 )
+
+const MAX_RETRIES = 3
 
 type Report struct {
 	ID        string
@@ -32,25 +35,23 @@ func (r Reports) Len() int           { return len(r) }
 func (r Reports) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r Reports) Less(i, j int) bool { return r[i].Timestamp.Before(r[j].Timestamp) }
 
-func NewCheck(ctx context.Context, conf *config, c TestCase, uploadId string) *UploadCheck {
+func NewCheck(ctx context.Context, conf *config, c TestCase, uploadUrl string) *UploadCheck {
 	httpClient := &http.Client{}
 	if conf.tokenSource != nil {
 		httpClient = oauth2.NewClient(ctx, conf.tokenSource)
 	}
-
+	_, uploadId := path.Split(uploadUrl)
 	return &UploadCheck{
-		Case:                    c,
-		UploadId:                uploadId,
-		InfoClient:              httpClient,
-		ExpectedDeliveryTargets: []string{}, // TODO get expected targets from config
+		Case:       c,
+		UploadId:   uploadId,
+		InfoClient: httpClient,
 	}
 }
 
 type UploadCheck struct {
-	Case                    TestCase
-	UploadId                string
-	InfoClient              *http.Client
-	ExpectedDeliveryTargets []string
+	Case       TestCase
+	UploadId   string
+	InfoClient *http.Client
 }
 
 func (uc *UploadCheck) CheckInfo() error {
@@ -84,8 +85,25 @@ func (uc *UploadCheck) CheckInfo() error {
 		return fmt.Errorf("upload unsuccessful for upload ID %s: %v", uc.UploadId, info.UploadStatus)
 	}
 
+	// Check delivery targets
+	if len(info.Deliveries) != len(uc.Case.ExpectedDeliveryTargets) {
+		return fmt.Errorf("expected %d deliveries but got %d", len(uc.Case.ExpectedDeliveryTargets), len(info.Deliveries))
+	}
+
+	for _, delivery := range info.Deliveries {
+		if delivery.Status != "SUCCESS" {
+			return fmt.Errorf("%s delivery failed: %v", delivery.Name, delivery.Issues)
+		}
+
+		if !slices.Contains(uc.Case.ExpectedDeliveryTargets, delivery.Name) {
+			return fmt.Errorf("delivery target should be one of %v but got %s", uc.Case.ExpectedDeliveryTargets, delivery.Name)
+		}
+	}
+
 	return nil
 }
+
+type CheckFunc func() error
 
 func Check(ctx context.Context, check *UploadCheck) error {
 	/*
@@ -98,7 +116,7 @@ func Check(ctx context.Context, check *UploadCheck) error {
 		  - Always check file.  Check API if URL provided
 		  - TODO: config flag to skip this step as can be brittle
 	*/
-	err := check.CheckInfo()
+	err := withRetry(ctx, check.CheckInfo)
 	if err != nil {
 		return err
 	}
@@ -151,6 +169,23 @@ func Check(ctx context.Context, check *UploadCheck) error {
 	}
 
 	return nil
+}
+
+func withRetry(timeout context.Context, checker CheckFunc) error {
+	for {
+		// Perform the checkable action
+		if checker() == nil {
+			// Action was successful, all done
+			return nil
+		}
+		// Did we timeout yet?
+		if errors.Is(timeout.Err(), context.Canceled) {
+			// Yes, return and notify caller
+			return timeout.Err()
+		}
+		// No, wait and perform check action again
+		time.Sleep(1 * time.Second)
+	}
 }
 
 func compareReports(actual []Report, expected []Report) error {
