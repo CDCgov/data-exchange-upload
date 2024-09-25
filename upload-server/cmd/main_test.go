@@ -17,20 +17,35 @@ import (
 )
 
 func TestTus(t *testing.T) {
-	url := fmt.Sprintf("http://localhost:%s", os.Getenv("SERVER_PORT"))
-	var wg sync.WaitGroup
-	for name, c := range dexTesting.Cases {
+	for name, c := range cases {
+		log.Println("Starting case", name)
+		setUp(name, c)
+		var wg sync.WaitGroup
 		wg.Add(1)
-		go func(t *testing.T) {
+		go func() {
 			defer wg.Done()
-			if _, err := dexTesting.RunTusTestCase(url, "../testing/test/test.txt", c); err != nil {
-				t.Error(name, err)
-			} else {
-				t.Log("test case", name, "passed")
-			}
-		}(t)
+			main()
+		}()
+		// wait for main to start (should make this more resilient)
+		time.Sleep(1 * time.Second)
+
+		url := fmt.Sprintf("http://localhost:%s", os.Getenv("SERVER_PORT"))
+		var twg sync.WaitGroup
+		for name, c := range dexTesting.Cases {
+			twg.Add(1)
+			go func(t *testing.T) {
+				defer twg.Done()
+				if _, err := dexTesting.RunTusTestCase(url, "../testing/test/test.txt", c); err != nil {
+					t.Error(name, err)
+				} else {
+					t.Log("test case", name, "passed")
+				}
+			}(t)
+		}
+		twg.Wait()
+		syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+		wg.Wait()
 	}
-	wg.Wait()
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.
@@ -47,33 +62,67 @@ func GetFreePort() (port int, err error) {
 	return
 }
 
-func init() {
+func setUp(name string, c map[string]string) {
 	// clear the environment to prevent anything exciting
 	os.Clearenv()
 	port, err := GetFreePort()
 	if err != nil {
 		log.Fatal(err)
 	}
+	os.Setenv("LOCAL_FOLDER_UPLOADS_TUS", fmt.Sprintf("./tests/%s/uploads", name))
+	os.Setenv("LOCAL_REPORTS_FOLDER", fmt.Sprintf("./tests/%s/uploads/reports", name))
+	os.Setenv("LOCAL_EVENTS_FOLDER", fmt.Sprintf("./tests/%s/uploads/events", name))
+	os.Setenv("LOCAL_DEX_FOLDER", fmt.Sprintf("./tests/%s/uploads/dex", name))
+	os.Setenv("LOCAL_EDAV_FOLDER", fmt.Sprintf("./tests/%s/uploads/edav", name))
+	os.Setenv("LOCAL_ROUTING_FOLDER", fmt.Sprintf("./tests/%s/uploads/routing", name))
+	os.Setenv("LOCAL_EHDI_FOLDER", fmt.Sprintf("./tests/%s/uploads/ehdi", name))
+	os.Setenv("LOCAL_EICR_FOLDER", fmt.Sprintf("./tests/%s/uploads/eicr", name))
+	os.Setenv("LOCAL_NCIRD_FOLDER", fmt.Sprintf("./tests/%s/uploads/ncird", name))
 	os.Setenv("SERVER_PORT", fmt.Sprintf("%d", port))
-	os.Setenv("UPLOAD_CONFIG_PATH", "../../upload-configs")
-	os.Setenv("S3_ENDPOINT", "http://minio:8000")
-	os.Setenv("S3_BUCKET_NAME", "test-bucket")
-	os.Setenv("AWS_REGION", "us-east-1")
-	os.Setenv("AWS_ACCESS_KEY_ID", "minioadmin")
-	os.Setenv("AWS_SECRET_ACCESS_KEY", "minioadmin")
+	os.Setenv("REDIS_CONNECTION_STRING", "redis://redispw@cache:6379")
+	for key, val := range c {
+		os.Setenv(key, val)
+	}
+}
 
-	os.Setenv("EDAV_STORAGE_ACCOUNT", "devstoreaccount1")
-	os.Setenv("EDAV_STORAGE_KEY", "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==")
-	os.Setenv("EDAV_ENDPOINT", "http://azurite:10000/devstoreaccount1")
-	os.Setenv("EDAV_CHECKPOINT_CONTAINER_NAME", "edav")
+var cases = map[string]map[string]string{
+	"s3_to_azure": {
+		"UPLOAD_CONFIG_PATH":             "../../upload-configs",
+		"S3_ENDPOINT":                    "http://minio:8000",
+		"S3_BUCKET_NAME":                 "test-bucket",
+		"AWS_REGION":                     "us-east-1",
+		"AWS_ACCESS_KEY_ID":              "minioadmin",
+		"AWS_SECRET_ACCESS_KEY":          "minioadmin",
+		"EDAV_STORAGE_ACCOUNT":           "devstoreaccount1",
+		"EDAV_STORAGE_KEY":               "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
+		"EDAV_ENDPOINT":                  "http://azurite:10000/devstoreaccount1",
+		"EDAV_CHECKPOINT_CONTAINER_NAME": "edav",
+	},
+	"azure_to_s3": {
+		"UPLOAD_CONFIG_PATH":             "../../upload-configs",
+		"AZURE_STORAGE_ACCOUNT":          "devstoreaccount1",
+		"AZURE_STORAGE_KEY":              "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
+		"AZURE_ENDPOINT":                 "http://azurite:10000/devstoreaccount1",
+		"TUS_AZURE_CONTAINER_NAME":       "test",
+		"AWS_REGION":                     "us-east-1",
+		"AWS_ACCESS_KEY_ID":              "minioadmin",
+		"AWS_SECRET_ACCESS_KEY":          "minioadmin",
+		"EDAV_S3_BUCKET_NAME":            "test-bucket",
+		"EDAV_S3_ENDPOINT":               "http://minio:8000",
+		"EDAV_CHECKPOINT_CONTAINER_NAME": "edav",
+	},
+	"file_to_s3": {
+		"UPLOAD_CONFIG_PATH":             "../../upload-configs",
+		"AWS_REGION":                     "us-east-1",
+		"AWS_ACCESS_KEY_ID":              "minioadmin",
+		"AWS_SECRET_ACCESS_KEY":          "minioadmin",
+		"EDAV_S3_BUCKET_NAME":            "test-bucket",
+		"EDAV_S3_ENDPOINT":               "http://minio:8000",
+		"EDAV_CHECKPOINT_CONTAINER_NAME": "edav",
+	},
 }
 
 func TestMain(m *testing.M) {
-
-	go main()
-	// wait for main to start (should make this more resilient)
-	time.Sleep(1 * time.Second)
 	result := m.Run()
-	syscall.Kill(os.Getpid(), syscall.SIGINT)
 	os.Exit(result)
 }

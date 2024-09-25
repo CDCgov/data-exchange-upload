@@ -123,7 +123,7 @@ func main() {
 		defer mainWaitGroup.Done()
 		if err := ui.Start(appConfig.UIPort, appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl); err != nil {
 			slog.Error("failed to start ui", "error", err)
-			os.Exit(appMainExitCode)
+			//os.Exit(appMainExitCode)
 		}
 	}()
 

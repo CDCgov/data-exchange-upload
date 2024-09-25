@@ -82,6 +82,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		return nil, err
 	}
 
+	mux := &http.ServeMux{}
 	// --------------------------------------------------------------
 	// 	TUSD handler
 	// --------------------------------------------------------------
@@ -89,21 +90,21 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)
 	pathWithoutSlash := strings.TrimSuffix(appConfig.TusdHandlerBasePath, "/")
 	pathWithSlash := pathWithoutSlash + "/"
-	http.Handle(pathWithoutSlash, http.StripPrefix(pathWithoutSlash, handlerTusd))
-	http.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
+	mux.Handle(pathWithoutSlash, http.StripPrefix(pathWithoutSlash, handlerTusd))
+	mux.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
 
 	// initialize and route handler for DEX
-	http.Handle("/", appconfig.Handler())
-	http.Handle("/health", health.Handler())
+	mux.Handle("/", appconfig.Handler())
+	mux.Handle("/health", health.Handler())
 
 	// --------------------------------------------------------------
 	// 	Prometheus metrics handler for /metrics
 	// --------------------------------------------------------------
-	http.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/metrics", promhttp.Handler())
 
-	http.Handle("/info/{UploadID}", uploadInfoHandler)
-	http.Handle("/version", &VersionHandler{})
-	http.Handle("/route/{UploadID}", &Router{})
+	mux.Handle("/info/{UploadID}", uploadInfoHandler)
+	mux.Handle("/version", &VersionHandler{})
+	mux.Handle("/route/{UploadID}", &Router{})
 
-	return http.DefaultServeMux, nil
+	return mux, nil
 }
