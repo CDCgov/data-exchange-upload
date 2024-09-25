@@ -19,7 +19,13 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const MAX_RETRIES = 3
+type ErrFatalAssertion struct {
+	m string
+}
+
+func (e *ErrFatalAssertion) Error() string {
+	return e.m
+}
 
 type Report struct {
 	ID        string
@@ -92,11 +98,15 @@ func (uc *UploadCheck) CheckInfo() error {
 
 	for _, delivery := range info.Deliveries {
 		if delivery.Status != "SUCCESS" {
-			return fmt.Errorf("%s delivery failed: %v", delivery.Name, delivery.Issues)
+			return &ErrFatalAssertion{
+				m: fmt.Sprintf("%s delivery failed: %v", delivery.Name, delivery.Issues),
+			}
 		}
 
 		if !slices.Contains(uc.Case.ExpectedDeliveryTargets, delivery.Name) {
-			return fmt.Errorf("delivery target should be one of %v but got %s", uc.Case.ExpectedDeliveryTargets, delivery.Name)
+			return &ErrFatalAssertion{
+				m: fmt.Sprintf("delivery target should be one of %v but got %s", uc.Case.ExpectedDeliveryTargets, delivery.Name),
+			}
 		}
 	}
 
@@ -174,7 +184,8 @@ func Check(ctx context.Context, check *UploadCheck) error {
 func withRetry(timeout context.Context, checker CheckFunc) error {
 	for {
 		// Perform the checkable action
-		if checker() == nil {
+		err := checker()
+		if err == nil {
 			// Action was successful, all done
 			return nil
 		}
@@ -182,6 +193,10 @@ func withRetry(timeout context.Context, checker CheckFunc) error {
 		if errors.Is(timeout.Err(), context.Canceled) {
 			// Yes, return and notify caller
 			return timeout.Err()
+		}
+		var fatalErr *ErrFatalAssertion
+		if errors.As(err, &fatalErr) {
+			return err
 		}
 		// No, wait and perform check action again
 		time.Sleep(1 * time.Second)

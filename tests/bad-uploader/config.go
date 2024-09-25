@@ -232,10 +232,11 @@ func init() {
 	flag.Visit(func(f *flag.Flag) { flagset[f.Name] = true })
 	if !flagset["case-file"] {
 		testcase = TestCase{
-			Chunk:     chunk,
-			Size:      size,
-			Manifest:  manifest,
-			TimeLimit: Duration(time.Duration(1 * time.Minute)),
+			Chunk:                   chunk,
+			Size:                    size,
+			Manifest:                manifest,
+			TimeLimit:               Duration(1 * time.Minute),
+			ExpectedDeliveryTargets: []string{"edav"},
 		}
 		if templatePath != "" {
 			testcase.TemplateFile = templatePath
