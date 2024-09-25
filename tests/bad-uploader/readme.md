@@ -11,11 +11,16 @@ sizes.
 
 # Usage:
 ```
-# see usage info
+# See usage info
 go run main.go -h
 ```
 
 ```
-# run against a local server in benchmark mode:
+# Run against a local server in benchmark mode:
 go run ./...
+```
+
+```
+# Quickly upload a single file against a local server.  Great for smoke testing
+go run ./... -load=1
 ```

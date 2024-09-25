@@ -50,8 +50,8 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 			go func(r *Result) {
 				defer wg.Done()
 				limit := time.Duration(r.testCase.TimeLimit)
-				if limit == time.Duration(0*time.Second) {
-					limit = time.Duration(1 * time.Minute)
+				if limit == 0*time.Second {
+					limit = 1 * time.Minute
 				}
 				cctx, cancel := context.WithTimeout(ctx, limit)
 				defer cancel()
@@ -70,7 +70,7 @@ func InitiateTests(e Executor) <-chan TestCase {
 	c := make(chan TestCase)
 	go func() {
 		defer close(c)
-		getExecutor().Run(c, cases.Next)
+		e.Run(c, cases.Next)
 	}()
 	return c
 }
