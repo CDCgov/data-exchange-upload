@@ -90,20 +90,23 @@ type FileStoreHealthCheck struct {
 	path string
 }
 
-func (c *FileStoreHealthCheck) Health(_ context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "File Storage"
+func (c *FileStoreHealthCheck) Health(_ context.Context) models.ServiceHealthResp {
+	var shr models.ServiceHealthResp
+	shr.Service = "File Storage"
+
 	info, err := os.Stat(c.path)
 	if err != nil {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = err.Error()
-		return rsp
+		shr.Status = models.STATUS_DOWN
+		shr.HealthIssue = err.Error()
+		return shr
 	}
 	if !info.IsDir() {
-		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = fmt.Sprintf("%s is not a directory", c.path)
-		return rsp
+		shr.Status = models.STATUS_DOWN
+		shr.HealthIssue = fmt.Sprintf("%s is not a directory", c.path)
+		return shr
 	}
-	rsp.Status = models.STATUS_UP
-	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
-	return rsp
+	shr.Status = models.STATUS_UP
+	shr.HealthIssue = models.HEALTH_ISSUE_NONE
+
+	return shr
 }

@@ -113,7 +113,7 @@ type UploadTemplateData struct {
 var StaticHandler = http.FileServer(http.FS(content))
 
 func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) *http.Server {
-	router := GetRouter(csrfToken, uploadUrl, infoUrl)
+	router := GetRouter(uploadUrl, infoUrl)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
@@ -126,7 +126,7 @@ func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) 
 	return s
 }
 
-func GetRouter(csrfToken string, uploadUrl string, infoUrl string) *mux.Router {
+func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		err := r.ParseForm()
@@ -135,7 +135,7 @@ func GetRouter(csrfToken string, uploadUrl string, infoUrl string) *mux.Router {
 			return
 		}
 
-		dataStream := r.PostForm.Get("data_stream")
+		dataStream := r.PostForm.Get("data_stream_id")
 		dataStreamRoute := r.PostForm.Get("data_stream_route")
 
 		config, err := metadata.Cache.GetConfig(r.Context(), fmt.Sprintf("v2/%s-%s.json", dataStream, dataStreamRoute))

@@ -410,7 +410,14 @@ func TestLandingPage(t *testing.T) {
 
 func TestManifestPageManifestNotFound(t *testing.T) {
 	client := testUIServer.Client()
-	resp, err := client.Get(testUIServer.URL + "/manifest")
+
+	indexForm := url.Values{
+		"data_stream_id":    {"bad"},
+		"data_stream_route": {"values"},
+	}
+
+	body := strings.NewReader(indexForm.Encode())
+	resp, err := client.Post(testUIServer.URL+"/manifest", "application/x-www-form-urlencoded", body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -421,7 +428,14 @@ func TestManifestPageManifestNotFound(t *testing.T) {
 
 func TestManifestPageValidDestination(t *testing.T) {
 	client := testUIServer.Client()
-	resp, err := client.Get(testUIServer.URL + "/manifest?data_stream=dextesting&data_stream_route=testevent1")
+
+	indexForm := url.Values{
+		"data_stream_id":    {"dextesting"},
+		"data_stream_route": {"testevent1"},
+	}
+
+	body := strings.NewReader(indexForm.Encode())
+	resp, err := client.Post(testUIServer.URL+"/manifest", "application/x-www-form-urlencoded", body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -558,7 +572,7 @@ func TestMain(m *testing.M) {
 	appConfig.TusUIFileEndpointUrl = ts.URL + "/files"
 	appConfig.TusUIInfoEndpointUrl = ts.URL + "/info"
 	appConfig.CsrfToken = "abcdefghijklmnopqrstuvwxyz012345"
-	uiHandler := ui.GetRouter(appConfig.CsrfToken, appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl)
+	uiHandler := ui.GetRouter(appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()
