@@ -20,6 +20,14 @@ func main() {
 		fmt.Println("validation failed:", err)
 	}
 	fmt.Println("Total run took ", time.Since(tStart).Seconds(), " seconds")
+	/*
+		Report output:
+		duration
+		files uploaded successfully
+		files uploaded unsuccessfully
+		files delivered successfully
+		files delivered unsuccessfully (print all ids and error messages if debug enabled)
+	*/
 }
 
 func StartWorkers(c <-chan TestCase) <-chan *Result {
