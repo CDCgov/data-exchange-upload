@@ -78,7 +78,7 @@ to enable the use of your Redis instance:
 This middleware provides OAuth 2.0 token verification for incoming requests. It currently supports JWT tokens with the plan to add support for
 opaque tokens. You can use it to protect either your entire router or individual routes.
 
-##### Configuration
+#### Configuration
 
 You need to configure the middleware by setting up the following environment variables for your OAuth settings:
 
@@ -89,7 +89,7 @@ OAUTH_REQUIRED_SCOPES="scope1 scope2" # Space-separated list of required scopes
 OAUTH_INTROSPECTION_URL=https://introspection.url # (for opaque tokens)
 ```
 
-##### Usage - Wrapping and Protecting the Entire Router
+#### Usage - Wrapping and Protecting the Entire Router
 
 ```
 func GetRouter(uploadUrl string, infoUrl string) http.Handler {
@@ -106,7 +106,7 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 }
 ```
 
-##### Usage - Wrapping and Protecting an Individual Route
+#### Usage - Wrapping and Protecting an Individual Route
 
 ```
 func GetRouter(uploadUrl string, infoUrl string) http.Handler {
