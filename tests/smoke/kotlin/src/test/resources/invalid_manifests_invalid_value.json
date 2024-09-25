@@ -1,29 +1,5 @@
 [
   {
-    "meta_destination_id": "dex-hl7",
-    "meta_ext_event": "hl7ingress",
-    "meta_ext_source": "smoke test source",
-    "meta_ext_sourceversion": "V2023-09-01",
-    "meta_username": "test-automation",
-    "original_filename": "dex-smoke-test",
-    "original_file_timestamp": "smoke test timestamp",
-    "message_type": "blah",
-    "meta_data_stream_id": "dex-hl7",
-    "route": "COVID19_ELR"
-  },
-  {
-    "meta_destination_id": "dex-hl7",
-    "meta_ext_event": "hl7ingress",
-    "meta_ext_source": "smoke test source",
-    "meta_ext_sourceversion": "V2023-09-01",
-    "meta_username": "test-automation",
-    "original_filename": "dex-smoke-test",
-    "original_file_timestamp": "smoke test timestamp",
-    "message_type": "CASE",
-    "meta_data_stream_id": "dex-hl7",
-    "route": "blah"
-  },
-  {
     "version": "2.0",
     "data_stream_id": "covid-all-monthly-vaccination",
     "data_stream_route": "csv",
@@ -162,7 +138,7 @@
   {
     "version": "2.0",
     "data_stream_id": "generic-immunization",
-    "data_stream_route": "other",
+    "data_stream_route": "csv",
     "sender_id": "blah",
     "data_producer_id": "XXA",
     "jurisdiction": "blah",
