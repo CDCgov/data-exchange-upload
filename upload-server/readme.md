@@ -99,7 +99,7 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 	router.HandleFunc("/route-2", route2Handler)
 
 	// Wrap the router with the OAuth middleware
-	protectedRouter := OAuthTokenVerificationMiddleware(router)
+	protectedRouter := VerifyOAuthTokenMiddleware(router)
 
 	// Return the wrapped router (as http.Handler)
 	return protectedRouter
@@ -114,7 +114,7 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 
 	// Wrap the particular route that needs to be protected
 	router.HandleFunc("/public-route", publicRouteHandler)
-	router.HandleFunc("/private-route", OAuthTokenVerificationHandlerFunc(privateRouteHandler))
+	router.HandleFunc("/private-route", VerifyOAuthTokenHandler(privateRouteHandler))
 
 	return router
 }

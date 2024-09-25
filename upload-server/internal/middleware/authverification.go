@@ -33,7 +33,7 @@ func NewHTTPError(code int, msg string) *HTTPError {
 	return &HTTPError{Code: code, Msg: msg}
 }
 
-func OAuthTokenVerificationMiddleware(next http.Handler) http.Handler {
+func VerifyOAuthTokenMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authEnabled := appconfig.LoadedConfig.OauthConfig.AuthEnabled
 		if !authEnabled {
@@ -76,8 +76,8 @@ func OAuthTokenVerificationMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func OAuthTokenVerificationHandlerFunc(handlerFunc http.HandlerFunc) http.HandlerFunc {
-	return OAuthTokenVerificationMiddleware(handlerFunc).ServeHTTP
+func VerifyOAuthTokenHandler(handlerFunc http.HandlerFunc) http.HandlerFunc {
+	return VerifyOAuthTokenMiddleware(handlerFunc).ServeHTTP
 }
 
 func validateJWT(ctx context.Context, token string) error {

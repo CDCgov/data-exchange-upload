@@ -32,7 +32,7 @@ type testCase struct {
 	requiredScopes string // "" for no required scopes
 }
 
-// tests the OAuthTokenVerificationMiddleware for multiple cases
+// tests the VerifyOAuthTokenMiddleware for multiple cases
 func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 	// init RSA keys for signing and verification
 	err := initKeys()
@@ -55,7 +55,7 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 	})
 
 	// create a test server with the middleware
-	middleware := OAuthTokenVerificationMiddleware(handler)
+	middleware := VerifyOAuthTokenMiddleware(handler)
 	ts := httptest.NewServer(middleware)
 	defer ts.Close()
 
