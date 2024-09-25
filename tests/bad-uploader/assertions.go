@@ -117,10 +117,6 @@ type CheckFunc func() error
 
 func Check(ctx context.Context, check *UploadCheck) error {
 	/*
-		Always check info endpoint
-		  - Upload status
-		  - Delivery status
-		    - Needs to be based on target within config
 		Check events
 		  - Use interface for this.  File vs API
 		  - Always check file.  Check API if URL provided
@@ -194,6 +190,7 @@ func withRetry(timeout context.Context, checker CheckFunc) error {
 			// Yes, return and notify caller
 			return timeout.Err()
 		}
+		// Did we get a fatal error?
 		var fatalErr *ErrFatalAssertion
 		if errors.As(err, &fatalErr) {
 			return err
