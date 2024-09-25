@@ -62,7 +62,7 @@ test.describe("Upload Manifest Page", () => {
         const errorPageResponse = await errorPagePromise
 
         await expect(errorPageResponse.status()).toBe(404)
-        await expect(page.locator('body')).toContainText('The system cannot find the file specified.')
+        await expect(page.locator('body')).toContainText('open v2/invalid-invalid.json: ')
         await expect(page.locator('body')).toContainText('validation failure')
         await expect(page.locator('body')).toContainText('manifest validation config file not found')
     })
@@ -158,7 +158,7 @@ test.describe("Upload Status Page", () => {
         await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
         await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(1)).toHaveText('EDAV')
         await expect(fileDeliveriesContainer.getByRole('heading', {level: 3})).toHaveText('Delivery Status: SUCCESS')
-        await expect(fileDeliveriesContainer).toContainText(`Location: uploads\\edav\\${uploadId}`)
+        await expect(fileDeliveriesContainer).toContainText(`Location: uploads/edav/${uploadId}`)
 
         const uploadDetailsContainer = page.locator('.file-details-container')
         await expect(uploadDetailsContainer.getByRole('heading', { level: 2 })).toHaveText('Upload Details')
