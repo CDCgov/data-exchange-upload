@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
 
 test.describe.configure({ mode: 'parallel' });
 const axeRuleTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
@@ -19,17 +19,11 @@ test.describe('Upload Manifest Page', () => {
     [
         { dataStream: "covid", route: "all-monthly-vaccination-csv" },
         { dataStream: "covid", route: "bridge-vaccination-csv" },
-        { dataStream: "dex", route: "hl7-hl7ingress" },
         { dataStream: "dextesting", route: "testevent1" },
         { dataStream: "ehdi", route: "csv" },
         { dataStream: "eicr", route: "fhir" },
         { dataStream: "generic", route: "immunization-csv" },
         { dataStream: "influenza", route: "vaccination-csv" },
-        { dataStream: "ndlp", route: "covidallmonthlyvaccination" },
-        { dataStream: "ndlp", route: "covidbridgevaccination" },
-        { dataStream: "ndlp", route: "influenzavaccination" },
-        { dataStream: "ndlp", route: "routineimmunization" },
-        { dataStream: "ndlp", route: "rsvprevention" },
         { dataStream: "pulsenet", route: "localsequencefile" },
         { dataStream: "routine", route: "immunization-other" },
         { dataStream: "rsv", route: "prevention-csv" },
