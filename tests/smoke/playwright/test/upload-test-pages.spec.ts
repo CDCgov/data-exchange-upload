@@ -16,27 +16,30 @@ test.describe("Upload Landing Page", () => {
     })
 });
 
-[
-    { dataStream: "covid", route: "all-monthly-vaccination-csv" },
-    { dataStream: "covid", route: "bridge-vaccination-csv" },
-    { dataStream: "dex", route: "hl7-hl7ingress" },
-    { dataStream: "dextesting", route: "testevent1" },
-    { dataStream: "ehdi", route: "csv" },
-    { dataStream: "eicr", route: "fhir" },
-    { dataStream: "h5", route: "influenza-vaccination-csv" },
-    { dataStream: "influenza", route: "vaccination-csv" },
-    { dataStream: "ndlp", route: "covidallmonthlyvaccination" },
-    { dataStream: "ndlp", route: "covidbridgevaccination" },
-    { dataStream: "ndlp", route: "influenzavaccination" },
-    { dataStream: "ndlp", route: "routineimmunization" },
-    { dataStream: "ndlp", route: "rsvprevention" },
-    { dataStream: "pulsenet", route: "localsequencefile" },
-    { dataStream: "routine", route: "immunization-other" },
-    { dataStream: "rsv", route: "prevention-csv" },
-].forEach(({ dataStream, route }) => {
-    test.describe("Upload Manifest Page", () => {
+test.describe("Upload Manifest Page", () => {
+    [
+        { dataStream: "covid", route: "all-monthly-vaccination-csv" },
+        { dataStream: "covid", route: "bridge-vaccination-csv" },
+        { dataStream: "dex", route: "hl7-hl7ingress" },
+        { dataStream: "dextesting", route: "testevent1" },
+        { dataStream: "ehdi", route: "csv" },
+        { dataStream: "eicr", route: "fhir" },
+        { dataStream: "generic", route: "immunization-csv" },
+        { dataStream: "influenza", route: "vaccination-csv" },
+        { dataStream: "ndlp", route: "covidallmonthlyvaccination" },
+        { dataStream: "ndlp", route: "covidbridgevaccination" },
+        { dataStream: "ndlp", route: "influenzavaccination" },
+        { dataStream: "ndlp", route: "routineimmunization" },
+        { dataStream: "ndlp", route: "rsvprevention" },
+        { dataStream: "pulsenet", route: "localsequencefile" },
+        { dataStream: "routine", route: "immunization-other" },
+        { dataStream: "rsv", route: "prevention-csv" },
+    ].forEach(({ dataStream, route }) => {
         test(`has the expected metadata elements for Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
-            await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
+            await page.goto(`/`);
+            await page.getByLabel('Data Stream', { exact: true }).fill(dataStream);
+            await page.getByLabel('Data Stream Route').fill(route);
+            await page.getByRole('button', { name: /next/i }).click();
             const nav = page.locator('nav')
             await expect(nav.getByRole("link").and(nav.getByText('Skip to main content'))).toBeHidden()
             await expect(nav.getByRole("link").and(nav.getByText('Upload'))).toBeVisible()
@@ -46,8 +49,25 @@ test.describe("Upload Landing Page", () => {
             const nextButton = page.getByRole('button')
             await expect(nextButton).toHaveText('Next')
         })
-    })    
+            
+    })
+
+    test(`displays an error for an invalid manifest: Data stream: invalid / Route: invalid`, async ({ page }) => {
+        const errorPagePromise = page.waitForResponse('/manifest');
+
+        await page.goto(`/`);
+        await page.getByLabel('Data Stream', { exact: true }).fill('invalid');
+        await page.getByLabel('Data Stream Route').fill('invalid');
+        await page.getByRole('button', { name: /next/i }).click();
+        const errorPageResponse = await errorPagePromise
+
+        await expect(errorPageResponse.status()).toBe(404)
+        await expect(page.locator('body')).toContainText('The system cannot find the file specified.')
+        await expect(page.locator('body')).toContainText('validation failure')
+        await expect(page.locator('body')).toContainText('manifest validation config file not found')
+    })
 });
+
 
 test.describe("File Uploader Page", () => {
     test("has the expected elements to prepare to upload a file", async ({ page, baseURL }) => {
@@ -55,7 +75,10 @@ test.describe("File Uploader Page", () => {
         const dataStream = 'dextesting';
         const route = 'testevent1';
 
-        await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
+        await page.goto(`/`);
+        await page.getByLabel('Data Stream', {exact: true}).fill(dataStream);
+        await page.getByLabel('Data Stream Route').fill(route);
+        await page.getByRole('button', {name: /next/i }).click();
         
         await page.getByLabel('Sender Id').fill('Sender123')
         await page.getByLabel('Data Producer Id').fill('Producer123')
@@ -92,7 +115,10 @@ test.describe("Upload Status Page", () => {
         const expectedDataProducer = 'Producer123'
         const expectedJurisdiction = 'Jurisdiction123'
     
-        await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
+        await page.goto(`/`);
+        await page.getByLabel('Data Stream', {exact: true}).fill(dataStream);
+        await page.getByLabel('Data Stream Route').fill(route);
+        await page.getByRole('button', { name: /next/i }).click();
         
         await page.getByLabel('Sender Id').fill(expectedSender)
         await page.getByLabel('Data Producer Id').fill(expectedDataProducer)
@@ -132,7 +158,7 @@ test.describe("Upload Status Page", () => {
         await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
         await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(1)).toHaveText('EDAV')
         await expect(fileDeliveriesContainer.getByRole('heading', {level: 3})).toHaveText('Delivery Status: SUCCESS')
-        await expect(fileDeliveriesContainer).toContainText(`Location: uploads/edav/${uploadId}`)
+        await expect(fileDeliveriesContainer).toContainText(`Location: uploads\\edav\\${uploadId}`)
 
         const uploadDetailsContainer = page.locator('.file-details-container')
         await expect(uploadDetailsContainer.getByRole('heading', { level: 2 })).toHaveText('Upload Details')

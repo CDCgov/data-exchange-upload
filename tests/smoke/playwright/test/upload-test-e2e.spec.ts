@@ -20,7 +20,7 @@ test.describe("Upload End to End Tests", () => {
     
         await page.getByRole('button', {name: 'Browse Files'}).click(); 
         const fileChooser = await fileChooserPromise;
-        await fileChooser.setFiles('tests/smoke/upload-files/10KB-test-file');     
+        await fileChooser.setFiles('../upload-files/10KB-test-file');     
 
         await expect(page.getByText('Upload Status: Complete')).toBeVisible();
     })
