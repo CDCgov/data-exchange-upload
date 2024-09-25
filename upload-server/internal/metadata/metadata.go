@@ -142,6 +142,7 @@ func GetConfigFromManifest(ctx context.Context, manifest handler.MetaData) (*val
 		return nil, err
 	}
 	config, err := Cache.GetConfig(ctx, path)
+	// TODO fallback to v1 if err is validation.ErrNotFound
 	if err != nil {
 		return nil, err
 	}

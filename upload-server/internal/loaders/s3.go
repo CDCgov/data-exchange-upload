@@ -21,6 +21,8 @@ func (l *S3ConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte, e
 		Bucket: &l.BucketName,
 		Key:    &key,
 	})
+	// TODO wrap err in validation.ErrNotFound if didn't find the object
+	// TODO handle nil pointer in if body is nil
 	defer output.Body.Close()
 	if err != nil {
 		return nil, err
