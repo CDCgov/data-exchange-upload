@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	neturl "net/url"
@@ -31,24 +32,77 @@ func (r Reports) Len() int           { return len(r) }
 func (r Reports) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r Reports) Less(i, j int) bool { return r[i].Timestamp.Before(r[j].Timestamp) }
 
-func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
-	serverUrl, _ := path.Split(url)
-	infoUrl, err := neturl.JoinPath(serverUrl, "info", path.Base(upload))
-	if err != nil {
-		return err
-	}
+func NewCheck(ctx context.Context, conf *config, c TestCase, uploadId string) *UploadCheck {
 	httpClient := &http.Client{}
 	if conf.tokenSource != nil {
 		httpClient = oauth2.NewClient(ctx, conf.tokenSource)
 	}
-	resp, err := httpClient.Get(infoUrl)
+
+	return &UploadCheck{
+		Case:                    c,
+		UploadId:                uploadId,
+		InfoClient:              httpClient,
+		ExpectedDeliveryTargets: []string{}, // TODO get expected targets from config
+	}
+}
+
+type UploadCheck struct {
+	Case                    TestCase
+	UploadId                string
+	InfoClient              *http.Client
+	ExpectedDeliveryTargets []string
+}
+
+func (uc *UploadCheck) CheckInfo() error {
+	serverUrl, _ := path.Split(url)
+	infoUrl, err := neturl.JoinPath(serverUrl, "info", path.Base(uc.UploadId))
+	if err != nil {
+		return err
+	}
+
+	resp, err := uc.InfoClient.Get(infoUrl)
 	if err != nil {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to check upload: %d, %s", resp.StatusCode, infoUrl)
+		return fmt.Errorf("failed to check upload info: %d, %s", resp.StatusCode, infoUrl)
 	}
-	slog.Info("verified upload", "upload", infoUrl)
+
+	var info InfoResponse
+	b, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(b, &info)
+	if err != nil {
+		return err
+	}
+
+	// Check info fields
+	if info.UploadStatus.Status != "Complete" {
+		return fmt.Errorf("upload unsuccessful for upload ID %s: %v", uc.UploadId, info.UploadStatus)
+	}
+
+	return nil
+}
+
+func Check(ctx context.Context, check *UploadCheck) error {
+	/*
+		Always check info endpoint
+		  - Upload status
+		  - Delivery status
+		    - Needs to be based on target within config
+		Check events
+		  - Use interface for this.  File vs API
+		  - Always check file.  Check API if URL provided
+		  - TODO: config flag to skip this step as can be brittle
+	*/
+	err := check.CheckInfo()
+	if err != nil {
+		return err
+	}
+	slog.Info("verified upload", "upload", check.UploadId)
 
 	if reportsURL != "" {
 		timer := time.NewTicker(1 * time.Second)
@@ -64,7 +118,7 @@ func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
 				}
 
 				variables := map[string]interface{}{
-					"id": path.Base(upload),
+					"id": path.Base(check.UploadId),
 				}
 
 				if err := client.Query(context.Background(), &q, variables); err != nil {
@@ -72,11 +126,11 @@ func Check(ctx context.Context, c TestCase, upload string, conf *config) error {
 				}
 				reports := q.GetReports
 				sort.Sort(reports)
-				slog.Debug("Expecting", "reports", c.ExpectedReports)
+				slog.Debug("Expecting", "reports", check.Case.ExpectedReports)
 
-				errs = errors.Join(errs, compareReports(reports, c.ExpectedReports))
+				errs = errors.Join(errs, compareReports(reports, check.Case.ExpectedReports))
 				// If the file doesn't exist, create it, or append to the file
-				f, err := os.OpenFile(path.Base(upload)+".reports", os.O_CREATE|os.O_WRONLY, 0644)
+				f, err := os.OpenFile(path.Base(check.UploadId)+".reports", os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
 					return err
 				}

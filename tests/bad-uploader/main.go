@@ -55,7 +55,8 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 				}
 				cctx, cancel := context.WithTimeout(ctx, limit)
 				defer cancel()
-				if err := Check(cctx, r.testCase, r.url, conf); err != nil {
+				check := NewCheck(ctx, conf, r.testCase, r.url)
+				if err := Check(cctx, check); err != nil {
 					slog.Error("failed check", "error", err, "test case", r.testCase)
 					errs = errors.Join(errs, err)
 				}
