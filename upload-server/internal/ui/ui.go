@@ -99,7 +99,7 @@ type ManifestTemplateData struct {
 	DataStreamRoute string
 	MetadataFields  []validation.FieldConfig
 	Navbar          components.Navbar
-	CsrfField       template.HTML
+	CsrfToken       string
 }
 
 type UploadTemplateData struct {
@@ -149,7 +149,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
 			Navbar:          components.NewNavbar(false),
-			CsrfField:       csrf.TemplateField(r),
+			CsrfToken:       csrf.Token(r),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)

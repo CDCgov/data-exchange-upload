@@ -38,7 +38,7 @@
           <div class="hidden">
             <input type="hidden" id="data_stream_id" name="data_stream_id" value="{{.DataStream}}" />
             <input type="hidden" id="data_stream_route" name="data_stream_route" value="{{.DataStreamRoute}}" />
-            {{ .CsrfField }}
+            <input type="hidden" name="gorilla.csrf.Token" value="{{.CsrfToken}}" />
           </div>
           <div class="submit-button">
             <button type="submit">Next</button>
