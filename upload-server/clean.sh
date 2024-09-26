@@ -3,9 +3,14 @@ rm -rf uploads/tus-prefix
 rm -rf uploads/dex
 rm -rf uploads/edav
 rm -rf uploads/routing
+rm -rf uploads/ehdi
+rm -rf uploads/eicr
+rm -rf uploads/events
 rm -rf testing/test/reports
 rm -rf testing/test/uploads
 rm -rf testing/test/dex
 rm -rf testing/test/edav
 rm -rf testing/test/routing
+rm -rf testing/test/ehdi
+rm -rf testing/test/eicr
 rm -rf testing/test/events

@@ -110,7 +110,7 @@
   {
     "version": "2.0",
     "data_stream_id": "generic-immunization",
-    "data_stream_route": "other",
+    "data_stream_route": "csv",
     "sender_id": "IZGW",
     "data_producer_id": "XXA",
     "jurisdiction": "XXA",
@@ -120,22 +120,5 @@
     "meta_username": "test-user",
     "meta_ext_sourceversion": "V2024-09-04",
     "meta_ext_submissionperiod":"test-submissionperiod"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "dex-hl7",
-    "data_stream_route": "hl7ingress",
-    "sender_id": "test-sender",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction",
-    "received_filename": "dex-smoke-test",
-    "meta_ext_source": "test-ext-source",
-    "meta_ext_sourceversion": "V2023-09-01",
-    "meta_username": "test-user",
-    "meta_ext_objectkey":"test-obj-key",
-    "original_file_timestamp": "test-timestamp",
-    "meta_ext_submissionperiod":"test-submissionperiod",
-    "message_type": "CASE",
-    "route": "COVID19_ELR"
   }
 ]
