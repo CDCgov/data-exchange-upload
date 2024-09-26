@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -215,7 +216,7 @@ func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 }
 
 func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig, error) {
-	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
+	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
 	fromPath := os.DirFS(fromPathStr)
 
 	switch target {

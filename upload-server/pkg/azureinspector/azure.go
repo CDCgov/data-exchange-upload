@@ -6,7 +6,6 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"path/filepath"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
@@ -26,8 +25,7 @@ func NewAzureUploadInspector(containerClient *container.Client, tusPrefix string
 }
 
 func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
-	filename := filepath.Join(aui.TusPrefix, id+".info")
-	infoBlobClient := aui.TusContainerClient.NewBlobClient(filename)
+	infoBlobClient := aui.TusContainerClient.NewBlobClient(aui.TusPrefix + "/" + id + ".info")
 
 	// Download info file from blob client.
 	downloadResponse, err := infoBlobClient.DownloadStream(c, nil)
@@ -54,8 +52,7 @@ func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (
 }
 
 func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
-	filename := filepath.Join(aui.TusPrefix, id)
-	uploadBlobClient := aui.TusContainerClient.NewBlobClient(filename)
+	uploadBlobClient := aui.TusContainerClient.NewBlobClient(aui.TusPrefix + "/" + id)
 	propertiesResponse, err := uploadBlobClient.GetProperties(c, nil)
 	if err != nil {
 		return nil, errors.Join(err, info.ErrNotFound)
