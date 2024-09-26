@@ -83,7 +83,7 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 
 	return filestore.FileStore{
 		Path: path,
-	}, &FileStoreHealthCheck{path: path}, nil // .store
+	}, &FileStoreHealthCheck{path: appConfig.LocalFolderUploadsTus}, nil // .store
 }
 
 type FileStoreHealthCheck struct {
