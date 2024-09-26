@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -33,7 +32,7 @@ type testCase struct {
 }
 
 // tests the VerifyOAuthTokenMiddleware for multiple cases
-func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
+func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 	// init RSA keys for signing and verification
 	err := initKeys()
 	if err != nil {
@@ -46,18 +45,6 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 
 	// get the dynamic issuer url
 	issuerURL := mockOIDC.URL
-
-	// create handler for middleware
-	hasBeenCalled := false
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hasBeenCalled = true
-		w.WriteHeader(http.StatusOK)
-	})
-
-	// create a test server with the middleware
-	middleware := VerifyOAuthTokenMiddleware(handler)
-	ts := httptest.NewServer(middleware)
-	defer ts.Close()
 
 	// create VALID mock token w/ +1-hour expire offset
 	mockTokenValid, _ := createMockJWT(issuerURL, 1, "")
@@ -194,29 +181,32 @@ func TestOAuthTokenVerificationMiddleware_TestCases(t *testing.T) {
 
 	// run the test cases
 	for _, tc := range testCases {
-		runOAuthTokenVerificationTestCase(t, ts, middleware, tc, &hasBeenCalled)
+		runOAuthTokenVerificationTestCase(t, tc)
 	}
 }
 
 // test case function
-func runOAuthTokenVerificationTestCase(t *testing.T, ts *httptest.Server, middleware http.Handler, tc testCase, hasBeenCalled *bool) {
+func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 
 	t.Run(tc.name, func(t *testing.T) {
-		// save & defer restore the orig config
-		originalConfig := appconfig.LoadedConfig
-		defer func() { appconfig.LoadedConfig = originalConfig }()
+		// create handler for middleware
+		hasBeenCalled := false
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			hasBeenCalled = true
+			w.WriteHeader(http.StatusOK)
+		})
 
-		// reset the flag
-		*hasBeenCalled = false
-
-		// mock the configuration
-		appconfig.LoadedConfig = &appconfig.AppConfig{
-			OauthConfig: &appconfig.OauthConfig{
-				AuthEnabled:    tc.authEnabled,
-				IssuerUrl:      tc.issuerURL,
-				RequiredScopes: tc.requiredScopes,
-			},
+		// Create an instance of AuthMiddleware
+		middlewareConfig := AuthMiddleware{
+			AuthEnabled:    tc.authEnabled,
+			IssuerUrl:      tc.issuerURL,
+			RequiredScopes: tc.requiredScopes,
 		}
+
+		// create a test server with the middleware
+		middleware := middlewareConfig.VerifyOAuthTokenMiddleware(handler)
+		ts := httptest.NewServer(middleware)
+		defer ts.Close()
 
 		// create a new request
 		req := httptest.NewRequest(http.MethodGet, ts.URL, nil)
@@ -241,8 +231,8 @@ func runOAuthTokenVerificationTestCase(t *testing.T, ts *httptest.Server, middle
 		}
 
 		// check if the next handler was called
-		if *hasBeenCalled != tc.expectNext {
-			t.Errorf("expected next handler to be called: %v, got: %v", tc.expectNext, *hasBeenCalled)
+		if hasBeenCalled != tc.expectNext {
+			t.Errorf("expected next handler to be called: %v, got: %v", tc.expectNext, hasBeenCalled)
 		}
 	})
 }
