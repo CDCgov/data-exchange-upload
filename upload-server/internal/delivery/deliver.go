@@ -98,7 +98,7 @@ func PostRegisterDestination(ctx context.Context, target string) (Destination, e
 			if err == nil {
 				RegisterDestination(t.Name, d)
 			}
-			return d, nil
+			return d, err
 		}
 	}
 	for _, t := range config.Azure {
@@ -107,7 +107,7 @@ func PostRegisterDestination(ctx context.Context, target string) (Destination, e
 			if err == nil {
 				RegisterDestination(t.Name, d)
 			}
-			return d, nil
+			return d, err
 		}
 	}
 	return nil, fmt.Errorf("failed to register destination for %s", target)
