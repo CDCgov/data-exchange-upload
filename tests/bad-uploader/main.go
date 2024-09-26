@@ -11,11 +11,9 @@ import (
 )
 
 type LoadTestResult struct {
-	SuccessfulUploads      int32
-	UnsuccessfulUploads    int32
-	SuccessfulDeliveries   int32
-	UnsuccessfulDeliveries int32
-	TotalDuration          time.Duration
+	SuccessfulUploads    int32
+	SuccessfulDeliveries int32
+	TotalDuration        time.Duration
 }
 
 var testResult LoadTestResult
@@ -73,7 +71,6 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 				if err := CheckDelivery(cctx, check); err != nil {
 					slog.Error("failed delivery check", "error", err, "test case", r.testCase)
 					errs = errors.Join(errs, err)
-					atomic.AddInt32(&testResult.UnsuccessfulDeliveries, 1)
 				} else {
 					atomic.AddInt32(&testResult.SuccessfulDeliveries, 1)
 				}
