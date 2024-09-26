@@ -205,6 +205,47 @@ func TestTus(t *testing.T) {
 	}
 }
 
+func TestRouteEndpoint(t *testing.T) {
+	c := Cases["good"]
+	tuid, err := RunTusTestCase(ts.URL, "test.txt", c)
+	time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
+
+	if err != nil {
+		t.Error("edav", err)
+	} else {
+		if tuid == "" {
+			t.Error("could not create tuid")
+		} else {
+			// Check that the file exists in the target checkpoint folder
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+				t.Error("file was not copied to edav checkpoint for file", tuid)
+			}
+
+			// Remove and re-route the file
+			// TODO probably best if this was in its own test function but this is at least good for happy path test for now
+			err = os.Remove(TestEDAVFolder + "/" + tuid)
+			if err != nil {
+				t.Error("failed to remove edav file for "+tuid, err.Error())
+			}
+			b := []byte(`{
+				"target": "edav"
+			}`)
+			resp, err := http.Post(ts.URL+"/route/"+tuid, "application/json", bytes.NewBuffer(b))
+			if err != nil {
+				t.Error("failed to retry routing")
+			}
+			if resp.StatusCode != http.StatusOK {
+				b, _ := io.ReadAll(resp.Body)
+				t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
+			}
+			time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+				t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
+			}
+		}
+	}
+}
+
 func TestWellKnownEndpoints(t *testing.T) {
 	endpoints := []string{
 		"/",
@@ -218,6 +259,25 @@ func TestWellKnownEndpoints(t *testing.T) {
 			t.Fatal(err)
 		}
 		if resp.StatusCode != 200 {
+			t.Error("bad response for ", endpoint, resp.StatusCode)
+		}
+	}
+}
+
+func TestRequiredUploadIdEndpoints(t *testing.T) {
+	endpoints := []string{
+		"/info",
+		"/info/",
+		"/route",
+		"/route/",
+	}
+	client := ts.Client()
+	for _, endpoint := range endpoints {
+		resp, err := client.Get(ts.URL + endpoint)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != 404 {
 			t.Error("bad response for ", endpoint, resp.StatusCode)
 		}
 	}
@@ -387,47 +447,6 @@ func TestRouteFileNotFound(t *testing.T) {
 	}
 }
 
-func TestRerouteFile(t *testing.T) {
-	c := Cases["good"]
-	tuid, err := RunTusTestCase(ts.URL, "test.txt", c)
-	time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
-
-	if err != nil {
-		t.Error("edav", err)
-	} else {
-		if tuid == "" {
-			t.Error("could not create tuid")
-		} else {
-			// Check that the file exists in the target checkpoint folder
-			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
-				t.Error("file was not copied to edav checkpoint for file", tuid)
-			}
-
-			// Remove and re-route the file
-			// TODO probably best if this was in its own test function but this is at least good for happy path test for now
-			err = os.Remove(TestEDAVFolder + "/" + tuid)
-			if err != nil {
-				t.Error("failed to remove edav file for "+tuid, err.Error())
-			}
-			b := []byte(`{
-				"target": "edav"
-			}`)
-			resp, err := http.Post(ts.URL+"/route/"+tuid, "application/json", bytes.NewBuffer(b))
-			if err != nil {
-				t.Error("failed to retry routing")
-			}
-			if resp.StatusCode != http.StatusOK {
-				b, _ := io.ReadAll(resp.Body)
-				t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
-			}
-			time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
-			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
-				t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
-			}
-		}
-	}
-}
-
 // UI Tests
 func TestLandingPage(t *testing.T) {
 	client := testUIServer.Client()
@@ -444,16 +463,20 @@ func TestLandingPage(t *testing.T) {
 	}
 }
 
+func TestManifestPageManifestNoQueryParams(t *testing.T) {
+	client := testUIServer.Client()
+	resp, err := client.Get(testUIServer.URL + "/manifest")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 404 {
+		t.Error("Expected 404 but got", resp.StatusCode)
+	}
+}
+
 func TestManifestPageManifestNotFound(t *testing.T) {
 	client := testUIServer.Client()
-
-	indexForm := url.Values{
-		"data_stream_id":    {"bad"},
-		"data_stream_route": {"values"},
-	}
-
-	body := strings.NewReader(indexForm.Encode())
-	resp, err := client.Post(testUIServer.URL+"/manifest", "application/x-www-form-urlencoded", body)
+	resp, err := client.Get(testUIServer.URL + "/manifest?data_stream_id=invalid&data_stream_route=invalid")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -464,14 +487,7 @@ func TestManifestPageManifestNotFound(t *testing.T) {
 
 func TestManifestPageValidDestination(t *testing.T) {
 	client := testUIServer.Client()
-
-	indexForm := url.Values{
-		"data_stream_id":    {"dextesting"},
-		"data_stream_route": {"testevent1"},
-	}
-
-	body := strings.NewReader(indexForm.Encode())
-	resp, err := client.Post(testUIServer.URL+"/manifest", "application/x-www-form-urlencoded", body)
+	resp, err := client.Get(testUIServer.URL + "/manifest?data_stream_id=dextesting&data_stream_route=testevent1")
 	if err != nil {
 		t.Fatal(err)
 	}

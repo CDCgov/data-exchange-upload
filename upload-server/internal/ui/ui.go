@@ -89,11 +89,6 @@ var indexTemplate = generateTemplate("index.html", false)
 var manifestTemplate = generateTemplate("manifest.tmpl", true)
 var uploadTemplate = generateTemplate("upload.tmpl", true)
 
-type IndexTemplateData struct {
-	Navbar    components.Navbar
-	CsrfToken string
-}
-
 type ManifestTemplateData struct {
 	DataStream      string
 	DataStreamRoute string
@@ -129,14 +124,8 @@ func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) 
 func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
-		err := r.ParseForm()
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		dataStream := r.PostForm.Get("data_stream_id")
-		dataStreamRoute := r.PostForm.Get("data_stream_route")
+		dataStream := r.FormValue("data_stream_id")
+		dataStreamRoute := r.FormValue("data_stream_route")
 
 		config, err := metadata.Cache.GetConfig(r.Context(), fmt.Sprintf("v2/%s-%s.json", dataStream, dataStreamRoute))
 		if err != nil {
@@ -155,7 +144,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-	}).Methods("POST")
+	})
 	router.HandleFunc("/upload", func(rw http.ResponseWriter, r *http.Request) {
 		// Tell the tus server we want to start an upload
 		// turn form values into map[string]string
@@ -275,10 +264,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 		}
 	})
 	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		err := indexTemplate.Execute(rw, &IndexTemplateData{
-			Navbar:    components.NewNavbar(false),
-			CsrfToken: csrf.Token(r),
-		})
+		err := indexTemplate.Execute(rw, nil)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
