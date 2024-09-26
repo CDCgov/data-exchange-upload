@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -68,10 +69,13 @@ type PathInfo struct {
 // Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
 	var src Source
-	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
+	fromPathStr := appConfig.LocalFolderUploadsTus
+	fromPathStr = filepath.Join(fromPathStr, appConfig.TusUploadPrefix)
+
 	fromPath := os.DirFS(fromPathStr)
 	src = &FileSource{
-		FS: fromPath,
+		FS:   fromPath,
+		Path: fromPathStr,
 	}
 
 	var edavDeliverer Destination

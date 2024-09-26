@@ -83,6 +83,27 @@ func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]st
 	return output.Metadata, nil
 }
 
+func (sd *S3Source) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "S3 source"
+	rsp.Status = models.STATUS_UP
+
+	if sd.FromClient == nil {
+		// Running in azure, but deliverer not set up.
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "S3 source not configured"
+	}
+
+	_, err := sd.FromClient.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
+		Bucket: &sd.BucketName,
+	})
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+	}
+
+	return rsp
+}
+
 type S3Destination struct {
 	ToClient   *s3.Client
 	BucketName string

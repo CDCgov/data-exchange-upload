@@ -44,11 +44,21 @@ var (
 	}
 )
 
+const TestFolderUploadsTus = "uploads"
+const TestReportsFolder = "uploads/reports"
+const TestEventsFolder = "uploads/events"
+const TestDEXFolder = "uploads/dex"
+const TestEDAVFolder = "uploads/edav"
+const TestRoutingFolder = "uploads/routing"
+const TestEhdiFolder = "uploads/ehdi"
+const TestEicrFolder = "uploads/eicr"
+const TestNcirdFolder = "uploads/ncird"
+
 func TestTus(t *testing.T) {
 	url := ts.URL
 
 	for name, c := range Cases {
-		tuid, err := RunTusTestCase(url, "test/test.txt", c)
+		tuid, err := RunTusTestCase(url, "test.txt", c)
 		time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
 
 		if err != nil {
@@ -122,19 +132,19 @@ func TestTus(t *testing.T) {
 				}
 
 				// Also check that the .meta file exists in the dex folder.
-				if _, err := os.Stat("./test/uploads/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
+				if _, err := os.Stat(TestFolderUploadsTus + "/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
 					t.Error("meta file was not copied to dex checkpoint for file", tuid)
 				}
 
 				if slices.Contains(config.Copy.Targets, "edav") {
 					// Check that the file exists in the target checkpoint folders.
-					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
+					if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
 						t.Error("file was not copied to edav checkpoint for file", tuid)
 					}
 
 					// Remove and re-route the file
 					// TODO probably best if this was in its own test function but this is at least good for happy path test for now
-					err = os.Remove("./test/edav/" + tuid)
+					err = os.Remove(TestEDAVFolder + "/" + tuid)
 					if err != nil {
 						t.Error("failed to remove edav file for "+tuid, err.Error())
 					}
@@ -150,19 +160,19 @@ func TestTus(t *testing.T) {
 						t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
 					}
 					time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
-					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
+					if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
 						t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
 					}
 				}
 
 				if slices.Contains(config.Copy.Targets, "routing") {
-					if _, err := os.Stat("./test/routing/" + tuid); errors.Is(err, os.ErrNotExist) {
+					if _, err := os.Stat(TestRoutingFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
 						t.Error("file was not copied to routing checkpoint for file", tuid)
 					}
 				}
 
 				// Also check that the metadata in the .meta file is hydrated with v2 manifest fields.
-				metaFile, err := os.Open("./test/uploads/" + tuid + ".meta")
+				metaFile, err := os.Open(TestFolderUploadsTus + "/" + tuid + ".meta")
 				if err != nil {
 					t.Error("error opening meta file for file", tuid)
 				}
@@ -536,12 +546,15 @@ func TestStatusPageUploadNotFoundRedirect(t *testing.T) {
 func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
-		LocalFolderUploadsTus: "test/uploads",
-		LocalReportsFolder:    "test/reports",
-		LocalEventsFolder:     "test/events",
-		LocalDEXFolder:        "test/dex",
-		LocalEDAVFolder:       "test/edav",
-		LocalRoutingFolder:    "test/routing",
+		LocalFolderUploadsTus: "./" + TestFolderUploadsTus,
+		LocalReportsFolder:    "./" + TestReportsFolder,
+		LocalEventsFolder:     "./" + TestEventsFolder,
+		LocalDEXFolder:        "./" + TestDEXFolder,
+		LocalEDAVFolder:       "./" + TestEDAVFolder,
+		LocalRoutingFolder:    "./" + TestRoutingFolder,
+		LocalEhdiFolder:       "./" + TestEhdiFolder,
+		LocalEicrFolder:       "./" + TestEicrFolder,
+		LocalNcirdFolder:      "./" + TestNcirdFolder,
 		TusdHandlerBasePath:   "/files/",
 	}
 	appconfig.LoadedConfig = &appConfig
@@ -599,7 +612,7 @@ func readReportFiles(tuid string, stages []string) (ReportFileSummary, error) {
 
 	for _, stage := range stages {
 		filename := tuid + event.TypeSeparator + stage
-		f, err := os.Open("test/reports/" + filename)
+		f, err := os.Open(TestReportsFolder + "/" + filename)
 		if err != nil {
 			return summary, fmt.Errorf("failed to open report file for %s; inner error %w", filename, err)
 		}
@@ -645,7 +658,7 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 		reports.StageFileCopy,
 	}
 
-	f, err := os.Open("test/reports/" + tuid)
+	f, err := os.Open(TestReportsFolder + "/" + tuid)
 	if err != nil {
 		return summary, fmt.Errorf("failed to open report file for %s; inner error %w", tuid, err)
 	}

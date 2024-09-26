@@ -83,30 +83,27 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 
 	return filestore.FileStore{
 		Path: path,
-	}, &FileStoreHealthCheck{path: appConfig.LocalFolderUploadsTus}, nil // .store
+	}, &FileStoreHealthCheck{path: path}, nil // .store
 }
 
 type FileStoreHealthCheck struct {
 	path string
 }
 
-func (c *FileStoreHealthCheck) Health(_ context.Context) models.ServiceHealthResp {
-	var shr models.ServiceHealthResp
-	shr.Service = "File Storage"
-
+func (c *FileStoreHealthCheck) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "File Storage"
 	info, err := os.Stat(c.path)
 	if err != nil {
-		shr.Status = models.STATUS_DOWN
-		shr.HealthIssue = err.Error()
-		return shr
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+		return rsp
 	}
 	if !info.IsDir() {
-		shr.Status = models.STATUS_DOWN
-		shr.HealthIssue = fmt.Sprintf("%s is not a directory", c.path)
-		return shr
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = fmt.Sprintf("%s is not a directory", c.path)
+		return rsp
 	}
-	shr.Status = models.STATUS_UP
-	shr.HealthIssue = models.HEALTH_ISSUE_NONE
-
-	return shr
+	rsp.Status = models.STATUS_UP
+	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
+	return rsp
 }
