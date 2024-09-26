@@ -182,25 +182,25 @@ func CheckEvents(ctx context.Context, check *UploadCheck) error {
 }
 
 func withRetry(timeout context.Context, checker CheckFunc) error {
+	timer := time.NewTicker(1 * time.Second)
 	for {
-		// Perform the checkable action
-		err := checker()
-		if err == nil {
-			// Action was successful, all done
-			return nil
+		select {
+		case <-timer.C:
+			// Perform the checkable action
+			err := checker()
+			if err == nil {
+				// Action was successful, all done
+				return nil
+			}
+			// Did we get a fatal error?
+			var fatalErr *ErrFatalAssertion
+			if errors.As(err, &fatalErr) {
+				return err
+			}
+			slog.Warn("error during retryable check: ", "error", err)
+		case <-timeout.Done():
+			return fmt.Errorf("failed to perform check in time")
 		}
-		// Did we timeout yet?
-		if errors.Is(timeout.Err(), context.Canceled) {
-			// Yes, return and notify caller
-			return timeout.Err()
-		}
-		// Did we get a fatal error?
-		var fatalErr *ErrFatalAssertion
-		if errors.As(err, &fatalErr) {
-			return err
-		}
-		// No, wait and perform check action again
-		time.Sleep(1 * time.Second)
 	}
 }
 
