@@ -79,6 +79,7 @@ func setUp(name string, c map[string]string) {
 	os.Setenv("LOCAL_EICR_FOLDER", fmt.Sprintf("./tests/%s/uploads/eicr", name))
 	os.Setenv("LOCAL_NCIRD_FOLDER", fmt.Sprintf("./tests/%s/uploads/ncird", name))
 	os.Setenv("SERVER_PORT", fmt.Sprintf("%d", port))
+	os.Setenv("UI_PORT", "")
 	os.Setenv("REDIS_CONNECTION_STRING", "redis://redispw@cache:6379")
 	for key, val := range c {
 		os.Setenv(key, val)

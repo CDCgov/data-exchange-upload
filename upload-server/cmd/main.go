@@ -118,16 +118,18 @@ func main() {
 
 	slog.Info("started http server with tusd and dex handlers", "port", appConfig.ServerPort)
 
-	mainWaitGroup.Add(1)
-	go func() {
-		defer mainWaitGroup.Done()
-		if err := ui.Start(appConfig.UIPort, appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl); err != nil {
-			slog.Error("failed to start ui", "error", err)
-			//os.Exit(appMainExitCode)
-		}
-	}()
+	if appConfig.UIPort != "" {
+		mainWaitGroup.Add(1)
+		go func() {
+			defer mainWaitGroup.Done()
+			if err := ui.Start(appConfig.UIPort, appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl); err != nil {
+				slog.Error("failed to start ui", "error", err)
+				os.Exit(appMainExitCode)
+			}
+		}()
 
-	slog.Info("Started ui server", "port", appConfig.UIPort)
+		slog.Info("Started ui server", "port", appConfig.UIPort)
+	}
 
 	// ------------------------------------------------------------------
 	// 	Block for Exit, server above is on goroutine
