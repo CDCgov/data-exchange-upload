@@ -101,7 +101,6 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	http.Handle("/metrics", promhttp.Handler())
 
 	http.Handle("/info/{UploadID}", uploadInfoHandler)
-	http.Handle("/info/", uploadInfoHandler)
 
 	http.Handle("/version", &VersionHandler{})
 	http.Handle("/route/{UploadID}", &Router{})

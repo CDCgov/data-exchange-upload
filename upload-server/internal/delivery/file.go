@@ -63,8 +63,7 @@ func (fd *FileDestination) Health(_ context.Context) (rsp models.ServiceHealthRe
 }
 
 type FileSource struct {
-	FS   fs.FS
-	Path string
+	FS fs.FS
 }
 
 func (fd *FileSource) Reader(_ context.Context, path string) (io.Reader, error) {
@@ -103,7 +102,7 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 
 func (fd *FileSource) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "File Source"
-	info, err := os.Stat(fd.Path)
+	info, err := fs.Stat(fd.FS, ".")
 	if err != nil {
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = err.Error()
@@ -111,7 +110,7 @@ func (fd *FileSource) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	}
 	if !info.IsDir() {
 		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = fmt.Sprintf("%s is not a directory", fd.Path)
+		rsp.HealthIssue = fmt.Sprintf("%s is not a directory", info.Name())
 		return rsp
 	}
 	rsp.Status = models.STATUS_UP

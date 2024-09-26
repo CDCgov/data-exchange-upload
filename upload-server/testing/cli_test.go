@@ -45,14 +45,20 @@ var (
 )
 
 const TestFolderUploadsTus = "uploads"
-const TestReportsFolder = "uploads/reports"
-const TestEventsFolder = "uploads/events"
 const TestDEXFolder = "uploads/dex"
 const TestEDAVFolder = "uploads/edav"
-const TestRoutingFolder = "uploads/routing"
 const TestEhdiFolder = "uploads/ehdi"
 const TestEicrFolder = "uploads/eicr"
+const TestEventsFolder = "uploads/events"
 const TestNcirdFolder = "uploads/ncird"
+const TestReportsFolder = "uploads/reports"
+
+var AllTargets = map[string]string{
+	"edav":  TestEDAVFolder,
+	"ehdi":  TestEhdiFolder,
+	"eicr":  TestEicrFolder,
+	"ncird": TestNcirdFolder,
+}
 
 func TestTus(t *testing.T) {
 	url := ts.URL
@@ -131,44 +137,18 @@ func TestTus(t *testing.T) {
 					t.Errorf("expected %d file ready event(s) but got %d", len(config.Copy.Targets), len(events))
 				}
 
+				for target, path := range AllTargets {
+					if slices.Contains(config.Copy.Targets, target) {
+						// Check that the file exists in the target checkpoint folder
+						if _, err := os.Stat(path + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+							t.Error("file was not copied to "+target+" checkpoint for file", tuid)
+						}
+					}
+				}
+
 				// Also check that the .meta file exists in the dex folder.
 				if _, err := os.Stat(TestFolderUploadsTus + "/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
 					t.Error("meta file was not copied to dex checkpoint for file", tuid)
-				}
-
-				if slices.Contains(config.Copy.Targets, "edav") {
-					// Check that the file exists in the target checkpoint folders.
-					if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
-						t.Error("file was not copied to edav checkpoint for file", tuid)
-					}
-
-					// Remove and re-route the file
-					// TODO probably best if this was in its own test function but this is at least good for happy path test for now
-					err = os.Remove(TestEDAVFolder + "/" + tuid)
-					if err != nil {
-						t.Error("failed to remove edav file for "+tuid, err.Error())
-					}
-					b := []byte(`{
-						"target": "edav"
-					}`)
-					resp, err := http.Post(url+"/route/"+tuid, "application/json", bytes.NewBuffer(b))
-					if err != nil {
-						t.Error("failed to retry routing")
-					}
-					if resp.StatusCode != http.StatusOK {
-						b, _ := io.ReadAll(resp.Body)
-						t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
-					}
-					time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
-					if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
-						t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
-					}
-				}
-
-				if slices.Contains(config.Copy.Targets, "routing") {
-					if _, err := os.Stat(TestRoutingFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
-						t.Error("file was not copied to routing checkpoint for file", tuid)
-					}
 				}
 
 				// Also check that the metadata in the .meta file is hydrated with v2 manifest fields.
@@ -402,6 +382,47 @@ func TestRouteFileNotFound(t *testing.T) {
 	}
 }
 
+func TestRerouteFile(t *testing.T) {
+	c := Cases["good"]
+	tuid, err := RunTusTestCase(ts.URL, "test.txt", c)
+	time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
+
+	if err != nil {
+		t.Error("edav", err)
+	} else {
+		if tuid == "" {
+			t.Error("could not create tuid")
+		} else {
+			// Check that the file exists in the target checkpoint folder
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+				t.Error("file was not copied to edav checkpoint for file", tuid)
+			}
+
+			// Remove and re-route the file
+			// TODO probably best if this was in its own test function but this is at least good for happy path test for now
+			err = os.Remove(TestEDAVFolder + "/" + tuid)
+			if err != nil {
+				t.Error("failed to remove edav file for "+tuid, err.Error())
+			}
+			b := []byte(`{
+				"target": "edav"
+			}`)
+			resp, err := http.Post(ts.URL+"/route/"+tuid, "application/json", bytes.NewBuffer(b))
+			if err != nil {
+				t.Error("failed to retry routing")
+			}
+			if resp.StatusCode != http.StatusOK {
+				b, _ := io.ReadAll(resp.Body)
+				t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
+			}
+			time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+				t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
+			}
+		}
+	}
+}
+
 // UI Tests
 func TestLandingPage(t *testing.T) {
 	client := testUIServer.Client()
@@ -547,14 +568,13 @@ func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
 		LocalFolderUploadsTus: "./" + TestFolderUploadsTus,
-		LocalReportsFolder:    "./" + TestReportsFolder,
-		LocalEventsFolder:     "./" + TestEventsFolder,
 		LocalDEXFolder:        "./" + TestDEXFolder,
 		LocalEDAVFolder:       "./" + TestEDAVFolder,
-		LocalRoutingFolder:    "./" + TestRoutingFolder,
 		LocalEhdiFolder:       "./" + TestEhdiFolder,
 		LocalEicrFolder:       "./" + TestEicrFolder,
+		LocalEventsFolder:     "./" + TestEventsFolder,
 		LocalNcirdFolder:      "./" + TestNcirdFolder,
+		LocalReportsFolder:    "./" + TestReportsFolder,
 		TusdHandlerBasePath:   "/files/",
 	}
 	appconfig.LoadedConfig = &appConfig
@@ -723,7 +743,7 @@ func checkReportSummary(fileSummary ReportFileSummary, stageName string, expecte
 
 func readEventFile(tuid string, eType string) ([]event.Event, error) {
 	var events []event.Event
-	f, err := os.Open("test/events/" + tuid + event.TypeSeparator + eType)
+	f, err := os.Open(TestEventsFolder + "/" + tuid + event.TypeSeparator + eType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open event file file for %s; inner error %w", tuid, err)
 	}

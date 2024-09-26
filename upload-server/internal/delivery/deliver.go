@@ -74,8 +74,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 
 	fromPath := os.DirFS(fromPathStr)
 	src = &FileSource{
-		FS:   fromPath,
-		Path: fromPathStr,
+		FS: fromPath,
 	}
 
 	var edavDeliverer Destination
