@@ -1,0 +1,9 @@
+version: 1.0
+s3:
+  - name: ncird
+    endpoint: $AWS_S3_ENDPOINT
+    bucket_name: target
+  - name: ehdi
+    bucket_name: target
+    endpoint: $AWS_S3_ENDPOINT
+azure:

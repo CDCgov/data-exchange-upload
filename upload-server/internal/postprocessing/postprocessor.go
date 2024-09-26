@@ -53,12 +53,18 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	}
 	d, ok := delivery.GetDestination(e.DestinationTarget)
 	if !ok {
-		err := fmt.Errorf("failed to get destination for file delivery %+v", e)
-		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
-			Level:   reports.IssueLevelError,
-			Message: err.Error(),
-		})
-		return err
+		// destination not registered
+		// try to register destination now
+		var err error
+		d, err = delivery.PostRegisterDestination(ctx, e.DestinationTarget)
+		if err != nil {
+			err := fmt.Errorf("failed to get destination for file delivery %+v", e)
+			rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
+				Level:   reports.IssueLevelError,
+				Message: err.Error(),
+			})
+			return err
+		}
 	}
 	uri, err := delivery.Deliver(ctx, e.UploadId, src, d)
 

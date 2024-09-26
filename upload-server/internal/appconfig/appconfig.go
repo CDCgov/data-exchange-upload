@@ -105,7 +105,8 @@ type AppConfig struct {
 	EicrCheckpointContainer    string `env:"EICR_CHECKPOINT_CONTAINER_NAME, default=eicr-checkpoint"`
 	NcirdCheckpointContainer   string `env:"NCIRD_CHECKPOINT_CONTAINER_NAME, default=ncird-checkpoint"`
 
-	Metrics MetricsConfig `env:", prefix=METRICS_"`
+	Metrics  MetricsConfig `env:", prefix=METRICS_"`
+	RunLocal *string       `env:"RUN_LOCAL"`
 } // .AppConfig
 
 type MetricsConfig struct {
