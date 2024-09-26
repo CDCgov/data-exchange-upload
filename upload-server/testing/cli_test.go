@@ -27,7 +27,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"github.com/tus/tusd/v2/pkg/handler"
 )
 
 var (
@@ -71,11 +70,57 @@ func TestTus(t *testing.T) {
 			t.Error(name, err)
 		} else {
 			if tuid != "" {
-				config, err := metadata.GetConfigFromManifest(testContext, handler.MetaData(c.metadata))
+				// Check that the .meta file exists in the dex folder.
+				if _, err := os.Stat(TestFolderUploadsTus + "/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
+					t.Error("meta file was not copied to dex checkpoint for file", tuid)
+				}
+				// .Check meta file
+
+				// Check that the metadata in the .meta file is hydrated with v2 manifest fields.
+				metaFile, err := os.Open(TestFolderUploadsTus + "/" + tuid + ".meta")
 				if err != nil {
-					t.Fatal(err)
+					t.Error("error opening meta file for file", tuid)
+				}
+				defer metaFile.Close()
+
+				bytes, _ := io.ReadAll(metaFile)
+				var processedMeta map[string]string
+				err = json.Unmarshal(bytes, &processedMeta)
+				if err != nil {
+					t.Error("error deserializing metadata for file", tuid)
 				}
 
+				appendedUid, ok := processedMeta["upload_id"]
+				if !ok {
+					t.Error("upload ID not appended to file metadata")
+				} else if appendedUid != tuid {
+					t.Error("appended upload ID did not match upload ID", appendedUid, tuid)
+				}
+
+				translationFields := map[string]string{
+					"meta_destination_id": "data_stream_id",
+					"meta_ext_event":      "data_stream_route",
+				}
+				v, ok := c.metadata["version"]
+
+				if !ok || v == "1.0" {
+					for v1Key, v2Key := range translationFields {
+						v1Val, ok := processedMeta[v1Key]
+						if !ok {
+							t.Error("malformed metadata; missing required field", v1Key, processedMeta)
+						}
+						v2Val, ok := processedMeta[v2Key]
+						if !ok {
+							t.Error("v1 metadata not hydrated; missing v2 field", v2Key)
+						}
+						if v1Val != v2Val {
+							t.Error("v1 to v2 fields not properly translated", v1Val, v2Val)
+						}
+					}
+				}
+				// .Check v2 hydration
+
+				// Check that all of the report files were created
 				expectedMetadataTransformReportCount := 2
 				if v, ok := c.metadata["version"]; !ok || v == "1.0" {
 					expectedMetadataTransformReportCount = 3
@@ -127,8 +172,15 @@ func TestTus(t *testing.T) {
 						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, uploadStatusReport.Reports[0])
 					}
 				}
+				// .Check report files
 
 				// Post-processing
+				// Use the processedMeta data because the post-processing happens after hydration
+				config, err := metadata.GetConfigFromManifest(testContext, processedMeta)
+				if err != nil {
+					t.Fatal(err)
+				}
+
 				events, err := readEventFile(tuid, event.FileReadyEventType)
 				if err != nil {
 					t.Error("no events found for tuid", "tuid", tuid)
@@ -146,53 +198,6 @@ func TestTus(t *testing.T) {
 					}
 				}
 
-				// Also check that the .meta file exists in the dex folder.
-				if _, err := os.Stat(TestFolderUploadsTus + "/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
-					t.Error("meta file was not copied to dex checkpoint for file", tuid)
-				}
-
-				// Also check that the metadata in the .meta file is hydrated with v2 manifest fields.
-				metaFile, err := os.Open(TestFolderUploadsTus + "/" + tuid + ".meta")
-				if err != nil {
-					t.Error("error opening meta file for file", tuid)
-				}
-				defer metaFile.Close()
-
-				bytes, _ := io.ReadAll(metaFile)
-				var processedMeta map[string]string
-				err = json.Unmarshal(bytes, &processedMeta)
-				if err != nil {
-					t.Error("error deserializing metadata for file", tuid)
-				}
-
-				translationFields := map[string]string{
-					"meta_destination_id": "data_stream_id",
-					"meta_ext_event":      "data_stream_route",
-				}
-				v, ok := c.metadata["version"]
-
-				if !ok || v == "1.0" {
-					for v1Key, v2Key := range translationFields {
-						v1Val, ok := processedMeta[v1Key]
-						if !ok {
-							t.Error("malformed metadata; missing required field", v1Key, processedMeta)
-						}
-						v2Val, ok := processedMeta[v2Key]
-						if !ok {
-							t.Error("v1 metadata not hydrated; missing v2 field", v2Key)
-						}
-						if v1Val != v2Val {
-							t.Error("v1 to v2 fields not properly translated", v1Val, v2Val)
-						}
-					}
-				}
-
-				appendedUid, ok := processedMeta["upload_id"]
-				if !ok {
-					t.Error("upload ID not appended to file metadata")
-				} else if appendedUid != tuid {
-					t.Error("appended upload ID did not match upload ID", appendedUid, tuid)
-				}
 			}
 
 			t.Log("test case", name, "passed", tuid)
