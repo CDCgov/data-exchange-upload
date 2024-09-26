@@ -143,16 +143,26 @@ func GetConfigFromManifest(ctx context.Context, manifest handler.MetaData) (*val
 	}
 	config, err := Cache.GetConfig(ctx, path)
 	if err != nil {
+		if errors.Is(err, validation.ErrNotFound) && GetVersion(manifest) == "2.0" {
+			// Fall back to v1 config
+			locBuilder, _ := registeredVersions["1.0"]
+			loc, err := locBuilder(manifest)
+			if err != nil {
+				return nil, err
+			}
+			config, err = Cache.GetConfig(ctx, loc.Path())
+			if err != nil {
+				return nil, err
+			}
+			return config, nil
+		}
 		return nil, err
 	}
 	return config, nil
 }
 
 func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
-	version := manifest["version"]
-	if version == "" {
-		version = "1.0"
-	}
+	version := GetVersion(manifest)
 	configLocationBuilder, ok := registeredVersions[version]
 	if !ok {
 		return "", fmt.Errorf("unsupported version %s %w", version, validation.ErrFailure)
@@ -162,6 +172,14 @@ func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
 		return "", err
 	}
 	return configLoc.Path(), nil
+}
+
+func GetVersion(manifest handler.MetaData) string {
+	version := manifest["version"]
+	if version == "" {
+		return "1.0"
+	}
+	return version
 }
 
 func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
