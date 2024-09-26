@@ -27,6 +27,7 @@ func NewAzureUploadInspector(containerClient *container.Client, tusPrefix string
 
 func (aui *AzureUploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
 	filename := filepath.Join(aui.TusPrefix, id+".info")
+
 	infoBlobClient := aui.TusContainerClient.NewBlobClient(filename)
 
 	// Download info file from blob client.
