@@ -19,11 +19,7 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 		}
 
 		// Load config from metadata.
-		path, err := metadata.GetConfigIdentifierByVersion(meta)
-		if err != nil {
-			return resp, err
-		}
-		config, err := metadata.Cache.GetConfig(ctx, path)
+		config, err := metadata.GetConfigFromManifest(ctx, meta)
 		if err != nil {
 			return resp, err
 		}

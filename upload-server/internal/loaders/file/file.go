@@ -13,8 +13,7 @@ type FileConfigLoader struct {
 	FileSystem fs.FS
 }
 
-func (l *FileConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte, error) {
-
+func (l *FileConfigLoader) LoadConfig(_ context.Context, path string) ([]byte, error) {
 	file, err := l.FileSystem.Open(path)
 	if err != nil {
 		return nil, errors.Join(err, validation.ErrNotFound)
