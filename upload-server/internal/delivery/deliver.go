@@ -69,8 +69,7 @@ type PathInfo struct {
 // Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
 	var src Source
-	fromPathStr := appConfig.LocalFolderUploadsTus
-	fromPathStr = filepath.Join(fromPathStr, appConfig.TusUploadPrefix)
+	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
 
 	fromPath := os.DirFS(fromPathStr)
 	src = &FileSource{
