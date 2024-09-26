@@ -2,7 +2,10 @@ package loaders
 
 import (
 	"context"
+	"errors"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"io"
 )
 
@@ -21,10 +24,16 @@ func (l *S3ConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte, e
 		Bucket: &l.BucketName,
 		Key:    &key,
 	})
-	// TODO wrap err in validation.ErrNotFound if didn't find the object
-	// TODO handle nil pointer in if body is nil
-	defer output.Body.Close()
+	defer func() {
+		if output.Body != nil {
+			output.Body.Close()
+		}
+	}()
 	if err != nil {
+		var notExist *types.NoSuchKey
+		if errors.As(err, &notExist) {
+			return nil, errors.Join(err, validation.ErrNotFound)
+		}
 		return nil, err
 	}
 
