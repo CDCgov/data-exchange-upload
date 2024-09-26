@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/coreos/go-oidc/v3/oidc"
 )
 
@@ -33,9 +32,15 @@ func NewHTTPError(code int, msg string) *HTTPError {
 	return &HTTPError{Code: code, Msg: msg}
 }
 
-func VerifyOAuthTokenMiddleware(next http.Handler) http.Handler {
+type AuthMiddleware struct {
+	AuthEnabled    bool
+	IssuerUrl      string
+	RequiredScopes string
+}
+
+func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authEnabled := appconfig.LoadedConfig.OauthConfig.AuthEnabled
+		authEnabled := a.AuthEnabled
 		if !authEnabled {
 			next.ServeHTTP(w, r)
 			return
@@ -57,7 +62,13 @@ func VerifyOAuthTokenMiddleware(next http.Handler) http.Handler {
 		var err error
 		if strings.Count(token, ".") == 2 {
 			// Token is JWT, validate using oidc verifier
-			err = validateJWT(r.Context(), token)
+			issuer := a.IssuerUrl
+			requiredScopes := []string{}
+			if a.RequiredScopes != "" {
+				requiredScopes = strings.Split(a.RequiredScopes, " ")
+			}
+
+			err = validateJWT(r.Context(), token, issuer, requiredScopes)
 		} else {
 			// Token is opaque, validate using introspection
 			err = validateOpaqueToken()
@@ -76,13 +87,11 @@ func VerifyOAuthTokenMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func VerifyOAuthTokenHandler(handlerFunc http.HandlerFunc) http.HandlerFunc {
-	return VerifyOAuthTokenMiddleware(handlerFunc).ServeHTTP
+func (a AuthMiddleware) VerifyOAuthTokenHandler(handlerFunc http.HandlerFunc) http.HandlerFunc {
+	return a.VerifyOAuthTokenMiddleware(handlerFunc).ServeHTTP
 }
 
-func validateJWT(ctx context.Context, token string) error {
-	issuer := appconfig.LoadedConfig.OauthConfig.IssuerUrl
-
+func validateJWT(ctx context.Context, token string, issuer string, requiredScopes []string) error {
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {
 		return NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to get provider: %v", err))
@@ -101,10 +110,6 @@ func validateJWT(ctx context.Context, token string) error {
 	}
 
 	actualScopes := strings.Split(claims.Scopes, " ")
-	requiredScopes := []string{}
-	if appconfig.LoadedConfig.OauthConfig.RequiredScopes != "" {
-		requiredScopes = strings.Split(appconfig.LoadedConfig.OauthConfig.RequiredScopes, " ")
-	}
 
 	if !hasRequiredScopes(actualScopes, requiredScopes) {
 		return NewHTTPError(http.StatusForbidden, "One or more required scopes not found")

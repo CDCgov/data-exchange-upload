@@ -89,6 +89,16 @@ OAUTH_REQUIRED_SCOPES="scope1 scope2" # Space-separated list of required scopes
 OAUTH_INTROSPECTION_URL=https://introspection.url # (for opaque tokens)
 ```
 
+Then you must create an instance of the AuthHandler struct
+
+```
+authMiddleware := middleware.AuthMiddleware{
+    AuthEnabled:    appconfig.LoadedConfig.OauthConfig.AuthEnabled,
+    IssuerUrl:      appconfig.LoadedConfig.OauthConfig.IssuerUrl,
+    RequiredScopes: appconfig.LoadedConfig.OauthConfig.RequiredScopes,
+}
+```
+
 #### Usage - Wrapping and Protecting the Entire Router
 
 ```
@@ -99,7 +109,7 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 	router.HandleFunc("/route-2", route2Handler)
 
 	// Wrap the router with the OAuth middleware
-	protectedRouter := VerifyOAuthTokenMiddleware(router)
+	protectedRouter := authMiddleware.VerifyOAuthTokenMiddleware(router)
 
 	// Return the wrapped router (as http.Handler)
 	return protectedRouter
@@ -114,7 +124,7 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 
 	// Wrap the particular route that needs to be protected
 	router.HandleFunc("/public-route", publicRouteHandler)
-	router.HandleFunc("/private-route", VerifyOAuthTokenHandler(privateRouteHandler))
+	router.HandleFunc("/private-route", authMiddleware.VerifyOAuthTokenHandler(privateRouteHandler))
 
 	return router
 }
