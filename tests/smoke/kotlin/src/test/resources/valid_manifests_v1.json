@@ -3,10 +3,5 @@
     "meta_destination_id": "dextesting",
     "meta_ext_event": "testevent1",
     "filename": "dex-smoke-test"
-  },
-  {
-    "meta_destination_id": "pulsenet",
-    "meta_ext_event": "localsequencefile",
-    "filename": "dex-smoke-test"
   }
 ]
