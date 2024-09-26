@@ -6,10 +6,23 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
+type LoadTestResult struct {
+	SuccessfulUploads      int32
+	UnsuccessfulUploads    int32
+	SuccessfulDeliveries   int32
+	UnsuccessfulDeliveries int32
+	TotalDuration          time.Duration
+}
+
+var testResult LoadTestResult
+
 func main() {
+	testResult = LoadTestResult{}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -19,15 +32,8 @@ func main() {
 	if err := ValidateResults(ctx, o); err != nil {
 		fmt.Println("validation failed:", err)
 	}
-	fmt.Println("Total run took ", time.Since(tStart).Seconds(), " seconds")
-	/*
-		Report output:
-		duration
-		files uploaded successfully
-		files uploaded unsuccessfully
-		files delivered successfully
-		files delivered unsuccessfully (print all ids and error messages if debug enabled)
-	*/
+	testResult.TotalDuration = time.Since(tStart)
+	PrintFinalReport()
 }
 
 func StartWorkers(c <-chan TestCase) <-chan *Result {
@@ -64,8 +70,16 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 				cctx, cancel := context.WithTimeout(ctx, limit)
 				defer cancel()
 				check := NewCheck(ctx, conf, r.testCase, r.url)
-				if err := Check(cctx, check); err != nil {
-					slog.Error("failed check", "error", err, "test case", r.testCase)
+				if err := CheckDelivery(cctx, check); err != nil {
+					slog.Error("failed delivery check", "error", err, "test case", r.testCase)
+					errs = errors.Join(errs, err)
+					atomic.AddInt32(&testResult.UnsuccessfulDeliveries, 1)
+				} else {
+					atomic.AddInt32(&testResult.SuccessfulDeliveries, 1)
+				}
+
+				if err := CheckEvents(cctx, check); err != nil {
+					slog.Error("failed event check", "error", err, "test case", r.testCase)
 					errs = errors.Join(errs, err)
 				}
 			}(r)
@@ -89,12 +103,24 @@ type config struct {
 	tokenSource *SAMSTokenSource
 }
 
+func PrintFinalReport() {
+	fmt.Printf(`
+**********************************
+RESULTS:
+Files uploaded: %d/%d
+Files delivered: %d/%d
+Duration: %f seconds
+**********************************
+`, testResult.SuccessfulUploads, load, testResult.SuccessfulDeliveries, load, testResult.TotalDuration.Seconds())
+}
+
 func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
 	for e := range c {
 		res, err := runTest(e, conf)
 		if err != nil {
 			slog.Error("ERROR: ", "error", err, "case", e)
 		}
+		atomic.AddInt32(&testResult.SuccessfulUploads, 1)
 		o <- res
 	}
 }

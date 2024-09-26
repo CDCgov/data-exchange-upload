@@ -115,19 +115,23 @@ func (uc *UploadCheck) CheckInfo() error {
 
 type CheckFunc func() error
 
-func Check(ctx context.Context, check *UploadCheck) error {
-	/*
-		Check events
-		  - Use interface for this.  File vs API
-		  - Always check file.  Check API if URL provided
-		  - TODO: config flag to skip this step as can be brittle
-	*/
+func CheckDelivery(ctx context.Context, check *UploadCheck) error {
 	err := withRetry(ctx, check.CheckInfo)
 	if err != nil {
 		return err
 	}
 	slog.Info("verified upload", "upload", check.UploadId)
 
+	return nil
+}
+
+func CheckEvents(ctx context.Context, check *UploadCheck) error {
+	/*
+		Check events
+		  - Use interface for this.  File vs API
+		  - Always check file.  Check API if URL provided
+		  - TODO: config flag to skip this step as can be brittle
+	*/
 	if reportsURL != "" {
 		timer := time.NewTicker(1 * time.Second)
 		for {
