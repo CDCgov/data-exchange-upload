@@ -16,6 +16,8 @@ import (
 	dexTesting "github.com/cdcgov/data-exchange-upload/upload-server/testing"
 )
 
+var AZURITE_KEY = os.Getenv("AZURITE_STORAGE_KEY")
+
 func TestTus(t *testing.T) {
 	for name, c := range cases {
 		log.Println("Starting case", name)
@@ -95,14 +97,14 @@ var cases = map[string]map[string]string{
 		"AWS_ACCESS_KEY_ID":              "minioadmin",
 		"AWS_SECRET_ACCESS_KEY":          "minioadmin",
 		"EDAV_STORAGE_ACCOUNT":           "devstoreaccount1",
-		"EDAV_STORAGE_KEY":               "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
+		"EDAV_STORAGE_KEY":               AZURITE_KEY,
 		"EDAV_ENDPOINT":                  "http://azurite:10000/devstoreaccount1",
 		"EDAV_CHECKPOINT_CONTAINER_NAME": "edav",
 	},
 	"azure_to_s3": {
 		"UPLOAD_CONFIG_PATH":             "../../upload-configs",
 		"AZURE_STORAGE_ACCOUNT":          "devstoreaccount1",
-		"AZURE_STORAGE_KEY":              "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
+		"AZURE_STORAGE_KEY":              AZURITE_KEY,
 		"AZURE_ENDPOINT":                 "http://azurite:10000/devstoreaccount1",
 		"TUS_AZURE_CONTAINER_NAME":       "test",
 		"AWS_REGION":                     "us-east-1",
