@@ -3,7 +3,7 @@ services:
   upload-server:
     command: go test -coverprofile=c.out -coverpkg=./... ./... -tags=integration
     environment:
-      - AZURITE_STORAGE_KEY=${AZURE_STORAGE_KEY}
+      - AZURITE_STORAGE_KEY=${AZURITE_STORAGE_KEY}
     depends_on:
       - minio
       - azurite
