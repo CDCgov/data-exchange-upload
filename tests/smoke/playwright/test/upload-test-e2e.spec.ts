@@ -1,31 +1,30 @@
 import { expect, test } from '@playwright/test';
 
-test.describe("Upload End to End Tests", () => {
-    test(`Can upload a basic file to a default data stream`, async ({ page }) => {
-        const dataStream = 'dextesting';
-        const route = 'testevent1';
+test.describe.configure({ mode: 'parallel' });
 
-        await page.goto(`/`);
-        await page.getByLabel('Data Stream', {exact: true}).fill(dataStream);
-        await page.getByLabel('Data Stream Route').fill(route);
-        await page.getByRole('button', {name: /next/i }).click();
+const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
 
+test.describe("Upload API/UI", () => {
+    manifests.forEach(({ dataStream, route }) => {
+        test(`can use the UI to upload a file for Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
 
-        // ITERATE FOR EACH MANIFEST
-        // ADD FAKER DATA FOR TEXT FIELDS ONLY
-        await page.getByLabel('Sender Id').fill('Sender123')
-        await page.getByLabel('Data Producer Id').fill('Producer123')
-        await page.getByLabel('Jurisdiction').fill('Jurisdiction123')
-        await page.getByLabel('Received Filename').fill('small-test-file')
-        await page.getByRole('button', {name: /next/i }).click();
+            await page.goto(`/`);
+            await page.getByLabel('Data Stream', {exact: true}).fill(dataStream);
+            await page.getByLabel('Data Stream Route').fill(route);
+            await page.getByRole('button', {name: /next/i }).click();
+            const textBoxes = await page.getByRole('textbox').all()
+            for (const textbox of textBoxes) {
+                await textbox.fill('Test')
+            }
+            await page.getByRole('button', {name: /next/i }).click();
 
-        const fileChooserPromise = page.waitForEvent('filechooser');
-    
-        await page.getByRole('button', {name: 'Browse Files'}).click(); 
-        const fileChooser = await fileChooserPromise;
-        await fileChooser.setFiles('../upload-files/10KB-test-file');     
+            const fileChooserPromise = page.waitForEvent('filechooser');
+            await page.getByRole('button', {name: 'Browse Files'}).click(); 
+            const fileChooser = await fileChooserPromise;
+            await fileChooser.setFiles('../upload-files/10KB-test-file');     
 
-        await expect(page.getByText('Upload Status: Complete')).toBeVisible();
+            await expect(page.getByText('Upload Status: Complete')).toBeVisible();
+        })
     })
 })    
 

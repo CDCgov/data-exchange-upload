@@ -1,9 +1,9 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
-
 test.describe.configure({ mode: 'parallel' });
+
+const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
 const axeRuleTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 test.describe('Upload Landing Page', () => {

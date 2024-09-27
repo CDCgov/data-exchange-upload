@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
-const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
-
 test.describe.configure({ mode: 'parallel' });
+
+const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
 
 test.describe("Upload Landing Page", () => {
     test("has the expected elements to start a file upload process", async ({page}) => {
