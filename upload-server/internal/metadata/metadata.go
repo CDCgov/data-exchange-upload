@@ -86,7 +86,7 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		}
 	}
 
-	if appConfig.S3Connection != nil && appConfig.S3ManifestConfigBucket != "" {
+	if appConfig.S3Connection != nil && appConfig.S3ManifestConfigFolder != "" {
 		client, err := stores3.New(ctx, appConfig.S3Connection)
 		bucket := appConfig.S3Connection.BucketName
 		if appConfig.S3ManifestConfigBucket != "" {
