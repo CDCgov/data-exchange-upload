@@ -1,0 +1,42 @@
+[
+    {
+        "dataStream": "covid-all-monthly-vaccination",
+        "route": "csv"
+    },
+    {
+        "dataStream": "covid-bridge-vaccination",
+        "route": "csv"
+    },
+    {
+        "dataStream": "dextesting",
+        "route": "testevent1"
+    },
+    {
+        "dataStream": "ehdi",
+        "route": "csv"
+    },
+    {
+        "dataStream": "eicr",
+        "route": "fhir"
+    },
+    {
+        "dataStream": "generic-immunization",
+        "route": "csv"
+    },
+    {
+        "dataStream": "influenza-vaccination",
+        "route": "csv"
+    },
+    {
+        "dataStream": "pulsenet",
+        "route": "localsequencefile"
+    },
+    {
+        "dataStream": "routine-immunization",
+        "route": "other"
+    },
+    {
+        "dataStream": "rsv-prevention",
+        "route": "csv"
+    }
+]

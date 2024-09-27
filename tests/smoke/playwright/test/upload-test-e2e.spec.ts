@@ -10,6 +10,9 @@ test.describe("Upload End to End Tests", () => {
         await page.getByLabel('Data Stream Route').fill(route);
         await page.getByRole('button', {name: /next/i }).click();
 
+
+        // ITERATE FOR EACH MANIFEST
+        // ADD FAKER DATA FOR TEXT FIELDS ONLY
         await page.getByLabel('Sender Id').fill('Sender123')
         await page.getByLabel('Data Producer Id').fill('Producer123')
         await page.getByLabel('Jurisdiction').fill('Jurisdiction123')

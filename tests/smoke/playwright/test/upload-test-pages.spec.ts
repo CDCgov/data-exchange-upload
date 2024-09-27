@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
+
 test.describe.configure({ mode: 'parallel' });
 
 test.describe("Upload Landing Page", () => {
@@ -16,25 +18,8 @@ test.describe("Upload Landing Page", () => {
     })
 });
 
-[
-    { dataStream: "covid", route: "all-monthly-vaccination-csv" },
-    { dataStream: "covid", route: "bridge-vaccination-csv" },
-    { dataStream: "dex", route: "hl7-hl7ingress" },
-    { dataStream: "dextesting", route: "testevent1" },
-    { dataStream: "ehdi", route: "csv" },
-    { dataStream: "eicr", route: "fhir" },
-    { dataStream: "h5", route: "influenza-vaccination-csv" },
-    { dataStream: "influenza", route: "vaccination-csv" },
-    { dataStream: "ndlp", route: "covidallmonthlyvaccination" },
-    { dataStream: "ndlp", route: "covidbridgevaccination" },
-    { dataStream: "ndlp", route: "influenzavaccination" },
-    { dataStream: "ndlp", route: "routineimmunization" },
-    { dataStream: "ndlp", route: "rsvprevention" },
-    { dataStream: "pulsenet", route: "localsequencefile" },
-    { dataStream: "routine", route: "immunization-other" },
-    { dataStream: "rsv", route: "prevention-csv" },
-].forEach(({ dataStream, route }) => {
-    test.describe("Upload Manifest Page", () => {
+test.describe("Upload Manifest Page", () => {
+    manifests.forEach(({ dataStream, route }) => {
         test(`has the expected metadata elements for Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
             await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
             const nav = page.locator('nav')
@@ -46,7 +31,19 @@ test.describe("Upload Landing Page", () => {
             const nextButton = page.getByRole('button')
             await expect(nextButton).toHaveText('Next')
         })
-    })    
+    }) 
+    
+
+    test("loads a mainfest when given the datastream and route in a weird way", async ({page}) => {
+        const incorrectDataStream = "covid-all"
+        const incorrectRoute = "monthly-vaccination-csv"
+        const manifestPage = `/manifest?data_stream=${incorrectDataStream}&data_stream_route=${incorrectRoute}`
+        const manifestPagePromise = page.waitForResponse(manifestPage);
+        await page.goto(manifestPage);
+        const mainfestPageResponse = await manifestPagePromise
+        expect(mainfestPageResponse.status()).toBe(200)
+
+    })
 });
 
 test.describe("File Uploader Page", () => {
@@ -82,7 +79,6 @@ test.describe("File Uploader Page", () => {
 })
 
 test.describe("Upload Status Page", () => {
-    
     test("has the expected elements to display upload status", async ({ page, baseURL }) => {
         const apiURL = baseURL.replace('8081', '8080')
         const dataStream = 'dextesting';
