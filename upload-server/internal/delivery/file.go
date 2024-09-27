@@ -45,7 +45,7 @@ func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m m
 }
 
 func (fd *FileDestination) Health(_ context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "File Deliver Target " + fd.Target
+	rsp.Service = "File Delivery Target " + fd.Target
 	info, err := os.Stat(fd.ToPath)
 	if err != nil {
 		rsp.Status = models.STATUS_DOWN
@@ -98,4 +98,22 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 	}
 
 	return m, nil
+}
+
+func (fd *FileSource) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "File Source"
+	info, err := fs.Stat(fd.FS, ".")
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+		return rsp
+	}
+	if !info.IsDir() {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = fmt.Sprintf("%s is not a directory", info.Name())
+		return rsp
+	}
+	rsp.Status = models.STATUS_UP
+	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
+	return rsp
 }

@@ -28,6 +28,9 @@ var Cases = map[string]testCase{
 		nil,
 		[]info.FileDeliveryStatus{
 			{},
+			{},
+			{},
+			{},
 		},
 	},
 	"missing meta_destination_id": {
@@ -81,6 +84,9 @@ var Cases = map[string]testCase{
 		},
 		nil,
 		[]info.FileDeliveryStatus{
+			{},
+			{},
+			{},
 			{},
 		},
 	},

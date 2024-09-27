@@ -37,7 +37,7 @@ func TestTus(t *testing.T) {
 			twg.Add(1)
 			go func(t *testing.T) {
 				defer twg.Done()
-				if _, err := dexTesting.RunTusTestCase(url, "../testing/test/test.txt", c); err != nil {
+				if _, err := dexTesting.RunTusTestCase(url, "../testing/test.txt", c); err != nil {
 					t.Error(name, err)
 				} else {
 					t.Log("test case", name, "passed")

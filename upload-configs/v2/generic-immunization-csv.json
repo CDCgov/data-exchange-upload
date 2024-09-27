@@ -9,7 +9,7 @@
 					"IZGW"
 				],
 				"description": "This field is the identifier for the sender of the data.",
-				"compat_field_name": "meta_ext_source"				
+				"compat_field_name": "meta_ext_source"
 			},
 			{
 				"field_name": "data_producer_id",
@@ -111,7 +111,7 @@
 					"DV3",
 					"FD3",
 					"XXA"
-				],				
+				],
 				"description": "This field is the identifier for the data producer."
 			},
 			{
@@ -216,14 +216,14 @@
 					"XXA"
 				],
 				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
-				"compat_field_name": "meta_ext_entity"				
+				"compat_field_name": "meta_ext_entity"
 			},
 			{
 				"field_name": "received_filename",
 				"required": true,
 				"allowed_values": null,
 				"description": "This field is the name of the file when uploaded.",
-				"compat_field_name": "meta_ext_filename"				
+				"compat_field_name": "meta_ext_filename"
 			},
 			{
 				"field_name": "data_stream_id",
@@ -232,7 +232,7 @@
 					"generic-immunization"
 				],
 				"description": "This field is the identifier for the data stream.",
-				"compat_field_name": "meta_destination_id"				
+				"compat_field_name": "meta_destination_id"
 			},
 			{
 				"field_name": "data_stream_route",
@@ -241,7 +241,7 @@
 					"csv"
 				],
 				"description": "This recieved is the route of the data stream.",
-				"compat_field_name": "meta_ext_event"				
+				"compat_field_name": "meta_ext_event"
 			},
 			{
 				"field_name": "meta_ext_objectkey",
@@ -281,6 +281,7 @@
 	},
 	"copy_config": {
 		"folder_structure": "date_YYYY_MM_DD",
+		"path_template": "generic-immunization-other/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}",
 		"targets": [
 			"ncird"
 		]
