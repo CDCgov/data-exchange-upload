@@ -20,10 +20,15 @@ class Health {
 
         val expectedDependentServices = arrayOf(
             "Event Publishing processing-status-cosmos-db-report-sink-topics",
+            "Event Publishing ocio-ede-stg-upload-file-ready-topic",
+            "ocio-ede-stg-upload-file-ready-subscription Event Subscriber",
             "Tus storage",
             "Redis Locker",
             "Azure deliver target edav",
-            "Azure deliver target routing"
+            "Azure deliver target routing",
+            "Azure deliver target ehdi",
+            "Azure deliver target eicr",
+            "Azure deliver target ncird"
         )
         val healthCheck = dexUploadClient.getHealth(authToken)
 
