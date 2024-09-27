@@ -79,7 +79,7 @@ type AppConfig struct {
 	NcirdConnection      *AzureStorageConfig `env:", prefix=NCIRD_, noinit"`
 	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
 	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
-	OauthConfig          *OauthConfig        `env:", prefix=OAUTH_,noinit"`
+	OauthConfig          *OauthConfig        `env:", prefix=OAUTH_"`
 
 	// Reporting
 	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`

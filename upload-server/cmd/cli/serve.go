@@ -88,9 +88,9 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	// --------------------------------------------------------------
 
 	authMiddleware := middleware.AuthMiddleware{
-		AuthEnabled:    false,
-		IssuerUrl:      "",
-		RequiredScopes: "",
+		AuthEnabled:    appConfig.OauthConfig.AuthEnabled,
+		IssuerUrl:      appConfig.OauthConfig.IssuerUrl,
+		RequiredScopes: appConfig.OauthConfig.RequiredScopes,
 	}
 
 	// Route for TUSD to start listening on and accept http request
