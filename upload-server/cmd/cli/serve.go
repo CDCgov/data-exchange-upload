@@ -98,8 +98,8 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)
 	pathWithoutSlash := strings.TrimSuffix(appConfig.TusdHandlerBasePath, "/")
 	pathWithSlash := pathWithoutSlash + "/"
-	mux.Handle(pathWithoutSlash, http.StripPrefix(pathWithoutSlash, handlerTusd))
-	mux.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
+	mux.Handle(pathWithoutSlash, authMiddleware.VerifyOAuthTokenMiddleware(http.StripPrefix(pathWithoutSlash, handlerTusd)))
+	mux.Handle(pathWithSlash, authMiddleware.VerifyOAuthTokenMiddleware(http.StripPrefix(pathWithSlash, handlerTusd)))
 
 	// initialize and route handler for DEX
 	mux.Handle("/health", health.Handler())
@@ -109,7 +109,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	// --------------------------------------------------------------
 	mux.Handle("/metrics", promhttp.Handler())
 
-	mux.Handle("/info/{UploadID}", uploadInfoHandler)
+	mux.Handle("/info/{UploadID}", authMiddleware.VerifyOAuthTokenMiddleware(uploadInfoHandler))
 	mux.Handle("/version", &VersionHandler{})
 	mux.Handle("/route/{UploadID}", &Router{})
 
