@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/hasura/go-graphql-client"
 	"sort"
+	"sync/atomic"
 	"time"
 )
 
@@ -26,15 +29,36 @@ func (r Reports) Len() int           { return len(r) }
 func (r Reports) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r Reports) Less(i, j int) bool { return r[i].StageInfo.Action < r[j].StageInfo.Action } // Sorting alphabetically
 
-type EventChecker interface {
-	Events(ctx context.Context, uploadId string) ([]Report, error)
-}
-
-type PSAPIEventChecker struct {
+type EventChecker struct {
 	GraphQLClient *graphql.Client
 }
 
-func (paec *PSAPIEventChecker) Events(ctx context.Context, uploadId string) ([]Report, error) {
+func (ec *EventChecker) DoCase(ctx context.Context, c TestCase, uploadId string) error {
+	reports, err := ec.Events(ctx, uploadId)
+	if err != nil {
+		return errors.Join(err, &ErrFatalAssertion{
+			UploadId: uploadId,
+			Msg:      fmt.Sprintf("failed to fetch events for upload %s", uploadId),
+		})
+	}
+
+	err = compareEvents(reports, c.ExpectedReports)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ec *EventChecker) OnSuccess() {
+	atomic.AddInt32(&testResult.SuccessfulEventSets, 1)
+}
+
+func (ec *EventChecker) OnFail() error {
+	return nil
+}
+
+func (ec *EventChecker) Events(ctx context.Context, uploadId string) ([]Report, error) {
 	var q struct {
 		GetReports Reports `graphql:"getReports(uploadId: $id, reportsSortedBy: null, sortOrder: null)"`
 	}
@@ -42,7 +66,7 @@ func (paec *PSAPIEventChecker) Events(ctx context.Context, uploadId string) ([]R
 		"id": uploadId,
 	}
 
-	err := paec.GraphQLClient.Query(ctx, &q, variables)
+	err := ec.GraphQLClient.Query(ctx, &q, variables)
 	if err != nil {
 		return nil, err
 	}
@@ -52,4 +76,29 @@ func (paec *PSAPIEventChecker) Events(ctx context.Context, uploadId string) ([]R
 	sort.Sort(reports)
 
 	return reports, nil
+}
+
+func compareEvents(actual []Report, expected []Report) error {
+	var errs error
+
+	if len(actual) != len(expected) {
+		errs = errors.Join(errs, &ErrAssertionTimeoutPending{
+			Msg:      "not the right number of reports",
+			Expected: len(expected),
+			Actual:   len(actual),
+		})
+	}
+
+	for i, a := range actual {
+		if a.StageInfo.Action != expected[i].StageInfo.Action {
+
+			errs = errors.Join(errs, &ErrAssertionTimeoutPending{
+				Msg:      fmt.Sprintf("expected report missing: index %d", i),
+				Expected: expected[i].StageInfo.Action,
+				Actual:   a.StageInfo.Action,
+			})
+		}
+	}
+
+	return errs
 }

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"path"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,17 +24,23 @@ var testResult LoadTestResult
 func main() {
 	testResult = LoadTestResult{}
 
+	err := os.Mkdir("output", 0700)
+	if err != nil && !errors.Is(err, os.ErrExist) {
+		slog.Error("error making output dir", "error", err)
+		os.Exit(1)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	InitChecks(ctx, conf)
 
 	tStart := time.Now()
 	c := InitiateTests(getExecutor())
 	o := StartWorkers(c)
-	if err := ValidateResults(ctx, o); err != nil {
-		fmt.Println("validation failed:", err)
-	}
+	err = ValidateResults(ctx, o)
 	testResult.TotalDuration = time.Since(tStart)
-	PrintFinalReport()
+	PrintFinalReport(err)
 }
 
 func StartWorkers(c <-chan TestCase) <-chan *Result {
@@ -59,35 +67,27 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 	var errs error
 	for r := range o {
 		if r != nil {
+			uid := path.Base(r.url)
 			limit := time.Duration(r.testCase.TimeLimit)
 			if limit == 0*time.Second {
 				limit = 1 * time.Minute
 			}
-			cctx, cancel := context.WithTimeout(ctx, limit)
+			checkTimeout, cancel := context.WithTimeout(ctx, limit)
 			defer cancel()
-			check := NewCheck(ctx, conf, r.testCase, r.url)
 
-			wg.Add(1)
-			go func(r *Result) {
-				defer wg.Done()
-				if err := CheckDelivery(cctx, check); err != nil {
-					slog.Error("failed delivery check", "error", err, "test case", r.testCase)
-					errs = errors.Join(errs, err)
-				} else {
-					atomic.AddInt32(&testResult.SuccessfulDeliveries, 1)
-				}
-			}(r)
-
-			// Can clean up this structure.  Hide this within upload check
-			if check.EventClient != nil {
-				wg.Add(1)
+			wg.Add(len(PostUploadChecks))
+			for _, check := range PostUploadChecks {
+				check := check
 				go func(r *Result) {
 					defer wg.Done()
-					if err := CheckEvents(cctx, check); err != nil {
-						slog.Error("failed event check", "error", err, "test case", r.testCase)
+					// return a specific error and/or check result.  Specific error can have check specific info like upload id and reports
+					err := WithRetry(checkTimeout, r.testCase, uid, check.DoCase)
+					if err != nil {
+						slog.Error("failed post upload check", "error", err, "test case", r.testCase)
 						errs = errors.Join(errs, err)
+						check.OnFail()
 					} else {
-						atomic.AddInt32(&testResult.SuccessfulEventSets, 1)
+						check.OnSuccess()
 					}
 				}(r)
 			}
@@ -111,25 +111,51 @@ type config struct {
 	tokenSource *SAMSTokenSource
 }
 
-func PrintFinalReport() {
-	// TODO say if we skipped the events check
-	// TODO log an error if numbers don't match
+func PrintFinalReport(validationErrors error) {
+	fmt.Println("**********************************")
+
+	if validationErrors != nil {
+		fmt.Println("Validation Failures!")
+		for {
+			err := errors.Unwrap(validationErrors)
+			if err == nil {
+				break
+			}
+
+			slog.Error("", "", err)
+
+			// TODO get upload ID out of err
+			//filename := "output/" + err.() + "_check_failures"
+			//f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+			//if err != nil {
+			//	os.Exit(1)
+			//}
+			//defer f.Close()
+			//je := json.NewEncoder(f)
+			//if err := je.Encode(err); err != nil {
+			//	os.Exit(1)
+			//}
+		}
+	}
+
 	fmt.Printf(`
-**********************************
 RESULTS:
 Files uploaded: %d/%d
 Files delivered: %d/%d
-Successful event sets generated: %d/%d
-Duration: %f seconds
-**********************************
 `,
 		testResult.SuccessfulUploads,
 		load,
 		testResult.SuccessfulDeliveries,
-		testResult.SuccessfulUploads,
-		testResult.SuccessfulEventSets,
-		load,
-		testResult.TotalDuration.Seconds())
+		testResult.SuccessfulUploads)
+
+	if reportsURL != "" {
+		fmt.Printf("Successful event sets generated: %d/%d\r\n", testResult.SuccessfulEventSets, testResult.SuccessfulUploads)
+	} else {
+		fmt.Println("Skipped event generation check")
+	}
+
+	fmt.Printf("Duration: %f seconds\r\n", testResult.TotalDuration.Seconds())
+	fmt.Println("**********************************")
 }
 
 func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
