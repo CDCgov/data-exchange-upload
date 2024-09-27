@@ -21,7 +21,7 @@ test.describe("Upload Landing Page", () => {
 test.describe("Upload Manifest Page", () => {
     manifests.forEach(({ dataStream, route }) => {
         test(`has the expected metadata elements for Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
-            await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
+            await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
             const nav = page.locator('nav')
             await expect(nav.getByRole("link").and(nav.getByText('Skip to main content'))).toBeHidden()
             await expect(nav.getByRole("link").and(nav.getByText('Upload'))).toBeVisible()
@@ -31,18 +31,22 @@ test.describe("Upload Manifest Page", () => {
             const nextButton = page.getByRole('button')
             await expect(nextButton).toHaveText('Next')
         })
-    }) 
-    
+            
+    })
 
-    test("loads a mainfest when given the datastream and route in a weird way", async ({page}) => {
-        const incorrectDataStream = "covid-all"
-        const incorrectRoute = "monthly-vaccination-csv"
-        const manifestPage = `/manifest?data_stream=${incorrectDataStream}&data_stream_route=${incorrectRoute}`
-        const manifestPagePromise = page.waitForResponse(manifestPage);
-        await page.goto(manifestPage);
-        const mainfestPageResponse = await manifestPagePromise
-        expect(mainfestPageResponse.status()).toBe(200)
+    test(`displays an error for an invalid manifest: Data stream: invalid / Route: invalid`, async ({ page }) => {
+        const errorPagePromise = page.waitForResponse('/manifest?data_stream_id=invalid&data_stream_route=invalid');
 
+        await page.goto(`/`);
+        await page.getByLabel('Data Stream', { exact: true }).fill('invalid');
+        await page.getByLabel('Data Stream Route').fill('invalid');
+        await page.getByRole('button', { name: /next/i }).click();
+        const errorPageResponse = await errorPagePromise
+
+        await expect(errorPageResponse.status()).toBe(404)
+        await expect(page.locator('body')).toContainText('open v2/invalid-invalid.json: ')
+        await expect(page.locator('body')).toContainText('validation failure')
+        await expect(page.locator('body')).toContainText('manifest validation config file not found')
     })
 });
 
@@ -52,7 +56,7 @@ test.describe("File Uploader Page", () => {
         const dataStream = 'dextesting';
         const route = 'testevent1';
 
-        await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
+        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
         
         await page.getByLabel('Sender Id').fill('Sender123')
         await page.getByLabel('Data Producer Id').fill('Producer123')
@@ -88,7 +92,7 @@ test.describe("Upload Status Page", () => {
         const expectedDataProducer = 'Producer123'
         const expectedJurisdiction = 'Jurisdiction123'
     
-        await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
+        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
         
         await page.getByLabel('Sender Id').fill(expectedSender)
         await page.getByLabel('Data Producer Id').fill(expectedDataProducer)
@@ -126,9 +130,26 @@ test.describe("Upload Status Page", () => {
     
         const fileDeliveriesContainer = page.locator('.file-deliveries-container');
         await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
-        await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(1)).toHaveText('EDAV')
-        await expect(fileDeliveriesContainer.getByRole('heading', {level: 3})).toHaveText('Delivery Status: SUCCESS')
-        await expect(fileDeliveriesContainer).toContainText(`Location: uploads/edav/${uploadId}`)
+
+        const fileDeliveryEdavContainer = page.locator('.file-delivery-container').nth(0)
+        await expect(fileDeliveryEdavContainer.getByRole('heading', { level: 2 })).toHaveText('EDAV')
+        await expect(fileDeliveryEdavContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
+        await expect(fileDeliveryEdavContainer).toContainText(`Location: uploads/edav/${uploadId}`)
+
+        const fileDeliveryEhdiContainer = page.locator('.file-delivery-container').nth(1)
+        await expect(fileDeliveryEhdiContainer.getByRole('heading', { level: 2 })).toHaveText('EHDI')
+        await expect(fileDeliveryEhdiContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
+        await expect(fileDeliveryEhdiContainer).toContainText(`Location: uploads/ehdi/${uploadId}`)
+
+        const fileDeliveryEicrContainer = page.locator('.file-delivery-container').nth(2)
+        await expect(fileDeliveryEicrContainer.getByRole('heading', { level: 2 })).toHaveText('EICR')
+        await expect(fileDeliveryEicrContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
+        await expect(fileDeliveryEicrContainer).toContainText(`Location: uploads/eicr/${uploadId}`)
+
+        const fileDeliveryNcirdContainer = page.locator('.file-delivery-container').nth(3)
+        await expect(fileDeliveryNcirdContainer.getByRole('heading', { level: 2 })).toHaveText('NCIRD')
+        await expect(fileDeliveryNcirdContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
+        await expect(fileDeliveryNcirdContainer).toContainText(`Location: uploads/ncird/${uploadId}`)
 
         const uploadDetailsContainer = page.locator('.file-details-container')
         await expect(uploadDetailsContainer.getByRole('heading', { level: 2 })).toHaveText('Upload Details')

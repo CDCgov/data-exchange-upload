@@ -2,13 +2,14 @@ package delivery
 
 import (
 	"context"
+	"io"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
-	"io"
 )
 
 func NewAzureDestination(ctx context.Context, target string) (*AzureDestination, error) {
@@ -57,6 +58,25 @@ func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string
 		return nil, err
 	}
 	return storeaz.DepointerizeMetadata(resp.Metadata), nil
+}
+
+func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "Azure source"
+	rsp.Status = models.STATUS_UP
+
+	if ad.FromContainerClient == nil {
+		// Running in azure, but deliverer not set up.
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "Azure source not configured"
+	}
+
+	_, err := ad.FromContainerClient.GetProperties(ctx, nil)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+	}
+
+	return rsp
 }
 
 type AzureDestination struct {

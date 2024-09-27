@@ -1,5 +1,5 @@
-import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
 
 const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
 
@@ -20,7 +20,7 @@ test.describe('Upload Landing Page', () => {
 test.describe('Upload Manifest Page', () => {
     manifests.forEach(({ dataStream, route }) => {
         test(`Checks accessibility for individual mainfest page: ${dataStream} / ${route}`, async ({ page }) => {
-            await page.goto(`/manifest?data_stream=${dataStream}&data_stream_route=${route}`);
+            await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
             const results = await new AxeBuilder({ page })
                 .withTags(axeRuleTags)
                 .analyze();
@@ -31,7 +31,7 @@ test.describe('Upload Manifest Page', () => {
 
 test.describe('File Upload Page', () => {
     test(`Checks accessibliity for the upload page for the dextesting/testevent1 manifest`, async ({ page }) => {
-        await page.goto(`/manifest?data_stream=dextesting&data_stream_route=testevent1`);
+        await page.goto(`/manifest?data_stream_id=dextesting&data_stream_route=testevent1`);
         await page.getByLabel('Sender Id').fill('Sender123');
         await page.getByLabel('Data Producer Id').fill('Producer123');
         await page.getByLabel('Jurisdiction').fill('Jurisdiction123');
