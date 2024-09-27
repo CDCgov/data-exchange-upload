@@ -35,8 +35,6 @@ jobs:
       AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install podman
-        run: sudo apt-get -y install podman
       - name: Install podman compose
         run: pip3 install podman-compose
       - name: Run Tests
