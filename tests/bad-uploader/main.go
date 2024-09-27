@@ -108,7 +108,7 @@ Files uploaded: %d/%d
 Files delivered: %d/%d
 Duration: %f seconds
 **********************************
-`, testResult.SuccessfulUploads, load, testResult.SuccessfulDeliveries, load, testResult.TotalDuration.Seconds())
+`, testResult.SuccessfulUploads, load, testResult.SuccessfulDeliveries, testResult.SuccessfulUploads, testResult.TotalDuration.Seconds())
 }
 
 func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
