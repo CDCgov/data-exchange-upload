@@ -32,22 +32,30 @@ test.describe("Upload Manifest Page", () => {
             await expect(nextButton).toHaveText('Next')
         })
             
+    });
+        
+    [
+        { dataStream: 'invalid', route: 'invalid' },
+        // Need to fix the server to enable these tests, they are currently valid when they shouldn't be
+        // { dataStream: 'covid-bridge', route: 'vaccination-csv' },
+        // { dataStream: 'covid', route: 'bridge-vaccination-csv' },
+    ].forEach(({ dataStream, route }) => {
+        test(`displays an error for an invalid manifest: Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
+            const errorPagePromise = page.waitForResponse(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
+    
+            await page.goto(`/`);
+            await page.getByLabel('Data Stream', { exact: true }).fill(dataStream);
+            await page.getByLabel('Data Stream Route').fill(route);
+            await page.getByRole('button', { name: /next/i }).click();
+            const errorPageResponse = await errorPagePromise
+    
+            await expect(errorPageResponse.status()).toBe(404)
+            await expect(page.locator('body')).toContainText(`open v2/${dataStream}-${route}.json: `)
+            await expect(page.locator('body')).toContainText('validation failure')
+            await expect(page.locator('body')).toContainText('manifest validation config file not found')
+        })
     })
-
-    test(`displays an error for an invalid manifest: Data stream: invalid / Route: invalid`, async ({ page }) => {
-        const errorPagePromise = page.waitForResponse('/manifest?data_stream_id=invalid&data_stream_route=invalid');
-
-        await page.goto(`/`);
-        await page.getByLabel('Data Stream', { exact: true }).fill('invalid');
-        await page.getByLabel('Data Stream Route').fill('invalid');
-        await page.getByRole('button', { name: /next/i }).click();
-        const errorPageResponse = await errorPagePromise
-
-        await expect(errorPageResponse.status()).toBe(404)
-        await expect(page.locator('body')).toContainText('open v2/invalid-invalid.json: ')
-        await expect(page.locator('body')).toContainText('validation failure')
-        await expect(page.locator('body')).toContainText('manifest validation config file not found')
-    })
+   
 });
 
 test.describe("File Uploader Page", () => {
