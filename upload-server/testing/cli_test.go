@@ -222,7 +222,6 @@ func TestRouteEndpoint(t *testing.T) {
 			}
 
 			// Remove and re-route the file
-			// TODO probably best if this was in its own test function but this is at least good for happy path test for now
 			err = os.Remove(TestEDAVFolder + "/" + tuid)
 			if err != nil {
 				t.Error("failed to remove edav file for "+tuid, err.Error())
