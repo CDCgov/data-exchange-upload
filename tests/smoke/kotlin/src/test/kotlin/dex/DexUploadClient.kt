@@ -2,23 +2,25 @@ package dex
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
 import model.AuthResponse
 import model.HealthResponse
 import model.InfoResponse
 import okhttp3.FormBody
-import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okio.IOException
-import java.nio.charset.Charset
+import java.io.IOException
 import java.nio.charset.StandardCharsets
+import util.EnvConfig
+import org.slf4j.LoggerFactory
 
 class DexUploadClient(private val url: String) {
     private val httpClient = OkHttpClient()
     private val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
+    private val logger = LoggerFactory.getLogger(DexUploadClient::class.java)
 
     fun getToken(username: String, password: String): String {
-        val body = FormBody.Builder(Charset.forName(StandardCharsets.UTF_8.name()))
+        val body = FormBody.Builder(StandardCharsets.UTF_8)
             .add("username", username)
             .add("password", password)
             .build()
@@ -28,38 +30,39 @@ class DexUploadClient(private val url: String) {
             .post(body)
             .build()
 
-        val resp = httpClient
-            .newCall(req)
-            .execute()
+        httpClient.newCall(req).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Error getting token: ${response.message}")
+            }
 
-        if (!resp.isSuccessful) {
-            throw IOException("Error getting token.")
+            val responseBody = response.body?.string()
+                ?: throw IOException("Empty response body from server")
+
+            val authResponse: AuthResponse = objectMapper.readValue(responseBody)
+            return authResponse.accessToken
         }
-
-        val respBody: AuthResponse = objectMapper.readValue(resp.body?.string()
-            ?: throw IOException("Empty SAMS response"), AuthResponse::class.java)
-
-        return respBody.accessToken
     }
 
     fun getFileInfo(id: String, authToken: String): InfoResponse {
+
         val req = Request.Builder()
-            .url("$url/upload/info/$id")
+            .url("${EnvConfig.INFO_URL}/info/$id")
             .header("Authorization", "Bearer $authToken")
             .build()
 
-        val resp = httpClient
-            .newCall(req)
-            .execute()
+        Thread.sleep(1000) // wait to load delivery response
 
-        if (!resp.isSuccessful) {
-            throw IOException("Error getting file info. ${resp.message}")
+        httpClient.newCall(req).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Error getting file info. ${response.message}")
+            }
+
+            val responseBody = response.body?.string() ?: throw IOException("Empty response body from server")
+
+            logger.info("Raw response body: $responseBody")
+
+            return objectMapper.readValue(responseBody, InfoResponse::class.java)
         }
-
-        val respBody: InfoResponse = objectMapper.readValue(resp.body?.string()
-            ?: throw IOException("Empty response"), InfoResponse::class.java)
-
-        return respBody
     }
 
     fun getHealth(authToken: String): HealthResponse {
@@ -68,17 +71,15 @@ class DexUploadClient(private val url: String) {
             .header("Authorization", "Bearer $authToken")
             .build()
 
-        val resp = httpClient
-            .newCall(req)
-            .execute()
+        httpClient.newCall(req).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Error getting health check: ${response.message}")
+            }
 
-        if (!resp.isSuccessful) {
-            throw IOException("Error getting health check. ${resp.message}")
+            val responseBody = response.body?.string()
+                ?: throw IOException("Empty response body from server")
+
+            return objectMapper.readValue(responseBody)
         }
-
-        val respBody: HealthResponse = objectMapper.readValue(resp.body?.string()
-            ?: throw IOException("Empty response"), HealthResponse::class.java)
-
-        return respBody
     }
 }
