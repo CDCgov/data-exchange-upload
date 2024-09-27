@@ -12,7 +12,6 @@ import (
 	"os"
 	"path"
 	"slices"
-	"sort"
 	"time"
 
 	"github.com/hasura/go-graphql-client"
@@ -27,37 +26,33 @@ func (e *ErrFatalAssertion) Error() string {
 	return e.m
 }
 
-type Report struct {
-	ID        string
-	UploadId  string
-	StageName string
-	Timestamp time.Time
-	Content   json.RawMessage
-}
-
-type Reports []Report
-
-func (r Reports) Len() int           { return len(r) }
-func (r Reports) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
-func (r Reports) Less(i, j int) bool { return r[i].Timestamp.Before(r[j].Timestamp) }
-
 func NewCheck(ctx context.Context, conf *config, c TestCase, uploadUrl string) *UploadCheck {
 	httpClient := &http.Client{}
 	if conf.tokenSource != nil {
 		httpClient = oauth2.NewClient(ctx, conf.tokenSource)
 	}
 	_, uploadId := path.Split(uploadUrl)
+
+	var eventChecker EventChecker
+	if reportsURL != "" {
+		eventChecker = &PSAPIEventChecker{
+			GraphQLClient: graphql.NewClient(reportsURL, nil),
+		}
+	}
+
 	return &UploadCheck{
-		Case:       c,
-		UploadId:   uploadId,
-		InfoClient: httpClient,
+		Case:        c,
+		UploadId:    uploadId,
+		InfoClient:  httpClient,
+		EventClient: eventChecker,
 	}
 }
 
 type UploadCheck struct {
-	Case       TestCase
-	UploadId   string
-	InfoClient *http.Client
+	Case        TestCase
+	UploadId    string
+	InfoClient  *http.Client
+	EventClient EventChecker
 }
 
 func (uc *UploadCheck) CheckInfo() error {
@@ -126,58 +121,41 @@ func CheckDelivery(ctx context.Context, check *UploadCheck) error {
 }
 
 func CheckEvents(ctx context.Context, check *UploadCheck) error {
-	/*
-		Check events
-		  - Use interface for this.  File vs API
-		  - Always check file.  Check API if URL provided
-		  - TODO: config flag to skip this step as can be brittle
-	*/
-	if reportsURL != "" {
-		timer := time.NewTicker(1 * time.Second)
-		for {
-			var errs error
-			select {
-			case <-timer.C:
-
-				client := graphql.NewClient(reportsURL, nil)
-
-				var q struct {
-					GetReports Reports `graphql:"getReports(uploadId: $id, reportsSortedBy: null, sortOrder: null)"`
-				}
-
-				variables := map[string]interface{}{
-					"id": path.Base(check.UploadId),
-				}
-
-				if err := client.Query(context.Background(), &q, variables); err != nil {
-					return err
-				}
-				reports := q.GetReports
-				sort.Sort(reports)
-				slog.Debug("Expecting", "reports", check.Case.ExpectedReports)
-
-				errs = errors.Join(errs, compareReports(reports, check.Case.ExpectedReports))
-				// If the file doesn't exist, create it, or append to the file
-				f, err := os.OpenFile(path.Base(check.UploadId)+".reports", os.O_CREATE|os.O_WRONLY, 0644)
-				if err != nil {
-					return err
-				}
-				defer f.Close()
-				je := json.NewEncoder(f)
-				if err := je.Encode(reports); err != nil {
-					return err
-				}
-
-				if errs == nil {
-					slog.Debug("validated run", "reports", reports)
-					return nil
-				}
-			case <-ctx.Done():
-				return errors.Join(errs, fmt.Errorf("failed to validate upload in time"))
-			}
+	if check.EventClient == nil {
+		slog.Info("no event source provided; skipping event check")
+		return nil
+	}
+	var reports []Report
+	err := withRetry(ctx, func() error {
+		var err error
+		reports, err = check.EventClient.Events(ctx, check.UploadId)
+		if err != nil {
+			return errors.Join(err, &ErrFatalAssertion{"failed to fetch events"})
 		}
+
+		err = compareReports(reports, check.Case.ExpectedReports)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 
+	// If the file doesn't exist, create it, or append to the file
+	// TODO drop in output dir
+	// TODO only output if failed
+	f, err := os.OpenFile(path.Base(check.UploadId)+".reports", os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	je := json.NewEncoder(f)
+	if err := je.Encode(reports); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -197,7 +175,7 @@ func withRetry(timeout context.Context, checker CheckFunc) error {
 			if errors.As(err, &fatalErr) {
 				return err
 			}
-			slog.Warn("error during retryable check: ", "error", err)
+			slog.Debug("non-fatal error during retryable check: ", "error", err)
 		case <-timeout.Done():
 			return fmt.Errorf("failed to perform check in time")
 		}
@@ -211,8 +189,8 @@ func compareReports(actual []Report, expected []Report) error {
 
 	var errs error
 	for i, e := range expected {
-		if actual[i].StageName != e.StageName {
-			errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s", i, e))
+		if actual[i].StageInfo.Action != e.StageInfo.Action {
+			errs = errors.Join(errs, fmt.Errorf("expected report missing: index %d, expected %s, actual %s", i, e.StageInfo.Action, actual[i].StageInfo.Action))
 		}
 	}
 	return errs

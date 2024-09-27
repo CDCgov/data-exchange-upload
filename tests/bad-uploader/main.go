@@ -13,6 +13,7 @@ import (
 type LoadTestResult struct {
 	SuccessfulUploads    int32
 	SuccessfulDeliveries int32
+	SuccessfulEventSets  int32
 	TotalDuration        time.Duration
 }
 
@@ -58,28 +59,38 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 	var errs error
 	for r := range o {
 		if r != nil {
+			limit := time.Duration(r.testCase.TimeLimit)
+			if limit == 0*time.Second {
+				limit = 1 * time.Minute
+			}
+			cctx, cancel := context.WithTimeout(ctx, limit)
+			defer cancel()
+			check := NewCheck(ctx, conf, r.testCase, r.url)
+
 			wg.Add(1)
 			go func(r *Result) {
 				defer wg.Done()
-				limit := time.Duration(r.testCase.TimeLimit)
-				if limit == 0*time.Second {
-					limit = 1 * time.Minute
-				}
-				cctx, cancel := context.WithTimeout(ctx, limit)
-				defer cancel()
-				check := NewCheck(ctx, conf, r.testCase, r.url)
 				if err := CheckDelivery(cctx, check); err != nil {
 					slog.Error("failed delivery check", "error", err, "test case", r.testCase)
 					errs = errors.Join(errs, err)
 				} else {
 					atomic.AddInt32(&testResult.SuccessfulDeliveries, 1)
 				}
-
-				if err := CheckEvents(cctx, check); err != nil {
-					slog.Error("failed event check", "error", err, "test case", r.testCase)
-					errs = errors.Join(errs, err)
-				}
 			}(r)
+
+			// Can clean up this structure.  Hide this within upload check
+			if check.EventClient != nil {
+				wg.Add(1)
+				go func(r *Result) {
+					defer wg.Done()
+					if err := CheckEvents(cctx, check); err != nil {
+						slog.Error("failed event check", "error", err, "test case", r.testCase)
+						errs = errors.Join(errs, err)
+					} else {
+						atomic.AddInt32(&testResult.SuccessfulEventSets, 1)
+					}
+				}(r)
+			}
 		}
 	}
 	wg.Wait()
@@ -101,14 +112,24 @@ type config struct {
 }
 
 func PrintFinalReport() {
+	// TODO say if we skipped the events check
+	// TODO log an error if numbers don't match
 	fmt.Printf(`
 **********************************
 RESULTS:
 Files uploaded: %d/%d
 Files delivered: %d/%d
+Successful event sets generated: %d/%d
 Duration: %f seconds
 **********************************
-`, testResult.SuccessfulUploads, load, testResult.SuccessfulDeliveries, testResult.SuccessfulUploads, testResult.TotalDuration.Seconds())
+`,
+		testResult.SuccessfulUploads,
+		load,
+		testResult.SuccessfulDeliveries,
+		testResult.SuccessfulUploads,
+		testResult.SuccessfulEventSets,
+		load,
+		testResult.TotalDuration.Seconds())
 }
 
 func worker(c <-chan TestCase, o chan<- *Result, conf *config) {

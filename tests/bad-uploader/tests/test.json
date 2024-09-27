@@ -16,16 +16,34 @@
 	],
 	"expected_reports": [
 		{
-			"stageName": "dex-metadata-transform"
+			"stageInfo": {
+				"action": "blob-file-copy"
+			}
 		},
 		{
-			"stageName": "dex-metadata-transform"
+			"stageInfo": {
+				"action": "metadata-transform"
+			}
 		},
 		{
-			"stageName": "dex-upload-started"
+			"stageInfo": {
+				"action": "metadata-verify"
+			}
 		},
 		{
-			"stageName": "dex-upload-complete"
+			"stageInfo": {
+				"action": "upload-completed"
+			}
+		},
+		{
+			"stageInfo": {
+				"action": "upload-started"
+			}
+		},
+		{
+			"stageInfo": {
+				"action": "upload-status"
+			}
 		}
 	]
 }
