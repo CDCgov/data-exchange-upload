@@ -43,7 +43,10 @@
       "filename_suffix": "upload_id",
       "folder_structure": "date_YYYY_MM_DD",
       "targets": [
-         "edav"
+         "edav",
+         "ehdi",
+         "eicr",
+         "ncird"
       ]
    }
 }

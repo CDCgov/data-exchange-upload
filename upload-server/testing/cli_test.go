@@ -27,7 +27,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"github.com/tus/tusd/v2/pkg/handler"
 )
 
 var (
@@ -44,22 +43,84 @@ var (
 	}
 )
 
+const TestFolderUploadsTus = "uploads"
+const TestDEXFolder = "uploads/dex"
+const TestEDAVFolder = "uploads/edav"
+const TestEhdiFolder = "uploads/ehdi"
+const TestEicrFolder = "uploads/eicr"
+const TestEventsFolder = "uploads/events"
+const TestNcirdFolder = "uploads/ncird"
+const TestReportsFolder = "uploads/reports"
+
+var AllTargets = map[string]string{
+	"edav":  TestEDAVFolder,
+	"ehdi":  TestEhdiFolder,
+	"eicr":  TestEicrFolder,
+	"ncird": TestNcirdFolder,
+}
+
 func TestTus(t *testing.T) {
 	url := ts.URL
 
 	for name, c := range Cases {
-		tuid, err := RunTusTestCase(url, "test/test.txt", c)
+		tuid, err := RunTusTestCase(url, "test.txt", c)
 		time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
 
 		if err != nil {
 			t.Error(name, err)
 		} else {
 			if tuid != "" {
-				config, err := metadata.GetConfigFromManifest(testContext, handler.MetaData(c.metadata))
+				// Check that the .meta file exists in the dex folder.
+				if _, err := os.Stat(TestFolderUploadsTus + "/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
+					t.Error("meta file was not copied to dex checkpoint for file", tuid)
+				}
+				// .Check meta file
+
+				// Check that the metadata in the .meta file is hydrated with v2 manifest fields.
+				metaFile, err := os.Open(TestFolderUploadsTus + "/" + tuid + ".meta")
 				if err != nil {
-					t.Fatal(err)
+					t.Error("error opening meta file for file", tuid)
+				}
+				defer metaFile.Close()
+
+				bytes, _ := io.ReadAll(metaFile)
+				var processedMeta map[string]string
+				err = json.Unmarshal(bytes, &processedMeta)
+				if err != nil {
+					t.Error("error deserializing metadata for file", tuid)
 				}
 
+				appendedUid, ok := processedMeta["upload_id"]
+				if !ok {
+					t.Error("upload ID not appended to file metadata")
+				} else if appendedUid != tuid {
+					t.Error("appended upload ID did not match upload ID", appendedUid, tuid)
+				}
+
+				translationFields := map[string]string{
+					"meta_destination_id": "data_stream_id",
+					"meta_ext_event":      "data_stream_route",
+				}
+				v, ok := c.metadata["version"]
+
+				if !ok || v == "1.0" {
+					for v1Key, v2Key := range translationFields {
+						v1Val, ok := processedMeta[v1Key]
+						if !ok {
+							t.Error("malformed metadata; missing required field", v1Key, processedMeta)
+						}
+						v2Val, ok := processedMeta[v2Key]
+						if !ok {
+							t.Error("v1 metadata not hydrated; missing v2 field", v2Key)
+						}
+						if v1Val != v2Val {
+							t.Error("v1 to v2 fields not properly translated", v1Val, v2Val)
+						}
+					}
+				}
+				// .Check v2 hydration
+
+				// Check that all of the report files were created
 				expectedMetadataTransformReportCount := 2
 				if v, ok := c.metadata["version"]; !ok || v == "1.0" {
 					expectedMetadataTransformReportCount = 3
@@ -111,8 +172,15 @@ func TestTus(t *testing.T) {
 						t.Error("expected latest status report to have equal offset and size but were different", name, tuid, uploadStatusReport.Reports[0])
 					}
 				}
+				// .Check report files
 
 				// Post-processing
+				// Use the processedMeta data because the post-processing happens after hydration
+				config, err := metadata.GetConfigFromManifest(testContext, processedMeta)
+				if err != nil {
+					t.Fatal(err)
+				}
+
 				events, err := readEventFile(tuid, event.FileReadyEventType)
 				if err != nil {
 					t.Error("no events found for tuid", "tuid", tuid)
@@ -121,91 +189,58 @@ func TestTus(t *testing.T) {
 					t.Errorf("expected %d file ready event(s) but got %d", len(config.Copy.Targets), len(events))
 				}
 
-				// Also check that the .meta file exists in the dex folder.
-				if _, err := os.Stat("./test/uploads/" + tuid + ".meta"); errors.Is(err, os.ErrNotExist) {
-					t.Error("meta file was not copied to dex checkpoint for file", tuid)
-				}
-
-				if slices.Contains(config.Copy.Targets, "edav") {
-					// Check that the file exists in the target checkpoint folders.
-					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
-						t.Error("file was not copied to edav checkpoint for file", tuid)
-					}
-
-					// Remove and re-route the file
-					// TODO probably best if this was in its own test function but this is at least good for happy path test for now
-					err = os.Remove("./test/edav/" + tuid)
-					if err != nil {
-						t.Error("failed to remove edav file for "+tuid, err.Error())
-					}
-					b := []byte(`{
-						"target": "edav"
-					}`)
-					resp, err := http.Post(url+"/route/"+tuid, "application/json", bytes.NewBuffer(b))
-					if err != nil {
-						t.Error("failed to retry routing")
-					}
-					if resp.StatusCode != http.StatusOK {
-						b, _ := io.ReadAll(resp.Body)
-						t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
-					}
-					time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
-					if _, err := os.Stat("./test/edav/" + tuid); errors.Is(err, os.ErrNotExist) {
-						t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
-					}
-				}
-
-				if slices.Contains(config.Copy.Targets, "routing") {
-					if _, err := os.Stat("./test/routing/" + tuid); errors.Is(err, os.ErrNotExist) {
-						t.Error("file was not copied to routing checkpoint for file", tuid)
-					}
-				}
-
-				// Also check that the metadata in the .meta file is hydrated with v2 manifest fields.
-				metaFile, err := os.Open("./test/uploads/" + tuid + ".meta")
-				if err != nil {
-					t.Error("error opening meta file for file", tuid)
-				}
-				defer metaFile.Close()
-
-				bytes, _ := io.ReadAll(metaFile)
-				var processedMeta map[string]string
-				err = json.Unmarshal(bytes, &processedMeta)
-				if err != nil {
-					t.Error("error deserializing metadata for file", tuid)
-				}
-
-				translationFields := map[string]string{
-					"meta_destination_id": "data_stream_id",
-					"meta_ext_event":      "data_stream_route",
-				}
-				v, ok := c.metadata["version"]
-
-				if !ok || v == "1.0" {
-					for v1Key, v2Key := range translationFields {
-						v1Val, ok := processedMeta[v1Key]
-						if !ok {
-							t.Error("malformed metadata; missing required field", v1Key, processedMeta)
-						}
-						v2Val, ok := processedMeta[v2Key]
-						if !ok {
-							t.Error("v1 metadata not hydrated; missing v2 field", v2Key)
-						}
-						if v1Val != v2Val {
-							t.Error("v1 to v2 fields not properly translated", v1Val, v2Val)
+				for target, path := range AllTargets {
+					if slices.Contains(config.Copy.Targets, target) {
+						// Check that the file exists in the target checkpoint folder
+						if _, err := os.Stat(path + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+							t.Error("file was not copied to "+target+" checkpoint for file", tuid)
 						}
 					}
 				}
 
-				appendedUid, ok := processedMeta["upload_id"]
-				if !ok {
-					t.Error("upload ID not appended to file metadata")
-				} else if appendedUid != tuid {
-					t.Error("appended upload ID did not match upload ID", appendedUid, tuid)
-				}
 			}
 
 			t.Log("test case", name, "passed", tuid)
+		}
+	}
+}
+
+func TestRouteEndpoint(t *testing.T) {
+	c := Cases["good"]
+	tuid, err := RunTusTestCase(ts.URL, "test.txt", c)
+	time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
+
+	if err != nil {
+		t.Error("edav", err)
+	} else {
+		if tuid == "" {
+			t.Error("could not create tuid")
+		} else {
+			// Check that the file exists in the target checkpoint folder
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+				t.Error("file was not copied to edav checkpoint for file", tuid)
+			}
+
+			// Remove and re-route the file
+			err = os.Remove(TestEDAVFolder + "/" + tuid)
+			if err != nil {
+				t.Error("failed to remove edav file for "+tuid, err.Error())
+			}
+			b := []byte(`{
+				"target": "edav"
+			}`)
+			resp, err := http.Post(ts.URL+"/route/"+tuid, "application/json", bytes.NewBuffer(b))
+			if err != nil {
+				t.Error("failed to retry routing")
+			}
+			if resp.StatusCode != http.StatusOK {
+				b, _ := io.ReadAll(resp.Body)
+				t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
+			}
+			time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+				t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
+			}
 		}
 	}
 }
@@ -223,6 +258,25 @@ func TestWellKnownEndpoints(t *testing.T) {
 			t.Fatal(err)
 		}
 		if resp.StatusCode != 200 {
+			t.Error("bad response for ", endpoint, resp.StatusCode)
+		}
+	}
+}
+
+func TestRequiredUploadIdEndpoints(t *testing.T) {
+	endpoints := []string{
+		"/info",
+		"/info/",
+		"/route",
+		"/route/",
+	}
+	client := ts.Client()
+	for _, endpoint := range endpoints {
+		resp, err := client.Get(ts.URL + endpoint)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != 404 {
 			t.Error("bad response for ", endpoint, resp.StatusCode)
 		}
 	}
@@ -408,7 +462,7 @@ func TestLandingPage(t *testing.T) {
 	}
 }
 
-func TestManifestPageManifestNotFound(t *testing.T) {
+func TestManifestPageManifestNoQueryParams(t *testing.T) {
 	client := testUIServer.Client()
 	resp, err := client.Get(testUIServer.URL + "/manifest")
 	if err != nil {
@@ -419,9 +473,20 @@ func TestManifestPageManifestNotFound(t *testing.T) {
 	}
 }
 
+func TestManifestPageManifestNotFound(t *testing.T) {
+	client := testUIServer.Client()
+	resp, err := client.Get(testUIServer.URL + "/manifest?data_stream_id=invalid&data_stream_route=invalid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 404 {
+		t.Error("Expected 404 but got", resp.StatusCode)
+	}
+}
+
 func TestManifestPageValidDestination(t *testing.T) {
 	client := testUIServer.Client()
-	resp, err := client.Get(testUIServer.URL + "/manifest?data_stream=dextesting&data_stream_route=testevent1")
+	resp, err := client.Get(testUIServer.URL + "/manifest?data_stream_id=dextesting&data_stream_route=testevent1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -528,12 +593,14 @@ func TestMain(m *testing.M) {
 	}
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
-		LocalFolderUploadsTus: "test/uploads",
-		LocalReportsFolder:    "test/reports",
-		LocalEventsFolder:     "test/events",
-		LocalDEXFolder:        "test/dex",
-		LocalEDAVFolder:       "test/edav",
-		LocalRoutingFolder:    "test/routing",
+		LocalFolderUploadsTus: "./" + TestFolderUploadsTus,
+		LocalDEXFolder:        "./" + TestDEXFolder,
+		LocalEDAVFolder:       "./" + TestEDAVFolder,
+		LocalEhdiFolder:       "./" + TestEhdiFolder,
+		LocalEicrFolder:       "./" + TestEicrFolder,
+		LocalEventsFolder:     "./" + TestEventsFolder,
+		LocalNcirdFolder:      "./" + TestNcirdFolder,
+		LocalReportsFolder:    "./" + TestReportsFolder,
 		TusdHandlerBasePath:   "/files/",
 		OauthConfig:           &oauthConfig,
 	}
@@ -591,7 +658,7 @@ func readReportFiles(tuid string, stages []string) (ReportFileSummary, error) {
 
 	for _, stage := range stages {
 		filename := tuid + event.TypeSeparator + stage
-		f, err := os.Open("test/reports/" + filename)
+		f, err := os.Open(TestReportsFolder + "/" + filename)
 		if err != nil {
 			return summary, fmt.Errorf("failed to open report file for %s; inner error %w", filename, err)
 		}
@@ -637,7 +704,7 @@ func readReportFile(tuid string) (ReportFileSummary, error) {
 		reports.StageFileCopy,
 	}
 
-	f, err := os.Open("test/reports/" + tuid)
+	f, err := os.Open(TestReportsFolder + "/" + tuid)
 	if err != nil {
 		return summary, fmt.Errorf("failed to open report file for %s; inner error %w", tuid, err)
 	}
@@ -702,7 +769,7 @@ func checkReportSummary(fileSummary ReportFileSummary, stageName string, expecte
 
 func readEventFile(tuid string, eType string) ([]event.Event, error) {
 	var events []event.Event
-	f, err := os.Open("test/events/" + tuid + event.TypeSeparator + eType)
+	f, err := os.Open(TestEventsFolder + "/" + tuid + event.TypeSeparator + eType)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open event file file for %s; inner error %w", tuid, err)
 	}

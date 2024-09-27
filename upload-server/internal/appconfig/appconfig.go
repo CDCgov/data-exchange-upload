@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -44,6 +45,7 @@ type AppConfig struct {
 
 	// Server
 	ServerPort string `env:"SERVER_PORT, default=8080"`
+
 	//QUESTION: this is arbitrary so is it useful?
 	Environment        string `env:"ENVIRONMENT, default=DEV"`
 	EventMaxRetryCount int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
@@ -67,6 +69,8 @@ type AppConfig struct {
 	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
 	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
 	UIPort               string `env:"UI_PORT, default=:8081"`
+	CsrfToken            string `env:"CSRF_TOKEN, default=SwVgY4SfiXNyXCT4U6AvLNURDYS7J+Y/V2j4ng2UVp0XwQY0IUELUT5J5b/FATcE"`
+	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
 
 	// Processing Status
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
@@ -220,7 +224,7 @@ func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
 }
 
 func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig, error) {
-	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
+	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
 	fromPath := os.DirFS(fromPathStr)
 
 	switch target {
