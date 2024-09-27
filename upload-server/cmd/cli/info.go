@@ -29,6 +29,10 @@ type InfoHandler struct {
 
 func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("UploadID")
+	if id == "" {
+		http.Error(rw, "UploadID is required to retrieve info", http.StatusNotFound)
+		return
+	}
 
 	fileInfo, err := ih.inspector.InspectInfoFile(r.Context(), id)
 	if err != nil {

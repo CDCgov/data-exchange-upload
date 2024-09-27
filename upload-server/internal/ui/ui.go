@@ -22,6 +22,8 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/eventials/go-tus"
 	"github.com/google/uuid"
+	"github.com/gorilla/csrf"
+	"github.com/gorilla/mux"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -46,10 +48,13 @@ func KebabCase(value string) string {
 }
 
 func FormatDateTime(dateTimeString string) string {
+	if dateTimeString == "" {
+		return ""
+	}
+
 	date, err := time.Parse(time.RFC3339, dateTimeString)
 
 	if err != nil {
-		fmt.Println(err)
 		return ""
 	}
 
@@ -89,6 +94,7 @@ type ManifestTemplateData struct {
 	DataStreamRoute string
 	MetadataFields  []validation.FieldConfig
 	Navbar          components.Navbar
+	CsrfToken       string
 }
 
 type UploadTemplateData struct {
@@ -101,18 +107,24 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(addr string, uploadUrl string, infoUrl string) *http.Server {
+func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) *http.Server {
+	router := GetRouter(uploadUrl, infoUrl)
+	secureRouter := csrf.Protect(
+		[]byte(csrfToken),
+		csrf.Secure(false), // TODO: make dynamic when supporting TLS
+	)(router)
+
 	s := &http.Server{
 		Addr:    addr,
-		Handler: GetRouter(uploadUrl, infoUrl),
+		Handler: secureRouter,
 	}
 	return s
 }
 
-func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
-	router := http.NewServeMux()
+func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
+	router := mux.NewRouter()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
-		dataStream := r.FormValue("data_stream")
+		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
 
 		config, err := metadata.Cache.GetConfig(r.Context(), fmt.Sprintf("v2/%s-%s.json", dataStream, dataStreamRoute))
@@ -126,6 +138,7 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
 			Navbar:          components.NewNavbar(false),
+			CsrfToken:       csrf.Token(r),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -184,9 +197,10 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 		}
 
 		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid.String()), http.StatusFound)
-	})
+	}).Methods("POST")
 	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
-		id := r.PathValue("upload_id")
+		vars := mux.Vars(r)
+		id := vars["upload_id"]
 
 		// Check for upload
 		u, err := url.Parse(infoUrl)
@@ -256,15 +270,17 @@ func GetRouter(uploadUrl string, infoUrl string) *http.ServeMux {
 			return
 		}
 	})
-	router.Handle("/assets/", StaticHandler)
+
+	router.PathPrefix("/assets/").Handler(StaticHandler)
 
 	return router
 }
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, uploadURL string, infoURL string) error {
-	DefaultServer = NewServer(uiPort, uploadURL, infoURL)
+func Start(uiPort string, csrfToken string, uploadURL string, infoURL string) error {
+	DefaultServer = NewServer(uiPort, csrfToken, uploadURL, infoURL)
+
 	return DefaultServer.ListenAndServe()
 }
 

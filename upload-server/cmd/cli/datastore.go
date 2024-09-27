@@ -79,11 +79,10 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 	// a remote FTP server, you can implement your own storage backend
 	// by implementing the tusd.DataStore interface.
 	path := appConfig.LocalFolderUploadsTus
-	path = filepath.Join(path, appConfig.TusUploadPrefix)
 
 	return filestore.FileStore{
-		Path: path,
-	}, &FileStoreHealthCheck{path: appConfig.LocalFolderUploadsTus}, nil // .store
+		Path: filepath.Join(path, appConfig.TusUploadPrefix),
+	}, &FileStoreHealthCheck{path: path}, nil // .store
 }
 
 type FileStoreHealthCheck struct {
