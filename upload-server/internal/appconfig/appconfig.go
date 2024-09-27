@@ -165,7 +165,7 @@ type LocalStorageConfig struct {
 }
 
 type OauthConfig struct {
-	AuthEnabled      bool   `env:"AUTH_ENABLED, default=true"`
+	AuthEnabled      bool   `env:"AUTH_ENABLED, default=false"`
 	IntrospectionUrl string `env:"INTROSPECTION_URL"`
 	IssuerUrl        string `env:"ISSUER_URL"`
 	RequiredScopes   string `env:"REQUIRED_SCOPES"`

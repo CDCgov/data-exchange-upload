@@ -40,8 +40,7 @@ type AuthMiddleware struct {
 
 func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authEnabled := a.AuthEnabled
-		if !authEnabled {
+		if !a.AuthEnabled {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -62,13 +61,12 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 		var err error
 		if strings.Count(token, ".") == 2 {
 			// Token is JWT, validate using oidc verifier
-			issuer := a.IssuerUrl
 			requiredScopes := []string{}
 			if a.RequiredScopes != "" {
 				requiredScopes = strings.Split(a.RequiredScopes, " ")
 			}
 
-			err = validateJWT(r.Context(), token, issuer, requiredScopes)
+			err = validateJWT(r.Context(), token, a.IssuerUrl, requiredScopes)
 		} else {
 			// Token is opaque, validate using introspection
 			err = validateOpaqueToken()
