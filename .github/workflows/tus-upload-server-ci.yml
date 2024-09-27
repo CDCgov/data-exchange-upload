@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install podman
-        run: apt-get -y install podman
+        run: sudo apt-get -y install podman
       - name: Install podman compose
         run: pip3 install podman-compose
       - name: Run Tests
