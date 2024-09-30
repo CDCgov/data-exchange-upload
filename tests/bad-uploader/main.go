@@ -85,7 +85,6 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 					if err != nil {
 						slog.Error("failed post upload check", "error", err, "test case", r.testCase)
 						errs = errors.Join(errs, err)
-						check.OnFail()
 					} else {
 						check.OnSuccess()
 					}

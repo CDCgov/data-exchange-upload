@@ -61,7 +61,6 @@ func InitChecks(ctx context.Context, conf *config) {
 type Checker interface {
 	DoCase(ctx context.Context, c TestCase, uploadId string) error
 	OnSuccess()
-	OnFail() error
 }
 
 type CheckFunc func(ctx context.Context, c TestCase, uploadId string) error
