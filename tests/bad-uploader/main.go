@@ -40,27 +40,8 @@ func main() {
 	o := StartWorkers(c)
 	err = ValidateResults(ctx, o)
 	testResult.TotalDuration = time.Since(tStart)
-	fmt.Println("**********************************")
 	PrintFinalReport(err)
 
-	fmt.Printf(`
-RESULTS:
-Files uploaded: %d/%d
-Files delivered: %d/%d
-`,
-		testResult.SuccessfulUploads,
-		load,
-		testResult.SuccessfulDeliveries,
-		testResult.SuccessfulUploads)
-
-	if reportsURL != "" {
-		fmt.Printf("Successful event sets generated: %d/%d\r\n", testResult.SuccessfulEventSets, testResult.SuccessfulUploads)
-	} else {
-		fmt.Println("Skipped event generation check")
-	}
-
-	fmt.Printf("Duration: %f seconds\r\n", testResult.TotalDuration.Seconds())
-	fmt.Println("**********************************")
 }
 
 func StartWorkers(c <-chan TestCase) <-chan *Result {
@@ -130,18 +111,40 @@ type config struct {
 }
 
 func PrintFinalReport(validationErrors error) {
+	fmt.Println("**********************************")
+	printValidationErrors(validationErrors)
+	fmt.Printf(`
+RESULTS:
+Files uploaded: %d/%d
+Files delivered: %d/%d
+`,
+		testResult.SuccessfulUploads,
+		load,
+		testResult.SuccessfulDeliveries,
+		testResult.SuccessfulUploads)
 
-	if validationErrors != nil {
-		u, ok := validationErrors.(interface {
+	if reportsURL != "" {
+		fmt.Printf("Successful event sets generated: %d/%d\r\n", testResult.SuccessfulEventSets, testResult.SuccessfulUploads)
+	} else {
+		fmt.Println("Skipped event generation check")
+	}
+
+	fmt.Printf("Duration: %f seconds\r\n", testResult.TotalDuration.Seconds())
+	fmt.Println("**********************************")
+}
+
+func printValidationErrors(errs error) {
+	if errs != nil {
+		u, ok := errs.(interface {
 			Unwrap() []error
 		})
 		if !ok {
-			fmt.Printf("validation error %s\n", validationErrors)
+			fmt.Printf("validation error %s\n", errs)
 			return
 		}
 
 		for _, err := range u.Unwrap() {
-			PrintFinalReport(err)
+			printValidationErrors(err)
 		}
 
 		// TODO get upload ID out of err
@@ -156,7 +159,6 @@ func PrintFinalReport(validationErrors error) {
 		//	os.Exit(1)
 		//}
 	}
-
 }
 
 func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
