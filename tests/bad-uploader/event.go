@@ -80,6 +80,7 @@ func compareEvents(actual []Report, expected []Report) error {
 		return &ErrAssertion{
 			Expected: len(expected),
 			Actual:   len(actual),
+			msg:      "event count",
 		}
 	}
 

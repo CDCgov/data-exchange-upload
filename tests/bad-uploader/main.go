@@ -116,6 +116,7 @@ func PrintFinalReport(validationErrors error) {
 		fmt.Println("Validation Failures!")
 		for {
 			err := errors.Unwrap(validationErrors)
+			fmt.Printf("unwrapped err %s", err)
 			if err == nil {
 				break
 			}

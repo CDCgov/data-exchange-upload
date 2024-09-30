@@ -80,7 +80,11 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 
 	// Check delivery targets
 	if len(info.Deliveries) != len(c.ExpectedDeliveryTargets) {
-		return fmt.Errorf("expected %d deliveries but got %d", len(c.ExpectedDeliveryTargets), len(info.Deliveries))
+		return &ErrAssertion{
+			Expected: len(c.ExpectedDeliveryTargets),
+			Actual:   len(info.Deliveries),
+			msg:      "delivery count",
+		}
 	}
 
 	for _, delivery := range info.Deliveries {

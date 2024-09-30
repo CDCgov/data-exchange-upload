@@ -12,13 +12,15 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// TODO include upload id
 type ErrAssertion struct {
 	Expected any
 	Actual   any
+	msg      string
 }
 
 func (e *ErrAssertion) Error() string {
-	return fmt.Sprintf("expected %v; read %v", e.Expected, e.Actual)
+	return fmt.Sprintf("%s; expected %v; read %v", e.msg, e.Expected, e.Actual)
 }
 
 type ErrFatalAssertion struct {
