@@ -77,8 +77,7 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 
 			wg.Add(len(PostUploadChecks))
 			for _, check := range PostUploadChecks {
-				check := check
-				go func(r *Result) {
+				go func(r *Result, check Checker) {
 					defer wg.Done()
 					// return a specific error and/or check result.  Specific error can have check specific info like upload id and reports
 					err := WithRetry(checkTimeout, r.testCase, uid, check.DoCase)
@@ -88,7 +87,7 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 					} else {
 						check.OnSuccess()
 					}
-				}(r)
+				}(r, check)
 			}
 		}
 	}
