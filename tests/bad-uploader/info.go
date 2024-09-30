@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -79,19 +80,17 @@ func (ic *InfoChecker) DoCase(_ context.Context, c TestCase, uploadId string) er
 
 	for _, delivery := range info.Deliveries {
 		if delivery.Status != "SUCCESS" {
-			return &ErrFatalAssertion{
-				Msg:      fmt.Sprintf("%s delivery failed: %v", delivery.Name, delivery.Issues),
+			return errors.Join(&ErrAssertion{
 				Expected: "SUCCESS",
 				Actual:   delivery.Status,
-			}
+			}, &ErrFatalAssertion{"unexpected delivery status"})
 		}
 
 		if !slices.Contains(c.ExpectedDeliveryTargets, delivery.Name) {
-			return &ErrFatalAssertion{
-				Msg:      fmt.Sprintf("delivery target should be one of %v but got %s", c.ExpectedDeliveryTargets, delivery.Name),
+			return errors.Join(&ErrAssertion{
 				Expected: c.ExpectedDeliveryTargets,
 				Actual:   delivery.Name,
-			}
+			}, &ErrFatalAssertion{"unexpected delivery target"})
 		}
 	}
 

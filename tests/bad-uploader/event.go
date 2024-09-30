@@ -36,10 +36,7 @@ type EventChecker struct {
 func (ec *EventChecker) DoCase(ctx context.Context, c TestCase, uploadId string) error {
 	reports, err := ec.Events(ctx, uploadId)
 	if err != nil {
-		return errors.Join(err, &ErrFatalAssertion{
-			UploadId: uploadId,
-			Msg:      fmt.Sprintf("failed to fetch events for upload %s", uploadId),
-		})
+		return fmt.Errorf("failed to fetch events for upload %s", uploadId)
 	}
 
 	err = compareEvents(reports, c.ExpectedReports)
@@ -79,26 +76,21 @@ func (ec *EventChecker) Events(ctx context.Context, uploadId string) ([]Report, 
 }
 
 func compareEvents(actual []Report, expected []Report) error {
-	var errs error
-
 	if len(actual) != len(expected) {
-		errs = errors.Join(errs, &ErrAssertionTimeoutPending{
-			Msg:      "not the right number of reports",
+		return &ErrAssertion{
 			Expected: len(expected),
 			Actual:   len(actual),
-		})
+		}
 	}
 
 	for i, a := range actual {
 		if a.StageInfo.Action != expected[i].StageInfo.Action {
-
-			errs = errors.Join(errs, &ErrAssertionTimeoutPending{
-				Msg:      fmt.Sprintf("expected report missing: index %d", i),
+			return errors.Join(&ErrAssertion{
 				Expected: expected[i].StageInfo.Action,
 				Actual:   a.StageInfo.Action,
-			})
+			}, &ErrFatalAssertion{"unexpected event"})
 		}
 	}
 
-	return errs
+	return nil
 }
