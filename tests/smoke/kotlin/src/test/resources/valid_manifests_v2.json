@@ -14,19 +14,6 @@
   },
   {
     "version": "2.0",
-    "data_stream_id": "covid-bridge-vaccination",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "XXA",
-    "data_producer_id": "XXA",
-    "sender_id": "IZGW",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
-  },
-  {
-    "version": "2.0",
     "data_stream_id": "influenza-vaccination",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
