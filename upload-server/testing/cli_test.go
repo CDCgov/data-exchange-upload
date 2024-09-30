@@ -585,6 +585,12 @@ func TestStatusPageUploadNotFoundRedirect(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	oauthConfig := appconfig.OauthConfig{
+		AuthEnabled:      false,
+		IssuerUrl:        "",
+		RequiredScopes:   "",
+		IntrospectionUrl: "",
+	}
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
 		LocalFolderUploadsTus: "./" + TestFolderUploadsTus,
@@ -596,6 +602,7 @@ func TestMain(m *testing.M) {
 		LocalNcirdFolder:      "./" + TestNcirdFolder,
 		LocalReportsFolder:    "./" + TestReportsFolder,
 		TusdHandlerBasePath:   "/files/",
+		OauthConfig:           &oauthConfig,
 	}
 	appconfig.LoadedConfig = &appConfig
 

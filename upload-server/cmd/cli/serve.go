@@ -11,6 +11,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -86,12 +87,19 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	// --------------------------------------------------------------
 	// 	TUSD handler
 	// --------------------------------------------------------------
+
+	authMiddleware := middleware.AuthMiddleware{
+		AuthEnabled:    appConfig.OauthConfig.AuthEnabled,
+		IssuerUrl:      appConfig.OauthConfig.IssuerUrl,
+		RequiredScopes: appConfig.OauthConfig.RequiredScopes,
+	}
+
 	// Route for TUSD to start listening on and accept http request
 	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)
 	pathWithoutSlash := strings.TrimSuffix(appConfig.TusdHandlerBasePath, "/")
 	pathWithSlash := pathWithoutSlash + "/"
-	mux.Handle(pathWithoutSlash, http.StripPrefix(pathWithoutSlash, handlerTusd))
-	mux.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
+	mux.Handle(pathWithoutSlash, authMiddleware.VerifyOAuthTokenMiddleware(http.StripPrefix(pathWithoutSlash, handlerTusd)))
+	mux.Handle(pathWithSlash, authMiddleware.VerifyOAuthTokenMiddleware(http.StripPrefix(pathWithSlash, handlerTusd)))
 
 	// initialize and route handler for DEX
 	mux.Handle("/health", health.Handler())
@@ -101,7 +109,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	// --------------------------------------------------------------
 	mux.Handle("/metrics", promhttp.Handler())
 
-	mux.Handle("/info/{UploadID}", uploadInfoHandler)
+	mux.Handle("/info/{UploadID}", authMiddleware.VerifyOAuthTokenMiddleware(uploadInfoHandler))
 	mux.Handle("/version", &VersionHandler{})
 	mux.Handle("/route/{UploadID}", &Router{})
 

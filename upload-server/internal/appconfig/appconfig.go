@@ -83,6 +83,7 @@ type AppConfig struct {
 	NcirdConnection      *AzureStorageConfig `env:", prefix=NCIRD_, noinit"`
 	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
 	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
+	OauthConfig          *OauthConfig        `env:", prefix=OAUTH_"`
 
 	// Reporting
 	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
@@ -165,6 +166,13 @@ type LocalStorageConfig struct {
 	FromPathStr string
 	FromPath    fs.FS
 	ToPath      string
+}
+
+type OauthConfig struct {
+	AuthEnabled      bool   `env:"AUTH_ENABLED, default=false"`
+	IntrospectionUrl string `env:"INTROSPECTION_URL"`
+	IssuerUrl        string `env:"ISSUER_URL"`
+	RequiredScopes   string `env:"REQUIRED_SCOPES"`
 }
 
 func (azc *AzureStorageConfig) Check() error {
