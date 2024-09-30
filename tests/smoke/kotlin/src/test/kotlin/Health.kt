@@ -20,8 +20,8 @@ class Health {
 
         val expectedDependentServices = arrayOf(
             "Event Publishing processing-status-cosmos-db-report-sink-topics",
-            "Event Publishing ocio-ede-stg-upload-file-ready-topic",
-            "ocio-ede-stg-upload-file-ready-subscription Event Subscriber",
+            "Event Publishing ocio-ede-tst-upload-file-ready-topic",
+            "ocio-ede-tst-upload-file-ready-subscription Event Subscriber",
             "Tus storage",
             "Redis Locker",
             "Azure deliver target edav",
@@ -40,9 +40,22 @@ class Health {
             "Unexpected number of dependent services: ${healthCheck.services}"
         )
 
-        healthCheck.services.forEach {
-            Assert.assertTrue(expectedDependentServices.contains(it.service))
-            Assert.assertEquals(it.status, "UP")
-        }
+        val actualServices = healthCheck.services.map { it.service }
+
+        Assert.assertEqualsNoOrder(
+            actualServices.toTypedArray(),
+            expectedDependentServices,
+            buildString {
+                append("The actual service is not matched with the expected service.\n")
+                val expServices = expectedDependentServices.filter { it !in actualServices }
+                val actServices = actualServices.filter { it !in expectedDependentServices }
+                if (expServices.isNotEmpty()) {
+                    append("Expected service: ${expServices.joinToString(", ")}\n")
+                }
+                if (actServices.isNotEmpty()) {
+                    append("Actual service: ${actServices.joinToString(", ")}\n")
+                }
+            }
+        )
     }
 }
