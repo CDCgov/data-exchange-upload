@@ -1,4 +1,5 @@
 import dex.DexUploadClient
+import okio.IOException
 import org.testng.Assert
 import org.testng.ITestContext
 import org.testng.TestNGException
@@ -58,7 +59,7 @@ class Info {
             Assert.assertNotNull(it.chunkReceivedAt, "Chunk received timestamp should not be null")
         }
 
-         if (fileInfo.deliveries != null) {
+        if (fileInfo.deliveries != null) {
             Assert.assertTrue(fileInfo.deliveries.isNotEmpty(), "Deliveries list should not be empty")
             fileInfo.deliveries.forEach { delivery ->
                 Assert.assertEquals(delivery.status, "SUCCESS", "Delivery status should be SUCCESS")
@@ -72,5 +73,14 @@ class Info {
                 Assert.assertTrue(delivery.issues?.isEmpty() ?: true, "There should be no issues in delivery")
             }
         }
+    }
+
+    @Test(
+        groups = [Constants.Groups.FILE_INFO],
+        expectedExceptions = [IOException::class],
+        expectedExceptionsMessageRegExp = "Error getting file info.*"
+    )
+    fun shouldReturnNotFoundGivenInvalidId() {
+        dexUploadClient.getFileInfo("blah", authToken)
     }
 }
