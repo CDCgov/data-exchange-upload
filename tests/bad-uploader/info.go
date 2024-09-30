@@ -42,14 +42,19 @@ type InfoChecker struct {
 	Client *http.Client
 }
 
-func (ic *InfoChecker) DoCase(_ context.Context, c TestCase, uploadId string) error {
+func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) error {
 	serverUrl, _ := path.Split(url)
 	infoUrl, err := neturl.JoinPath(serverUrl, "info", uploadId)
 	if err != nil {
 		return err
 	}
 
-	resp, err := ic.Client.Get(infoUrl)
+	req, err := http.NewRequestWithContext(ctx, "GET", infoUrl, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := ic.Client.Do(req)
 	if err != nil {
 		return err
 	}
