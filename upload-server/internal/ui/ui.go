@@ -285,7 +285,10 @@ func Start(uiPort string, csrfToken string, uploadURL string, infoURL string) er
 }
 
 func Close(ctx context.Context) error {
-	return DefaultServer.Shutdown(ctx)
+	if DefaultServer != nil {
+		return DefaultServer.Shutdown(ctx)
+	}
+	return nil
 }
 
 func filterMetadataFields(config *validation.ManifestConfig) []validation.FieldConfig {

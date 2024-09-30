@@ -5,9 +5,9 @@ services:
     ports:
       - "8000:8000"
       - "8001:8001"
-    command: server /minio --console-address :8001 --address :8000
+    command: server /data --console-address :8001 --address :8000
     volumes:
-      - minio_data:/data
+      - ./configs/local/minio:/data
   upload-server:
     environment:
       - S3_ENDPOINT=http://minio:8000
@@ -19,7 +19,3 @@ services:
     depends_on:
       - minio
       - cache
-
-volumes:
-  minio_data:
-    driver: local

@@ -2,6 +2,7 @@ package handlertusd
 
 import (
 	"errors"
+
 	"golang.org/x/exp/slog"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
@@ -65,7 +66,9 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 		return nil, err
 	} // .if
 
-	prometheus.MustRegister(prometheuscollector.New(handler.Metrics))
+	if err := prometheus.Register(prometheuscollector.New(handler.Metrics)); err != nil && !errors.As(err, &prometheus.AlreadyRegisteredError{}) {
+		return handler, err
+	}
 	logger.Info("started tusd handler")
 	return handler, nil
 } // .New

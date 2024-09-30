@@ -41,6 +41,7 @@ You can configure this behavior with the following environment variables:
 
 #### Azure Storage Account
 
+
 To upload to an Azure Storage Account, you'll need to collect the name, access key, and endpoint URI of the account. You
 also need to create a Blob Container within the account. Next, fill in the following environment variables to tell the
 service to use your Azure storage account as the storage backend:
@@ -157,6 +158,13 @@ With coverage:
 ```go
 go test -coverprofile=c.out ./...
 go tool cover -html=c.out
+```
+
+## Integration Testing (with minio and azurite)
+Create a .env with, or export, AZURITE_STORAGE_KEY=\<[the default key here](https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account)\>
+run
+```
+podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-server
 ```
 
 ### Running locally with Azurite

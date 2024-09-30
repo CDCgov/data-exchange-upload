@@ -3,38 +3,27 @@ package cli
 import (
 	"log/slog"
 	"os"
-	"reflect"
-	"strings"
 
 	expslog "golang.org/x/exp/slog"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 )
 
 var (
 	logger *slog.Logger
 )
 
-func init() {
-	type Empty struct{}
-	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
-	// add package name to app logger
-	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
-}
-
 // AppLogger, this is the custom application logger for uniformity
 func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 
 	// Configure debug on if needed, otherwise should be off
-	var opts *slog.HandlerOptions
+	opts := &slog.HandlerOptions{
+		AddSource: true,
+	} // .opts
 
 	if appConfig.LoggerDebugOn {
+		opts.Level = slog.LevelDebug
 
-		opts = &slog.HandlerOptions{
-			Level:     slog.LevelDebug,
-			AddSource: true,
-		} // .opts
 	} // .if
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, opts))
@@ -57,14 +46,13 @@ func AppLogger(appConfig appconfig.AppConfig) *slog.Logger {
 func ExpAppLogger(appConfig appconfig.AppConfig) *expslog.Logger {
 
 	// Configure debug on if needed, otherwise should be off
-	var opts *expslog.HandlerOptions
+	opts := &expslog.HandlerOptions{
+		AddSource: true,
+	} // .opts
 
 	if appConfig.LoggerDebugOn {
+		opts.Level = expslog.LevelDebug
 
-		opts = &expslog.HandlerOptions{
-			Level:     expslog.LevelDebug,
-			AddSource: true,
-		} // .opts
 	} // .if
 
 	logger := expslog.New(expslog.NewJSONHandler(os.Stdout, opts))

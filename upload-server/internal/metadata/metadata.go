@@ -75,7 +75,7 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		return errors.New("cannot load metadata config from multiple locations")
 	}
 
-	if appConfig.AzureConnection != nil {
+	if appConfig.AzureConnection != nil && appConfig.AzureManifestConfigContainer != "" {
 		client, err := storeaz.NewBlobClient(*appConfig.AzureConnection)
 		if err != nil {
 			return err
@@ -86,7 +86,7 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 		}
 	}
 
-	if appConfig.S3Connection != nil {
+	if appConfig.S3Connection != nil && appConfig.S3ManifestConfigFolder != "" {
 		client, err := stores3.New(ctx, appConfig.S3Connection)
 		bucket := appConfig.S3Connection.BucketName
 		if appConfig.S3ManifestConfigBucket != "" {
