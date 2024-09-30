@@ -40,7 +40,27 @@ func main() {
 	o := StartWorkers(c)
 	err = ValidateResults(ctx, o)
 	testResult.TotalDuration = time.Since(tStart)
+	fmt.Println("**********************************")
 	PrintFinalReport(err)
+
+	fmt.Printf(`
+RESULTS:
+Files uploaded: %d/%d
+Files delivered: %d/%d
+`,
+		testResult.SuccessfulUploads,
+		load,
+		testResult.SuccessfulDeliveries,
+		testResult.SuccessfulUploads)
+
+	if reportsURL != "" {
+		fmt.Printf("Successful event sets generated: %d/%d\r\n", testResult.SuccessfulEventSets, testResult.SuccessfulUploads)
+	} else {
+		fmt.Println("Skipped event generation check")
+	}
+
+	fmt.Printf("Duration: %f seconds\r\n", testResult.TotalDuration.Seconds())
+	fmt.Println("**********************************")
 }
 
 func StartWorkers(c <-chan TestCase) <-chan *Result {
@@ -70,7 +90,7 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 			uid := path.Base(r.url)
 			limit := time.Duration(r.testCase.TimeLimit)
 			if limit == 0*time.Second {
-				limit = 1 * time.Minute
+				limit = 11 * time.Second
 			}
 			checkTimeout, cancel := context.WithTimeout(ctx, limit)
 			defer cancel()
@@ -110,51 +130,33 @@ type config struct {
 }
 
 func PrintFinalReport(validationErrors error) {
-	fmt.Println("**********************************")
 
 	if validationErrors != nil {
-		fmt.Println("Validation Failures!")
-		for {
-			err := errors.Unwrap(validationErrors)
-			fmt.Printf("unwrapped err %s", err)
-			if err == nil {
-				break
-			}
-
-			slog.Error("", "", err)
-
-			// TODO get upload ID out of err
-			//filename := "output/" + err.() + "_check_failures"
-			//f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
-			//if err != nil {
-			//	os.Exit(1)
-			//}
-			//defer f.Close()
-			//je := json.NewEncoder(f)
-			//if err := je.Encode(err); err != nil {
-			//	os.Exit(1)
-			//}
+		u, ok := validationErrors.(interface {
+			Unwrap() []error
+		})
+		if !ok {
+			fmt.Printf("validation error %s\n", validationErrors)
+			return
 		}
+
+		for _, err := range u.Unwrap() {
+			PrintFinalReport(err)
+		}
+
+		// TODO get upload ID out of err
+		//filename := "output/" + err.() + "_check_failures"
+		//f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+		//if err != nil {
+		//	os.Exit(1)
+		//}
+		//defer f.Close()
+		//je := json.NewEncoder(f)
+		//if err := je.Encode(err); err != nil {
+		//	os.Exit(1)
+		//}
 	}
 
-	fmt.Printf(`
-RESULTS:
-Files uploaded: %d/%d
-Files delivered: %d/%d
-`,
-		testResult.SuccessfulUploads,
-		load,
-		testResult.SuccessfulDeliveries,
-		testResult.SuccessfulUploads)
-
-	if reportsURL != "" {
-		fmt.Printf("Successful event sets generated: %d/%d\r\n", testResult.SuccessfulEventSets, testResult.SuccessfulUploads)
-	} else {
-		fmt.Println("Skipped event generation check")
-	}
-
-	fmt.Printf("Duration: %f seconds\r\n", testResult.TotalDuration.Seconds())
-	fmt.Println("**********************************")
 }
 
 func worker(c <-chan TestCase, o chan<- *Result, conf *config) {

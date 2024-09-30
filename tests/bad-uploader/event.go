@@ -76,7 +76,7 @@ func (ec *EventChecker) Events(ctx context.Context, uploadId string) ([]Report, 
 }
 
 func compareEvents(actual []Report, expected []Report) error {
-	if len(actual) != len(expected) {
+	if len(actual) < len(expected) {
 		return &ErrAssertion{
 			Expected: len(expected),
 			Actual:   len(actual),

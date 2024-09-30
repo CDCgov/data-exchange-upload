@@ -79,12 +79,20 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 	}
 
 	// Check delivery targets
-	if len(info.Deliveries) != len(c.ExpectedDeliveryTargets) {
+	if len(info.Deliveries) < len(c.ExpectedDeliveryTargets) {
 		return &ErrAssertion{
 			Expected: len(c.ExpectedDeliveryTargets),
 			Actual:   len(info.Deliveries),
 			msg:      "delivery count",
 		}
+	}
+
+	if len(info.Deliveries) > len(c.ExpectedDeliveryTargets) {
+		return errors.Join(&ErrAssertion{
+			Expected: len(c.ExpectedDeliveryTargets),
+			Actual:   len(info.Deliveries),
+			msg:      "delivery count",
+		}, &ErrFatalAssertion{"delivered to more targets than expected"})
 	}
 
 	for _, delivery := range info.Deliveries {

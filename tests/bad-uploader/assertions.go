@@ -12,7 +12,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// TODO include upload id
 type ErrAssertion struct {
 	Expected any
 	Actual   any
@@ -36,7 +35,7 @@ type ErrAssertionTimeout struct {
 }
 
 func (e *ErrAssertionTimeout) Error() string {
-	return fmt.Sprintf("failed to pass assertion after %v seconds", e.Limit*Duration(time.Second))
+	return fmt.Sprintf("failed to pass assertion after %.2f seconds", (time.Duration(e.Limit)).Seconds())
 }
 
 var PostUploadChecks []Checker
@@ -69,12 +68,12 @@ type CheckFunc func(ctx context.Context, c TestCase, uploadId string) error
 
 func WithRetry(timeout context.Context, c TestCase, uploadId string, checker CheckFunc) error {
 	timer := time.NewTicker(1 * time.Second)
-	var err error
+	var assertionError error
 	for {
 		select {
 		case <-timer.C:
 			// Perform the checkable action
-			err = checker(timeout, c, uploadId)
+			err := checker(timeout, c, uploadId)
 			if err == nil {
 				// Action was successful, all done
 				return nil
@@ -88,17 +87,18 @@ func WithRetry(timeout context.Context, c TestCase, uploadId string, checker Che
 			var assertionErr *ErrAssertion
 			if errors.As(err, &assertionErr) {
 				slog.Debug("retrying check; got unexpected value:", "error", err)
+				assertionError = err
+				continue
+			}
+			if errors.Is(err, context.DeadlineExceeded) {
 				continue
 			}
 			// Unexpected error
 			return err
 		case <-timeout.Done():
-			if err != nil {
-				err = errors.Join(err, &ErrAssertionTimeout{
-					Limit: c.TimeLimit,
-				})
-			}
-			return err
+			return errors.Join(assertionError, &ErrAssertionTimeout{
+				Limit: c.TimeLimit,
+			})
 		}
 	}
 }
