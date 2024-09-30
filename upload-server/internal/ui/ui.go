@@ -30,7 +30,7 @@ import (
 
 // content holds our static web server content.
 //
-//go:embed assets/* components/* index.html manifest.tmpl upload.tmpl
+//go:embed assets/* components/* index.html manifest.html upload.html
 var content embed.FS
 
 func FixNames(name string) string {
@@ -86,8 +86,8 @@ func generateTemplate(templatePath string, useFuncs bool) *template.Template {
 }
 
 var indexTemplate = generateTemplate("index.html", false)
-var manifestTemplate = generateTemplate("manifest.tmpl", true)
-var uploadTemplate = generateTemplate("upload.tmpl", true)
+var manifestTemplate = generateTemplate("manifest.html", true)
+var uploadTemplate = generateTemplate("upload.html", true)
 
 type ManifestTemplateData struct {
 	DataStream      string
