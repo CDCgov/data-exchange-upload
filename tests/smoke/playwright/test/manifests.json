@@ -4,10 +4,6 @@
         "route": "csv"
     },
     {
-        "dataStream": "covid-bridge-vaccination",
-        "route": "csv"
-    },
-    {
         "dataStream": "dextesting",
         "route": "testevent1"
     },
