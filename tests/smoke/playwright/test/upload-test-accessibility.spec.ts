@@ -2,6 +2,8 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 test.describe.configure({ mode: 'parallel' });
+
+const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
 const axeRuleTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 test.describe('Upload Landing Page', () => {
@@ -16,18 +18,7 @@ test.describe('Upload Landing Page', () => {
 });
 
 test.describe('Upload Manifest Page', () => {
-    [
-        { dataStream: "covid", route: "all-monthly-vaccination-csv" },
-        { dataStream: "covid", route: "bridge-vaccination-csv" },
-        { dataStream: "dextesting", route: "testevent1" },
-        { dataStream: "ehdi", route: "csv" },
-        { dataStream: "eicr", route: "fhir" },
-        { dataStream: "generic", route: "immunization-csv" },
-        { dataStream: "influenza", route: "vaccination-csv" },
-        { dataStream: "pulsenet", route: "localsequencefile" },
-        { dataStream: "routine", route: "immunization-other" },
-        { dataStream: "rsv", route: "prevention-csv" },
-    ].forEach(({ dataStream, route }) => {
+    manifests.forEach(({ dataStream, route }) => {
         test(`Checks accessibility for individual mainfest page: ${dataStream} / ${route}`, async ({ page }) => {
             await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
             const results = await new AxeBuilder({ page })

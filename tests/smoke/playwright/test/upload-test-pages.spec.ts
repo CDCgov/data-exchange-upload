@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 
 test.describe.configure({ mode: 'parallel' });
 
+const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
+
 test.describe("Upload Landing Page", () => {
     test("has the expected elements to start a file upload process", async ({page}) => {
         await page.goto(`/`);
@@ -17,18 +19,7 @@ test.describe("Upload Landing Page", () => {
 });
 
 test.describe("Upload Manifest Page", () => {
-    [
-        { dataStream: "covid", route: "all-monthly-vaccination-csv" },
-        { dataStream: "covid", route: "bridge-vaccination-csv" },
-        { dataStream: "dextesting", route: "testevent1" },
-        { dataStream: "ehdi", route: "csv" },
-        { dataStream: "eicr", route: "fhir" },
-        { dataStream: "generic", route: "immunization-csv" },
-        { dataStream: "influenza", route: "vaccination-csv" },
-        { dataStream: "pulsenet", route: "localsequencefile" },
-        { dataStream: "routine", route: "immunization-other" },
-        { dataStream: "rsv", route: "prevention-csv" },
-    ].forEach(({ dataStream, route }) => {
+    manifests.forEach(({ dataStream, route }) => {
         test(`has the expected metadata elements for Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
             await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
             const nav = page.locator('nav')
@@ -41,24 +32,31 @@ test.describe("Upload Manifest Page", () => {
             await expect(nextButton).toHaveText('Next')
         })
             
+    });
+        
+    [
+        { dataStream: 'invalid', route: 'invalid' },
+        // Need to fix the server to enable these tests, they are currently valid when they shouldn't be
+        // { dataStream: 'covid-bridge', route: 'vaccination-csv' },
+        // { dataStream: 'covid', route: 'bridge-vaccination-csv' },
+    ].forEach(({ dataStream, route }) => {
+        test(`displays an error for an invalid manifest: Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
+            const errorPagePromise = page.waitForResponse(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
+    
+            await page.goto(`/`);
+            await page.getByLabel('Data Stream', { exact: true }).fill(dataStream);
+            await page.getByLabel('Data Stream Route').fill(route);
+            await page.getByRole('button', { name: /next/i }).click();
+            const errorPageResponse = await errorPagePromise
+    
+            await expect(errorPageResponse.status()).toBe(404)
+            await expect(page.locator('body')).toContainText(`open v2/${dataStream}-${route}.json: `)
+            await expect(page.locator('body')).toContainText('validation failure')
+            await expect(page.locator('body')).toContainText('manifest validation config file not found')
+        })
     })
-
-    test(`displays an error for an invalid manifest: Data stream: invalid / Route: invalid`, async ({ page }) => {
-        const errorPagePromise = page.waitForResponse('/manifest?data_stream_id=invalid&data_stream_route=invalid');
-
-        await page.goto(`/`);
-        await page.getByLabel('Data Stream', { exact: true }).fill('invalid');
-        await page.getByLabel('Data Stream Route').fill('invalid');
-        await page.getByRole('button', { name: /next/i }).click();
-        const errorPageResponse = await errorPagePromise
-
-        await expect(errorPageResponse.status()).toBe(404)
-        await expect(page.locator('body')).toContainText('open v2/invalid-invalid.json: ')
-        await expect(page.locator('body')).toContainText('validation failure')
-        await expect(page.locator('body')).toContainText('manifest validation config file not found')
-    })
+   
 });
-
 
 test.describe("File Uploader Page", () => {
     test("has the expected elements to prepare to upload a file", async ({ page, baseURL }) => {
@@ -93,7 +91,6 @@ test.describe("File Uploader Page", () => {
 })
 
 test.describe("Upload Status Page", () => {
-    
     test("has the expected elements to display upload status", async ({ page, baseURL }) => {
         const apiURL = baseURL.replace('8081', '8080')
         const dataStream = 'dextesting';
