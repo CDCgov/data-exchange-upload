@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"log"
 	"log/slog"
 	"math/rand"
 	"text/template"
@@ -58,15 +57,18 @@ func (tg *TemplateGenerator) next() (err error) {
 
 	go func() {
 		templates := tg.Templates
-		for _, t := range templates {
-			slog.Debug("writing template")
-			if t.Args == nil {
-				t.Args = map[string]any{}
-			}
-			for i := range t.Repetitions {
-				t.Args["Index"] = i
-				if err := tg.t.ExecuteTemplate(tg.w, t.Name, t.Args); err != nil {
-					slog.Error("failed to execute template", "error", err)
+		for j := range tg.Repeats {
+			slog.Debug("generating template", "num", j, "of", tg.Repeats)
+			for _, t := range templates {
+				if t.Args == nil {
+					t.Args = map[string]any{}
+				}
+				for i := range t.Repetitions {
+					slog.Debug("generating sub template", "name", t.Name, "num", i, "of", t.Repetitions)
+					t.Args["Index"] = i
+					if err := tg.t.ExecuteTemplate(tg.w, t.Name, t.Args); err != nil {
+						slog.Error("failed to execute template", "error", err)
+					}
 				}
 			}
 		}
@@ -89,22 +91,19 @@ func (tg *TemplateGenerator) Read(p []byte) (int, error) {
 			return 0, err
 		}
 	}
-	slog.Debug("reading template")
-	log.Println("buf size", len(p))
+
+	_, peakErr := tg.r.Peek(1)
+
 	n, err := io.ReadFull(tg.r, p)
-	log.Println(err)
-	log.Println("bytes written", n)
+
 	//todo only swallow unexpected eof errors
-	slog.Debug("read template")
-	_, peakErr := tg.r.Peek(len(p))
-	if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(peakErr, io.EOF) {
-		if tg.Repeats < 1 {
+	slog.Debug("read template", "n", n, "p", len(p))
+
+	if err != nil || peakErr != nil {
+		if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(peakErr, io.EOF) {
 			return n, io.EOF
 		}
-		tg.Repeats--
-		if err := tg.next(); err != nil {
-			return n, err
-		}
+		slog.Error("template read error", "error", err, "peak error", peakErr)
 	}
 	return n, nil
 }
