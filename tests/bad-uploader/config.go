@@ -236,7 +236,7 @@ func init() {
 			Size:                    size,
 			Manifest:                manifest,
 			TimeLimit:               Duration(10 * time.Second),
-			ExpectedDeliveryTargets: []string{"edav"},
+			ExpectedDeliveryTargets: []string{"edav", "blah"},
 		}
 		if templatePath != "" {
 			testcase.TemplateFile = templatePath

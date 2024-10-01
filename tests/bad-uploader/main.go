@@ -84,6 +84,7 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 					err := WithRetry(checkTimeout, r.testCase, uid, check.DoCase)
 					if err != nil {
 						slog.Error("failed post upload check", "error", err, "test case", r.testCase)
+						logErrors(err, uid)
 						errs = errors.Join(errs, err)
 					} else {
 						check.OnSuccess()
@@ -133,6 +134,17 @@ Files delivered: %d/%d
 	fmt.Println("**********************************")
 }
 
+func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
+	for e := range c {
+		res, err := runTest(e, conf)
+		if err != nil {
+			slog.Error("ERROR: ", "error", err, "case", e)
+		}
+		atomic.AddInt32(&testResult.SuccessfulUploads, 1)
+		o <- res
+	}
+}
+
 func printValidationErrors(errs error) {
 	if errs != nil {
 		u, ok := errs.(interface {
@@ -146,28 +158,20 @@ func printValidationErrors(errs error) {
 		for _, err := range u.Unwrap() {
 			printValidationErrors(err)
 		}
-
-		// TODO get upload ID out of err
-		//filename := "output/" + err.() + "_check_failures"
-		//f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
-		//if err != nil {
-		//	os.Exit(1)
-		//}
-		//defer f.Close()
-		//je := json.NewEncoder(f)
-		//if err := je.Encode(err); err != nil {
-		//	os.Exit(1)
-		//}
 	}
 }
 
-func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
-	for e := range c {
-		res, err := runTest(e, conf)
-		if err != nil {
-			slog.Error("ERROR: ", "error", err, "case", e)
-		}
-		atomic.AddInt32(&testResult.SuccessfulUploads, 1)
-		o <- res
+func logErrors(err error, uploadId string) {
+	if err == nil {
+		return
+	}
+	filename := "output/" + uploadId + "_failures"
+	f, e := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
+	if e != nil {
+		panic(e)
+	}
+	defer f.Close()
+	if _, e = f.WriteString(err.Error()); e != nil {
+		panic(e)
 	}
 }

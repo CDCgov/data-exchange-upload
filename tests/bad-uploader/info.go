@@ -92,7 +92,9 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 			Expected: len(c.ExpectedDeliveryTargets),
 			Actual:   len(info.Deliveries),
 			msg:      "delivery count",
-		}, &ErrFatalAssertion{"delivered to more targets than expected"})
+		}, &ErrFatalAssertion{
+			msg: "delivered to more targets than expected",
+		})
 	}
 
 	for _, delivery := range info.Deliveries {
@@ -100,14 +102,18 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 			return errors.Join(&ErrAssertion{
 				Expected: "SUCCESS",
 				Actual:   delivery.Status,
-			}, &ErrFatalAssertion{"unexpected delivery status"})
+			}, &ErrFatalAssertion{
+				msg: "unexpected delivery status",
+			})
 		}
 
 		if !slices.Contains(c.ExpectedDeliveryTargets, delivery.Name) {
 			return errors.Join(&ErrAssertion{
 				Expected: c.ExpectedDeliveryTargets,
 				Actual:   delivery.Name,
-			}, &ErrFatalAssertion{"unexpected delivery target"})
+			}, &ErrFatalAssertion{
+				msg: "unexpected delivery target",
+			})
 		}
 	}
 

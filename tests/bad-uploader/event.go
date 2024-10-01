@@ -89,7 +89,9 @@ func compareEvents(actual []Report, expected []Report) error {
 			return errors.Join(&ErrAssertion{
 				Expected: expected[i].StageInfo.Action,
 				Actual:   a.StageInfo.Action,
-			}, &ErrFatalAssertion{"unexpected event"})
+			}, &ErrFatalAssertion{
+				msg: "unexpected event",
+			})
 		}
 	}
 
