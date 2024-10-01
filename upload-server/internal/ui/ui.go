@@ -190,6 +190,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			return
 		}
 		loc := resp.Header.Get("Location")
+		loc = strings.Split(loc, "+")[0]
 		uuid, err := uuid.Parse(filepath.Base(loc))
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
