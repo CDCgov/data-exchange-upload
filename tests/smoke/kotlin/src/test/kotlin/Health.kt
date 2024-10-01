@@ -10,6 +10,10 @@ class Health {
     private val dexUploadClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private lateinit var authToken: String
 
+    private val environment: String = listOf("dev", "tst", "stg", "prd").find {
+        EnvConfig.UPLOAD_URL.contains("api$it")
+    } ?: throw IllegalArgumentException("Unknown environment URL: ${EnvConfig.UPLOAD_URL}")
+
     @BeforeTest(groups = [Constants.Groups.HEALTH_CHECK])
     fun beforeTest() {
         authToken = dexUploadClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
@@ -18,10 +22,8 @@ class Health {
     @Test(groups = [Constants.Groups.HEALTH_CHECK])
     fun shouldGetHealthCheck() {
 
-        val expectedDependentServices = arrayOf(
+        val commonServices = arrayOf(
             "Event Publishing processing-status-cosmos-db-report-sink-topics",
-            "Event Publishing ocio-ede-tst-upload-file-ready-topic",
-            "ocio-ede-tst-upload-file-ready-subscription Event Subscriber",
             "Tus storage",
             "Redis Locker",
             "Azure deliver target edav",
@@ -30,6 +32,13 @@ class Health {
             "Azure deliver target eicr",
             "Azure deliver target ncird"
         )
+
+        val envSpecificServices = arrayOf(
+            "Event Publishing ocio-ede-$environment-upload-file-ready-topic",
+            "ocio-ede-$environment-upload-file-ready-subscription Event Subscriber"
+        )
+
+        val expectedDependentServices = commonServices + envSpecificServices
         val healthCheck = dexUploadClient.getHealth(authToken)
 
         Assert.assertNotNull(healthCheck)
