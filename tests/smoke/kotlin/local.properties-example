@@ -1,0 +1,74 @@
+#dev
+upload.url=https://apidev.cdc.gov
+ps.api.url=https://dex-dev-svc.cdc.gov
+sams.username=
+sams.password=
+dex.storage.connection.string=
+edav.storage.account.name=
+routing.storage.connection.string=
+azure.client.id=
+azure.client.secret=
+azure.tenant.id=
+
+# tst
+upload.url=https://apitst.cdc.gov
+ps.api.url=https://dex-tst-svc.cdc.gov
+sams.username=
+sams.password=
+dex.storage.connection.string=
+edav.storage.account.name=
+routing.storage.connection.string=
+azure.client.id=
+azure.client.secret=
+azure.tenant.id=
+
+
+# stg
+upload.url=https://apistg.cdc.gov
+ps.api.url=https://dex-stg-svc.cdc.gov
+sams.username=
+sams.password=
+dex.storage.connection.string=
+edav.storage.account.name=
+routing.storage.connection.string=
+azure.client.id=
+azure.client.secret=
+azure.tenant.id=
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#DEV
+# USERNAME=SYS-370111
+# PASSWORD=Arubra2580*
+# URL=https://apidev.cdc.gov
+
+#TST
+# USERNAME=SYS-370111
+# PASSWORD=Arubra2580*
+# URL=https://apitst.cdc.gov
+
+#STG
+# USERNAME=SYS-370111
+# PASSWORD=Arubra2580*
+# URL=https://apistg.cdc.gov
+
+#PROD
+# USERNAME=SYS-370111
+# PASSWORD=Arubra2580*
+# URL=https://api.cdc.gov
+
