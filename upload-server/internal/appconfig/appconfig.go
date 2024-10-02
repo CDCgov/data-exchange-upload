@@ -43,74 +43,88 @@ type AppConfig struct {
 	// App and for Logger
 	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
-	// Server
-	ServerPort string `env:"SERVER_PORT, default=8080"`
-
 	//QUESTION: this is arbitrary so is it useful?
-	Environment        string `env:"ENVIRONMENT, default=DEV"`
-	EventMaxRetryCount int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
+	Environment string `env:"ENVIRONMENT, default=DEV"`
 
-	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
+	// Server
+	ServerProtocol        string `env:"SERVER_PROTOCOL, default=http"`
+	ServerHostname        string `env:"SERVER_HOSTNAME, default=localhost"`
+	ServerPort            string `env:"SERVER_PORT, default=8080"`
+	TusdHandlerBasePath   string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
+	TusdHandlerInfoPath   string `env:"TUSD_HANDLER_INFO_PATH, default=/info/"`
+	UploadConfigPath      string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
+	EventMaxRetryCount    int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
+	ServerUrl             string
+	ServerFileEndpointUrl string
+	ServerInfoEndpointUrl string
 
+	// process status health
+	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
+
+	// metrics
+	Metrics MetricsConfig `env:", prefix=METRICS_"`
+
+	// TUSD
+	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
+	// TUS Upload file lock
+	TusRedisLockURI string `env:"REDIS_CONNECTION_STRING"`
+
+	// oauth
+	OauthConfig *OauthConfig `env:", prefix=OAUTH_"`
+
+	// UI
+	UIPort    string `env:"UI_PORT, default=:8081"`
+	CsrfToken string `env:"CSRF_TOKEN, default=SwVgY4SfiXNyXCT4U6AvLNURDYS7J+Y/V2j4ng2UVp0XwQY0IUELUT5J5b/FATcE"`
+	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
+
+	// Local file system upload config
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
 	LocalEventsFolder     string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
-	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
-	LocalEDAVFolder       string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
-	LocalRoutingFolder    string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
-	LocalEhdiFolder       string `env:"LOCAL_EHDI_FOLDER, default=./uploads/ehdi"`
-	LocalEicrFolder       string `env:"LOCAL_EICR_FOLDER, default=./uploads/eicr"`
-	LocalNcirdFolder      string `env:"LOCAL_NCIRD_FOLDER, default=./uploads/ncird"`
 
-	// TUSD
-	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
+	// Local file system delivery config
+	LocalRoutingFolder string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
+	LocalEDAVFolder    string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
+	LocalEhdiFolder    string `env:"LOCAL_EHDI_FOLDER, default=./uploads/ehdi"`
+	LocalEicrFolder    string `env:"LOCAL_EICR_FOLDER, default=./uploads/eicr"`
+	LocalNcirdFolder   string `env:"LOCAL_NCIRD_FOLDER, default=./uploads/ncird"`
 
-	// UI
-	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
-	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
-	UIPort               string `env:"UI_PORT, default=:8081"`
-	CsrfToken            string `env:"CSRF_TOKEN, default=SwVgY4SfiXNyXCT4U6AvLNURDYS7J+Y/V2j4ng2UVp0XwQY0IUELUT5J5b/FATcE"`
-	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
+	// Azure upload config
+	AzureConnection              *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
+	AzureUploadContainer         string              `env:"TUS_AZURE_CONTAINER_NAME"`
+	AzureManifestConfigContainer string              `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 
-	// Processing Status
-	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
+	ReporterConnection   *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
+	PublisherConnection  *AzureQueueConfig `env:", prefix=PUBLISHER_,noinit"`
+	SubscriberConnection *AzureQueueConfig `env:", prefix=SUBSCRIBER_,noinit"`
 
-	AzureConnection      *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
-	EdavConnection       *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
-	RoutingConnection    *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
-	EhdiConnection       *AzureStorageConfig `env:", prefix=EHDI_, noinit"`
-	EicrConnection       *AzureStorageConfig `env:", prefix=EICR_, noinit"`
-	NcirdConnection      *AzureStorageConfig `env:", prefix=NCIRD_, noinit"`
-	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
-	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
-	OauthConfig          *OauthConfig        `env:", prefix=OAUTH_"`
+	// Azure delivery config
+	RoutingConnection          *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
+	RoutingCheckpointContainer string              `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
 
-	// Reporting
-	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
+	EdavConnection          *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
+	EdavCheckpointContainer string              `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
 
-	// Azure TUS Upload storage
-	TusRedisLockURI              string `env:"REDIS_CONNECTION_STRING"`
-	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
-	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
-	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
+	EhdiConnection          *AzureStorageConfig `env:", prefix=EHDI_, noinit"`
+	EhdiCheckpointContainer string              `env:"EHDI_CHECKPOINT_CONTAINER_NAME, default=ehdi-checkpoint"`
 
-	// S3
+	EicrConnection          *AzureStorageConfig `env:", prefix=EICR_, noinit"`
+	EicrCheckpointContainer string              `env:"EICR_CHECKPOINT_CONTAINER_NAME, default=eicr-checkpoint"`
+
+	NcirdConnection          *AzureStorageConfig `env:", prefix=NCIRD_, noinit"`
+	NcirdCheckpointContainer string              `env:"NCIRD_CHECKPOINT_CONTAINER_NAME, default=ncird-checkpoint"`
+
+	// S3 upload config
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
 	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
 	S3ManifestConfigFolder string           `env:"DEX_S3_MANIFEST_CONFIG_FOLDER_NAME"`
-	EdavS3Connection       *S3StorageConfig `env:", prefix=EDAV_S3_, noinit"`
-	NcirdS3Connection      *S3StorageConfig `env:", prefix=NCIRD_S3_, noinit"`
-	RoutingS3Connection    *S3StorageConfig `env:", prefix=ROUTING_S3_, noinit"`
 
-	// Upload processing
-	DexCheckpointContainer     string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
-	EdavCheckpointContainer    string `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
-	RoutingCheckpointContainer string `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
-	EhdiCheckpointContainer    string `env:"EHDI_CHECKPOINT_CONTAINER_NAME, default=ehdi-checkpoint"`
-	EicrCheckpointContainer    string `env:"EICR_CHECKPOINT_CONTAINER_NAME, default=eicr-checkpoint"`
-	NcirdCheckpointContainer   string `env:"NCIRD_CHECKPOINT_CONTAINER_NAME, default=ncird-checkpoint"`
-
-	Metrics MetricsConfig `env:", prefix=METRICS_"`
+	// S3 delivery config
+	RoutingS3Connection *S3StorageConfig `env:", prefix=ROUTING_S3_, noinit"`
+	EdavS3Connection    *S3StorageConfig `env:", prefix=EDAV_S3_, noinit"`
+	EhdiS3Connection    *S3StorageConfig `env:", prefix=EHDI_S3_, noinit"`
+	EicrS3Connection    *S3StorageConfig `env:", prefix=EICR_S3_, noinit"`
+	NcirdS3Connection   *S3StorageConfig `env:", prefix=NCIRD_S3_, noinit"`
 } // .AppConfig
 
 type MetricsConfig struct {
@@ -281,6 +295,11 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 			ac.AzureConnection.ContainerEndpoint = fmt.Sprintf("https://%s.blob.core.windows.net", ac.AzureConnection.StorageName)
 		}
 	}
+
+	ac.ServerUrl = fmt.Sprintf("%s://%s:%s", ac.ServerProtocol, ac.ServerHostname, ac.ServerPort)
+	ac.ServerFileEndpointUrl = ac.ServerUrl + ac.TusdHandlerBasePath
+	ac.ServerInfoEndpointUrl = ac.ServerUrl + ac.TusdHandlerInfoPath
+
 	LoadedConfig = &ac
 	return ac, nil
 } // .ParseConfig
