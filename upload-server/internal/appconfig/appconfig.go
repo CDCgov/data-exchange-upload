@@ -74,7 +74,7 @@ type AppConfig struct {
 
 	// UI
 	UIPort    string `env:"UI_PORT, default=:8081"`
-	CsrfToken string `env:"CSRF_TOKEN, default=SwVgY4SfiXNyXCT4U6AvLNURDYS7J+Y/V2j4ng2UVp0XwQY0IUELUT5J5b/FATcE"`
+	CsrfToken string `env:"CSRF_TOKEN, required"`
 	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
 
 	// Local file system upload config
@@ -290,9 +290,18 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 	if err := envconfig.Process(ctx, &ac); err != nil {
 		return AppConfig{}, err
 	} // .if
+
 	if ac.AzureConnection != nil {
-		if ac.AzureConnection.ContainerEndpoint == "" {
+		if ac.AzureConnection.StorageName == "" || ac.AzureConnection.StorageKey == "" {
+			ac.AzureConnection = nil
+		} else if ac.AzureConnection.ContainerEndpoint == "" {
 			ac.AzureConnection.ContainerEndpoint = fmt.Sprintf("https://%s.blob.core.windows.net", ac.AzureConnection.StorageName)
+		}
+	}
+
+	if ac.S3Connection != nil {
+		if ac.S3Connection.BucketName == "" || ac.S3Connection.Endpoint == "" {
+			ac.S3Connection = nil
 		}
 	}
 

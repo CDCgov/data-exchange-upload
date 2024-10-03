@@ -1,22 +1,21 @@
-version: "3.9"
 services:
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
-    container_name: "azurite"
+    container_name: azurite
     hostname: azurite
     restart: always
     ports:
-      - "10000:10000"
-      - "10001:10001"
-      - "10002:10002"
+      - 10000:10000
+      - 10001:10001
+      - 10002:10002
   upload-server:
     environment:
-      - AZURE_STORAGE_ACCOUNT=devstoreaccount1
+      - AZURE_STORAGE_ACCOUNT=${AZURE_STORAGE_ACCOUNT:-devstoreaccount1}
       # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
       - AZURE_STORAGE_KEY=${AZURE_STORAGE_KEY}
-      - AZURE_ENDPOINT=http://azurite:10000/devstoreaccount1
-      - TUS_AZURE_CONTAINER_NAME=test
-      - DEX_MANIFEST_CONFIG_CONTAINER_NAME=config
+      - AZURE_ENDPOINT=${AZURE_ENDPOINT:-http://azurite:10000/devstoreaccount1}
+      - TUS_AZURE_CONTAINER_NAME=${TUS_AZURE_CONTAINER_NAME:-test}
+      - DEX_MANIFEST_CONFIG_CONTAINER_NAME=${DEX_MANIFEST_CONFIG_CONTAINER_NAME:-config}
     depends_on:
       - azurite
       - cache

@@ -27,6 +27,14 @@ import (
 const appMainExitCode = 1
 
 func init() {
+	// ------------------------------------------------------------------
+	// parse and load cli flags
+	// ------------------------------------------------------------------
+	err := cli.ParseFlags()
+	if err != nil {
+		slog.Error("error starting app, error parsing cli flags", "error", err)
+		os.Exit(appMainExitCode)
+	} // .if
 
 	if cli.Flags.AppConfigPath != "" {
 		slog.Info("Loading environment from", "file", cli.Flags.AppConfigPath)
@@ -36,9 +44,6 @@ func init() {
 		} // .if
 	}
 
-	// ------------------------------------------------------------------
-	// parse and load config from os exported
-	// ------------------------------------------------------------------
 }
 
 func main() {

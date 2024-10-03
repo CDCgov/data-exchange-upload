@@ -32,7 +32,7 @@ jobs:
     name: Simulation Test
     runs-on: ubuntu-latest
     env:
-      AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
+      AZURE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
