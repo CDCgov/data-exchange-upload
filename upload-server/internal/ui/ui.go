@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,7 +20,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/dustin/go-humanize"
 	"github.com/eventials/go-tus"
-	"github.com/google/uuid"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	"golang.org/x/text/cases"
@@ -189,15 +187,10 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			http.Error(rw, string(respMsg), resp.StatusCode)
 			return
 		}
-		loc := resp.Header.Get("Location")
-		loc = strings.Split(loc, "+")[0]
-		uuid, err := uuid.Parse(filepath.Base(loc))
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		uuid := resp.Header.Get("Location")
+		uuid = strings.Split(uuid, "http://localhost:8080/files/")[1]
 
-		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid.String()), http.StatusFound)
+		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid), http.StatusFound)
 	}).Methods("POST")
 	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
