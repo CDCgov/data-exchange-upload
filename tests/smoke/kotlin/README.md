@@ -28,7 +28,9 @@ environment variables need to point to URLs, endpoints, and services uses by the
 The EnvConfig class reads configuration values from a local.properties file. This setup allows us to manage environment-specific settings, like URLs and credentials.
 
 Storage account keys can be found in our key vaults (ocio-<env>-upload-vault). 
-Example of dev key vault: ocio-dev-upload-vault - Microsoft Azure. Need to have `su` account for Microsoft Azure portal as a pre-requisite.
+Example of dev key vault: `ocio-dev-upload-vault - Microsoft Azure`. Need to have `su` account for Microsoft Azure portal as a pre-requisite.
+
+![img.png](img.png)
 
 ### Running tests
 
