@@ -36,4 +36,4 @@ RUN chown app:app ./dextusd
 USER app
 
 EXPOSE 8080
-ENTRYPOINT [ "./dextusd" ]
+CMD [ "./dextusd" ]
