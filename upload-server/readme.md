@@ -15,18 +15,35 @@ Repo is structured (as feasible) based on the [golang-standards/project-layout](
 
 ### Configuring the storage backend
 
-This service currently supports local file system, Azure, and AWS as storage backends. Configuring a storage backend
-for your setup is done via environment variables. Environment variables can be set at the system level, or via a `.env` file
-located within the `configs/local/` directory. Here are some examples for configuring the different storage backends
-that this service supports.
+This service currently supports local file system, Azure, and AWS as storage backends. Configuring a storage backend for your setup is done via environment variables. Environment variables can be set at the system level, or via a `.env` file located within the `upload-server/` directory.
+
+Here are some examples for configuring the different storage backends that this service supports. All of the following commands should be run from the `upload-server/` directory.
 
 #### Local file system
 
-By default, this service uses the file system of the host machine it is running on as a storage backend. Therefore, no
-environment variables are necessary to set. To run, simply execute
+By default, this service uses the file system of the host machine it is running on as a storage backend. Therefore, no environment variables are necessary to set.
 
-```go
+##### Run manually
+
+To run, simply execute
+
+```shell
 go run ./cmd/main.go
+```
+
+```shell
+go run ./cmd/main.go -appconf=./.env 
+```
+
+##### Run using Docker
+
+```shell
+docker-compose up -d
+```
+
+```shell
+docker build -t dextusdimage .
+docker run -d -p 8080:8080 -p 8081:8081 -v .:/conf --name dextusdcontainer dextusdimage -appconf=/conf/.env
 ```
 
 This will start the HTTP server at http://localhost:8080. With a Tus client, you can upload files to http://localhost:8080/files,
@@ -161,7 +178,7 @@ go tool cover -html=c.out
 ```
 
 ## Integration Testing (with minio and azurite)
-Create a .env with, or export, AZURITE_STORAGE_KEY=\<[the default key here](https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account)\>
+Create a .env with, or export, AZURE_STORAGE_KEY=\<[the default key here](https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account)\>
 run
 ```
 podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-server
