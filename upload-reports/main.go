@@ -22,20 +22,28 @@ type ReportConfig struct {
 	StartDate   string
 	EndDate     string
 	TargetEnv   string
+	PsApiUrl    string
+}
+
+type ReportDataRow struct {
+	DataStream           string
+	Route                string
+	StartDate            string
+	EndDate              string
+	UploadCount          string
+	DeliverySuccessCount string
+	DeliveryEndCount     string
 }
 
 func main() {
 	// Load environment variables and config
 	config := getConfig()
-	fmt.Printf("Target Env: %s, DataStreams: %v, Start Date: %v, End Date: %v\n", config.TargetEnv, config.DataStreams, config.StartDate, config.EndDate)
+	fmt.Printf("Target Env: %s, DataStreams: %v, Start Date: %s, End Date: %s\n", config.TargetEnv, config.DataStreams, config.StartDate, config.EndDate)
 
-	// Fetch data from GraphQL API
-	// apiURL := getEnvVar("GRAPHQL_API_URL")
-	// csvData, err := fetchDataFromGraphQL(apiURL)
-	// if err != nil {
-	// 	log.Fatalf("Error fetching data from GraphQL API: %v", err)
-	// }
-	//
+	csvData := getCsvData(config)
+
+	fmt.Printf("Fetched CSV Data: %v\n", csvData)
+
 	// // Create CSV
 	// csvBytes, err := createCSV(csvData)
 	// if err != nil {
@@ -63,62 +71,108 @@ func getConfig() ReportConfig {
 	startDate := getEnvVar("START_DATE")
 	endDate := getEnvVar("END_DATE")
 	targetEnv := getEnvVar("ENV")
+	psApiUrl := getEnvVar("PS_API_ENDPOINT")
 
 	config := ReportConfig{
 		DataStreams: dataStreams,
 		StartDate:   startDate,
 		EndDate:     endDate,
 		TargetEnv:   targetEnv,
+		PsApiUrl:    psApiUrl,
 	}
 
 	return config
 }
 
-// func fetchDataFromGraphQL(apiURL string) ([][]string, error) {
-// 	src := oauth2.StaticTokenSource(
-// 		&oauth2.Token{AccessToken: os.Getenv("GRAPHQL_TOKEN")},
-// 	)
-// 	httpClient := oauth2.NewClient(context.Background(), src)
-//
-// 	client := graphql.NewClient("https://example.com/graphql", httpClient)
-//
-// 	req := graphql.NewRequest(`
-// 		query {
-// 			# Your GraphQL query here
-// 			uploads {
-// 				id
-// 				filename
-// 				timestamp
-// 			}
-// 		}
-// 	`)
-//
-// 	// Add headers if required
-// 	req.Header.Set("Authorization", "Bearer "+getEnvVar("API_TOKEN"))
-//
-// 	// Define a response structure
-// 	var response struct {
-// 		Uploads []struct {
-// 			ID        string
-// 			Filename  string
-// 			Timestamp string
-// 		}
-// 	}
-//
-// 	// Perform the request
-// 	if err := client.Run(context.Background(), req, &response); err != nil {
-// 		return nil, err
-// 	}
-//
-// 	// Prepare data for CSV
-// 	var csvData [][]string
-// 	csvData = append(csvData, []string{"ID", "Filename", "Timestamp"})
-// 	for _, upload := range response.Uploads {
-// 		csvData = append(csvData, []string{upload.ID, upload.Filename, upload.Timestamp})
-// 	}
-//
-// 	return csvData, nil
-// }
+func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (ReportDataRow, error) {
+	fmt.Printf("PS-API graphql endpoint: %s\n", apiURL)
+
+	// src := oauth2.StaticTokenSource(
+	// 	&oauth2.Token{AccessToken: os.Getenv("GRAPHQL_TOKEN")},
+	// )
+	// httpClient := oauth2.NewClient(context.Background(), src)
+	//
+	// client := graphql.NewClient("https://example.com/graphql", httpClient)
+	//
+	// req := graphql.NewRequest(`
+	// 	query {
+	// 		# Your GraphQL query here
+	// 		uploads {
+	// 			id
+	// 			filename
+	// 			timestamp
+	// 		}
+	// 	}
+	// `)
+	//
+	// // Add headers if required
+	// req.Header.Set("Authorization", "Bearer "+getEnvVar("API_TOKEN"))
+
+	var uploadResponse struct {
+		Datestream string
+		Route      string
+		Count      string
+	}
+
+	var deliveryResponse struct {
+		Datestream   string
+		Route        string
+		SuccessCount string
+		FailCount    string
+	}
+
+	// Perform the request
+	// if err := client.Run(context.Background(), req, &response); err != nil {
+	// 	return nil, err
+	// }
+
+	reportRow := ReportDataRow{
+		DataStream:           datastream,
+		Route:                route,
+		StartDate:            startDate,
+		EndDate:              endDate,
+		UploadCount:          uploadResponse.Count,
+		DeliverySuccessCount: deliveryResponse.SuccessCount,
+		DeliveryEndCount:     deliveryResponse.FailCount,
+	}
+
+	return reportRow, nil
+}
+
+func getCsvData(config ReportConfig) [][]string {
+
+	// Prepare data for CSV
+	var csvData [][]string
+	csvData = append(csvData, []string{"Data Stream", "Route", "Start Date", "End Date", "Upload Count", "Delivery Success Count", "Delivery Fail Count"})
+
+	for _, ds := range config.DataStreams {
+		streamAndRoute := strings.Split(ds, "-")
+		if len(streamAndRoute) != 2 {
+			log.Fatalf("Data stream passed in does not have correct formatting: %s", ds)
+		}
+
+		datastream := streamAndRoute[0]
+		route := streamAndRoute[1]
+
+		rowData, err := fetchDataForDataStream(config.PsApiUrl, datastream, route, config.StartDate, config.EndDate)
+		if err != nil {
+			log.Fatalf("Error fetching data from GraphQL API: %v", err)
+		}
+
+		csvData = append(csvData, []string{
+			rowData.DataStream,
+			rowData.Route,
+			rowData.StartDate,
+			rowData.EndDate,
+			rowData.UploadCount,
+			rowData.DeliverySuccessCount,
+			rowData.DeliveryEndCount,
+		})
+	}
+
+	return csvData
+
+}
 
 func createCSV(data [][]string) ([]byte, error) {
 	var buf bytes.Buffer
