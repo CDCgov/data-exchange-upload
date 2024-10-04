@@ -8,6 +8,7 @@ import (
 	"log"
 	// "net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -30,9 +31,9 @@ type ReportDataRow struct {
 	Route                string
 	StartDate            string
 	EndDate              string
-	UploadCount          string
-	DeliverySuccessCount string
-	DeliveryEndCount     string
+	UploadCount          int
+	DeliverySuccessCount int
+	DeliveryEndCount     int
 }
 
 func main() {
@@ -42,15 +43,14 @@ func main() {
 
 	csvData := getCsvData(config)
 
-	fmt.Printf("Fetched CSV Data: %v\n", csvData)
+	csvBytes, err := createCSV(csvData)
+	if err != nil {
+		log.Fatalf("Error creating CSV: %v", err)
+	}
 
-	// // Create CSV
-	// csvBytes, err := createCSV(csvData)
-	// if err != nil {
-	// 	log.Fatalf("Error creating CSV: %v", err)
-	// }
-	//
-	// // Upload CSV to S3
+	fmt.Printf("CSV Data: %v\n", csvBytes)
+
+	// Upload CSV to S3
 	// bucketName := "upload-file-count-reports"
 	// key := fmt.Sprintf("file-counts-report-%s.csv", targetEnv)
 	// if err := uploadCsvToS3(bucketName, key, csvBytes); err != nil {
@@ -111,14 +111,25 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 	var uploadResponse struct {
 		Datestream string
 		Route      string
-		Count      string
+		Count      int
 	}
 
 	var deliveryResponse struct {
 		Datestream   string
 		Route        string
-		SuccessCount string
-		FailCount    string
+		SuccessCount int
+		FailCount    int
+	}
+
+	// TODO: for testing, remove later
+	if route == "csv" {
+		uploadResponse.Count = 5
+		deliveryResponse.SuccessCount = 6
+		deliveryResponse.FailCount = 2
+	} else {
+		uploadResponse.Count = 7
+		deliveryResponse.SuccessCount = 3
+		deliveryResponse.FailCount = 1
 	}
 
 	// Perform the request
@@ -164,9 +175,9 @@ func getCsvData(config ReportConfig) [][]string {
 			rowData.Route,
 			rowData.StartDate,
 			rowData.EndDate,
-			rowData.UploadCount,
-			rowData.DeliverySuccessCount,
-			rowData.DeliveryEndCount,
+			strconv.Itoa(rowData.UploadCount),
+			strconv.Itoa(rowData.DeliverySuccessCount),
+			strconv.Itoa(rowData.DeliveryEndCount),
 		})
 	}
 
