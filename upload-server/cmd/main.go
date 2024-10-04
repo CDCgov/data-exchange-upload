@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"testing"
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -35,6 +36,13 @@ func init() {
 		slog.Error("error starting app, error parsing cli flags", "error", err)
 		os.Exit(appMainExitCode)
 	} // .if
+
+	if !testing.Testing() {
+		if err := cli.ParseFlags(); err != nil {
+			slog.Error("error starting app, error parsing cli flags", "error", err)
+			os.Exit(appMainExitCode)
+		}
+	}
 
 	if cli.Flags.AppConfigPath != "" {
 		slog.Info("Loading environment from", "file", cli.Flags.AppConfigPath)

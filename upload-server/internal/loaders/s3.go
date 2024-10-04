@@ -25,7 +25,7 @@ func (l *S3ConfigLoader) LoadConfig(ctx context.Context, path string) ([]byte, e
 		Key:    &key,
 	})
 	defer func() {
-		if output.Body != nil {
+		if output != nil && output.Body != nil {
 			output.Body.Close()
 		}
 	}()

@@ -25,6 +25,13 @@ variables, look at the `src/test/kotlin/util/EnvConfig.kt` file.
 These environment variables are how you target different DEX environments. For example, for the dev environment, all
 environment variables need to point to URLs, endpoints, and services uses by the Upload API dev environment.
 
+The EnvConfig class reads configuration values from a local.properties file. This setup allows us to manage environment-specific settings, like URLs and credentials.
+
+Storage account keys can be found in our key vaults (ocio-<env>-upload-vault). 
+Example of dev key vault: `ocio-dev-upload-vault - Microsoft Azure`. Need to have `su` account for Microsoft Azure portal as a pre-requisite.
+
+![img.png](img.png)
+
 ### Running tests
 
 This project contains a set of test suites that define the tests to be run. These suites are grouped by environment and
