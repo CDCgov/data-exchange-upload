@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -188,7 +189,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			return
 		}
 		uuid := resp.Header.Get("Location")
-		uuid = strings.Split(uuid, "/files/")[1]
+		uuid = filepath.Base(uuid)
 
 		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid), http.StatusFound)
 	}).Methods("POST")
