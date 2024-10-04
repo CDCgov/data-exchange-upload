@@ -188,7 +188,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			return
 		}
 		uuid := resp.Header.Get("Location")
-		uuid = strings.Split(uuid, "http://localhost:8080/files/")[1]
+		uuid = strings.Split(uuid, "/files/")[1]
 
 		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid), http.StatusFound)
 	}).Methods("POST")
