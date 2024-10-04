@@ -50,7 +50,7 @@ Running the server with the default configurations will use the local file syste
 
 These files will be uploaded by default to the `upload-server/uploads/tus-prefix/` directory. The base `uploads/` directory name and location can be changed using the `LOCAL_FOLDER_UPLOAD_TUS` environment variable. The `tus-prefix/` name can be changed using the `TUS_UPLOAD_PREFIX` environment variable.
 
-Information about file uploads and delivery are stored as reports and events in the `upload-server/uploads/reports/` and `upload-server/uploads/events` respectively. If delivery targets are specified in the metadata, they will be sent to the corresponding directory in `upload-server/uploads/`.
+Information about file uploads and delivery are stored as reports and events in the `upload-server/uploads/reports/` and `upload-server/uploads/events` respectively. If delivery targets are specified in the sender manifest config file, they will be sent to the corresponding directory in `upload-server/uploads/`.
 
 Default folder structure
 
@@ -200,7 +200,7 @@ If you name this file `.env` you can get the benefits of the [dotenv file format
 >[!WARNING]
 > Never check your `.env` file into source control. It should only be on your local computer or on the server you are using it on.
 
-### Configuring Common Service
+### Common Service Configurations
 
 *upload-server/.env*:
 
@@ -259,8 +259,6 @@ OAUTH_INTROSPECTION_URL=https://introspection.url # set the introspection url, u
 
 This service currently supports local file system, Azure, and AWS as storage backends. You can only use one storage backend at a time. If the Azure configurations are set, it will be the storage backend regardless. If the Azure configurations are not set and the S3 configurations are set, S3 will be the storage backend. If neither Azure or S3 configurations are set, local storage will be the storage backend.
 
-Here are some examples for configuring the different storage backends that this service supports. All of the following commands should be run from the `upload-server/` directory.
-
 #### Local file system
 
 By default, this service uses the file system of the host machine it is running on as a storage backend. Therefore, no environment variables are necessary to set. You can change the directory the service will use as the base of the uploads
@@ -271,9 +269,19 @@ By default, this service uses the file system of the host machine it is running 
 LOCAL_FOLDER_UPLOADS_TUS= # set the relative path to the folder where tus will upload files to, default=./uploads
 ```
 
+##### Sender manifest config location
+
+By default, the service uses the sender manifest config files located in `../upload-configs`. These files within this directory are split into the sub directories `v1` and `v2` depending on their version. The service will default to the v2 files if there are two versions of the same sender manifest config. You can change the base of the configs directory
+
+*upload-server/.env*:
+
+```vim
+UPLOAD_CONFIG_PATH= # set the path to the `upload-configs/` directory, default=../upload-configs
+```
+
 #### Azure Storage Account
 
-To upload to an Azure Storage Account, you'll need to collect the name, access key, and endpoint URI of the account. You also need to create a Blob Container within the account. You must set the following environment variables to use Azure.
+To upload to an Azure Storage Account, you'll need to collect the name, access key, and endpoint URI of the account. You also need to create a [Blob container](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer) within the account. You must set the following environment variables to use Azure.
 
 *upload-server/.env*:
 
@@ -281,6 +289,7 @@ To upload to an Azure Storage Account, you'll need to collect the name, access k
 AZURE_STORAGE_ACCOUNT= # set the name of the storage account
 AZURE_STORAGE_KEY= # set the private access key or SAS token of the storage account
 AZURE_ENDPOINT= # set the URI of the storage account
+TUS_AZURE_CONTAINER_NAME= # set the container name for the uploads blob
 ```
 
 ##### Azure local development
@@ -303,20 +312,21 @@ AZURE_CLIENT_ID= # set the client id
 AZURE_CLIENT_SECRET= # set the client secret
 ```
 
-##### Optional Azure configurations
+##### Optional Azure blob for sender manifest config files
 
-You can also configure:
+If you would like to store the sender manifest config files on Azure, create a blob container for them using the same credentials as the upload blob container. Copy the `../upload-configs/v1` and `../upload-configs/v2` directories to the blob. Set `DEX_MANIFEST_CONFIG_CONTAINER_NAME` to the new blob container name
 
 *upload-server/.env*:
 
 ```vim
-TUS_AZURE_CONTAINER_NAME= # set the container name for the uploads blob
 DEX_MANIFEST_CONFIG_CONTAINER_NAME= # set the container name for the manifests blob
 ```
 
+If `DEX_MANIFEST_CONFIG_CONTAINER_NAME` is not set, the sender manifest config files on the file system will be used.
+
 #### S3
 
-To use an AWS S3 bucket as the storage backend, you'll need to create a bucket to upload to within S3 and give a user or service read and write access to it. Then set the bucket name and endpoint URI of the S3 instance.
+To use an AWS S3 bucket as the storage backend, you'll need to [create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) to upload to within S3 and give a user or service read and write access to it. Then set the bucket name and endpoint URI of the S3 instance.
 
 *upload-server/.env*:
 
@@ -375,16 +385,153 @@ region = <REGION>
 
 > Note: If you use a credential profile that is not [default], you need to explicitly set the `AWS_PROFILE` environment variable to the profile you want to use, before starting the service.
 
-##### Optional AWS configurations
+##### Optional AWS S3 bucket for sender manifest config files
 
-You can also configure:
+If you would like to store the sender manifest config files in an AWS S3 bucket, set the `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` environment variable to the directory in the bucket to use. Optionally, you can also create a new bucket for the configs and set `DEX_MANIFEST_CONFIG_BUCKET_NAME` environment variable to that new bucket name. The new bucket must use the same credentials as the upload bucket. Copy the`../upload-configs/v1` and `../upload-configs/v2` directories to the new config folder in the bucket
 
 *upload-server/.env*:
 
 ```vim
-DEX_MANIFEST_CONFIG_BUCKET_NAME= # set the name of the bucket containing the `upload-config` files, if not set it defaults to the main bucket
 DEX_S3_MANIFEST_CONFIG_FOLDER_NAME= # set the name of the directory in side the bucket containing the `upload-config` files
+DEX_MANIFEST_CONFIG_BUCKET_NAME= # if there is a separate configs bucket, set the name of the configs bucket, if not set it defaults to the main bucket
 ```
+
+If `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` is not set, the sender manifest config files on the file system will be used.
+
+### Configuring the reports location
+
+By default, the reports of upload and delivery activity are written to the `./uploads/reports` directory in the local file system.
+
+#### Local file system reports directory
+
+To change the location of the report files
+
+*upload-server/.env*:
+
+```vim
+LOCAL_REPORTS_FOLDER= # set the relative path to the report folder
+```
+
+#### Azure report service bus
+
+Create an Azure service bus [queue](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-portal) or [topic](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal) for publishing the report messages. Set the following environment variables with the details from the new service bus
+
+*upload-server/.env*:
+
+```vim
+REPORTER_CONNECTION_STRING= # set the connection string with credentials for Azure
+REPORTER_QUEUE= # set the queue name, if the service bus is a queue
+REPORTER_TOPIC= # set the topic name, if the service bus ia topic
+```
+
+### Configuring the event publication and subscription
+
+By default, the event messages about upload and delivery activity are written to the `./uploads/events` directory in the local file system.
+
+#### Local file system events directory
+
+To change the location of the event files
+
+*upload-server/.env*:
+
+```vim
+LOCAL_EVENTS_FOLDER= # set the relative path of the event directory
+```
+
+#### Azure event publisher and subscriber service buses
+
+##### Event publisher
+
+Create an Azure service bus [topic](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal) for publishing event messages. Set the following environment variables with the details from the new service bus topic
+
+*upload-server/.env*:
+
+```vim
+PUBLISHER_CONNECTION_STRING= # set the connection string for Azure
+PUBLISHER_TOPIC= # set the topic name, if a topic was created
+```
+
+##### Subscriber
+
+Create a [subscription](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal#create-subscriptions-to-the-topic) for the desired Azure service bus topic. Set the environment variables with the details from the new subscription
+
+*upload-server/.env*:
+
+```vim
+SUBSCRIBER_CONNECTION_STRING= # set the connection string for Azure
+SUBSCRIBER_TOPIC= # set the topic of the new subscription
+SUBSCRIBER_SUBSCRIPTION= # set the name of the new subscription
+```
+
+### Configuring the delivery targets
+
+Once the file has been completely uploaded, it can be copied to several other destinations. The destinations the file will be copied to depend on the configurations in the sender manifest configuration file it is associated with. The possible targets are: `routing`, `edav`, `ehdi`, `eicr`, and `ncird`. For instance, files of this type will also be copied to `edav`, `ehdi`, `eicr`, and `ncird`.
+
+*upload-configs/v2/dextesting-testevent1.json*:
+
+```json
+{
+    "metadata_config": { ... },
+    "copy_config": {
+      "filename_suffix": "upload_id",
+      "folder_structure": "date_YYYY_MM_DD",
+      "targets": [
+         "edav",
+         "ehdi",
+         "eicr",
+         "ncird"
+      ]
+   }
+}
+```
+
+Each of these endpoints can be configured independently to point to a local file system directory, an Azure Blob container, or an AWS S3 bucket. By default, they all use local file system directories. If an Azure connection is defined for a target, then it will take precedence over the local file system configuration and files will be delivered there. If an S3 connection is defined for a target, then it will take precedence over both the local file system and the Azure configuration and files will be delivered there.
+
+#### Local file system target
+
+To change the default local file system directory for a target
+
+*upload-server/.env*:
+
+```vim
+LOCAL_ROUTING_FOLDER= # set the relative path to the routing target directory 
+LOCAL_EDAV_FOLDER= # set the relative path to the edav target directory 
+LOCAL_EHDI_FOLDER= # set the relative path to the ehdi target directory 
+LOCAL_EICR_FOLDER= # set the relative path to the eicr target directory 
+LOCAL_NCIRD_FOLDER= # set the relative path to the ncird target directory 
+```
+
+#### Azure blob target
+
+Create an Azure [Blob container](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer) or get the values from an existing Blob container. The environment variables for each target type are the same except each variable is prepended with the target name, for instance
+
+*upload-server/.env*:
+
+```vim
+EDAV_STORAGE_ACCOUNT= # set the name of the edav account
+EDAV_STORAGE_KEY= # set the private access key or SAS token of the edav account
+EDAV_ENDPOINT= # set the URI of the edav account
+EDAV_CHECKPOINT_CONTAINER_NAME= # set the edav blob container name
+
+EDAV_TENANT_ID= # optionally, set the service principal tenant id
+EDAV_CLIENT_ID= # optionally, set the service principal client id
+EDAV_CLIENT_SECRET= # optionally, set the service principal client secret
+```
+
+So to configure the `ehdi` target, `EDAV` in all of the variables would be replaced by `EHDI`, and so on.
+
+#### AWS S3 bucket target
+
+Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) or get the values from an existing S3 bucket. The service currently only supports one set of AWS credentials ([see AWS Authentication](#aws-authentication)) so all of the S3 buckets have to be in the same AWS account. The environment variables for each target type are the same except each variable is prepended with the target name, for instance
+
+*upload-server/.env*:
+
+```vim
+EHDI_S3_ENDPOINT=
+EHDI_S3_BUCKET_NAME=
+```
+
+So to configure the `eicr` target, `EHDI` in all of the variables would be replaced by `EICR`, and so on.
 
 ## Testing
 
