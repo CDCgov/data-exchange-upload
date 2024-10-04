@@ -16,7 +16,6 @@ services:
       - AZURE_STORAGE_KEY=${AZURE_STORAGE_KEY}
       - AZURE_ENDPOINT=http://azurite:10000/devstoreaccount1
       - TUS_AZURE_CONTAINER_NAME=test
-      - DEX_MANIFEST_CONFIG_CONTAINER_NAME=config
     depends_on:
       - azurite
       - cache
