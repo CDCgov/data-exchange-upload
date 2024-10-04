@@ -57,25 +57,24 @@ type AppConfig struct {
 	ServerUrl             string
 	ServerFileEndpointUrl string
 	ServerInfoEndpointUrl string
-
-	// process status health
-	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
-
-	// metrics
-	Metrics MetricsConfig `env:", prefix=METRICS_"`
+	Metrics               MetricsConfig `env:", prefix=METRICS_"`
 
 	// TUSD
 	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
+
+	// UI
+	UIPort    string `env:"UI_PORT, default=:8081"`
+	CsrfToken string `env:"CSRF_TOKEN, required"`
+	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
+
 	// TUS Upload file lock
 	TusRedisLockURI string `env:"REDIS_CONNECTION_STRING"`
 
 	// oauth
 	OauthConfig *OauthConfig `env:", prefix=OAUTH_"`
 
-	// UI
-	UIPort    string `env:"UI_PORT, default=:8081"`
-	CsrfToken string `env:"CSRF_TOKEN, required"`
-	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
+	// process status health
+	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
 	// Local file system upload config
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
