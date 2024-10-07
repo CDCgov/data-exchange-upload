@@ -1,11 +1,13 @@
 # CDC Data Exchange (DEX) Upload
+ 
+The CDC Data Exchage (DEX) Upload API is an open-source service created to support public health Data Senders in their effort to share critical public health data with internal CDC Programs. The open-source model allows users to tailor the tool to fit specific data needs. <br/>
 
-This repository manages the CDC Data Exchange (DEX) Upload API service functionalities. 
+The Upload API service is a highly scalable, highly reliable means of transiting files of nearly any type and size from public health partners to the CDC, even when sent over unreliable network connections.  T
 
 
 ## Upload Services
 
-**Resumable Uploads**: Implementation of the Tus service as a library in a Golang application, facilitating high volume file uploads over secure HTTP. 
+**Resumable Uploads**: Implementation of the Tus service as a library in a Golang application, facilitating high volume file uploads over HTTP. 
 
 **Authentication**: OAuth provider approval enforcement to ensure security.
 
