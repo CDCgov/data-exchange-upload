@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] 2024-09-26
+- Direct file delivery to CDC Program storage
+- Agnostic subfolder delivery path template implementation
+- NDLP configuration addition
+
+## [2.4.1] 2024-09-20
+- Delivery status addition to the /info endpoint
+- In-memory event system stability improvements
+
 ## [2.3.0] 2024-08-21
 - Embedding of file post processing and delivery capabilities into the upload tus service
 - v2 PS API reports for improved observability
