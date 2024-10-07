@@ -1,5 +1,13 @@
 version: 1.0
 
+#azure defaults for edav
+az-edav-defaults: &az-edav
+  endpoint: $EDAV_ENDPOINT
+  destination_container: $EDAV_CHECKPOINT_CONTAINER_NAME
+  tenant_id: $EDAV_TENANT_ID
+  client_id: $EDAV_CLIENT_ID
+  client_secret: $EDAV_CLIENT_SECRET
+
 #azure defaults for ehdi & eicr
 az-ehdi-eicr-defaults: &az-ehdi-eicr
   tenant_id: $EHDI_TENANT_ID
@@ -14,22 +22,41 @@ az-ncird-defaults: &az-ncird
   client_id: $NCIRD_CLIENT_ID
   client_secret: $NCIRD_CLIENT_SECRET
 
-#azure defaults for edav
-az-edav-defaults: &az-edav
-  endpoint: $EDAV_ENDPOINT
-  destination_container: $EDAV_CHECKPOINT_CONTAINER_NAME
-  tenant_id: $EDAV_TENANT_ID
-  client_id: $EDAV_CLIENT_ID
-  client_secret: $EDAV_CLIENT_SECRET
-
 #s3 defaults
 s3-defaults: &s3
   endpoint: $S3_ENDPOINT
   access_key_id: $S3_ACCESS_KEY_ID
   secret_access_key: $S3_SECRET_ACCESS_KEY
   region: us-east-1
+  bucket_name: target
 
+# if needed, properties of an anchor can be overridden
+# in a delivery target
+#
+# path_template can be defined at data_stream level
+# where it is valid for all targets unless
+# a target defines its own path_template property
+#
+# to disable a target, place - before the name
+# e.g. -ncird
+# or simply remove it if not needed anymore
 programs:
+#edav
+  - data_stream_id: pulsenet
+    data_stream_route: localsequencefile
+    delivery_targets:
+      - name: -edav
+        type: s3
+# edav az blob example
+#     - name: edav-az
+#       type: az-blob
+#       <<: *az-edav
+####### override defaults if needed
+#       endpoint: $EDAV_ENDPOINT
+#       destination_container: $EDAV_CHECKPOINT_CONTAINER_NAME
+#       path_template: $EDAV_PATH_TEMPLATE
+
+#ehdi
   - data_stream_id: ehdi
     data_stream_route: csv
     path_template: $EHDI_PATH_TEMPLATE
@@ -37,7 +64,8 @@ programs:
       - name: ehdi
         type: s3
         <<: *s3
-        bucket_name: target
+# multi target example
+# note the bucket_name override
       - name: ehdi-backup
         type: s3
         <<: *s3
@@ -45,12 +73,16 @@ programs:
       - name: ehdi-local
         type: file
         directory: $LOCAL_EHDI_FOLDER
-  #   - name: ehdi-az
-  #     az-blob:
-  #       <<: *az-ehdi-eicr
-  #       endpoint: $EHDI_ENDPOINT
-  #       destination_container: $EHDI_CHECKPOINT_CONTAINER_NAME
-  #       path_template: $EHDI_PATH_TEMPLATE
+# ehdi az blob example
+#     - name: ehdi-az
+#       type: az-blob
+#       <<: *az-ehdi-eicr
+  ####### override defaults if needed
+#       endpoint: $EHDI_ENDPOINT
+#       destination_container: $EHDI_CHECKPOINT_CONTAINER_NAME
+#       path_template: $EHDI_PATH_TEMPLATE
+
+# eicr
   - data_stream_id: eicr
     data_stream_route: fhir
     path_template: $EICR_PATH_TEMPLATE
@@ -58,4 +90,41 @@ programs:
       - name: eicr
         type: s3
         <<: *s3
+# ncird
+  - data_stream_id: covid-all-monthly-vaccination
+    data_stream_route: csv
+    delivery_targets:
+      - name:                     -ncird
+        type: s3
+        <<: *s3
+  - data_stream_id: rsp-prevention
+    data_stream_route: csv
+    delivery_targets:
+      - name: -ncird
+        type: s3
+        <<: *s3
+  - data_stream_id: generic-immunization
+    data_stream_route: csv
+    delivery_targets:
+      - name: -ncird
+        type: s3
+        <<: *s3
         bucket_name: target
+  - data_stream_id: influenza-vaccination
+    data_stream_route: csv
+    delivery_targets:
+      - name: -ncird
+        type: s3
+        <<: *s3
+  - data_stream_id: routine-immunization
+    data_stream_route: other
+    delivery_targets:
+      - name: -ncird
+        type: s3
+        <<: *s3
+  - data_stream_id: rsp-prevention
+    data_stream_route: csv
+    delivery_targets:
+      - name: -ncird
+        type: s3
+        <<: *s3
