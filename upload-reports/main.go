@@ -6,16 +6,15 @@ import (
 	"encoding/csv"
 	"fmt"
 	"log"
-	// "net/http"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	// "github.com/shurcooL/graphql"
-	// "golang.org/x/oauth2"
 )
 
 type ReportConfig struct {
@@ -31,13 +30,12 @@ type ReportDataRow struct {
 	Route                string
 	StartDate            string
 	EndDate              string
-	UploadCount          int
-	DeliverySuccessCount int
-	DeliveryEndCount     int
+	UploadCount          int64
+	DeliverySuccessCount int64
+	DeliveryEndCount     int64
 }
 
 func main() {
-	// Load environment variables and config
 	config := getConfig()
 	fmt.Printf("Target Env: %s, DataStreams: %v, Start Date: %s, End Date: %s\n", config.TargetEnv, config.DataStreams, config.StartDate, config.EndDate)
 
@@ -50,12 +48,11 @@ func main() {
 
 	fmt.Printf("CSV Data: %v\n", csvBytes)
 
-	// Upload CSV to S3
-	// bucketName := "upload-file-count-reports"
-	// key := fmt.Sprintf("file-counts-report-%s.csv", targetEnv)
-	// if err := uploadCsvToS3(bucketName, key, csvBytes); err != nil {
-	// 	log.Fatalf("Error uploading CSV to S3: %v", err)
-	// }
+	bucketName := "upload-file-count-reports"
+	key := fmt.Sprintf("file-counts-report-%s.csv", config.TargetEnv)
+	if err := uploadCsvToS3(bucketName, key, csvBytes); err != nil {
+		log.Fatalf("Error uploading CSV to S3: %v", err)
+	}
 }
 
 func getEnvVar(key string) string {
@@ -87,64 +84,25 @@ func getConfig() ReportConfig {
 func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (ReportDataRow, error) {
 	fmt.Printf("PS-API graphql endpoint: %s\n", apiURL)
 
-	// src := oauth2.StaticTokenSource(
-	// 	&oauth2.Token{AccessToken: os.Getenv("GRAPHQL_TOKEN")},
-	// )
-	// httpClient := oauth2.NewClient(context.Background(), src)
-	//
-	// client := graphql.NewClient("https://example.com/graphql", httpClient)
-	//
-	// req := graphql.NewRequest(`
-	// 	query {
-	// 		# Your GraphQL query here
-	// 		uploads {
-	// 			id
-	// 			filename
-	// 			timestamp
-	// 		}
-	// 	}
-	// `)
-	//
-	// // Add headers if required
-	// req.Header.Set("Authorization", "Bearer "+getEnvVar("API_TOKEN"))
+	ctx := context.Background()
+	client := graphql.NewClient(apiURL, http.DefaultClient)
 
-	var uploadResponse struct {
-		Datestream string
-		Route      string
-		Count      int
+	resp, err := GetUploadStats(ctx, client, datastream, route, startDate, endDate)
+
+	if err != nil {
+		fmt.Printf("There was an issue reaching graphql: %v\n", err)
 	}
 
-	var deliveryResponse struct {
-		Datestream   string
-		Route        string
-		SuccessCount int
-		FailCount    int
-	}
-
-	// TODO: for testing, remove later
-	if route == "csv" {
-		uploadResponse.Count = 5
-		deliveryResponse.SuccessCount = 6
-		deliveryResponse.FailCount = 2
-	} else {
-		uploadResponse.Count = 7
-		deliveryResponse.SuccessCount = 3
-		deliveryResponse.FailCount = 1
-	}
-
-	// Perform the request
-	// if err := client.Run(context.Background(), req, &response); err != nil {
-	// 	return nil, err
-	// }
+	fmt.Printf("Response: %v\n", resp)
 
 	reportRow := ReportDataRow{
 		DataStream:           datastream,
 		Route:                route,
 		StartDate:            startDate,
 		EndDate:              endDate,
-		UploadCount:          uploadResponse.Count,
-		DeliverySuccessCount: deliveryResponse.SuccessCount,
-		DeliveryEndCount:     deliveryResponse.FailCount,
+		UploadCount:          resp.GetGetUploadStats().CompletedUploadsCount,
+		DeliverySuccessCount: resp.GetGetUploadStats().PendingUploads.TotalCount,
+		DeliveryEndCount:     resp.GetGetUploadStats().UnDeliveredUploads.TotalCount,
 	}
 
 	return reportRow, nil
@@ -175,9 +133,9 @@ func getCsvData(config ReportConfig) [][]string {
 			rowData.Route,
 			rowData.StartDate,
 			rowData.EndDate,
-			strconv.Itoa(rowData.UploadCount),
-			strconv.Itoa(rowData.DeliverySuccessCount),
-			strconv.Itoa(rowData.DeliveryEndCount),
+			strconv.FormatInt(rowData.UploadCount, 10),
+			strconv.FormatInt(rowData.DeliverySuccessCount, 10),
+			strconv.FormatInt(rowData.DeliveryEndCount, 10),
 		})
 	}
 
