@@ -8,35 +8,35 @@ This repository manages the CDC Data Exchange (DEX) Upload API service functiona
 **upload-service**: An implementation of the Tus service as a library in a Golang application. This service is responsible for facilitating file uploads over HTTP. It also includes a suite of upload lifecycle hooks for establishing observability into the upload process.
 
 
-## Repository Structure
+## Repository Contents
 
 
-#### .github
+### .github
 
-`/.github/workflows` - tests and CI/CD
-
-
-#### docs
-
-Contains Release Notes, OAS3 API Documentation, and other relevant customer facing documents.
+Utilized for test and CI/CD automation (`/workflows`).
 
 
-#### reupload-tool-go
+### docs
+
+Release Notes (`/Release Notes`), OAS3 API Documentation, and other relevant documentation.
 
 
-#### tests
+### reupload-tool-go
 
-- `/tests/smoke/kotlin` - Smoke test suite for testing all onboarded use cases across all e
-- `/tests/smoke/playwright` - TBD
-
-#### upload-configs
-
-`upload-configs` holds configuration for metadata and file routing for each supported use case in JSON format. These files follow a `{use case}-{use case category}.json` naming convention. Where the use case represents the data stream, and the use case category represents the data stream route. This pattern applies for all use cases onboarded to DEX. <br/>
-
-Within a particular JSON file, you will find the custom sender manifest schema for a given use case, as well as file routing configuration. The sender manifest schema defines validation rules for the fields and values senders provide when uploading a file.
+Replay functionality that delivers files to target destinations that have uploaded successfully, but were unsuccessful in delivery.
 
 
-#### upload-server
+### tests
+
+Smoke test suites leveraging kotlin (`/smoke/kotlin`) and playwright (`/smoke/playwright`).
+
+### upload-configs
+
+Configuration files containing manifest schema values and routing delivery details for specific data stream use cases (`/v2`). The JSON configuration files are utilized to verify metadata accommpanying uploads and to determine file delivery to specified target locations.
+
+
+### upload-server
+
 
 
 ## TUS Protocol
@@ -51,7 +51,7 @@ Example clients, for back-end or browser (front-end), to upload files: [https://
 
 ## Future Improvements
 
-- Upload routing configuration defined within the upload server; removes json configuration file dependency
+- Upload routing configuration defined within the upload server; removes JSON configuration file dependency
 
 
 ## Public Domain Standard Notice
