@@ -15,16 +15,17 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 )
 
-func NewS3Destination(ctx context.Context, target string, conn *appconfig.S3StorageConfig) (*S3Destination, error) {
+func NewS3Destination(ctx context.Context, target string, pathTemplate string, conn *appconfig.S3StorageConfig) (*S3Destination, error) {
 	c, err := stores3.New(ctx, conn)
 	if err != nil {
 		return nil, err
 	}
 
 	return &S3Destination{
-		ToClient:   c,
-		BucketName: conn.BucketName,
-		Target:     target,
+		ToClient:     c,
+		BucketName:   conn.BucketName,
+		Target:       target,
+		PathTemplate: pathTemplate,
 	}, nil
 }
 
@@ -106,13 +107,14 @@ func (ss *S3Source) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
 }
 
 type S3Destination struct {
-	ToClient   *s3.Client
-	BucketName string
-	Target     string
+	ToClient     *s3.Client
+	BucketName   string
+	Target       string
+	PathTemplate string
 }
 
 func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
-	destFileName, err := getDeliveredFilename(ctx, path, m)
+	destFileName, err := getDeliveredFilename(ctx, path, sd.PathTemplate, m)
 	if err != nil {
 		return "", err
 	}

@@ -44,7 +44,8 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok := delivery.GetDestination(body.Target); !ok {
+	// TODO
+	if _, ok := delivery.GetDestinationTarget("", "", body.Target); !ok {
 		http.Error(rw, "Invalid target", http.StatusBadRequest)
 		return
 	}

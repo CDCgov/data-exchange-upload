@@ -12,11 +12,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
 
-func NewAzureDestination(ctx context.Context, target string) (*AzureDestination, error) {
-	config, err := appconfig.GetAzureContainerConfig(target)
-	if err != nil {
-		return nil, err
-	}
+func NewAzureDestination(ctx context.Context, target string, pathTemplate string, config *appconfig.AzureContainerConfig) (*AzureDestination, error) {
 	containerClient, err := storeaz.NewContainerClient(config.AzureStorageConfig, config.ContainerName)
 	if err != nil {
 		return nil, err
@@ -27,8 +23,9 @@ func NewAzureDestination(ctx context.Context, target string) (*AzureDestination,
 	}
 
 	return &AzureDestination{
-		ToClient: containerClient,
-		Target:   target,
+		ToClient:     containerClient,
+		Target:       target,
+		PathTemplate: pathTemplate,
 	}, nil
 }
 
@@ -80,12 +77,13 @@ func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp
 }
 
 type AzureDestination struct {
-	ToClient *container.Client
-	Target   string
+	ToClient     *container.Client
+	Target       string
+	PathTemplate string
 }
 
 func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
-	blobName, err := getDeliveredFilename(ctx, path, m)
+	blobName, err := getDeliveredFilename(ctx, path, ad.PathTemplate, m)
 	if err != nil {
 		return blobName, err
 	}

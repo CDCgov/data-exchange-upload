@@ -3,9 +3,12 @@ package delivery
 import (
 	"bytes"
 	"context"
+	_ "embed"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/configs"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"gopkg.in/yaml.v3"
 	"io"
-
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -19,22 +22,46 @@ import (
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
 
-var ErrBadTarget = fmt.Errorf("bad delivery target")
 var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
-var destinations = map[string]Destination{}
+var destinations = map[string]map[string]Destination{}
 
-func RegisterDestination(name string, d Destination) {
-	destinations[name] = d
+func RegisterDestination(name string, targetName string, d Destination) {
+	if _, ok := destinations[name]; ok {
+		destinations[name][targetName] = d
+	} else {
+		destinations[name] = map[string]Destination{targetName: d}
+	}
 }
 
-func GetDestination(name string) (Destination, bool) {
-	d, ok := destinations[name]
+func GetDestinationTargetNames(dataStreamId string, dataStreamRoute string) []string {
+	targets, ok := destinations[dataStreamId+"-"+dataStreamRoute]
+	if !ok {
+		return []string{}
+	}
+	targetNames := make([]string, 0, len(targets))
+	for t := range targets {
+		targetNames = append(targetNames, t)
+	}
+	return targetNames
+}
+
+func GetDestinationTarget(dataStreamId string, dataStreamRoute string, target string) (Destination, bool) {
+	d, ok := destinations[dataStreamId+"-"+dataStreamRoute][target]
 	return d, ok
+}
+
+func GetRegisteredTargets() []any {
+	all := make([]any, 0, len(destinations))
+	for _, destination := range destinations {
+		for _, t := range destination {
+			all = append(all, t)
+		}
+	}
+	return all
 }
 
 var sources = map[string]Source{}
@@ -61,95 +88,135 @@ type PathInfo struct {
 	Year     string
 	Month    string
 	Day      string
-	Hour     string
 	UploadId string
 	Filename string
+}
+
+type Program struct {
+	DataStreamId    string   `yaml:"data_stream_id"`
+	DataStreamRoute string   `yaml:"data_stream_route"`
+	PathTemplate    string   `yaml:"path_template"`
+	DeliveryTargets []Target `yaml:"delivery_targets"`
+}
+
+type Target struct {
+	Name         string `yaml:"name"`
+	Type         string `yaml:"type"`
+	PathTemplate string `yaml:"path_template"`
+	Endpoint     string `yaml:"endpoint"`
+
+	BucketName         string `yaml:"bucket_name"`
+	AwsAccessKeyId     string `yaml:"access_key_id"`
+	AwsSecretAccessKey string `yaml:"secret_access_key"`
+	AwsRegion          string `yaml:"aws_region"`
+
+	ContainerName    string `yaml:"container_name"`
+	TenantID         string `yaml:"tenant_id"`
+	ClientID         string `yaml:"client_id"`
+	ClientSecret     string `yaml:"client_secret"`
+	ConnectionString string `yaml:"connection_string"`
+	SasToken         string `yaml:"sas_token"`
+
+	Directory string `yaml:"directory"`
+}
+
+func (t Target) createS3Destination(ctx context.Context, _ appconfig.AppConfig) (Destination, error) {
+	storageConfig := appconfig.S3StorageConfig{
+		Endpoint:   t.Endpoint,
+		BucketName: t.BucketName,
+	}
+	return NewS3Destination(ctx, t.Name, t.PathTemplate, &storageConfig)
+}
+
+func (t Target) createAzBlobDestination(ctx context.Context, _ appconfig.AppConfig) (Destination, error) {
+	// TODO config from connection string and SAS token
+	// see storeaz.azblobclientnew.NewContainerClient
+	storageConfig := appconfig.AzureContainerConfig{
+		AzureStorageConfig: appconfig.AzureStorageConfig{
+			ContainerEndpoint: t.Endpoint,
+			TenantId:          t.TenantID,
+			ClientId:          t.ClientID,
+			ClientSecret:      t.ClientSecret,
+		},
+		ContainerName: t.ContainerName,
+	}
+	return NewAzureDestination(ctx, t.Name, t.PathTemplate, &storageConfig)
+
+}
+
+func (t Target) createLocalDestination(ctx context.Context, appConfig appconfig.AppConfig) (Destination, error) {
+	storageConfig := appconfig.LocalUploadStoreConfig(&appConfig)
+	storageConfig.ToPath = t.Directory
+	return NewFileDestination(ctx, t.Name, t.PathTemplate, storageConfig)
+}
+
+type opFunc = func(t Target, ctx context.Context, appConfig appconfig.AppConfig) (Destination, error)
+
+var opMap = map[string]opFunc{
+	"s3":      Target.createS3Destination,
+	"az-blob": Target.createAzBlobDestination,
+	"file":    Target.createLocalDestination,
+}
+
+func unmarshalDeliverYML() (map[string][]Program, error) {
+	conf := os.ExpandEnv(string(configs.DeliverYML))
+	targetsMap := make(map[string]interface{})
+	if err := yaml.Unmarshal([]byte(conf), &targetsMap); err != nil {
+		return nil, err
+	}
+	targets := make(map[string][]Program)
+	for key, value := range targetsMap {
+		switch val := value.(type) {
+		case []interface{}:
+			for _, item := range val {
+				var target Program
+				yml, _ := yaml.Marshal(item)
+				err := yaml.Unmarshal(yml, &target)
+				if err != nil {
+					return nil, err
+				}
+				targets[key] = append(targets[key], target)
+			}
+			// ignore other entries
+			// case map[string]interface{}:
+		}
+	}
+	return targets, nil
 }
 
 // Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
 	var src Source
-	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
-
+	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
 	fromPath := os.DirFS(fromPathStr)
 	src = &FileSource{
 		FS: fromPath,
 	}
 
-	var edavDeliverer Destination
-	edavDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEdav, &appConfig)
+	deliveryMap, err := unmarshalDeliverYML()
 	if err != nil {
 		return err
 	}
-	var routingDeliverer Destination
-	routingDeliverer, err = NewFileDestination(ctx, "routing", &appConfig)
-	if err != nil {
-		return err
-	}
-	var ehdiDeliverer Destination
-	ehdiDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEhdi, &appConfig)
-	if err != nil {
-		return err
-	}
-	var eicrDeliverer Destination
-	eicrDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEicr, &appConfig)
-	if err != nil {
-		return err
-	}
-	var ncirdDeliverer Destination
-	ncirdDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetNcird, &appConfig)
-	if err != nil {
-		return err
-	}
-
-	if appConfig.EdavConnection != nil {
-		edavDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEdav)
-		if err != nil {
-			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
-		}
-	}
-	if appConfig.RoutingConnection != nil {
-		routingDeliverer, err = NewAzureDestination(ctx, "routing")
-		if err != nil {
-			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
-		}
-	}
-	if appConfig.EhdiConnection != nil {
-		ehdiDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEhdi)
-		if err != nil {
-			return fmt.Errorf("failed to connect to ehdi deliverer target %w", err)
-		}
-	}
-	if appConfig.EicrConnection != nil {
-		eicrDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEicr)
-		if err != nil {
-			return fmt.Errorf("failed to connect to eicr deliverer target %w", err)
-		}
-	}
-	if appConfig.NcirdConnection != nil {
-		ncirdDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetNcird)
-		if err != nil {
-			return fmt.Errorf("failed to connect to ncird deliverer target %w", err)
+	for _, p := range deliveryMap["programs"] {
+		for _, t := range p.DeliveryTargets {
+			if t.PathTemplate == "" {
+				t.PathTemplate = p.PathTemplate
+			}
+			op, ok := opMap[t.Type]
+			if ok {
+				destination, err := op(t, ctx, appConfig)
+				if err != nil {
+					return err
+				}
+				name := p.DataStreamId + "-" + p.DataStreamRoute
+				RegisterDestination(name, t.Name, destination)
+			}
 		}
 	}
 
-	if appConfig.EdavS3Connection != nil {
-		edavDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetEdav, appConfig.EdavS3Connection)
-		if err != nil {
-			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
-		}
-	}
-	if appConfig.NcirdS3Connection != nil {
-		ncirdDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetNcird, appConfig.NcirdS3Connection)
-		if err != nil {
-			return fmt.Errorf("failed to connect to ncird deliverer target %w", err)
-		}
-	}
-	if appConfig.RoutingS3Connection != nil {
-		routingDeliverer, err = NewS3Destination(ctx, "routing", appConfig.RoutingS3Connection)
-		if err != nil {
-			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
-		}
+	targets := GetRegisteredTargets()
+	if len(targets) == 0 {
+		return fmt.Errorf("failed to register destination targets")
 	}
 
 	if appConfig.AzureConnection != nil {
@@ -163,7 +230,6 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 			Prefix:              appConfig.TusUploadPrefix,
 		}
 	}
-
 	if appConfig.S3Connection != nil {
 		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
 		if err != nil {
@@ -175,19 +241,12 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 			Prefix:     appConfig.TusUploadPrefix,
 		}
 	}
-
-	RegisterDestination(appconfig.DeliveryTargetEdav, edavDeliverer)
-	RegisterDestination("routing", routingDeliverer)
-	RegisterDestination(appconfig.DeliveryTargetEhdi, ehdiDeliverer)
-	RegisterDestination(appconfig.DeliveryTargetEicr, eicrDeliverer)
-	RegisterDestination(appconfig.DeliveryTargetNcird, ncirdDeliverer)
-
 	RegisterSource("upload", src)
 
-	if err := health.Register(edavDeliverer, routingDeliverer, ehdiDeliverer, eicrDeliverer, ncirdDeliverer, src); err != nil {
+	targets = append(targets, src)
+	if err := health.Register(targets...); err != nil {
 		slog.Error("failed to register some health checks", "error", err)
 	}
-
 	return nil
 }
 
@@ -209,29 +268,23 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 	return d.Upload(ctx, path, r, manifest)
 }
 
-func getDeliveredFilename(ctx context.Context, tuid string, manifest map[string]string) (string, error) {
+func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadataPkg.GetFilename(manifest)
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 
-	c, err := metadata.GetConfigFromManifest(ctx, manifest)
-
-	if c.Copy.PathTemplate != "" {
+	if pathTemplate != "" {
 		// Use path template to form the full name.
 		t := time.Now().UTC()
-		m := fmt.Sprintf("%02d", t.Month())
-		d := fmt.Sprintf("%02d", t.Day())
-		h := fmt.Sprintf("%02d", t.Hour())
 		pathInfo := &PathInfo{
 			Year:     strconv.Itoa(t.Year()),
-			Month:    m,
-			Day:      d,
-			Hour:     h,
+			Month:    strconv.Itoa(int(t.Month())),
+			Day:      strconv.Itoa(t.Day()),
 			Filename: filenameWithoutExtension,
 			UploadId: tuid,
 		}
-		tmpl, err := template.New("path").Parse(c.Copy.PathTemplate)
+		tmpl, err := template.New("path").Parse(pathTemplate)
 		if err != nil {
 			return "", err
 		}
@@ -242,7 +295,7 @@ func getDeliveredFilename(ctx context.Context, tuid string, manifest map[string]
 		}
 
 		if extension != "" {
-			return b.String() + extension, nil
+			return fmt.Sprintf("%s.%s", b.String(), extension), nil
 		}
 
 		return b.String(), nil

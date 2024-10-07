@@ -14,21 +14,18 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
-func NewFileDestination(_ context.Context, target string, appConfig *appconfig.AppConfig) (*FileDestination, error) {
-	localConfig, err := appconfig.LocalStoreConfig(target, appConfig)
-	if err != nil {
-		return nil, err
-	}
-
+func NewFileDestination(_ context.Context, target string, pathTemplate string, config *appconfig.LocalStorageConfig) (*FileDestination, error) {
 	return &FileDestination{
-		LocalStorageConfig: *localConfig,
+		LocalStorageConfig: *config,
 		Target:             target,
+		PathTemplate:       pathTemplate,
 	}, nil
 }
 
 type FileDestination struct {
 	appconfig.LocalStorageConfig
-	Target string
+	Target       string
+	PathTemplate string
 }
 
 func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
