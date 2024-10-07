@@ -11,8 +11,10 @@ import (
 
 type Router struct{}
 type RequestBody struct {
-	Target string `json:"target"`
-	Source string `json:"source"`
+	DataStreamId    string `json:"data_stream_id"`
+	DataStreamRoute string `json:"data_stream_route"`
+	Target          string `json:"target"`
+	Source          string `json:"source"`
 }
 
 func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
@@ -44,8 +46,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO
-	if _, ok := delivery.GetDestinationTarget("", "", body.Target); !ok {
+	if _, ok := delivery.GetDestinationTarget(body.DataStreamId, body.DataStreamRoute, body.Target); !ok {
 		http.Error(rw, "Invalid target", http.StatusBadRequest)
 		return
 	}
