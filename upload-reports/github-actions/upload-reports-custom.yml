@@ -1,0 +1,57 @@
+name: Upload Reports Custom
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - tst
+          - stg
+          - prod
+      datastreams:
+        description: "Data Stream(s) (celr-csv,celr-hl7v2)"
+        required: true
+        default: ""
+      start_date:
+        description: "Start Date (yyyy/mm/dd)"
+        required: true
+        default: ""
+      end_date:
+        description: "End Date (yyyy/mm/dd)"
+        required: true
+        default: ""
+
+jobs:
+  run-action:
+    runs-on: [self-hosted, linux]
+    environment: ${{ inputs.env }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20" # Adjust to your Go version
+
+      - name: Build Go application
+        run: |
+          cd ./upload-reports
+          go build -o app
+
+      - name: Run Go application with secrets and inputs
+        run: ./app
+        env:
+          DEX_DEV_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING_DEV }}"
+          DEX_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}"
+          ROUTING_CONN_STRING: "${{ secrets.ROUTING_STORAGE_CONNECTION_STRING }}"
+          DATASTREAMS: "${{ inputs.datastreams }}"
+          START_DATE: "${{ inputs.start_date }}"
+          END_DATE: "${{ inputs.end_date }}"
+          ENV: "${{ inputs.env }}"
+          PS_API_ENDPOINT: "${{ secrets.PS_API_ENDPOINT }}"

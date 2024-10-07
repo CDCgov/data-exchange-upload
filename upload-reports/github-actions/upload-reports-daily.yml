@@ -1,0 +1,45 @@
+name: Upload Reports Daily
+
+on:
+  schedule:
+    - cron: "0 14 * * *" # 10 AM EST = 14:00 UTC (Adjust for daylight savings if necessary)
+
+jobs:
+  run-action:
+    runs-on: [self-hosted, linux]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20" # Adjust to your Go version
+
+      # Calculate the start date and end date for the last 24 hours (10 AM Eastern)
+      - name: Set default date values (start_date and end_date)
+        id: set_dates
+        run: |
+          current_time=$(TZ="America/New_York" date '+%Y/%m/%d 10:00:00')
+          start_time=$(TZ="America/New_York" date --date="yesterday 10:00:00" '+%Y/%m/%d 10:00:00')
+
+          echo "start_date=${start_time}" >> $GITHUB_ENV
+          echo "end_date=${current_time}" >> $GITHUB_ENV
+
+      - name: Build Go application
+        run: |
+          cd ./upload-reports
+          go build -o app
+
+      - name: Run Go application with defaults
+        run: ./app
+        env:
+          DEX_DEV_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING_DEV }}"
+          DEX_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}"
+          ROUTING_CONN_STRING: "${{ secrets.ROUTING_STORAGE_CONNECTION_STRING }}"
+          DATASTREAMS: "test-csv,test-pdf" # Default value for datastreams
+          START_DATE: "${{ env.start_date }}"
+          END_DATE: "${{ env.end_date }}"
+          ENV: "dev"
+          PS_API_ENDPOINT: "${{ secrets.PS_API_ENDPOINT }}"
