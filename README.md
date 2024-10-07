@@ -1,11 +1,21 @@
 # CDC Data Exchange (DEX) Upload
 
-This repository manages the CDC Data Exchange (DEX) Upload API service functionalities. It is the entrypoint of files into DEX.
+This repository manages the CDC Data Exchange (DEX) Upload API service functionalities. 
 
 
-## Services
+## Upload Services
 
-**upload-service**: An implementation of the Tus service as a library in a Golang application. This service is responsible for facilitating file uploads over HTTP. It also includes a suite of upload lifecycle hooks for establishing observability into the upload process.
+**Resumable Uploads**: Implementation of the Tus service as a library in a Golang application, facilitating high volume file uploads over secure HTTP. 
+
+**Authentication**: OAuth provider approval enforcement to ensure security.
+
+**Metadata Verification**: Enforcement of upload submission metadata standards.
+
+**File Delivery**: Routing of uploaded files to configured target destinations.
+
+**File Observability**: Upload lifecycle event tracking and endpoints for health check, information, and application version. 
+
+**Replay Uploads**: Tool that delivers files to target destinations that uploaded successfully, but were unsuccessful in delivery.
 
 
 ## Repository Contents
@@ -37,7 +47,7 @@ Configuration files containing manifest schema values and routing delivery detai
 
 ### upload-server
 
-
+Upload server functionality leveraging Tus v2 capabilities written in Golang. Capabilities include resumable file uploads, metadata verification, event routing, observability endpoints, file delivery, distributed file locking, OAuth token verification, unit testing, and integration testing.
 
 ## TUS Protocol
 
