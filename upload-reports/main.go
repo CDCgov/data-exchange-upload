@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/cdcgov/data-exchange-upload/upload-reports/psApi"
 )
 
 type ReportConfig struct {
@@ -87,7 +88,7 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 	ctx := context.Background()
 	client := graphql.NewClient(apiURL, http.DefaultClient)
 
-	resp, err := GetUploadStats(ctx, client, datastream, route, startDate, endDate)
+	resp, err := psApi.GetUploadStats(ctx, client, datastream, route, startDate, endDate)
 
 	if err != nil {
 		fmt.Printf("There was an issue reaching graphql: %v\n", err)
