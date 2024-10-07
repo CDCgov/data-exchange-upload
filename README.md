@@ -17,39 +17,41 @@ The Upload API service is a highly scalable, highly reliable means of transiting
 
 **File Observability**: Upload lifecycle event tracking and endpoints for health check, information, and application version. 
 
-**Replay Uploads**: Tool that delivers files to target destinations that uploaded successfully, but were unsuccessful in delivery.
+**Retry Delivery**: Tool that delivers files to target destinations that uploaded successfully, but were unsuccessful in delivery.
 
+**User Interface**: Facilitates uploads and observability within a user interface.
 
 ## Repository Contents
-
 
 ### .github
 
 Utilized for test and CI/CD automation (`/workflows`).
 
-
 ### docs
 
 Release Notes (`/Release Notes`), OAS3 API Documentation, and other relevant documentation.
 
-
 ### reupload-tool-go
 
-Replay functionality that delivers files to target destinations that have uploaded successfully, but were unsuccessful in delivery.
-
+Retry functionality that delivers files to target destinations that have uploaded successfully, but were unsuccessful in delivery.
+- [Delivery Retry README](https://github.com/CDCgov/data-exchange-upload/blob/main/reupload-tool-go/README.md)
 
 ### tests
 
 Smoke test suites leveraging kotlin (`/smoke/kotlin`) and playwright (`/smoke/playwright`).
+- [Kotlin Smoke Test README](https://github.com/CDCgov/data-exchange-upload/blob/main/tests/smoke/kotlin/README.md)
+- [Playwright Smoke Test README](https://github.com/CDCgov/data-exchange-upload/blob/main/tests/smoke/playwright/README.md)
 
 ### upload-configs
 
 Configuration files containing manifest schema values and routing delivery details for specific data stream use cases (`/v2`). The JSON configuration files are utilized to verify metadata accommpanying uploads and to determine file delivery to specified target locations.
-
+- [Upload Configs README](https://github.com/CDCgov/data-exchange-upload/blob/main/upload-configs/README.md)
 
 ### upload-server
 
-Upload server functionality leveraging Tus v2 capabilities written in Golang. Capabilities include resumable file uploads, metadata verification, event routing, observability endpoints, file delivery, distributed file locking, OAuth token verification, unit testing, and integration testing.
+Upload server functionality leveraging Tus v2 capabilities written in Golang. Capabilities include resumable file uploads, metadata verification, event routing, observability endpoints, file delivery, distributed file locking, OAuth token verification, user interface, unit testing, and integration testing.
+- [Upload Server README](https://github.com/CDCgov/data-exchange-upload/blob/main/upload-server/readme.md)
+
 
 ## TUS Protocol
 
