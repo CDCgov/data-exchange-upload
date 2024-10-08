@@ -31,12 +31,6 @@ func init() {
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
-	err := cli.ParseFlags()
-	if err != nil {
-		slog.Error("error starting app, error parsing cli flags", "error", err)
-		os.Exit(appMainExitCode)
-	} // .if
-
 	if !testing.Testing() {
 		if err := cli.ParseFlags(); err != nil {
 			slog.Error("error starting app, error parsing cli flags", "error", err)
