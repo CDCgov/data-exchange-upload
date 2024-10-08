@@ -42,9 +42,11 @@ func GetDestinationTargetNames(dataStreamId string, dataStreamRoute string) []st
 	if !ok {
 		return []string{}
 	}
-	targetNames := make([]string, 0, len(targets))
+	targetNames := make([]string, len(targets))
+	i := 0
 	for t := range targets {
-		targetNames = append(targetNames, t)
+		targetNames[i] = t
+		i++
 	}
 	return targetNames
 }
