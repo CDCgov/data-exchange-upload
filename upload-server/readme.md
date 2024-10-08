@@ -11,8 +11,9 @@ The DEX Upload API is built on the [tus](https://tus.io) open protocol, which pr
 ### Key Features
 
 - Resumable uploads
-- Support for multiple formats (JSON, XML)
+- Support for multiple file formats (e.g., JSON, XML)
 - Error handling and status codes
+- Support for routing uploaded files to other configurable destinations
 - Detailed documentation for seamless integration
 
 ## Folder Structure
