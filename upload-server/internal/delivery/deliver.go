@@ -92,6 +92,10 @@ type PathInfo struct {
 	Filename string
 }
 
+type Config struct {
+	Programs []Program `yaml:"programs"`
+}
+
 type Program struct {
 	DataStreamId    string   `yaml:"data_stream_id"`
 	DataStreamRoute string   `yaml:"data_stream_route"`
@@ -158,30 +162,16 @@ var opMap = map[string]opFunc{
 	"file":    Target.createLocalDestination,
 }
 
-func unmarshalDeliverYML() (map[string][]Program, error) {
-	conf := os.ExpandEnv(string(configs.DeliverYML))
-	targetsMap := make(map[string]interface{})
-	if err := yaml.Unmarshal([]byte(conf), &targetsMap); err != nil {
+func unmarshalDeliverYML() (*Config, error) {
+	confStr := os.ExpandEnv(string(configs.DeliverYML))
+	c := &Config{}
+
+	err := yaml.Unmarshal([]byte(confStr), &c)
+	if err != nil {
 		return nil, err
 	}
-	targets := make(map[string][]Program)
-	for key, value := range targetsMap {
-		switch val := value.(type) {
-		case []interface{}:
-			for _, item := range val {
-				var target Program
-				yml, _ := yaml.Marshal(item)
-				err := yaml.Unmarshal(yml, &target)
-				if err != nil {
-					return nil, err
-				}
-				targets[key] = append(targets[key], target)
-			}
-			// ignore other entries
-			// case map[string]interface{}:
-		}
-	}
-	return targets, nil
+
+	return c, nil
 }
 
 // Eventually, this can take a more generic list of deliverer configuration object
@@ -193,11 +183,11 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		FS: fromPath,
 	}
 
-	deliveryMap, err := unmarshalDeliverYML()
+	cfg, err := unmarshalDeliverYML()
 	if err != nil {
 		return err
 	}
-	for _, p := range deliveryMap["programs"] {
+	for _, p := range cfg.Programs {
 		for _, t := range p.DeliveryTargets {
 			if t.Name[0] == '-' {
 				continue
