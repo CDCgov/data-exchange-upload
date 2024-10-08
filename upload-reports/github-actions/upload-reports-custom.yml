@@ -17,11 +17,11 @@ on:
         required: true
         default: ""
       start_date:
-        description: "Start Date (yyyy/mm/dd)"
+        description: "Start Date (YYYY-MM-DDTHH:MM:SSZ)"
         required: true
         default: ""
       end_date:
-        description: "End Date (yyyy/mm/dd)"
+        description: "End Date (YYYY-MM-DDTHH:MM:SSZ)"
         required: true
         default: ""
 

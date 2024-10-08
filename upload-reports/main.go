@@ -7,24 +7,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
-	"strings"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cdcgov/data-exchange-upload/upload-reports/psApi"
+	"github.com/cdcgov/data-exchange-upload/upload-reports/utils"
 )
-
-type ReportConfig struct {
-	DataStreams []string
-	StartDate   string
-	EndDate     string
-	TargetEnv   string
-	PsApiUrl    string
-}
 
 type ReportDataRow struct {
 	DataStream           string
@@ -37,7 +28,7 @@ type ReportDataRow struct {
 }
 
 func main() {
-	config := getConfig()
+	config := utils.GetConfig()
 	fmt.Printf("Target Env: %s, DataStreams: %v, Start Date: %s, End Date: %s\n", config.TargetEnv, config.DataStreams, config.StartDate, config.EndDate)
 
 	csvData := getCsvData(config)
@@ -49,42 +40,14 @@ func main() {
 
 	fmt.Printf("CSV Data: %v\n", csvBytes)
 
-	bucketName := "upload-file-count-reports"
-	key := fmt.Sprintf("file-counts-report-%s.csv", config.TargetEnv)
-	if err := uploadCsvToS3(bucketName, key, csvBytes); err != nil {
-		log.Fatalf("Error uploading CSV to S3: %v", err)
-	}
-}
-
-func getEnvVar(key string) string {
-	val := os.Getenv(key)
-	if val == "" {
-		log.Fatalf("%s environment variable not set", key)
-	}
-	return val
-}
-
-func getConfig() ReportConfig {
-	dataStreams := strings.Split(getEnvVar("DATASTREAMS"), ",")
-	startDate := getEnvVar("START_DATE")
-	endDate := getEnvVar("END_DATE")
-	targetEnv := getEnvVar("ENV")
-	psApiUrl := getEnvVar("PS_API_ENDPOINT")
-
-	config := ReportConfig{
-		DataStreams: dataStreams,
-		StartDate:   startDate,
-		EndDate:     endDate,
-		TargetEnv:   targetEnv,
-		PsApiUrl:    psApiUrl,
-	}
-
-	return config
+	// bucketName := "upload-file-count-reports"
+	// key := fmt.Sprintf("file-counts-report-%s.csv", config.TargetEnv)
+	// if err := uploadCsvToS3(bucketName, key, csvBytes); err != nil {
+	// 	log.Fatalf("Error uploading CSV to S3: %v", err)
+	// }
 }
 
 func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (ReportDataRow, error) {
-	fmt.Printf("PS-API graphql endpoint: %s\n", apiURL)
-
 	ctx := context.Background()
 	client := graphql.NewClient(apiURL, http.DefaultClient)
 
@@ -93,8 +56,6 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 	if err != nil {
 		fmt.Printf("There was an issue reaching graphql: %v\n", err)
 	}
-
-	fmt.Printf("Response: %v\n", resp)
 
 	reportRow := ReportDataRow{
 		DataStream:           datastream,
@@ -109,22 +70,27 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 	return reportRow, nil
 }
 
-func getCsvData(config ReportConfig) [][]string {
-
-	// Prepare data for CSV
+func getCsvData(config utils.ReportConfig) [][]string {
 	var csvData [][]string
 	csvData = append(csvData, []string{"Data Stream", "Route", "Start Date", "End Date", "Upload Count", "Delivery Success Count", "Delivery Fail Count"})
 
+	cleanedStartDate, err := utils.FormatDateString(config.StartDate)
+	if err != nil {
+		log.Fatalf("Start date is in incorrect format: %v", err)
+	}
+
+	cleanedEndDate, err := utils.FormatDateString(config.EndDate)
+	if err != nil {
+		log.Fatalf("End date is in incorrect format: %v", err)
+	}
+
 	for _, ds := range config.DataStreams {
-		streamAndRoute := strings.Split(ds, "_")
-		if len(streamAndRoute) != 2 {
-			log.Fatalf("Data stream passed in does not have correct formatting: %s", ds)
+		datastream, route, err := utils.FormatStreamAndRoute(ds)
+		if err != nil {
+			log.Fatalf("There was an issue parsing the datastream and route: %v", err)
 		}
 
-		datastream := streamAndRoute[0]
-		route := streamAndRoute[1]
-
-		rowData, err := fetchDataForDataStream(config.PsApiUrl, datastream, route, config.StartDate, config.EndDate)
+		rowData, err := fetchDataForDataStream(config.PsApiUrl, datastream, route, cleanedStartDate, cleanedEndDate)
 		if err != nil {
 			log.Fatalf("Error fetching data from GraphQL API: %v", err)
 		}
