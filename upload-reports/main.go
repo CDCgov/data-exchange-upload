@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -40,10 +41,13 @@ func main() {
 
 	fmt.Printf("CSV Data: %v\n", csvBytes)
 
-	bucketName := config.S3Bucket
-	key := fmt.Sprintf("uploads-report-%s.csv", config.TargetEnv)
-	if err := uploadCsvToS3(bucketName, key, csvBytes); err != nil {
-		log.Fatalf("Error uploading CSV to S3: %v", err)
+	// TODO: write data to file
+
+	if config.S3Config != nil {
+		key := fmt.Sprintf("uploads-report-%s-%s.csv", config.TargetEnv, config.StartDate)
+		if err := uploadCsvToS3(config.S3Config.BucketName, config.S3Config.Endpoint, key, csvBytes); err != nil {
+			log.Fatalf("Error uploading CSV to S3: %v", err)
+		}
 	}
 }
 
@@ -70,7 +74,7 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 	return reportRow, nil
 }
 
-func getCsvData(config utils.ReportConfig) [][]string {
+func getCsvData(config utils.AppConfig) [][]string {
 	var csvData [][]string
 	csvData = append(csvData, []string{"Data Stream", "Route", "Start Date", "End Date", "Upload Count", "Delivery Success Count", "Delivery Fail Count"})
 
@@ -84,7 +88,8 @@ func getCsvData(config utils.ReportConfig) [][]string {
 		log.Fatalf("End date is in incorrect format: %v", err)
 	}
 
-	for _, ds := range config.DataStreams {
+	datastreams := strings.Split(config.DataStreams, ",")
+	for _, ds := range datastreams {
 		datastream, route, err := utils.FormatStreamAndRoute(ds)
 		if err != nil {
 			log.Fatalf("There was an issue parsing the datastream and route: %v", err)
@@ -129,13 +134,19 @@ func createCSV(data [][]string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func uploadCsvToS3(bucketName, key string, csvData []byte) error {
+func uploadCsvToS3(bucketName string, endpoint string, key string, csvData []byte) error {
+	// TODO: add timeout
 	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
 	if err != nil {
 		return fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
-	s3Client := s3.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		if endpoint != "" {
+			o.UsePathStyle = true
+			o.BaseEndpoint = &endpoint
+		}
+	})
 
 	putInput := &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
@@ -143,7 +154,7 @@ func uploadCsvToS3(bucketName, key string, csvData []byte) error {
 		Body:   bytes.NewReader(csvData),
 	}
 
-	_, err = s3Client.PutObject(context.TODO(), putInput)
+	_, err = client.PutObject(context.TODO(), putInput)
 	if err != nil {
 		return fmt.Errorf("failed to upload CSV to S3: %v", err)
 	}
