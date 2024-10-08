@@ -38,7 +38,7 @@ jobs:
           DEX_DEV_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING_DEV }}"
           DEX_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}"
           ROUTING_CONN_STRING: "${{ secrets.ROUTING_STORAGE_CONNECTION_STRING }}"
-          DATASTREAMS: "test-csv,test-pdf" # Default value for datastreams
+          DATASTREAMS: "test_csv,test_pdf" # Default value for datastreams
           START_DATE: "${{ env.start_date }}"
           END_DATE: "${{ env.end_date }}"
           ENV: "dev"

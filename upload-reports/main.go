@@ -116,7 +116,7 @@ func getCsvData(config ReportConfig) [][]string {
 	csvData = append(csvData, []string{"Data Stream", "Route", "Start Date", "End Date", "Upload Count", "Delivery Success Count", "Delivery Fail Count"})
 
 	for _, ds := range config.DataStreams {
-		streamAndRoute := strings.Split(ds, "-")
+		streamAndRoute := strings.Split(ds, "_")
 		if len(streamAndRoute) != 2 {
 			log.Fatalf("Data stream passed in does not have correct formatting: %s", ds)
 		}
