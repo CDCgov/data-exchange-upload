@@ -83,8 +83,6 @@ type AppConfig struct {
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
 	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
 	S3ManifestConfigFolder string           `env:"DEX_S3_MANIFEST_CONFIG_FOLDER_NAME"`
-	// Upload processing
-	DexCheckpointContainer string `env:"DEX_CHECKPOINT_CONTAINER_NAME, default=dex-checkpoint"`
 
 	Metrics MetricsConfig `env:", prefix=METRICS_"`
 } // .AppConfig

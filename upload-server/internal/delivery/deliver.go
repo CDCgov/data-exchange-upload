@@ -95,6 +95,7 @@ type PathInfo struct {
 	Year     string
 	Month    string
 	Day      string
+	Hour     string
 	UploadId string
 	Filename string
 }
@@ -169,8 +170,8 @@ var opMap = map[string]opFunc{
 	"file":    Target.createLocalDestination,
 }
 
-func unmarshalDeliverYML() (*Config, error) {
-	confStr := os.ExpandEnv(string(configs.DeliverYML))
+func unmarshalDeliveryConfig() (*Config, error) {
+	confStr := os.ExpandEnv(string(configs.DeliveryConfig))
 	c := &Config{}
 
 	err := yaml.Unmarshal([]byte(confStr), &c)
@@ -184,13 +185,13 @@ func unmarshalDeliverYML() (*Config, error) {
 // Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
 	var src Source
-	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
+	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
 	fromPath := os.DirFS(fromPathStr)
 	src = &FileSource{
 		FS: fromPath,
 	}
 
-	cfg, err := unmarshalDeliverYML()
+	cfg, err := unmarshalDeliveryConfig()
 	if err != nil {
 		return err
 	}
@@ -277,10 +278,14 @@ func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string,
 	if pathTemplate != "" {
 		// Use path template to form the full name.
 		t := time.Now().UTC()
+		m := fmt.Sprintf("%02d", t.Month())
+		d := fmt.Sprintf("%02d", t.Day())
+		h := fmt.Sprintf("%02d", t.Hour())
 		pathInfo := &PathInfo{
 			Year:     strconv.Itoa(t.Year()),
-			Month:    strconv.Itoa(int(t.Month())),
-			Day:      strconv.Itoa(t.Day()),
+			Month:    m,
+			Day:      d,
+			Hour:     h,
 			Filename: filenameWithoutExtension,
 			UploadId: tuid,
 		}
@@ -295,7 +300,7 @@ func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string,
 		}
 
 		if extension != "" {
-			return fmt.Sprintf("%s.%s", b.String(), extension), nil
+			return b.String() + extension, nil
 		}
 
 		return b.String(), nil
