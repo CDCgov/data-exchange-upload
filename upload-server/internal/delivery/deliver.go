@@ -155,21 +155,24 @@ func (t Target) createAzBlobDestination(ctx context.Context, _ appconfig.AppConf
 		ContainerName: t.ContainerName,
 	}
 	return NewAzureDestination(ctx, t.Name, t.PathTemplate, &storageConfig)
-
 }
 
+func (t Target) Destination(ctx context.Context, appConfig appconfig.AppConfig) (Destination, error) {
+	switch t.Type {
+	case "s3":
+		return t.createS3Destination(ctx, appConfig)
+	case "az-blob":
+		return t.createAzBlobDestination(ctx, appConfig)
+	case "file":
+		return t.createLocalDestination(ctx, appConfig)
+	default:
+		return nil, fmt.Errorf("target type:%s not supported", t.Type)
+	}
+}
 func (t Target) createLocalDestination(ctx context.Context, appConfig appconfig.AppConfig) (Destination, error) {
 	storageConfig := appconfig.LocalUploadStoreConfig(&appConfig)
 	storageConfig.ToPath = t.Directory
 	return NewFileDestination(ctx, t.Name, t.PathTemplate, storageConfig)
-}
-
-type opFunc = func(t Target, ctx context.Context, appConfig appconfig.AppConfig) (Destination, error)
-
-var opMap = map[string]opFunc{
-	"s3":      Target.createS3Destination,
-	"az-blob": Target.createAzBlobDestination,
-	"file":    Target.createLocalDestination,
 }
 
 func unmarshalDeliveryConfig() (*Config, error) {
@@ -205,15 +208,12 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 			if t.PathTemplate == "" {
 				t.PathTemplate = p.PathTemplate
 			}
-			op, ok := opMap[t.Type]
-			if ok {
-				destination, err := op(t, ctx, appConfig)
-				if err != nil {
-					return err
-				}
-				name := p.DataStreamId + "-" + p.DataStreamRoute
-				RegisterDestination(name, t.Name, destination)
+			destination, err := t.Destination(ctx, appConfig)
+			if err != nil {
+				return err
 			}
+			name := p.DataStreamId + "-" + p.DataStreamRoute
+			RegisterDestination(name, t.Name, destination)
 		}
 	}
 
