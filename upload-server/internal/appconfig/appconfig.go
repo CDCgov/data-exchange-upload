@@ -64,7 +64,7 @@ type AppConfig struct {
 
 	// UI
 	UIPort    string `env:"UI_PORT, default=:8081"`
-	CsrfToken string `env:"CSRF_TOKEN, required"`
+	CsrfToken string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
 	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
 
 	// TUS Upload file lock
