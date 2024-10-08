@@ -12,6 +12,7 @@ type ReportConfig struct {
 	EndDate     string
 	TargetEnv   string
 	PsApiUrl    string
+	S3Bucket    string
 }
 
 func GetEnvVar(key string) string {
@@ -28,6 +29,7 @@ func GetConfig() ReportConfig {
 	endDate := GetEnvVar("END_DATE")
 	targetEnv := GetEnvVar("ENV")
 	psApiUrl := GetEnvVar("PS_API_ENDPOINT")
+	s3Bucket := GetEnvVar("S3_BUCKET")
 
 	config := ReportConfig{
 		DataStreams: dataStreams,
@@ -35,6 +37,7 @@ func GetConfig() ReportConfig {
 		EndDate:     endDate,
 		TargetEnv:   targetEnv,
 		PsApiUrl:    psApiUrl,
+		S3Bucket:    s3Bucket,
 	}
 
 	return config

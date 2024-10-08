@@ -40,11 +40,11 @@ func main() {
 
 	fmt.Printf("CSV Data: %v\n", csvBytes)
 
-	// bucketName := "upload-file-count-reports"
-	// key := fmt.Sprintf("file-counts-report-%s.csv", config.TargetEnv)
-	// if err := uploadCsvToS3(bucketName, key, csvBytes); err != nil {
-	// 	log.Fatalf("Error uploading CSV to S3: %v", err)
-	// }
+	bucketName := config.S3Bucket
+	key := fmt.Sprintf("uploads-report-%s.csv", config.TargetEnv)
+	if err := uploadCsvToS3(bucketName, key, csvBytes); err != nil {
+		log.Fatalf("Error uploading CSV to S3: %v", err)
+	}
 }
 
 func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (ReportDataRow, error) {
@@ -130,7 +130,7 @@ func createCSV(data [][]string) ([]byte, error) {
 }
 
 func uploadCsvToS3(bucketName, key string, csvData []byte) error {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-west-2"))
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
 	if err != nil {
 		return fmt.Errorf("unable to load SDK config, %v", err)
 	}
