@@ -9,12 +9,12 @@ services:
       - ./configs/local/minio:/data
   upload-server:
     environment:
-      - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:8000}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-test-bucket}
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
-      - DEX_MANIFEST_CONFIG_FOLDER_NAME=${DEX_MANIFEST_CONFIG_FOLDER_NAME:-upload-configs}
+      - S3_ENDPOINT=http://minio:8000
+      - S3_BUCKET_NAME=test-bucket
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - DEX_MANIFEST_CONFIG_FOLDER_NAME=upload-configs
     depends_on:
       - minio
       - cache

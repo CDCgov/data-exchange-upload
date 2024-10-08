@@ -16,7 +16,7 @@ import (
 	dexTesting "github.com/cdcgov/data-exchange-upload/upload-server/testing"
 )
 
-var AZURITE_KEY = os.Getenv("AZURE_STORAGE_KEY")
+var AZURITE_KEY = os.Getenv("AZURITE_STORAGE_KEY")
 
 func TestTus(t *testing.T) {
 	for name, c := range cases {

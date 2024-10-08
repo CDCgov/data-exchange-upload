@@ -293,7 +293,8 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 	if ac.AzureConnection != nil {
 		if ac.AzureConnection.StorageName == "" || ac.AzureConnection.StorageKey == "" {
 			return AppConfig{}, fmt.Errorf("missing required values for connecting to Azure")
-		} else if ac.AzureConnection.ContainerEndpoint == "" {
+		}
+		if ac.AzureConnection.ContainerEndpoint == "" {
 			ac.AzureConnection.ContainerEndpoint = fmt.Sprintf("https://%s.blob.core.windows.net", ac.AzureConnection.StorageName)
 		}
 	}
