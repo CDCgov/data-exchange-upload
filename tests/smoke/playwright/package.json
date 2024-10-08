@@ -5,7 +5,8 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "npx tsc",
-    "test": "npx playwright test"
+    "test": "npx playwright test",
+    "server": "cd ../../../upload-server/ && go run ./... && cd ../tests/smoke/playwright/"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
