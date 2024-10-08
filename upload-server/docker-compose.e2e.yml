@@ -1,0 +1,10 @@
+services:
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.42.1-focal
+    volumes:
+      - ../tests/smoke/playwright:/app
+    ports:
+      - 9222:9222
+    command: npx playwright test
+    depends_on:
+      - upload-server
