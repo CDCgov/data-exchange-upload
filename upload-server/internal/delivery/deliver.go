@@ -54,14 +54,21 @@ func GetDestinationTarget(dataStreamId string, dataStreamRoute string, target st
 	return d, ok
 }
 
-func GetRegisteredTargets() []any {
-	all := make([]any, 0, len(destinations))
+func getTargetHealthChecks() []any {
+	targetSet := map[string]Destination{}
+	var dests []any
+
 	for _, destination := range destinations {
-		for _, t := range destination {
-			all = append(all, t)
+		for name, t := range destination {
+			targetSet[name] = t
 		}
 	}
-	return all
+
+	for _, dest := range targetSet {
+		dests = append(dests, dest)
+	}
+
+	return dests
 }
 
 var sources = map[string]Source{}
@@ -207,7 +214,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		}
 	}
 
-	targets := GetRegisteredTargets()
+	targets := getTargetHealthChecks()
 	if len(targets) == 0 {
 		return fmt.Errorf("failed to register destination targets")
 	}
