@@ -45,6 +45,9 @@ func main() {
 
 	filename := fmt.Sprintf("uploads-report-%s-%s.csv", config.TargetEnv, config.StartDate)
 	saveCsvToFile(filename, csvBytes)
+	if err != nil {
+		log.Fatalf("Error saving CSV: %v", err)
+	}
 
 	if config.S3Config != nil {
 		if err := uploadCsvToS3(config.S3Config.BucketName, config.S3Config.Endpoint, filename, csvBytes); err != nil {
@@ -143,11 +146,12 @@ func saveCsvToFile(fileName string, csvData []byte) error {
 		return fmt.Errorf("failed to get the current working directory: %v", err)
 	}
 
-	fullPath := filepath.Join(workingDir, fileName)
+	safeFileName := strings.ReplaceAll(fileName, ":", "-")
+	fullPath := filepath.Join(workingDir, safeFileName)
 
 	file, err := os.Create(fullPath)
 	if err != nil {
-		return fmt.Errorf("failed to create file %s: %v", fullPath, err)
+		return fmt.Errorf("failed to create the file %v: %v", file, err)
 	}
 	defer file.Close()
 
@@ -156,7 +160,7 @@ func saveCsvToFile(fileName string, csvData []byte) error {
 		return fmt.Errorf("failed to write to file %s: %v", fullPath, err)
 	}
 
-	log.Printf("CSV successfully saved to file: %s\n", fullPath)
+	fmt.Printf("CSV successfully saved to file: %s\n", fullPath)
 	return nil
 }
 
@@ -167,12 +171,7 @@ func uploadCsvToS3(bucketName string, endpoint string, key string, csvData []byt
 		return fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
-	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		if endpoint != "" {
-			o.UsePathStyle = true
-			o.BaseEndpoint = &endpoint
-		}
-	})
+	client := s3.NewFromConfig(cfg)
 
 	putInput := &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
@@ -182,6 +181,7 @@ func uploadCsvToS3(bucketName string, endpoint string, key string, csvData []byt
 
 	_, err = client.PutObject(context.TODO(), putInput)
 	if err != nil {
+		fmt.Printf("Error putting to s3: %v", err)
 		return fmt.Errorf("failed to upload CSV to S3: %v", err)
 	}
 
