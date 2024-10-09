@@ -21,7 +21,7 @@ test.describe("Upload API/UI", () => {
             const fileChooserPromise = page.waitForEvent('filechooser');
             await page.getByRole('button', {name: 'Browse Files'}).click(); 
             const fileChooser = await fileChooserPromise;
-            await fileChooser.setFiles('../upload-files/10KB-test-file');     
+            await fileChooser.setFiles('./test-data/10KB-test-file');     
 
             await expect(page.getByText('Upload Status: Complete')).toBeVisible();
         })

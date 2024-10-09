@@ -121,7 +121,7 @@ test.describe("Upload Status Page", () => {
         await page.getByRole('button', {name: 'Browse Files'}).click(); 
 
         const fileChooser = await fileChooserPromise;
-        await fileChooser.setFiles('../upload-files/10KB-test-file');
+        await fileChooser.setFiles('./test-data/10KB-test-file');
 
         await expect((await uploadPatchResponsePromise).ok()).toBeTruthy()
         await expect((await uploadHeadResponsePromise).ok()).toBeTruthy()
