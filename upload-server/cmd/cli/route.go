@@ -12,10 +12,8 @@ import (
 
 type Router struct{}
 type RequestBody struct {
-	DataStreamId    string `json:"data_stream_id"`
-	DataStreamRoute string `json:"data_stream_route"`
-	Target          string `json:"target"`
-	Source          string `json:"source"`
+	Target string `json:"target"`
+	Source string `json:"source"`
 }
 
 func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
