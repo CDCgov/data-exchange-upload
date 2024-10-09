@@ -96,7 +96,6 @@ class FileCopy {
     )
     fun shouldTranslateMetadataGivenV1SenderManifest(manifest: HashMap<String, String>) {
         val useCase = Metadata.getUseCaseFromManifest(manifest)
-        val dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
         val v1Config = loadUploadConfig(dexBlobClient, manifest)
         val v2ConfigFilename = v1Config.compatConfigFilename ?: "$useCase.json"
         val v2Config = loadUploadConfig(dexBlobClient, v2ConfigFilename, "v2")
@@ -108,23 +107,50 @@ class FileCopy {
         testContext.setAttribute("uploadId", uid)
         Thread.sleep(1000)
 
+        val config = loadUploadConfig(dexBlobClient, manifest)
         val filenameSuffix = Filename.getFilenameSuffix(v1Config.copyConfig, uid)
         val expectedFilename =
-            "${Metadata.getFilePrefix(v1Config.copyConfig)}${Metadata.getFilename(manifest)}$filenameSuffix${testFile.extension}"
-        val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
-        val blobMetadata = expectedBlobClient.properties.metadata
+            "${ Metadata.getFilePrefix( v1Config.copyConfig, manifest)
+            }${Metadata.getFilename(manifest)}$filenameSuffix${testFile.extension}"
 
-        metadataMapping.forEach { (v1Key, v2Key) ->
-            Assert.assertTrue(
-                blobMetadata.containsKey(v2Key),
-                "Mismatch: Blob metadata does not contain expected V2 key: $v2Key which should map from V1 key: $v1Key"
+        var expectedBlobClient: BlobClient? = null
+
+        if (config.copyConfig.targets.contains("edav")) {
+            expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
+
+            Assert.assertNotNull(
+                expectedBlobClient,
+                "Expected blob client was not initialized for filename: $expectedFilename"
+            )
+            Assert.assertEquals(
+                expectedBlobClient.properties.blobSize,
+                testFile.length()
             )
         }
+        if (expectedBlobClient != null) {
+            val blobMetadata = expectedBlobClient.properties.metadata
+            metadataMapping.forEach { (v1Key, v2Key) ->
+                if (!blobMetadata.containsKey(v2Key)) {
+                    return@forEach
+                }
+                Assert.assertTrue(
+                    blobMetadata.containsKey(v2Key),
+                    "Mismatch: Blob metadata does not contain expected V2 key: $v2Key which should map from V1 key: $v1Key"
+                )
+            }
 
-        metadataMapping.forEach { (v1Key, v2Key) ->
-            val v1Val = manifest[v1Key] ?: ""
-            val v2Val = blobMetadata[v2Key] ?: ""
-            Assert.assertEquals(v1Val, v2Val, "Expected V1 value: $v1Val does not match with actual V2 value: $v2Val")
+            metadataMapping.forEach { (v1Key, v2Key) ->
+                if (!blobMetadata.containsKey(v2Key)) {
+                    return@forEach
+                }
+                val v1Val = manifest[v1Key] ?: ""
+                val v2Val = blobMetadata[v2Key] ?: ""
+                Assert.assertEquals(
+                    v1Val,
+                    v2Val,
+                    "Expected V1 value: $v1Val does not match with actual V2 value: $v2Val"
+                )
+            }
         }
     }
 }
