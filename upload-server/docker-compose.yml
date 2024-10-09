@@ -44,3 +44,7 @@ services:
       - cache
 volumes:
   prom_data:
+
+networks:
+  default:
+    name: upload-network
