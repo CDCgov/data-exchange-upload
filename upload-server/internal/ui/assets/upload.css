@@ -106,6 +106,7 @@ main > div:first-child:not(.hidden) + .file-detail-container {
   font-weight: 500;
   width: 100%;
   text-align: center;
+  overflow-wrap: break-word;
 }
 
 /* ----------------------- */
