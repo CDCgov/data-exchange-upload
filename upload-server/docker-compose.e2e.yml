@@ -8,13 +8,10 @@ services:
     working_dir: /app
     ports:
       - 9222:9222
-    command: bash -c "npm install && npm test || exit 0"
-    # appending `|| exit 0` will wait until all of the workers have completed before exiting
+    command: sh -c "npm install; npm test --workers=1"
     environment:
       - CI=${CI}
       - UI_URL=http://upload:${UI_PORT:-8081}
-      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR}
-      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR}
     depends_on:
       upload-server:
         condition: service_healthy
@@ -28,10 +25,3 @@ services:
       retries: 5
       start_period: 20s
       timeout: 10s
-    extends:
-      file: docker-compose.yml
-      service: upload-server
-  cache:
-    extends:
-      file: docker-compose.yml
-      service: cache

@@ -1,8 +1,8 @@
 import { PlaywrightTestConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
-const testReportDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
-const testResultsDir = process.env.TEST_RESULTS_DIR ?? './test-results';
+const testReportDir = './test-reports';
+const testResultsDir = './test-results';
 
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
