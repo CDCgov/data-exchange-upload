@@ -10,26 +10,19 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
-func NewFileDestination(_ context.Context, target string, pathTemplate string, config *appconfig.LocalStorageConfig) (*FileDestination, error) {
-	return &FileDestination{
-		LocalStorageConfig: *config,
-		Target:             target,
-		PathTemplate:       pathTemplate,
-	}, nil
-}
-
 type FileDestination struct {
-	appconfig.LocalStorageConfig
-	Target       string
-	PathTemplate string
+	ToPath       string `yaml:"path"`
+	Name         string `yaml:"name"`
+	PathTemplate string `yaml:"path_template"`
 }
 
 func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
-	os.MkdirAll(fd.ToPath, 0755)
+	if err := os.MkdirAll(fd.ToPath, 0755); err != nil {
+		return "", err
+	}
 	dest, err := os.Create(filepath.Join(fd.ToPath, id))
 	if err != nil {
 		return dest.Name(), err
@@ -42,7 +35,7 @@ func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m m
 }
 
 func (fd *FileDestination) Health(_ context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "File Delivery Target " + fd.Target
+	rsp.Service = "File Delivery Target " + fd.Name
 	info, err := os.Stat(fd.ToPath)
 	if err != nil {
 		rsp.Status = models.STATUS_DOWN

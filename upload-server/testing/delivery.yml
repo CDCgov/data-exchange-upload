@@ -1,0 +1,86 @@
+version: 1.0
+
+az-edav: &az-edav
+  path: "./uploads/edav"
+
+az-ehdi: &az-ehdi
+  path: "./uploads/ehdi"
+
+az-eicr: &az-eicr
+  path: "./uploads/eicr"
+
+az-ncird: &az-ncird
+  path: "./uploads/ncird"
+
+# if needed, properties of an anchor can be overridden
+# in a delivery target
+#
+# path_template can be defined at data_stream level
+# where it is valid for all targets unless
+# a target defines its own path_template property
+programs:
+  - data_stream_id: pulsenet
+    data_stream_route: localsequencefile
+    delivery_targets:
+      - name: edav
+        type: file
+        <<: *az-edav
+  - data_stream_id: ehdi
+    data_stream_route: csv
+    path_template: $EHDI_PATH_TEMPLATE
+    delivery_targets:
+      - name: ehdi
+        type: file
+        <<: *az-ehdi
+  - data_stream_id: eicr
+    data_stream_route: fhir
+    path_template: $EICR_PATH_TEMPLATE
+    delivery_targets:
+      - name: eicr
+        type: file
+        <<: *az-eicr
+  - data_stream_id: rsp-prevention
+    data_stream_route: csv
+    delivery_targets:
+      - name: ncird
+        type: file
+        <<: *az-ncird
+  - data_stream_id: generic-immunization
+    data_stream_route: csv
+    delivery_targets:
+      - name: ncird
+        type: file
+        <<: *az-ncird
+  - data_stream_id: influenza-vaccination
+    data_stream_route: csv
+    delivery_targets:
+      - name: ncird
+        type: file
+        <<: *az-ncird
+  - data_stream_id: routine-immunization
+    data_stream_route: other
+    delivery_targets:
+      - name: ncird
+        type: file
+        <<: *az-ncird
+  - data_stream_id: rsp-prevention
+    data_stream_route: csv
+    delivery_targets:
+      - name: ncird
+        type: file
+        <<: *az-ncird
+  - data_stream_id: dextesting
+    data_stream_route: testevent1
+    delivery_targets:
+      - name: ncird
+        type: file
+        <<: *az-ncird
+      - name: eicr
+        type: file
+        <<: *az-eicr
+      - name: edav
+        type: file
+        <<: *az-edav
+      - name: ehdi
+        type: file
+        <<: *az-ehdi
