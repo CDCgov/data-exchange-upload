@@ -51,17 +51,17 @@ programs:
         <<: *az-edav
   - data_stream_id: ehdi
     data_stream_route: csv
-    path_template: $EHDI_PATH_TEMPLATE
     delivery_targets:
       - name: ehdi
         type: az-blob
+        path_template: $EHDI_PATH_TEMPLATE
         <<: *az-ehdi
   - data_stream_id: eicr
     data_stream_route: fhir
-    path_template: $EICR_PATH_TEMPLATE
     delivery_targets:
       - name: eicr
         type: az-blob
+        path_template: $EICR_PATH_TEMPLATE
         <<: *az-eicr
   - data_stream_id: rsp-prevention
     data_stream_route: csv

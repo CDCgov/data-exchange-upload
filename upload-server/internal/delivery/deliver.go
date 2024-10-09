@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -110,15 +109,13 @@ type Config struct {
 type Program struct {
 	DataStreamId    string   `yaml:"data_stream_id"`
 	DataStreamRoute string   `yaml:"data_stream_route"`
-	PathTemplate    string   `yaml:"path_template"`
 	DeliveryTargets []Target `yaml:"delivery_targets"`
 }
 
 type Target struct {
-	Name         string      `yaml:"name"`
-	Type         string      `yaml:"type"`
-	PathTemplate string      `yaml:"path_template"`
-	Destination  Destination `yaml:"-"`
+	Name        string      `yaml:"name"`
+	Type        string      `yaml:"type"`
+	Destination Destination `yaml:"-"`
 }
 
 var DestinationTypes = map[string]func() Destination{
@@ -142,7 +139,6 @@ func (t *Target) UnmarshalYAML(n *yaml.Node) error {
 	if err := n.Decode(d); err != nil {
 		return err
 	}
-	log.Println("Destination", d)
 	t.Destination = d
 	return nil
 }
@@ -176,14 +172,9 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	if err != nil {
 		return err
 	}
-	log.Printf("%+v\n", cfg)
 	for _, p := range cfg.Programs {
 		for _, t := range p.DeliveryTargets {
-			if t.PathTemplate == "" {
-				t.PathTemplate = p.PathTemplate
-			}
 			name := p.DataStreamId + "-" + p.DataStreamRoute
-			log.Printf("REGISTERED DESTINATION%+v\n", t.Destination)
 			RegisterDestination(name, t.Name, t.Destination)
 		}
 	}

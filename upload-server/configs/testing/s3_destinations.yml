@@ -43,17 +43,17 @@ programs:
         <<: *s3-edav
   - data_stream_id: ehdi
     data_stream_route: csv
-    path_template: $EHDI_PATH_TEMPLATE
     delivery_targets:
       - name: ehdi
         type: s3
+        path_template: $EHDI_PATH_TEMPLATE
         <<: *s3-ehdi
   - data_stream_id: eicr
     data_stream_route: fhir
-    path_template: $EICR_PATH_TEMPLATE
     delivery_targets:
       - name: eicr
         type: s3
+        path_template: $EICR_PATH_TEMPLATE
         <<: *s3-eicr
   - data_stream_id: rsp-prevention
     data_stream_route: csv
