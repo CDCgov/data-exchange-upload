@@ -48,6 +48,7 @@ func main() {
 		log.Fatalf("Error saving CSV: %v", err)
 	}
 
+	fmt.Printf("S3 Bucket Name: %s, S3 Endpoint: %s", config.S3Config.BucketName, config.S3Config.Endpoint)
 	key := fmt.Sprintf("upload-report-%s-%s.csv", config.TargetEnv, config.StartDate)
 	if config.S3Config != nil {
 		client, err := getNewS3Client("us-east-1", config.S3Config.Endpoint)
