@@ -171,7 +171,12 @@ func uploadCsvToS3(bucketName string, endpoint string, key string, csvData []byt
 		return fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
-	client := s3.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		if endpoint != "" {
+			o.UsePathStyle = true
+			o.BaseEndpoint = &endpoint
+		}
+	})
 
 	putInput := &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),

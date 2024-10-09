@@ -40,7 +40,7 @@ func GetConfig() AppConfig {
 		PsApiUrl:    psApiUrl,
 	}
 
-	if s3BucketName != "" {
+	if s3BucketName != "" && s3Endpoint != "" {
 		s3Config := S3StorageConfig{
 			BucketName: s3BucketName,
 			Endpoint:   s3Endpoint,
