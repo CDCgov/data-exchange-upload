@@ -121,23 +121,6 @@ type Target struct {
 	Type         string      `yaml:"type"`
 	PathTemplate string      `yaml:"path_template"`
 	Destination  Destination `yaml:"-"`
-	/*
-		Endpoint     string `yaml:"endpoint"`
-
-		BucketName         string `yaml:"bucket_name"`
-		AwsAccessKeyId     string `yaml:"access_key_id"`
-		AwsSecretAccessKey string `yaml:"secret_access_key"`
-		AwsRegion          string `yaml:"aws_region"`
-
-		ContainerName    string `yaml:"container_name"`
-		TenantID         string `yaml:"tenant_id"`
-		ClientID         string `yaml:"client_id"`
-		ClientSecret     string `yaml:"client_secret"`
-		ConnectionString string `yaml:"connection_string"`
-		SasToken         string `yaml:"sas_token"`
-
-		Directory string `yaml:"directory"`
-	*/
 }
 
 var DestinationTypes = map[string]func() Destination{
@@ -150,20 +133,19 @@ var ErrUnknownDestinationType = errors.New("Unknown destination type")
 
 func (t *Target) UnmarshalYAML(n *yaml.Node) error {
 	type alias Target
-	a := &alias{}
-	if err := n.Decode(a); err != nil {
+	if err := n.Decode((*alias)(t)); err != nil {
 		return err
 	}
-	dType, ok := DestinationTypes[a.Type]
+	dType, ok := DestinationTypes[t.Type]
 	if !ok {
-		return fmt.Errorf("%w: %s", ErrUnknownDestinationType, a.Type)
+		return fmt.Errorf("%w: %s", ErrUnknownDestinationType, t.Type)
 	}
 	d := dType()
 	if err := n.Decode(d); err != nil {
 		return err
 	}
-	a.Destination = d
-	*t = Target(*a)
+	log.Println("Destination", d)
+	t.Destination = d
 	return nil
 }
 
@@ -199,6 +181,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 				t.PathTemplate = p.PathTemplate
 			}
 			name := p.DataStreamId + "-" + p.DataStreamRoute
+			log.Printf("REGISTERED DESTINATION%+v\n", t.Destination)
 			RegisterDestination(name, t.Name, t.Destination)
 		}
 	}

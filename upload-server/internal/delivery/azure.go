@@ -3,31 +3,15 @@ package delivery
 import (
 	"context"
 	"io"
+	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
-
-func NewAzureDestination(ctx context.Context, target string, pathTemplate string, config *appconfig.AzureContainerConfig) (*AzureDestination, error) {
-	containerClient, err := storeaz.NewContainerClient(config.AzureStorageConfig, config.ContainerName)
-	if err != nil {
-		return nil, err
-	}
-	err = storeaz.CreateContainerIfNotExists(ctx, containerClient)
-	if err != nil {
-		return nil, err
-	}
-
-	return &AzureDestination{
-		ToClient:     containerClient,
-		Target:       target,
-		PathTemplate: pathTemplate,
-	}, nil
-}
 
 type AzureSource struct {
 	FromContainerClient *container.Client
@@ -77,9 +61,34 @@ func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp
 }
 
 type AzureDestination struct {
-	ToClient     *container.Client
-	Target       string
-	PathTemplate string
+	toClient          *container.Client
+	Target            string
+	PathTemplate      string `yaml:"path_template"`
+	ContainerEndpoint string `yaml:"endpoint"`
+	TenantId          string `yaml:"tenant_id"`
+	ClientId          string `yaml:"client_id"`
+	ClientSecret      string `yaml:"client_secret"`
+	ContainerName     string `yaml:"container_name"`
+}
+
+func (ad *AzureDestination) Client() (*container.Client, error) {
+	if ad.toClient == nil {
+		cred, err := azidentity.NewClientSecretCredential(ad.TenantId, ad.ClientId, ad.ClientSecret, nil)
+		if err != nil {
+			return nil, err
+		}
+		c, err := azblob.NewClient(ad.ContainerEndpoint, cred, nil)
+
+		containerClient := c.ServiceClient().NewContainerClient(ad.ContainerName)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		err = storeaz.CreateContainerIfNotExists(ctx, containerClient)
+		if err != nil {
+			return nil, err
+		}
+		ad.toClient = containerClient
+	}
+	return ad.toClient, nil
 }
 
 func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
@@ -88,7 +97,11 @@ func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader
 		return blobName, err
 	}
 
-	client := ad.ToClient.NewBlockBlobClient(blobName)
+	c, err := ad.Client()
+	if err != nil {
+		return blobName, err
+	}
+	client := c.NewBlockBlobClient(blobName)
 
 	_, err = client.UploadStream(ctx, r, &azblob.UploadStreamOptions{
 		Metadata: storeaz.PointerizeMetadata(m),
@@ -100,14 +113,15 @@ func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealt
 	rsp.Service = "Azure deliver target " + ad.Target
 	rsp.Status = models.STATUS_UP
 
-	if ad.ToClient == nil {
+	c, err := ad.Client()
+	if err != nil {
 		// Running in azure, but deliverer not set up.
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = "Azure deliverer target " + ad.Target + " not configured"
+		return rsp
 	}
 
-	_, err := ad.ToClient.GetProperties(ctx, nil)
-	if err != nil {
+	if _, err := c.GetProperties(ctx, nil); err != nil {
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = err.Error()
 	}
