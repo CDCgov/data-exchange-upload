@@ -42,6 +42,7 @@ jobs:
       - name: Show coverage
         run: go tool cover -func=c.out
   e2e-test:
+    needs: simulation-test
     name: E2E Test
     runs-on: ubuntu-latest
     env:
@@ -54,7 +55,7 @@ jobs:
       - name: Run Tests - File System
         run: PLAYWRIGHT_JSON_OUTPUT_NAME=file-system-report.json podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up --exit-code-from playwright
   #     - name: Run Tests - Azure
-  #       run: PLAYWRIGHT_JSON_OUTPUT_NAME=azure-report.json podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up --exit-code-from playwright
+  #       run: ZURITE_STORAGE_KEY=${{ secrets.AZURITE_STORAGE_KEY }} PLAYWRIGHT_JSON_OUTPUT_NAME=azure-report.json podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up --exit-code-from playwright
   #     - name: Run Tests - AWS
   #       run: PLAYWRIGHT_JSON_OUTPUT_NAME=aws-report.json podman-compose -f docker-compose.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml up --exit-code-from playwright
   #     - uses: actions/upload-artifact@v4
