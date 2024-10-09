@@ -10,24 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 )
-
-func NewS3Destination(ctx context.Context, target string, pathTemplate string, conn *appconfig.S3StorageConfig) (*S3Destination, error) {
-	c, err := stores3.New(ctx, conn)
-	if err != nil {
-		return nil, err
-	}
-
-	return &S3Destination{
-		ToClient:     c,
-		BucketName:   conn.BucketName,
-		Target:       target,
-		PathTemplate: pathTemplate,
-	}, nil
-}
 
 type writeAtWrapper struct {
 	writer io.Writer
@@ -107,10 +91,36 @@ func (ss *S3Source) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
 }
 
 type S3Destination struct {
-	ToClient     *s3.Client
-	BucketName   string
-	Target       string
-	PathTemplate string
+	toClient        *s3.Client
+	BucketName      string `yaml:"bucket_name"`
+	Name            string `yaml:"name"`
+	PathTemplate    string `yaml:"path_template"`
+	AccessKeyID     string `yaml:"access_key_id"`
+	SecretAccessKey string `yaml:"secret_access_key"`
+	Endpoint        string `yaml:"endpoint"`
+	Region          string `yaml:"region"`
+}
+
+func (sd *S3Destination) Retrieve(ctx context.Context) (aws.Credentials, error) {
+	return aws.Credentials{
+		AccessKeyID:     sd.AccessKeyID,
+		SecretAccessKey: sd.SecretAccessKey,
+	}, nil
+}
+
+func (sd *S3Destination) Client() *s3.Client {
+	options := s3.Options{
+		Credentials: sd,
+		Region:      sd.Region,
+	}
+
+	if sd.Endpoint != "" {
+		options.UsePathStyle = true
+		options.BaseEndpoint = &sd.Endpoint
+	}
+	// Create a Session with a custom region
+	sd.toClient = s3.New(options)
+	return sd.toClient
 }
 
 func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
@@ -119,7 +129,7 @@ func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m
 		return "", err
 	}
 
-	uploader := manager.NewUploader(sd.ToClient)
+	uploader := manager.NewUploader(sd.Client())
 	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket:   &sd.BucketName,
 		Key:      &destFileName,
@@ -127,7 +137,7 @@ func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m
 		Metadata: m,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to upload file: %w", err)
+		return "", fmt.Errorf("failed to upload file to %s %s: %w", sd.BucketName, path, err)
 	}
 
 	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, destFileName)
@@ -135,16 +145,16 @@ func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m
 }
 
 func (sd *S3Destination) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "S3 deliver target " + sd.Target
+	rsp.Service = "S3 deliver target " + sd.Name
 	rsp.Status = models.STATUS_UP
 
-	if sd.ToClient == nil {
+	if sd.Client() == nil {
 		// Running in azure, but deliverer not set up.
 		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = "S3 deliverer target " + sd.Target + " not configured"
+		rsp.HealthIssue = "S3 deliverer target " + sd.Name + " not configured"
 	}
 
-	_, err := sd.ToClient.HeadBucket(ctx, &s3.HeadBucketInput{
+	_, err := sd.Client().HeadBucket(ctx, &s3.HeadBucketInput{
 		Bucket: &sd.BucketName,
 	})
 	if err != nil {

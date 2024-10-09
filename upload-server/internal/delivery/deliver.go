@@ -169,6 +169,9 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 
 	dat, err := os.ReadFile(appConfig.DeliveryConfigFile)
+	if err != nil {
+		return err
+	}
 	cfg, err := unmarshalDeliveryConfig(string(dat))
 	if err != nil {
 		return err

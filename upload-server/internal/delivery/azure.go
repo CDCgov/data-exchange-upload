@@ -3,6 +3,7 @@ package delivery
 import (
 	"context"
 	"io"
+	"log"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -74,6 +75,7 @@ type AzureDestination struct {
 }
 
 func (ad *AzureDestination) Client() (*container.Client, error) {
+	log.Println(ad)
 	if ad.toClient == nil {
 		containerClient, err := storeaz.NewContainerClient(appconfig.AzureStorageConfig{
 			StorageName:       ad.StorageAccount,
@@ -83,6 +85,9 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 			ClientId:          ad.ClientId,
 			ClientSecret:      ad.ClientSecret,
 		}, ad.ContainerName)
+		if err != nil {
+			return nil, err
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		err = storeaz.CreateContainerIfNotExists(ctx, containerClient)
