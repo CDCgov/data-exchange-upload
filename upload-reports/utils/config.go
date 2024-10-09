@@ -1,29 +1,25 @@
 package utils
 
 import (
-	"log"
 	"os"
 )
 
 type AppConfig struct {
-	DataStreams string           `env:"DATASTREAMS"`
-	StartDate   string           `env:"START_DATE"`
-	EndDate     string           `env:"END_DATE"`
-	TargetEnv   string           `env:"TARGET_ENV"`
-	PsApiUrl    string           `env:"PS_API_ENDPOINT"`
-	S3Config    *S3StorageConfig `env:", prefix=S3_, noinit"`
+	DataStreams string
+	StartDate   string
+	EndDate     string
+	TargetEnv   string
+	PsApiUrl    string
+	S3Config    *S3StorageConfig
 }
 
 type S3StorageConfig struct {
-	Endpoint   string `env:"ENDPOINT"`
-	BucketName string `env:"BUCKET_NAME"`
+	BucketName string
+	Endpoint   string
 }
 
 func GetEnvVar(key string) string {
 	val := os.Getenv(key)
-	if val == "" {
-		log.Fatalf("%s environment variable not set", key)
-	}
 	return val
 }
 
@@ -31,8 +27,10 @@ func GetConfig() AppConfig {
 	dataStreams := (GetEnvVar("DATASTREAMS"))
 	startDate := GetEnvVar("START_DATE")
 	endDate := GetEnvVar("END_DATE")
-	targetEnv := GetEnvVar("ENV")
+	targetEnv := GetEnvVar("TARGET_ENV")
 	psApiUrl := GetEnvVar("PS_API_ENDPOINT")
+	s3BucketName := GetEnvVar("S3_BUCKET_NAME")
+	s3Endpoint := GetEnvVar("S3_ENDPOINT")
 
 	config := AppConfig{
 		DataStreams: dataStreams,
@@ -40,6 +38,15 @@ func GetConfig() AppConfig {
 		EndDate:     endDate,
 		TargetEnv:   targetEnv,
 		PsApiUrl:    psApiUrl,
+	}
+
+	if s3BucketName != "" && s3Endpoint != "" {
+		s3Config := S3StorageConfig{
+			BucketName: s3BucketName,
+			Endpoint:   s3Endpoint,
+		}
+
+		config.S3Config = &s3Config
 	}
 
 	return config

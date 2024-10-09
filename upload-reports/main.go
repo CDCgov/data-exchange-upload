@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -41,17 +43,18 @@ func main() {
 
 	fmt.Printf("CSV Data: %v\n", csvBytes)
 
-	// TODO: write data to file
+	filename := fmt.Sprintf("uploads-report-%s-%s.csv", config.TargetEnv, config.StartDate)
+	saveCsvToFile(filename, csvBytes)
 
 	if config.S3Config != nil {
-		key := fmt.Sprintf("uploads-report-%s-%s.csv", config.TargetEnv, config.StartDate)
-		if err := uploadCsvToS3(config.S3Config.BucketName, config.S3Config.Endpoint, key, csvBytes); err != nil {
+		if err := uploadCsvToS3(config.S3Config.BucketName, config.S3Config.Endpoint, filename, csvBytes); err != nil {
 			log.Fatalf("Error uploading CSV to S3: %v", err)
 		}
 	}
 }
 
 func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (ReportDataRow, error) {
+	// TODO: look into concurrency for the multiple fetch calls
 	ctx := context.Background()
 	client := graphql.NewClient(apiURL, http.DefaultClient)
 
@@ -132,6 +135,29 @@ func createCSV(data [][]string) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func saveCsvToFile(fileName string, csvData []byte) error {
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get the current working directory: %v", err)
+	}
+
+	fullPath := filepath.Join(workingDir, fileName)
+
+	file, err := os.Create(fullPath)
+	if err != nil {
+		return fmt.Errorf("failed to create file %s: %v", fullPath, err)
+	}
+	defer file.Close()
+
+	_, err = file.Write(csvData)
+	if err != nil {
+		return fmt.Errorf("failed to write to file %s: %v", fullPath, err)
+	}
+
+	log.Printf("CSV successfully saved to file: %s\n", fullPath)
+	return nil
 }
 
 func uploadCsvToS3(bucketName string, endpoint string, key string, csvData []byte) error {
