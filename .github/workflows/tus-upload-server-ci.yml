@@ -51,10 +51,10 @@ jobs:
       TEST_REPORTS_DIR: ./playwright-report
     steps:
       - uses: actions/checkout@v4
-      - name: Install podman compse
-        run: pip3 install podman-compose
+      - name: Create containers
+        run: docker-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml build
       - name: Run Tests - File System
-        run: PLAYWRIGHT_JSON_OUTPUT_NAME=file-system-report.json podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up cache upload-server playwright --exit-code-from playwright
+        run: PLAYWRIGHT_JSON_OUTPUT_NAME=file-system-report.json docker-compose -f docker-compose.yml -f docker-compose.e2e.yml up cache upload-server playwright --exit-code-from playwright
   #     - name: Run Tests - Azure
   #       run: ZURITE_STORAGE_KEY=${{ secrets.AZURITE_STORAGE_KEY }} PLAYWRIGHT_JSON_OUTPUT_NAME=azure-report.json podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up --exit-code-from playwright
   #     - name: Run Tests - AWS
