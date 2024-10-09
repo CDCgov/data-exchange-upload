@@ -1,6 +1,6 @@
 module github.com/cdcgov/data-exchange-upload/upload-reports
 
-go 1.22.5
+go 1.22
 
 require (
 	github.com/Khan/genqlient v0.7.0
