@@ -50,7 +50,12 @@ func main() {
 
 	key := fmt.Sprintf("upload-report-%s-%s.csv", config.TargetEnv, config.StartDate)
 	if config.S3Config != nil {
-		if err := uploadCsvToS3(config.S3Config.BucketName, config.S3Config.Endpoint, key, csvBytes); err != nil {
+		client, err := getNewS3Client("us-east-1", config.S3Config.Endpoint)
+		if err != nil {
+			log.Fatalf("failed to create S3 client: %v", err)
+		}
+
+		if err := uploadCsvToS3(client, config.S3Config.BucketName, key, csvBytes); err != nil {
 			log.Fatalf("Error uploading CSV to S3: %v", err)
 		}
 	}
@@ -163,11 +168,10 @@ func saveCsvToFile(csvData []byte) error {
 	return nil
 }
 
-func uploadCsvToS3(bucketName string, endpoint string, key string, csvData []byte) error {
-	// TODO: add timeout
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+func getNewS3Client(region string, endpoint string) (*s3.Client, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(region))
 	if err != nil {
-		return fmt.Errorf("unable to load SDK config, %v", err)
+		return nil, fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
@@ -177,13 +181,18 @@ func uploadCsvToS3(bucketName string, endpoint string, key string, csvData []byt
 		}
 	})
 
+	return client, nil
+}
+
+func uploadCsvToS3(client *s3.Client, bucketName string, key string, csvData []byte) error {
+	// TODO: add timeout
 	putInput := &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 		Body:   bytes.NewReader(csvData),
 	}
 
-	_, err = client.PutObject(context.TODO(), putInput)
+	_, err := client.PutObject(context.TODO(), putInput)
 	if err != nil {
 		fmt.Printf("Error putting to s3: %v", err)
 		return fmt.Errorf("failed to upload CSV to S3: %v", err)

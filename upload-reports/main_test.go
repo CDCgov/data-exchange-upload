@@ -1,22 +1,54 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-type S3ClientMock struct {
-	mock.Mock
+func mockGraphQLServer() *httptest.Server {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		response := map[string]interface{}{
+			"data": map[string]interface{}{
+				"getUploadStats": map[string]interface{}{
+					"CompletedUploadsCount": 10,
+					"PendingUploads": map[string]interface{}{
+						"TotalCount": 5,
+					},
+					"UnDeliveredUploads": map[string]interface{}{
+						"TotalCount": 2,
+					},
+				},
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	})
+
+	return httptest.NewServer(handler)
 }
 
-func (m *S3ClientMock) PutObject(ctx context.Context, input *s3.PutObjectInput, opts ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
-	args := m.Called(ctx, input)
-	return args.Get(0).(*s3.PutObjectOutput), args.Error(1)
+func TestFetchDataForDataStream(t *testing.T) {
+	// Start the mock server
+	server := mockGraphQLServer()
+	defer server.Close() // Ensure the server is closed after the test
+
+	// Call the function with the mock server URL
+	reportRow, err := fetchDataForDataStream(server.URL, "stream1", "route1", "2024-01-01", "2024-01-31")
+
+	// Assertions
+	assert.NoError(t, err)
+	assert.Equal(t, "stream1", reportRow.DataStream)
+	assert.Equal(t, "route1", reportRow.Route)
+	assert.Equal(t, "2024-01-01", reportRow.StartDate)
+	assert.Equal(t, "2024-01-31", reportRow.EndDate)
+	assert.Equal(t, int64(10), reportRow.UploadCount)
+	assert.Equal(t, int64(5), reportRow.DeliverySuccessCount)
+	assert.Equal(t, int64(2), reportRow.DeliveryEndCount)
 }
 
 func TestCreateCSV(t *testing.T) {
@@ -46,31 +78,8 @@ func TestSaveCsvToFile(t *testing.T) {
 	os.Remove("upload-report.csv")
 }
 
-// func TestUploadCsvToS3(t *testing.T) {
-// 	// Setup the mock S3 client
-// 	mockS3Client := new(S3ClientMock)
-// 	// awsConfig := aws.Config{}
-// 	// s3Client := s3.NewFromConfig(awsConfig)
-//
-// 	// Replace with your S3 upload logic
-// 	t.Run("Successful Upload", func(t *testing.T) {
-// 		mockS3Client.On("PutObject", mock.Anything, mock.Anything).Return(&s3.PutObjectOutput{}, nil)
-//
-// 		err := uploadCsvToS3("test-bucket", "http://mock-endpoint", "test-key", []byte("test data"))
-// 		assert.NoError(t, err)
-// 		mockS3Client.AssertExpectations(t)
-// 	})
-//
-// 	t.Run("Failed Upload", func(t *testing.T) {
-// 		mockS3Client.On("PutObject", mock.Anything, mock.Anything).Return(nil, errors.New("upload error"))
-//
-// 		err := uploadCsvToS3("test-bucket", "http://mock-endpoint", "test-key", []byte("test data"))
-// 		assert.Error(t, err)
-// 		mockS3Client.AssertExpectations(t)
-// 	})
-// }
-//
-// func TestFetchDataForDataStream(t *testing.T) {
-// 	// Mock the GraphQL client and response as needed.
-// 	// For this test, focus on the output structure.
-// }
+func TestGetNewS3Client_Success(t *testing.T) {
+	client, err := getNewS3Client("us-east-1", "")
+	assert.NoError(t, err)
+	assert.NotNil(t, client)
+}
