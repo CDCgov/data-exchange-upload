@@ -31,8 +31,11 @@ jobs:
     environment: ${{ inputs.env }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout Go application repository
         uses: actions/checkout@v4
+        with:
+          repository: CDCgov/data-exchange-upload/upload-reports
+          path: upload-reports
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -40,18 +43,22 @@ jobs:
           go-version: "1.20" # Adjust to your Go version
 
       - name: Build Go application
-        run: |
-          cd ./upload-reports
-          go build -o app
+        run: go build -o app
+        working-directory: ./upload-reports
 
       - name: Run Go application with secrets and inputs
         run: ./app
+        working-directory: ./upload-reports
         env:
-          DEX_DEV_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING_DEV }}"
-          DEX_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}"
-          ROUTING_CONN_STRING: "${{ secrets.ROUTING_STORAGE_CONNECTION_STRING }}"
           DATASTREAMS: "${{ inputs.datastreams }}"
           START_DATE: "${{ inputs.start_date }}"
           END_DATE: "${{ inputs.end_date }}"
-          ENV: "${{ inputs.env }}"
+          TARGET_ENV: "${{ inputs.env }}"
           PS_API_ENDPOINT: "${{ secrets.PS_API_ENDPOINT }}"
+
+      - name: Upload output CSV as GitHub Actions artifact
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: upload-reports-csv
+          path: ./upload-reports/upload-report.csv

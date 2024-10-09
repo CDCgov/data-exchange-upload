@@ -43,14 +43,14 @@ func main() {
 
 	fmt.Printf("CSV Data: %v\n", csvBytes)
 
-	filename := fmt.Sprintf("uploads-report-%s-%s.csv", config.TargetEnv, config.StartDate)
-	saveCsvToFile(filename, csvBytes)
+	saveCsvToFile(csvBytes)
 	if err != nil {
 		log.Fatalf("Error saving CSV: %v", err)
 	}
 
+	key := fmt.Sprintf("upload-report-%s-%s.csv", config.TargetEnv, config.StartDate)
 	if config.S3Config != nil {
-		if err := uploadCsvToS3(config.S3Config.BucketName, config.S3Config.Endpoint, filename, csvBytes); err != nil {
+		if err := uploadCsvToS3(config.S3Config.BucketName, config.S3Config.Endpoint, key, csvBytes); err != nil {
 			log.Fatalf("Error uploading CSV to S3: %v", err)
 		}
 	}
@@ -140,14 +140,13 @@ func createCSV(data [][]string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func saveCsvToFile(fileName string, csvData []byte) error {
+func saveCsvToFile(csvData []byte) error {
 	workingDir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get the current working directory: %v", err)
 	}
 
-	safeFileName := strings.ReplaceAll(fileName, ":", "-")
-	fullPath := filepath.Join(workingDir, safeFileName)
+	fullPath := filepath.Join(workingDir, "upload-report.csv")
 
 	file, err := os.Create(fullPath)
 	if err != nil {
@@ -190,6 +189,6 @@ func uploadCsvToS3(bucketName string, endpoint string, key string, csvData []byt
 		return fmt.Errorf("failed to upload CSV to S3: %v", err)
 	}
 
-	log.Printf("Successfully uploaded %s to S3 bucket %s\n", key, bucketName)
+	fmt.Printf("Successfully uploaded %s to S3 bucket %s\n", key, bucketName)
 	return nil
 }

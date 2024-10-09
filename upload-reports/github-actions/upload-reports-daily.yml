@@ -9,8 +9,11 @@ jobs:
     runs-on: [self-hosted, linux]
 
     steps:
-      - name: Checkout code
+      - name: Checkout Go application repository
         uses: actions/checkout@v4
+        with:
+          repository: CDCgov/data-exchange-upload/upload-reports
+          path: upload-reports
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -28,18 +31,24 @@ jobs:
           echo "end_date=${current_time}" >> $GITHUB_ENV
 
       - name: Build Go application
-        run: |
-          cd ./upload-reports
-          go build -o app
+        run: go build -o app
+        working-directory: ./upload-reports
 
       - name: Run Go application with defaults
         run: ./app
+        working-directory: ./upload-reports
         env:
-          DEX_DEV_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING_DEV }}"
-          DEX_CONN_STRING: "${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}"
-          ROUTING_CONN_STRING: "${{ secrets.ROUTING_STORAGE_CONNECTION_STRING }}"
           DATASTREAMS: "test_csv,test_pdf" # Default value for datastreams
           START_DATE: "${{ env.start_date }}"
           END_DATE: "${{ env.end_date }}"
-          ENV: "dev"
+          TARGET_ENV: "dev"
           PS_API_ENDPOINT: "${{ secrets.PS_API_ENDPOINT }}"
+          S3_BUCKET_NAME: "${{ secrets.S3_BUCKET_NAME }}"
+          S3_ENDPOINT: "${{ secrets.S3_ENDPOINT }}"
+
+      - name: Upload output CSV as GitHub Actions artifact
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: upload-reports-csv
+          path: ./upload-reports/upload-report.csv # Make sure this matches the path to the saved CSV
