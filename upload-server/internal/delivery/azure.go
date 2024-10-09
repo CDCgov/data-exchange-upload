@@ -5,10 +5,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
@@ -63,6 +63,8 @@ func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp
 type AzureDestination struct {
 	toClient          *container.Client
 	Target            string
+	StorageAccount    string `yaml:"storage_account"`
+	StorageKey        string `yaml:"storage_key"`
 	PathTemplate      string `yaml:"path_template"`
 	ContainerEndpoint string `yaml:"endpoint"`
 	TenantId          string `yaml:"tenant_id"`
@@ -73,13 +75,14 @@ type AzureDestination struct {
 
 func (ad *AzureDestination) Client() (*container.Client, error) {
 	if ad.toClient == nil {
-		cred, err := azidentity.NewClientSecretCredential(ad.TenantId, ad.ClientId, ad.ClientSecret, nil)
-		if err != nil {
-			return nil, err
-		}
-		c, err := azblob.NewClient(ad.ContainerEndpoint, cred, nil)
-
-		containerClient := c.ServiceClient().NewContainerClient(ad.ContainerName)
+		containerClient, err := storeaz.NewContainerClient(appconfig.AzureStorageConfig{
+			StorageName:       ad.StorageAccount,
+			StorageKey:        ad.StorageKey,
+			ContainerEndpoint: ad.ContainerEndpoint,
+			TenantId:          ad.TenantId,
+			ClientId:          ad.ClientId,
+			ClientSecret:      ad.ClientSecret,
+		}, ad.ContainerName)
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		err = storeaz.CreateContainerIfNotExists(ctx, containerClient)
