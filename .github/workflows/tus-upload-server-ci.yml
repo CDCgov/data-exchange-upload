@@ -38,10 +38,13 @@ jobs:
       - name: Install podman compose
         run: pip3 install podman-compose
       - name: Run Tests
-        run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-server
+        run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-service
       - name: Show coverage
         run: go tool cover -func=c.out
+      - name: Run Tests
+        run: podman-compose down
   e2e-test:
+    if: ${{ always() }}
     needs: simulation-test
     name: E2E Test
     runs-on: ubuntu-latest
