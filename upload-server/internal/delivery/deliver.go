@@ -202,9 +202,6 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 	for _, p := range cfg.Programs {
 		for _, t := range p.DeliveryTargets {
-			if t.Name[0] == '-' {
-				continue
-			}
 			if t.PathTemplate == "" {
 				t.PathTemplate = p.PathTemplate
 			}
