@@ -44,7 +44,14 @@ type AppConfig struct {
 	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
 	// Server
-	ServerPort string `env:"SERVER_PORT, default=8080"`
+	ServerProtocol        string `env:"SERVER_PROTOCOL, default=http"`
+	ServerHostname        string `env:"SERVER_HOSTNAME, default=localhost"`
+	ServerPort            string `env:"SERVER_PORT, default=8080"`
+	TusdHandlerBasePath   string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
+	TusdHandlerInfoPath   string `env:"TUSD_HANDLER_INFO_PATH, default=/info/"`
+	ServerUrl             string
+	ServerFileEndpointUrl string
+	ServerInfoEndpointUrl string
 
 	//QUESTION: this is arbitrary so is it useful?
 	Environment        string `env:"ENVIRONMENT, default=DEV"`
@@ -62,14 +69,9 @@ type AppConfig struct {
 	LocalEicrFolder       string `env:"LOCAL_EICR_FOLDER, default=./uploads/eicr"`
 	LocalNcirdFolder      string `env:"LOCAL_NCIRD_FOLDER, default=./uploads/ncird"`
 
-	// TUSD
-	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
-
 	// UI
-	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
-	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
-	UIPort               string `env:"UI_PORT, default=:8081"`
-	CsrfToken            string `env:"CSRF_TOKEN, default=SwVgY4SfiXNyXCT4U6AvLNURDYS7J+Y/V2j4ng2UVp0XwQY0IUELUT5J5b/FATcE"`
+	UIPort    string `env:"UI_PORT, default=:8081"`
+	CsrfToken string `env:"CSRF_TOKEN, default=SwVgY4SfiXNyXCT4U6AvLNURDYS7J+Y/V2j4ng2UVp0XwQY0IUELUT5J5b/FATcE"`
 	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
 
 	// Processing Status
@@ -281,6 +283,11 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 			ac.AzureConnection.ContainerEndpoint = fmt.Sprintf("https://%s.blob.core.windows.net", ac.AzureConnection.StorageName)
 		}
 	}
+
+	ac.ServerUrl = fmt.Sprintf("%s://%s:%s", ac.ServerProtocol, ac.ServerHostname, ac.ServerPort)
+	ac.ServerFileEndpointUrl = ac.ServerUrl + ac.TusdHandlerBasePath
+	ac.ServerInfoEndpointUrl = ac.ServerUrl + ac.TusdHandlerInfoPath
+
 	LoadedConfig = &ac
 	return ac, nil
 } // .ParseConfig

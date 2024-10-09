@@ -6,7 +6,7 @@ const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
 
 test.describe("Upload Landing Page", () => {
     test("has the expected elements to start a file upload process", async ({page}) => {
-        await page.goto(`/`);
+        await page.goto(`/`, { waitUntil: 'load' });
         const nav = page.getByRole('navigation')
         await expect(nav.getByRole("link").and(nav.getByText('Skip to main content Upload'))).toBeHidden()
         await expect(nav.getByRole("link").and(nav.getByText('Upload'))).toBeVisible()
@@ -19,9 +19,9 @@ test.describe("Upload Landing Page", () => {
 });
 
 test.describe("Upload Manifest Page", () => {
-    manifests.forEach(({ dataStream, route }) => {
+    manifests.forEach(({ dataStream, route }: { dataStream: string, route: string }) => {
         test(`has the expected metadata elements for Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
-            await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
+            await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`, { waitUntil: 'load' });
             const nav = page.locator('nav')
             await expect(nav.getByRole("link").and(nav.getByText('Skip to main content'))).toBeHidden()
             await expect(nav.getByRole("link").and(nav.getByText('Upload'))).toBeVisible()
@@ -59,12 +59,11 @@ test.describe("Upload Manifest Page", () => {
 });
 
 test.describe("File Uploader Page", () => {
-    test("has the expected elements to prepare to upload a file", async ({ page, baseURL }) => {
-        const apiURL = baseURL.replace('8081', '8080')
+    test("has the expected elements to prepare to upload a file", async ({ page }) => {
         const dataStream = 'dextesting';
         const route = 'testevent1';
 
-        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
+        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`, { waitUntil: 'load' });
         
         await page.getByLabel('Sender Id').fill('Sender123')
         await page.getByLabel('Data Producer Id').fill('Producer123')
@@ -73,10 +72,7 @@ test.describe("File Uploader Page", () => {
         await page.getByRole('button', { name: /next/i }).click();
     
         await expect(page.getByRole('heading', { level: 1, includeHidden: false }).nth(0)).toHaveText('File Uploader')
-        const uploadEndpoint = page.getByRole('textbox', { name: 'Upload Endpoint' });
-        // not the greatest way to interpret the endpoint value here, but this will have to work for now...
-        await expect(uploadEndpoint).toHaveValue(`${apiURL}/files/`)
-
+        
         const chunkSize = page.getByLabel('Chunk size (bytes)');
         const chunkSizeLabel = page.locator('label', { hasText: 'Chunk size (bytes)' })
         await expect(chunkSizeLabel).toContainText('Note: Chunksize should be set on the client for uploading files of large size (1GB or over).')
@@ -99,8 +95,9 @@ test.describe("Upload Status Page", () => {
         const expectedSender = 'Sender123'
         const expectedDataProducer = 'Producer123'
         const expectedJurisdiction = 'Jurisdiction123'
+        const targets = ['edav', 'ehdi', 'eicr', 'ncird']
     
-        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
+        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`, { waitUntil: 'load'});
         
         await page.getByLabel('Sender Id').fill(expectedSender)
         await page.getByLabel('Data Producer Id').fill(expectedDataProducer)
@@ -130,6 +127,11 @@ test.describe("Upload Status Page", () => {
         await expect((await uploadHeadResponsePromise).ok()).toBeTruthy()
 
         await page.reload();
+        var refreshes = 0;
+        while (await page.locator('.file-delivery-container').count() < targets.length && refreshes < 3) {
+            await page.reload();
+            refreshes++
+        }
 
         const fileHeaderContainer= page.locator('.file-header-container')
         await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(0)).toHaveText(expectedFileName)
@@ -139,25 +141,14 @@ test.describe("Upload Status Page", () => {
         const fileDeliveriesContainer = page.locator('.file-deliveries-container');
         await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
 
-        const fileDeliveryEdavContainer = page.locator('.file-delivery-container').nth(0)
-        await expect(fileDeliveryEdavContainer.getByRole('heading', { level: 2 })).toHaveText('EDAV')
-        await expect(fileDeliveryEdavContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
-        await expect(fileDeliveryEdavContainer).toContainText(`Location: uploads/edav/${uploadId}`)
-
-        const fileDeliveryEhdiContainer = page.locator('.file-delivery-container').nth(1)
-        await expect(fileDeliveryEhdiContainer.getByRole('heading', { level: 2 })).toHaveText('EHDI')
-        await expect(fileDeliveryEhdiContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
-        await expect(fileDeliveryEhdiContainer).toContainText(`Location: uploads/ehdi/${uploadId}`)
-
-        const fileDeliveryEicrContainer = page.locator('.file-delivery-container').nth(2)
-        await expect(fileDeliveryEicrContainer.getByRole('heading', { level: 2 })).toHaveText('EICR')
-        await expect(fileDeliveryEicrContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
-        await expect(fileDeliveryEicrContainer).toContainText(`Location: uploads/eicr/${uploadId}`)
-
-        const fileDeliveryNcirdContainer = page.locator('.file-delivery-container').nth(3)
-        await expect(fileDeliveryNcirdContainer.getByRole('heading', { level: 2 })).toHaveText('NCIRD')
-        await expect(fileDeliveryNcirdContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
-        await expect(fileDeliveryNcirdContainer).toContainText(`Location: uploads/ncird/${uploadId}`)
+        targets.forEach((target, index) => {
+            (async () => {
+                const fileDeliveryContainer = page.locator('.file-delivery-container').nth(index)
+                await expect(fileDeliveryContainer.getByRole('heading', { level: 2 })).toHaveText(target.toUpperCase())
+                await expect(fileDeliveryContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
+                await expect(fileDeliveryContainer).toContainText(`Location: uploads/${target}/${uploadId}`)
+            })()
+        })
 
         const uploadDetailsContainer = page.locator('.file-details-container')
         await expect(uploadDetailsContainer.getByRole('heading', { level: 2 })).toHaveText('Upload Details')

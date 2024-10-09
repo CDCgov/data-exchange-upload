@@ -1,6 +1,8 @@
 import { PlaywrightTestConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
+const testReportDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
+const testResultsDir = process.env.TEST_RESULTS_DIR ?? './test-results';
 
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
@@ -9,7 +11,7 @@ const config: PlaywrightTestConfig = {
   // Use this to change the number of browsers/contexts to run in parallel
   // Setting this to 1 will run tests serially which can help if you're seeing issues with parallel execution
   // Opt out of parallel tests on CI.
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 4,
 
   // Fail the build on CI if you accidentally left test.only in the source code.
   forbidOnly: !!process.env.CI,
@@ -23,35 +25,33 @@ const config: PlaywrightTestConfig = {
 
   // Reporter to use
   reporter: process.env.CI
-    ? 'dot'
-    : [
+    ? [
+        ['github'],
+        [
+          'json',
+          {
+            outputFile: `${testReportDir}/test-report.json`,
+          },
+        ],
+    ] : [
         ['list'],
         [
           'html',
           {
-            outputFolder: './test-reports/html',
+            outputFolder: `${testReportDir}/html`,
             open: 'never',
           },
         ],
         [
           'json',
           {
-            outputFile: './test-reports/test-report.json',
+            outputFile: `${testReportDir}/test-report.json`,
           },
         ],
       ],
 
   // Artifacts folder where screenshots, videos, and traces are stored.
-  outputDir: './test-results/',
-
-  // Run your local dev server before starting the tests:
-  // https://playwright.dev/docs/test-advanced#launching-a-development-web-server-during-the-tests
-  webServer: {
-    command: 'npm run server',
-    url: baseURL,
-    timeout: 360 * 1000,
-    reuseExistingServer: !process.env.CI,
-  },
+  outputDir: testResultsDir,
 
   // Specify browser to use
   use: {

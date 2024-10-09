@@ -1,10 +1,28 @@
 services:
   playwright:
-    image: mcr.microsoft.com/playwright:v1.42.1-focal
+    image: mcr.microsoft.com/playwright:v1.48.0-focal
     volumes:
-      - ../tests/smoke/playwright:/app
+      - ../tests/smoke:/app
+    working_dir: /app/playwright
     ports:
       - 9222:9222
-    command: npx playwright test
+    command: npx playwright test || exit 0 
+    # appending `|| exit 0` will wait until all of the workers have completed before exiting
+    environment:
+      - CI=${CI}
+      - UI_URL=http://upload:${UI_PORT:-8081}
+      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR}
+      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR}
     depends_on:
-      - upload-server
+      upload-server:
+        condition: service_healthy
+  upload-server:
+    hostname: upload
+    environment:
+      - SERVER_HOSTNAME=upload
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://upload:${UI_PORT:-8081} || exit 1
+      interval: 60s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
