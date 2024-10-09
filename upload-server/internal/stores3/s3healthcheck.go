@@ -21,7 +21,7 @@ func (c *S3HealthCheck) Health(ctx context.Context) models.ServiceHealthResp {
 		return shr
 	}
 
-	_, err := c.Client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
+	_, err := c.Client.HeadBucket(ctx, &s3.HeadBucketInput{
 		Bucket: &c.BucketName,
 	})
 

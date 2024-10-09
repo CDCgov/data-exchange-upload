@@ -55,7 +55,6 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 		store.Container = appConfig.AzureUploadContainer
 		return store, hc, nil
 	} // .if
-
 	if appConfig.S3Connection != nil {
 		client, err := stores3.New(ctx, appConfig.S3Connection)
 		if err != nil {
