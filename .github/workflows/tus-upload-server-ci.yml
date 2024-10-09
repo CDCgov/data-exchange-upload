@@ -49,6 +49,7 @@ jobs:
     env:
       CI: true
       TEST_REPORTS_DIR: ./playwright-report
+      SERVER_HOSTNAME: http://localhost
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compse
