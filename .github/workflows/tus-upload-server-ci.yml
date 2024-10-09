@@ -55,7 +55,7 @@ jobs:
         run: pip3 install podman-compose
       - run: ls -la ../tests
       - name: Run Tests - File System
-        run: PLAYWRIGHT_JSON_OUTPUT_NAME=file-system-report.json podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up --exit-code-from playwright
+        run: PLAYWRIGHT_JSON_OUTPUT_NAME=file-system-report.json podman-compose -f docker-compose.e2e.yml up --exit-code-from playwright
   #     - name: Run Tests - Azure
   #       run: ZURITE_STORAGE_KEY=${{ secrets.AZURITE_STORAGE_KEY }} PLAYWRIGHT_JSON_OUTPUT_NAME=azure-report.json podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up --exit-code-from playwright
   #     - name: Run Tests - AWS
