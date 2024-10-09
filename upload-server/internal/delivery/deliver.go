@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/configs"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"gopkg.in/yaml.v3"
 	"io"
+	"log"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -16,6 +15,10 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/configs"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"gopkg.in/yaml.v3"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
@@ -114,65 +117,54 @@ type Program struct {
 }
 
 type Target struct {
-	Name         string `yaml:"name"`
-	Type         string `yaml:"type"`
-	PathTemplate string `yaml:"path_template"`
-	Endpoint     string `yaml:"endpoint"`
+	Name         string      `yaml:"name"`
+	Type         string      `yaml:"type"`
+	PathTemplate string      `yaml:"path_template"`
+	Destination  Destination `yaml:"-"`
+	/*
+		Endpoint     string `yaml:"endpoint"`
 
-	BucketName         string `yaml:"bucket_name"`
-	AwsAccessKeyId     string `yaml:"access_key_id"`
-	AwsSecretAccessKey string `yaml:"secret_access_key"`
-	AwsRegion          string `yaml:"aws_region"`
+		BucketName         string `yaml:"bucket_name"`
+		AwsAccessKeyId     string `yaml:"access_key_id"`
+		AwsSecretAccessKey string `yaml:"secret_access_key"`
+		AwsRegion          string `yaml:"aws_region"`
 
-	ContainerName    string `yaml:"container_name"`
-	TenantID         string `yaml:"tenant_id"`
-	ClientID         string `yaml:"client_id"`
-	ClientSecret     string `yaml:"client_secret"`
-	ConnectionString string `yaml:"connection_string"`
-	SasToken         string `yaml:"sas_token"`
+		ContainerName    string `yaml:"container_name"`
+		TenantID         string `yaml:"tenant_id"`
+		ClientID         string `yaml:"client_id"`
+		ClientSecret     string `yaml:"client_secret"`
+		ConnectionString string `yaml:"connection_string"`
+		SasToken         string `yaml:"sas_token"`
 
-	Directory string `yaml:"directory"`
+		Directory string `yaml:"directory"`
+	*/
 }
 
-func (t Target) createS3Destination(ctx context.Context, _ appconfig.AppConfig) (Destination, error) {
-	storageConfig := appconfig.S3StorageConfig{
-		Endpoint:   t.Endpoint,
-		BucketName: t.BucketName,
+var DestinationTypes = map[string]func() Destination{
+	"s3":      func() Destination { return &S3Destination{} },
+	"file":    func() Destination { return &FileDestination{} },
+	"az-blob": func() Destination { return &AzureDestination{} },
+}
+
+var ErrUnknownDestinationType = errors.New("Unknown destination type")
+
+func (t *Target) UnmarshalYAML(n *yaml.Node) error {
+	type alias Target
+	a := &alias{}
+	if err := n.Decode(a); err != nil {
+		return err
 	}
-	return NewS3Destination(ctx, t.Name, t.PathTemplate, &storageConfig)
-}
-
-func (t Target) createAzBlobDestination(ctx context.Context, _ appconfig.AppConfig) (Destination, error) {
-	// TODO config from connection string and SAS token
-	// see storeaz.azblobclientnew.NewContainerClient
-	storageConfig := appconfig.AzureContainerConfig{
-		AzureStorageConfig: appconfig.AzureStorageConfig{
-			ContainerEndpoint: t.Endpoint,
-			TenantId:          t.TenantID,
-			ClientId:          t.ClientID,
-			ClientSecret:      t.ClientSecret,
-		},
-		ContainerName: t.ContainerName,
+	dType, ok := DestinationTypes[a.Type]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrUnknownDestinationType, a.Type)
 	}
-	return NewAzureDestination(ctx, t.Name, t.PathTemplate, &storageConfig)
-}
-
-func (t Target) Destination(ctx context.Context, appConfig appconfig.AppConfig) (Destination, error) {
-	switch t.Type {
-	case "s3":
-		return t.createS3Destination(ctx, appConfig)
-	case "az-blob":
-		return t.createAzBlobDestination(ctx, appConfig)
-	case "file":
-		return t.createLocalDestination(ctx, appConfig)
-	default:
-		return nil, fmt.Errorf("target type:%s not supported", t.Type)
+	d := dType()
+	if err := n.Decode(d); err != nil {
+		return err
 	}
-}
-func (t Target) createLocalDestination(ctx context.Context, appConfig appconfig.AppConfig) (Destination, error) {
-	storageConfig := appconfig.LocalUploadStoreConfig(&appConfig)
-	storageConfig.ToPath = t.Directory
-	return NewFileDestination(ctx, t.Name, t.PathTemplate, storageConfig)
+	a.Destination = d
+	*t = Target(*a)
+	return nil
 }
 
 func unmarshalDeliveryConfig() (*Config, error) {
@@ -200,17 +192,14 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	if err != nil {
 		return err
 	}
+	log.Printf("%+v\n", cfg)
 	for _, p := range cfg.Programs {
 		for _, t := range p.DeliveryTargets {
 			if t.PathTemplate == "" {
 				t.PathTemplate = p.PathTemplate
 			}
-			destination, err := t.Destination(ctx, appConfig)
-			if err != nil {
-				return err
-			}
 			name := p.DataStreamId + "-" + p.DataStreamRoute
-			RegisterDestination(name, t.Name, destination)
+			RegisterDestination(name, t.Name, t.Destination)
 		}
 	}
 
