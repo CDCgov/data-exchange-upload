@@ -1,4 +1,7 @@
-version: "3.9"
+networks:
+  default:
+    name: upload-network
+
 services:
   prometheus:
     image: prom/prometheus
@@ -44,7 +47,3 @@ services:
       - cache
 volumes:
   prom_data:
-
-networks:
-  default:
-    name: upload-network

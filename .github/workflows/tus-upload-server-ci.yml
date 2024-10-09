@@ -53,8 +53,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install podman compse
         run: pip3 install podman-compose
-      - name: Create networ
-        run: podman network create upload-network
       - name: Run Tests - File System
         run: PLAYWRIGHT_JSON_OUTPUT_NAME=file-system-report.json podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up cache upload-server playwright --exit-code-from playwright
   #     - name: Run Tests - Azure
