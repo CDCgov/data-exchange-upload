@@ -62,7 +62,7 @@ func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp
 
 type AzureDestination struct {
 	toClient          *container.Client
-	Target            string
+	Name              string `yaml:"name"`
 	StorageAccount    string `yaml:"storage_account"`
 	StorageKey        string `yaml:"storage_key"`
 	PathTemplate      string `yaml:"path_template"`
@@ -113,14 +113,14 @@ func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader
 }
 
 func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "Azure deliver target " + ad.Target
+	rsp.Service = "Azure deliver target " + ad.Name
 	rsp.Status = models.STATUS_UP
 
 	c, err := ad.Client()
 	if err != nil {
 		// Running in azure, but deliverer not set up.
 		rsp.Status = models.STATUS_DOWN
-		rsp.HealthIssue = "Azure deliverer target " + ad.Target + " not configured"
+		rsp.HealthIssue = "Azure deliverer target " + ad.Name + " not configured"
 		return rsp
 	}
 

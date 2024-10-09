@@ -3,7 +3,6 @@ package delivery
 import (
 	"bytes"
 	"context"
-	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -16,7 +15,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/configs"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"gopkg.in/yaml.v3"
 
@@ -149,8 +147,8 @@ func (t *Target) UnmarshalYAML(n *yaml.Node) error {
 	return nil
 }
 
-func unmarshalDeliveryConfig() (*Config, error) {
-	confStr := os.ExpandEnv(string(configs.DeliveryConfig))
+func unmarshalDeliveryConfig(confBody string) (*Config, error) {
+	confStr := os.ExpandEnv(confBody)
 	c := &Config{}
 
 	err := yaml.Unmarshal([]byte(confStr), &c)
@@ -170,7 +168,8 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		FS: fromPath,
 	}
 
-	cfg, err := unmarshalDeliveryConfig()
+	dat, err := os.ReadFile(appConfig.DeliveryConfigFile)
+	cfg, err := unmarshalDeliveryConfig(string(dat))
 	if err != nil {
 		return err
 	}
