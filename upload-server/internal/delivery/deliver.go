@@ -61,8 +61,10 @@ func getTargetHealthChecks() []any {
 	var dests []any
 
 	for _, destination := range destinations {
+		targetCount := 0
 		for name, t := range destination {
 			targetSet[name] = t
+			targetCount++
 		}
 	}
 
@@ -173,16 +175,17 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		return err
 	}
 	for _, p := range cfg.Programs {
+		name := p.DataStreamId + "-" + p.DataStreamRoute
+
+		if p.DeliveryTargets == nil {
+			slog.Warn(fmt.Sprintf("no targets configured for program %s", name))
+		}
 		for _, t := range p.DeliveryTargets {
-			name := p.DataStreamId + "-" + p.DataStreamRoute
 			RegisterDestination(name, t.Name, t.Destination)
 		}
 	}
 
 	targets := getTargetHealthChecks()
-	if len(targets) == 0 {
-		return fmt.Errorf("failed to register destination targets")
-	}
 
 	if appConfig.AzureConnection != nil {
 		// TODO Can the tus container client be singleton?
