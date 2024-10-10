@@ -201,6 +201,9 @@ If you name this file `.env` you can get the benefits of the [dotenv file format
 
 >[!WARNING]
 > Never check your `.env` file into source control. It should only be on your local computer or on the server you are using it on.
+### Configuration Documentation
+
+Please see [env-configs](./docs/env-configs.md) documentation for more complete documentation on environment configs to be used in the `.env` file. 
 
 ### Common Service Configurations
 
