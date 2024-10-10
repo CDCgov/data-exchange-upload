@@ -1,37 +1,37 @@
 version: 1.0
 
 az-edav: &az-edav
-  endpoint: $AZURE_ENDPOINT
+  endpoint: $EDAV_ENDPOINT
   storage_account: $AZURE_STORAGE_ACCOUNT
   storage_key: $AZURE_STORAGE_KEY
-  container_name: edav
+  container_name: $EDAV_CHECKPOINT_CONTAINER_NAME
   tenant_id: $EDAV_TENANT_ID
   client_id: $EDAV_CLIENT_ID
   client_secret: $EDAV_CLIENT_SECRET
 
 az-ehdi: &az-ehdi
-  endpoint: $AZURE_ENDPOINT
+  endpoint: $EHDI_ENDPOINT
   storage_account: $AZURE_STORAGE_ACCOUNT
   storage_key: $AZURE_STORAGE_KEY
-  container_name: ehdi
+  container_name: $EHDI_CHECKPOINT_CONTAINER_NAME
   tenant_id: $EHDI_TENANT_ID
   client_id: $EHDI_CLIENT_ID
   client_secret: $EHDI_CLIENT_SECRET
 
 az-eicr: &az-eicr
-  endpoint: $AZURE_ENDPOINT
+  endpoint: $EICR_ENDPOINT
   storage_account: $AZURE_STORAGE_ACCOUNT
   storage_key: $AZURE_STORAGE_KEY
-  container_name: eicr
+  container_name: $EICR_CHECKPOINT_CONTAINER_NAME
   tenant_id: $EICR_TENANT_ID
   client_id: $EICR_CLIENT_ID
   client_secret: $EICR_CLIENT_SECRET
 
 az-ncird: &az-ncird
-  endpoint: $AZURE_ENDPOINT
+  endpoint: $NCIRD_ENDPOINT
   storage_account: $AZURE_STORAGE_ACCOUNT
   storage_key: $AZURE_STORAGE_KEY
-  container_name: ncird
+  container_name: $NCIRD_CHECKPOINT_CONTAINER_NAME
   tenant_id: $NCIRD_TENANT_ID
   client_id: $NCIRD_CLIENT_ID
   client_secret: $NCIRD_CLIENT_SECRET
