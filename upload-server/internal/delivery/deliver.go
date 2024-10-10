@@ -76,13 +76,13 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		FS: fromPath,
 	}
 
-	var edavDeliverer Destination
-	edavDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEdav, &appConfig)
+	var routingDeliverer Destination
+	routingDeliverer, err = NewFileDestination(ctx, "routing", &appConfig)
 	if err != nil {
 		return err
 	}
-	var routingDeliverer Destination
-	routingDeliverer, err = NewFileDestination(ctx, "routing", &appConfig)
+	var edavDeliverer Destination
+	edavDeliverer, err = NewFileDestination(ctx, appconfig.DeliveryTargetEdav, &appConfig)
 	if err != nil {
 		return err
 	}
@@ -102,16 +102,16 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		return err
 	}
 
-	if appConfig.EdavConnection != nil {
-		edavDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEdav)
-		if err != nil {
-			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
-		}
-	}
 	if appConfig.RoutingConnection != nil {
 		routingDeliverer, err = NewAzureDestination(ctx, "routing")
 		if err != nil {
 			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
+		}
+	}
+	if appConfig.EdavConnection != nil {
+		edavDeliverer, err = NewAzureDestination(ctx, appconfig.DeliveryTargetEdav)
+		if err != nil {
+			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
 		}
 	}
 	if appConfig.EhdiConnection != nil {
@@ -133,22 +133,34 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		}
 	}
 
+	if appConfig.RoutingS3Connection != nil {
+		routingDeliverer, err = NewS3Destination(ctx, "routing", appConfig.RoutingS3Connection)
+		if err != nil {
+			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
+		}
+	}
 	if appConfig.EdavS3Connection != nil {
 		edavDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetEdav, appConfig.EdavS3Connection)
 		if err != nil {
 			return fmt.Errorf("failed to connect to edav deliverer target %w", err)
 		}
 	}
+	if appConfig.EhdiS3Connection != nil {
+		ehdiDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetEhdi, appConfig.EhdiS3Connection)
+		if err != nil {
+			return fmt.Errorf("failed to connect to ehdi deliverer target %w", err)
+		}
+	}
+	if appConfig.EicrS3Connection != nil {
+		eicrDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetEicr, appConfig.EicrS3Connection)
+		if err != nil {
+			return fmt.Errorf("failed to connect to eicr deliverer target %w", err)
+		}
+	}
 	if appConfig.NcirdS3Connection != nil {
 		ncirdDeliverer, err = NewS3Destination(ctx, appconfig.DeliveryTargetNcird, appConfig.NcirdS3Connection)
 		if err != nil {
 			return fmt.Errorf("failed to connect to ncird deliverer target %w", err)
-		}
-	}
-	if appConfig.RoutingS3Connection != nil {
-		routingDeliverer, err = NewS3Destination(ctx, "routing", appConfig.RoutingS3Connection)
-		if err != nil {
-			return fmt.Errorf("failed to connect to routing deliverer target %w", err)
 		}
 	}
 

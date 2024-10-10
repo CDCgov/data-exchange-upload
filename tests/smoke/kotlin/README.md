@@ -79,8 +79,3 @@ We can run tests for specified manifest in a single command line argument.
 ### Future Improvements
 
 - Parallelization for data provided test cases.
-
-
-
-
-

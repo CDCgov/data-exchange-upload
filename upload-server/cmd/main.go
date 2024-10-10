@@ -28,7 +28,9 @@ import (
 const appMainExitCode = 1
 
 func init() {
-
+	// ------------------------------------------------------------------
+	// parse and load cli flags
+	// ------------------------------------------------------------------
 	if !testing.Testing() {
 		if err := cli.ParseFlags(); err != nil {
 			slog.Error("error starting app, error parsing cli flags", "error", err)
@@ -44,9 +46,6 @@ func init() {
 		} // .if
 	}
 
-	// ------------------------------------------------------------------
-	// parse and load config from os exported
-	// ------------------------------------------------------------------
 }
 
 func main() {

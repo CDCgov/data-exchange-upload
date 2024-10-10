@@ -594,7 +594,6 @@ func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
 		LocalFolderUploadsTus: "./" + TestFolderUploadsTus,
-		LocalDEXFolder:        "./" + TestDEXFolder,
 		LocalEDAVFolder:       "./" + TestEDAVFolder,
 		LocalEhdiFolder:       "./" + TestEhdiFolder,
 		LocalEicrFolder:       "./" + TestEicrFolder,
