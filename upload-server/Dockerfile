@@ -5,7 +5,7 @@ ARG LATEST_RELEASE_VERSION="unspecified"
 ARG GIT_SHORT_SHA="unspecified"
 
 # Create the 'app' user and group, and a working directory for the app
-RUN addgroup -S app && adduser -S -G app app
+RUN addgroup -S -g 101 app && adduser -S -u 100 -G app app
 RUN mkdir /app && chown app:app /app
 
 WORKDIR /app
