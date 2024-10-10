@@ -239,6 +239,7 @@ func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string,
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 
+	// TODO eventually everything will come from path template
 	if pathTemplate != "" {
 		// Use path template to form the full name.
 		t := time.Now().UTC()
