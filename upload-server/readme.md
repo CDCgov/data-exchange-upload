@@ -135,10 +135,6 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 
 TODO
 
-### Configuring Authentication
-
-TODO
-
 ## Building the source
 
 ```go
