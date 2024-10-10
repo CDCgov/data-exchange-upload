@@ -74,12 +74,6 @@ func setUp(name string, c map[string]string) {
 	os.Setenv("LOCAL_FOLDER_UPLOADS_TUS", fmt.Sprintf("./tests/%s/uploads", name))
 	os.Setenv("LOCAL_REPORTS_FOLDER", fmt.Sprintf("./tests/%s/uploads/reports", name))
 	os.Setenv("LOCAL_EVENTS_FOLDER", fmt.Sprintf("./tests/%s/uploads/events", name))
-	os.Setenv("LOCAL_DEX_FOLDER", fmt.Sprintf("./tests/%s/uploads/dex", name))
-	os.Setenv("LOCAL_EDAV_FOLDER", fmt.Sprintf("./tests/%s/uploads/edav", name))
-	os.Setenv("LOCAL_ROUTING_FOLDER", fmt.Sprintf("./tests/%s/uploads/routing", name))
-	os.Setenv("LOCAL_EHDI_FOLDER", fmt.Sprintf("./tests/%s/uploads/ehdi", name))
-	os.Setenv("LOCAL_EICR_FOLDER", fmt.Sprintf("./tests/%s/uploads/eicr", name))
-	os.Setenv("LOCAL_NCIRD_FOLDER", fmt.Sprintf("./tests/%s/uploads/ncird", name))
 	os.Setenv("SERVER_PORT", fmt.Sprintf("%d", port))
 	os.Setenv("UI_PORT", "")
 	os.Setenv("REDIS_CONNECTION_STRING", "redis://redispw@cache:6379")
@@ -90,38 +84,27 @@ func setUp(name string, c map[string]string) {
 
 var cases = map[string]map[string]string{
 	"s3_to_azure": {
-		"UPLOAD_CONFIG_PATH":             "../../upload-configs",
-		"S3_ENDPOINT":                    "http://minio:8000",
-		"S3_BUCKET_NAME":                 "test-bucket",
-		"AWS_REGION":                     "us-east-1",
-		"AWS_ACCESS_KEY_ID":              "minioadmin",
-		"AWS_SECRET_ACCESS_KEY":          "minioadmin",
-		"EDAV_STORAGE_ACCOUNT":           "devstoreaccount1",
-		"EDAV_STORAGE_KEY":               AZURITE_KEY,
-		"EDAV_ENDPOINT":                  "http://azurite:10000/devstoreaccount1",
-		"EDAV_CHECKPOINT_CONTAINER_NAME": "edav",
+		"UPLOAD_CONFIG_PATH":       "../../upload-configs",
+		"S3_ENDPOINT":              "http://minio:8000",
+		"S3_BUCKET_NAME":           "test-bucket",
+		"AWS_REGION":               "us-east-1",
+		"AWS_ACCESS_KEY_ID":        "minioadmin",
+		"AWS_SECRET_ACCESS_KEY":    "minioadmin",
+		"AZURITE_KEY":              AZURITE_KEY,
+		"DEX_DELIVERY_CONFIG_FILE": "../configs/testing/azurite_destinations.yml",
 	},
 	"azure_to_s3": {
-		"UPLOAD_CONFIG_PATH":             "../../upload-configs",
-		"AZURE_STORAGE_ACCOUNT":          "devstoreaccount1",
-		"AZURE_STORAGE_KEY":              AZURITE_KEY,
-		"AZURE_ENDPOINT":                 "http://azurite:10000/devstoreaccount1",
-		"TUS_AZURE_CONTAINER_NAME":       "test",
-		"AWS_REGION":                     "us-east-1",
-		"AWS_ACCESS_KEY_ID":              "minioadmin",
-		"AWS_SECRET_ACCESS_KEY":          "minioadmin",
-		"EDAV_S3_BUCKET_NAME":            "test-bucket",
-		"EDAV_S3_ENDPOINT":               "http://minio:8000",
-		"EDAV_CHECKPOINT_CONTAINER_NAME": "edav",
+		"UPLOAD_CONFIG_PATH":       "../../upload-configs",
+		"AZURE_STORAGE_ACCOUNT":    "devstoreaccount1",
+		"AZURE_STORAGE_KEY":        AZURITE_KEY,
+		"AZURE_ENDPOINT":           "http://azurite:10000/devstoreaccount1",
+		"TUS_AZURE_CONTAINER_NAME": "test",
+		"DEX_DELIVERY_CONFIG_FILE": "../configs/testing/s3_destinations.yml",
 	},
-	"file_to_s3": {
-		"UPLOAD_CONFIG_PATH":             "../../upload-configs",
-		"AWS_REGION":                     "us-east-1",
-		"AWS_ACCESS_KEY_ID":              "minioadmin",
-		"AWS_SECRET_ACCESS_KEY":          "minioadmin",
-		"EDAV_S3_BUCKET_NAME":            "test-bucket",
-		"EDAV_S3_ENDPOINT":               "http://minio:8000",
-		"EDAV_CHECKPOINT_CONTAINER_NAME": "edav",
+	"file_to_both": {
+		"UPLOAD_CONFIG_PATH":       "../../upload-configs",
+		"AZURITE_KEY":              AZURITE_KEY,
+		"DEX_DELIVERY_CONFIG_FILE": "../configs/testing/mix_destinations.yml",
 	},
 }
 

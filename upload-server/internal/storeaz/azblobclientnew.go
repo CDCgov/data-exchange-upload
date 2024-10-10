@@ -2,6 +2,7 @@ package storeaz
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"strings"
 
@@ -46,7 +47,7 @@ func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string)
 		return newContainerClientByServicePrinciple(conf, containerName)
 	}
 
-	return nil, errors.New("not enough information given to connect to container " + containerName)
+	return nil, errors.New(fmt.Sprintf("not enough information given to connect to account %s and container %s", conf.ContainerEndpoint, containerName))
 }
 
 func newContainerClientByServicePrinciple(conf appconfig.AzureStorageConfig, containerName string) (*container.Client, error) {
