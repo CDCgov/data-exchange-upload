@@ -6,129 +6,142 @@ This document outlines the environment variables that can be configured for the 
 
 1. Copy the `.env.example` file to `.env` in the same directory.
 2. Modify the variables as needed.
-3. Ensure that all required variables are set.
+3. Ensure that all required variables are set. In Common Configs, required variables are needed to start the servers. For other sections, required variables refers to using that features or connection.
 
 ## Common Configs
 
+There are no required values to start the tus server or the tus client UI. However, it is highly recommended that you create a new `CSRF_TOKEN`, if you using the UI client for anything other than development.
+
 ### Logging and Environment
 
-| Variable Name               | Required | Default Value | Description                                                 |
-|-----------------------------|----------|---------------|------------------------------------------------------------|
-| `LOGGER_DEBUG_ON`           | No       | None          | Enable or disable debug logging. Values: `INFO` or `DEBUG` |
-| `ENVIRONMENT`               | No       | `development` | The environment mode (`development`, `production`, etc.).  |
+| Variable Name     | Required | Default Value | Description                                               |
+|-------------------|----------|---------------|-----------------------------------------------------------|
+| `LOGGER_DEBUG_ON` | No       | `INFO`        | Enable or disable DEBUG logging level                     |
+| `ENVIRONMENT`     | No       | `DEV`         | Environment for the service (`DEV`, `TST`, `STG`, `PROD`) |
 
 ### Server Configs
 
-| Variable Name                  | Required | Default Value       | Description                                                    |
-|--------------------------------|----------|---------------------|----------------------------------------------------------------|
-| `SERVER_PROTOCOL`              | No       | `http`              | The protocol used by the server (`http`, `https`).             |
-| `SERVER_HOSTNAME`              | No       | `localhost`         | The hostname of the server.                                    |
-| `SERVER_PORT`                  | No       | `8080`              | The port on which the server runs.                             |
-| `TUSD_HANDLER_BASE_PATH`       | No       | `/files`            | The base path for handling tusd requests.                      |
-| `TUSD_HANDLER_INFO_PATH`       | No       | `/files/info`       | Path for tusd info handler.                                    |
-| `UPLOAD_CONFIG_PATH`           | No       | `../upload-configs` | Path to the upload configuration files.                        |
-| `EVENT_MAX_RETRY_COUNT`        | No       | `3`                 | Maximum number of retry attempts for event processing.         |
-| `METRICS_LABELS_FROM_MANIFEST` | No       | `false`             | Enable or disable metrics labels generation from manifest.     |
-| `TUS_UPLOAD_PREFIX`            | No       | `/uploads`          | Prefix path for tus uploads.                                   |
+| Variable Name                  | Required | Default Value                                | Description                                                                                |
+|--------------------------------|----------|----------------------------------------------|--------------------------------------------------------------------------------------------|
+| `SERVER_PROTOCOL`              | No       | `http`                                       | Protocol used by the server (`http`, `https`)                                              |
+| `SERVER_HOSTNAME`              | No       | `localhost`                                  | Hostname of the server                                                                     |
+| `SERVER_PORT`                  | No       | `8080`                                       | Port on which the server runs                                                              |
+| `TUSD_HANDLER_BASE_PATH`       | No       | `/files/`                                    | URL path for handling tusd upload requests                                                 |
+| `TUSD_HANDLER_INFO_PATH`       | No       | `/info/`                                     | URL Path for handling tusd info requests                                                   |
+| `EVENT_MAX_RETRY_COUNT`        | No       | `3`                                          | Maximum number of retry attempts for event processing                                      |
+| `METRICS_LABELS_FROM_MANIFEST` | No       | `data_stream_id,data_stream_route,sender_id` | String separated list of keys from the sender manifest config to count in the metrics      |
+| `TUS_UPLOAD_PREFIX`            | No       | `tus-prefix`                                 | Relative file system path to the tus uploads directory within the storage backend location |
 
 ### User Interface Configs
 
-| Variable Name              | Required | Default Value   | Description                                                    |
-|----------------------------|----------|-----------------|----------------------------------------------------------------|
-| `UI_PORT`                  | No       | `8081`          | The port for the local UI.                                     |
-| `CSRF_TOKEN`               | Yes      | None            | CSRF token used for authentication. 32 byte string.            |
+| Variable Name  | Required | Default Value                                                      | Description                                         |
+|----------------|----------|--------------------------------------------------------------------|-----------------------------------------------------|
+| `UI_PORT`      | No       | `8081`                                                             | Port on which the UI client runs                    |
+| `CSRF_TOKEN` * | No *     | `1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW` | CSRF token used for authentication (32 byte string) |
 
-### Redis Configs
+> `*` **Note:** The default is for development purposes only. You should replace this with a new string, you can generate a 32 byte string [here](https://generate-random.org/encryption-key-generator?count=1&bytes=32&cipher=aes-256-cbc&string=&password=).
 
-| Variable Name              | Required | Default Value   | Description                                                   |
-|----------------------------|----------|-----------------|---------------------------------------------------------------|
-| `REDIS_CONNECTION_STRING`  | No       | None            | Connection string for Redis.                                  |
+## Redis Configs
 
-### OAuth Configs
+Redis is used for handling distributed file locking across multiple upload servers. (see [Configuring Distributed File Locking with Redis](../README.md#configuring-distributed-file-locking-with-redis) for more information)
 
-| Variable Name               | Required | Default Value   | Description                                                    |
-|-----------------------------|----------|-----------------|----------------------------------------------------------------|
-| `OAUTH_AUTH_ENABLED`        | No       | `false`         | Enable OAuth authentication.                                   |
-| `OAUTH_INTROSPECTION_URL`   | No       | None            | OAuth introspection URL.                                       |
-| `OAUTH_ISSUER_URL`          | No       | None            | OAuth issuer URL.                                              |
-| `OAUTH_REQUIRED_SCOPES`     | No       | None            | Required scopes for OAuth.                                     |
+| Variable Name             | Required | Default Value | Description                             |
+|---------------------------|----------|---------------|-----------------------------------------|
+| `REDIS_CONNECTION_STRING` | Yes       | None          | Connection string to the Redis instance |
+
+## OAuth Configs
+
+OAuth token verification is used to secure the `/files/` and `/info/` UPLOAD API endpoints. (see [Configuring OAuth Token Verification Middleware](../README.md#configuring-oauth-token-verification-middleware))
+
+| Variable Name             | Required | Default Value | Description                                          |
+|---------------------------|----------|---------------|------------------------------------------------------|
+| `OAUTH_AUTH_ENABLED`      | Yes      | `false`       | Enable or disable OAuth token verification           |
+| `OAUTH_ISSUER_URL`        | Yes      | None          | URL of the OAuth token issuer                        |
+| `OAUTH_REQUIRED_SCOPES`   | Yes      | None          | Space-separated list of required scopes              |
+| `OAUTH_INTROSPECTION_URL` | No       | None          | URL for OAuth introspection (used for opaque tokens) |
 
 ## Upload Location Configs
 
 ### Local File System Configs
-| Variable Name               | Required | Default Value   | Description                                                   |
-|-----------------------------|----------|-----------------|---------------------------------------------------------------|
-| `LOCAL_FOLDER_UPLOADS_TUS`  | No       | `./uploads`     | Local file system upload directory.                           |
+
+| Variable Name              | Required | Default Value       | Description                                                              |
+|----------------------------|----------|---------------------|--------------------------------------------------------------------------|
+| `LOCAL_FOLDER_UPLOADS_TUS` | No       | `./uploads`         | Relative file system path to the base upload directory                   |
+| `UPLOAD_CONFIG_PATH`       | No       | `../upload-configs` | Relative file system path to the sender manifest configuration directory |
 
 ### Azure Storage Configs
 
-| Variable Name                       | Required | Default Value | Description                                                    |
-|------------------------------------ |----------|---------------|----------------------------------------------------------------|
-| `AZURE_STORAGE_ACCOUNT`             | No       | None          | Azure storage account name.                                    |
-| `AZURE_STORAGE_KEY`                 | No       | None          | Azure storage account key.                                     |
-| `AZURE_ENDPOINT`                    | No       | None          | Azure storage endpoint URL.                                    |
-| `AZURE_TENANT_ID`                   | No       | None          | Azure Active Directory tenant ID.                              |
-| `AZURE_CLIENT_ID`                   | No       | None          | Azure Active Directory client ID.                              |
-| `AZURE_CLIENT_SECRET`               | No       | None          | Azure Active Directory client secret.                          |
-| `TUS_AZURE_CONTAINER_NAME`          | No       | None          | Container name for tus Azure integration.                      |
-| `DEX_MANIFEST_CONFIG_CONTAINER_NAME`| No       | None          | Container name for manifest configurations.                    |
+| Variable Name                        | Required | Default Value | Description                                            |
+|--------------------------------------|----------|---------------|--------------------------------------------------------|
+| `AZURE_STORAGE_ACCOUNT`              | Yes      | None          | Azure storage account name                             |
+| `AZURE_STORAGE_KEY`                  | Yes      | None          | Azure storage account private access key or SAS token  |
+| `AZURE_ENDPOINT`                     | Yes      | None          | Azure storage endpoint URL                             |
+| `TUS_AZURE_CONTAINER_NAME`           | Yes      | None          | Container name for tus base upload storage             |
+| `AZURE_TENANT_ID`                    | No       | None          | Service principal tenant ID                            |
+| `AZURE_CLIENT_ID`                    | No       | None          | Service principal client ID                            |
+| `AZURE_CLIENT_SECRET`                | No       | None          | Service principal client secret                        |
+| `DEX_MANIFEST_CONFIG_CONTAINER_NAME` | No       | None          | Container name for sender manifest configuration files |
 
-## S3 Storage Configs
+### S3 Storage Configs
 
-| Variable Name                          | Required | Default Value | Description                                                                                  |
-|---------------------------------------- |----------|---------------|----------------------------------------------------------------------------------------------|
-| `S3_ENDPOINT`                           | Yes      | None          | S3-compatible storage endpoint URL.                                                           |
-| `S3_BUCKET_NAME`                        | Yes      | None          | Name of the S3 bucket for storage.                                                            |
-| `AWS_REGION`                            | Yes      | None          | AWS region for the S3 bucket.                                                                 |
-| `AWS_ACCESS_KEY_ID`                     | Yes      | None          | AWS access key ID for authenticating access to the bucket.                                    |
-| `AWS_SECRET_ACCESS_KEY`                 | Yes      | None          | AWS secret access key for authenticating access to the bucket.                                |
-| `DEX_MANIFEST_CONFIG_BUCKET_NAME` *     | No       | None          | Bucket name for storing manifest configurations, if different from the primary bucket.        |
-| `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` *  | No       | None          | Folder name within the primary bucket for storing manifest configurations.                    |
+| Variable Name                           | Required | Default Value | Description                                                                             |
+|-----------------------------------------|----------|---------------|-----------------------------------------------------------------------------------------|
+| `S3_ENDPOINT`                           | Yes      | None          | S3-compatible storage endpoint URL, must start with `http` or `https`                   |
+| `S3_BUCKET_NAME`                        | Yes      | None          | Bucket name for  tus base upload storage                                                |
+| `AWS_ACCESS_KEY_ID` *                   | Yes *    | None          | Username or user ID of the user or service account to access the bucket                 |
+| `AWS_SECRET_ACCESS_KEY` *               | Yes *    | None          | Password or private key to the access bucket                                            |
+| `AWS_SESSION_TOKEN` *                   | No       | None          | Session token for authentication (used for short lived keys)                            |
+| `AWS_REGION` *                          | Yes *    | None          | Region of the S3 bucket                                                                 |
+| `AWS_PROFILE` *                         | Yes *    | None          | Profile name of the AWS CLI profile to use                                              |
+| `DEX_MANIFEST_CONFIG_BUCKET_NAME` **    | No       | None          | Bucket name for the sender manifest configurations, if different from the upload bucket |
+| `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` ** | No       | None          | Directory name for the sender manifest configuration files within the upload bucket     |
 
-> `*` **Note:** Only set one of `DEX_MANIFEST_CONFIG_BUCKET_NAME` or `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME`. Use `DEX_MANIFEST_CONFIG_BUCKET_NAME` if the manifest configurations are in a different bucket; otherwise, use `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` if they are stored in a different folder within the same bucket.
+> `*` **Note:** AWS Authentication can be handled using the standard environment variables `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, and (optionally) `AWS_SESSION_TOKEN` or using profiles in AWS credential and configuration setting files with AWS CLI. If you are using profiles and the one you need is not `[default]`, you will need to set `AWS_PROFILE` to the correct profile name.
+>
+> `**` **Note:** Only set one of `DEX_MANIFEST_CONFIG_BUCKET_NAME` or `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME`. Use `DEX_MANIFEST_CONFIG_BUCKET_NAME` if the manifest configurations are in a different bucket; otherwise, use `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` if they are stored in a different folder within the same bucket. If neither is set, the sender manifest configuration files on the local file system will be used.
 
-# Report Location Configs
+## Report Location Configs
 
 ### Local File System Report Directory
 
 | Variable Name                 | Required | Default Value      | Description                                      |
 |-------------------------------|----------|--------------------|--------------------------------------------------|
-| `LOCAL_REPORTS_FOLDER`        | No       | `./upload/reports` | Local folder path where reports will be stored.  |
+| `LOCAL_REPORTS_FOLDER`        | No       | `./upload/reports` | Relative file system path to reports directory   |
 
 ### Azure Report Queue
 
-| Variable Name                  | Required | Default Value   | Description                                                   |
-|--------------------------------|----------|-----------------|---------------------------------------------------------------|
-| `REPORTER_CONNECTION_STRING`   | No       | None            | Connection string for Azure queue or service bus.             |
-| `REPORTER_QUEUE`               | No       | None            | Queue name for sending reports to the Azure queue system.     |
-| `REPORTER_TOPIC`               | No       | None            | Topic name for the Azure queue or service bus.                |
+| Variable Name                  | Required | Default Value   | Description                                                       |
+|--------------------------------|----------|-----------------|-------------------------------------------------------------------|
+| `REPORTER_CONNECTION_STRING`   | Yes      | None            | Azure connection string with credential to the queue or topic     |
+| `REPORTER_QUEUE` *             | Yes *    | None            | Queue name for sending reports, use if the service bus is a queue |
+| `REPORTER_TOPIC` *             | Yes *    | None            | Topic name for sending reports, use if the service bus is a topic |
 
+> `*` **Notes:** Only set `REPORTER_QUEUE` or `REPORTER_TOPIC` depending on the type of the service bus you are connecting to.
 
+## Event Publish/Subscribe Configs
 
+### Local File System Event Directory
 
-## Event Publish/Subscribe Location Configs
+| Variable Name         | Required | Default Value      | Description                                       |
+|-----------------------|----------|--------------------|---------------------------------------------------|
+| `LOCAL_EVENTS_FOLDER` | No       | `./uploads/events` | Relative file system path to the events directory |
 
-## Local File System Event Directory
+### Azure Event Topics
 
-| Variable Name          | Required | Default Value       | Description                                                |
-|------------------------|----------|---------------------|------------------------------------------------------------|
-| `LOCAL_EVENTS_FOLDER`  | No       | `./uploads/events`  | Local folder path where events will be stored.             |
+#### Azure Event Publisher Topic
 
+| Variable Name                 | Required | Default Value | Description                                                           |
+|-------------------------------|----------|---------------|-----------------------------------------------------------------------|
+| `PUBLISHER_CONNECTION_STRING` | Yes      | None          | Azure connection string with credentials to the event publisher topic |
+| `PUBLISHER_TOPIC`             | Yes      | None          | Topic name for the publisher service bus                              |
 
-### Azure Event Publisher Queue
+#### Azure Event Subscriber Subscription
 
-| Variable Name                 | Required | Default Value   | Description                                                   |
-|-------------------------------|----------|-----------------|---------------------------------------------------------------|
-| `PUBLISHER_CONNECTION_STRING` | No       | None            | Connection string for the Azure event publisher queue.        |
-| `PUBLISHER_TOPIC`             | No       | None            | Topic name for publishing events to the Azure queue system.   |
-
-### Azure Event Subscriber Queue
-
-| Variable Name                   | Required | Default Value   | Description                                                   |
-|---------------------------------|----------|-----------------|---------------------------------------------------------------|
-| `SUBSCRIBER_CONNECTION_STRING`  | No       | None            | Connection string for the Azure event subscriber queue.       |
-| `SUBSCRIBER_TOPIC`              | No       | None            | Topic name for subscribing to events in the Azure queue.      |
-| `SUBSCRIBER_SUBSCRIPTION`       | No       | None            | Subscription name for the Azure event subscriber.             |
+| Variable Name                  | Required | Default Value | Description                                                        |
+|--------------------------------|----------|---------------|--------------------------------------------------------------------|
+| `SUBSCRIBER_CONNECTION_STRING` | Yes      | None          | Azure connection string with credentials to the event subscription |
+| `SUBSCRIBER_TOPIC`             | Yes      | None          | Topic name to subscribe to for receiving events                    |
+| `SUBSCRIBER_SUBSCRIPTION`      | Yes      | None          | Subscription name for for the event subscriber                     |
 
 ## File Delivery Target Configs
 
@@ -136,111 +149,114 @@ This document outlines the environment variables that can be configured for the 
 
 #### Local File System EDAV Directory
 
-| Variable Name          | Required | Default Value       | Description                                                |
-|------------------------|----------|---------------------|------------------------------------------------------------|
-| `LOCAL_EDAV_FOLDER`    | No       | `./uploads/edav`    | Local folder path for EDAV file deliveries.                |
+| Variable Name       | Required | Default Value    | Description                                            |
+|---------------------|----------|------------------|--------------------------------------------------------|
+| `LOCAL_EDAV_FOLDER` | No       | `./uploads/edav` | Relative file system path to the EDAV target directory |
 
 #### Azure EDAV Container
 
-| Variable Name                   | Required | Default Value           | Description                                                    |
-|---------------------------------|----------|-------------------------|----------------------------------------------------------------|
-| `EDAV_STORAGE_ACCOUNT`          | No       | None                    | Azure storage account name for EDAV deliveries.                |
-| `EDAV_STORAGE_KEY`              | No       | None                    | Azure storage account key for EDAV deliveries.                 |
-| `EDAV_TENANT_ID`                | No       | None                    | Azure Active Directory tenant ID for EDAV deliveries.          |
-| `EDAV_CLIENT_ID`                | No       | None                    | Azure Active Directory client ID for EDAV deliveries.          |
-| `EDAV_CLIENT_SECRET`            | No       | None                    | Azure Active Directory client secret for EDAV deliveries.      |
-| `EDAV_ENDPOINT`                 | No       | None                    | Azure endpoint for EDAV storage.                               |
-| `EDAV_CHECKPOINT_CONTAINER_NAME`| No       | `edav-checkpoint`       | Azure container name for checkpoint data related to EDAV.      |
+| Variable Name                    | Required | Default Value     | Description                                                         |
+|----------------------------------|----------|-------------------|---------------------------------------------------------------------|
+| `EDAV_STORAGE_ACCOUNT`           | Yes      | None              | Azure EDAV delivery storage account name                            |
+| `EDAV_STORAGE_KEY`               | Yes      | None              | Azure EDAV delivery storage account private access key or SAS token |
+| `EDAV_ENDPOINT`                  | Yes      | None              | Azure EDAV delivery storage endpoint URL                            |
+| `EDAV_CHECKPOINT_CONTAINER_NAME` | No       | `edav-checkpoint` | Container name for EDAV delivery storage checkpoint data            |
+| `EDAV_TENANT_ID`                 | No       | None              | EDAV delivery account service principal tenant id                   |
+| `EDAV_CLIENT_ID`                 | No       | None              | EDAV delivery account service principal client id                   |
+| `EDAV_CLIENT_SECRET`             | No       | None              | EDAV delivery account service principal client secret               |
 
 #### S3 EDAV Bucket
 
-| Variable Name                 | Required | Default Value   | Description                                                   |
-|-------------------------------|----------|-----------------|---------------------------------------------------------------|
-| `EDAV_S3_ENDPOINT`            | Yes      | None            | S3-compatible storage endpoint for EDAV deliveries.            |
-| `EDAV_S3_BUCKET_NAME`         | Yes      | None            | Name of the S3 bucket for EDAV deliveries.                     |
+Uses the same authentication defined for the [S3 bucket](#s3-storage-configs)
+
+| Variable Name         | Required | Default Value | Description                                                                                     |
+|-----------------------|----------|---------------|-------------------------------------------------------------------------------------------------|
+| `EDAV_S3_ENDPOINT`    | Yes      | None          | S3-compatible storage endpoint URL for EDAV delivery storage, must start with `http` or `https` |
+| `EDAV_S3_BUCKET_NAME` | Yes      | None          | Bucket name for EDAV delivery storage                                                           |
 
 ### EHDI Delivery Target
 
 #### Local File System EHDI Directory
 
-| Variable Name          | Required | Default Value       | Description                                                |
-|------------------------|----------|---------------------|------------------------------------------------------------|
-| `LOCAL_EHDI_FOLDER`    | No       | `./uploads/ehdi`    | Local folder path for EHDI file deliveries.                |
-
+| Variable Name       | Required | Default Value    | Description                                            |
+|---------------------|----------|------------------|--------------------------------------------------------|
+| `LOCAL_EHDI_FOLDER` | No       | `./uploads/ehdi` | Relative file system path to the EHDI target directory |
 
 #### Azure EHDI Container
 
-| Variable Name                   | Required | Default Value           | Description                                                    |
-|---------------------------------|----------|-------------------------|----------------------------------------------------------------|
-| `EHDI_STORAGE_ACCOUNT`          | No       | None                    | Azure storage account name for EHDI deliveries.                |
-| `EHDI_STORAGE_KEY`              | No       | None                    | Azure storage account key for EHDI deliveries.                 |
-| `EHDI_TENANT_ID`                | No       | None                    | Azure Active Directory tenant ID for EHDI deliveries.          |
-| `EHDI_CLIENT_ID`                | No       | None                    | Azure Active Directory client ID for EHDI deliveries.          |
-| `EHDI_CLIENT_SECRET`            | No       | None                    | Azure Active Directory client secret for EHDI deliveries.      |
-| `EHDI_ENDPOINT`                 | No       | None                    | Azure endpoint for EHDI storage.                               |
-| `EHDI_CHECKPOINT_CONTAINER_NAME`| No       | `ehdi-checkpoint`       | Azure container name for checkpoint data related to EHDI.      |
-
+| Variable Name                    | Required | Default Value     | Description                                                         |
+|----------------------------------|----------|-------------------|---------------------------------------------------------------------|
+| `EHDI_STORAGE_ACCOUNT`           | Yes      | None              | Azure EHDI delivery storage account name                            |
+| `EHDI_STORAGE_KEY`               | Yes      | None              | Azure EHDI delivery storage account private access key or SAS token |
+| `EHDI_ENDPOINT`                  | Yes      | None              | Azure EHDI delivery storage endpoint URL                            |
+| `EHDI_CHECKPOINT_CONTAINER_NAME` | No       | `ehdi-checkpoint` | Container name for EHDI delivery storage checkpoint data            |
+| `EHDI_TENANT_ID`                 | No       | None              | EHDI delivery account service principal tenant id                   |
+| `EHDI_CLIENT_ID`                 | No       | None              | EHDI delivery account service principal client id                   |
+| `EHDI_CLIENT_SECRET`             | No       | None              | EHDI delivery account service principal client secret               |
 
 #### S3 EHDI Bucket
 
-| Variable Name                 | Required | Default Value   | Description                                                   |
-|-------------------------------|----------|-----------------|---------------------------------------------------------------|
-| `EHDI_S3_ENDPOINT`            | No       | None            | S3-compatible storage endpoint for EHDI deliveries.           |
-| `EHDI_S3_BUCKET_NAME`         | No       | None            | Name of the S3 bucket for EHDI deliveries.                    |
+Uses the same authentication defined for the [S3 bucket](#s3-storage-configs)
+
+| Variable Name         | Required | Default Value | Description                                                                                     |
+|-----------------------|----------|---------------|-------------------------------------------------------------------------------------------------|
+| `EHDI_S3_ENDPOINT`    | Yes      | None          | s3-compatible storage endpoint URL for EHDI delivery storage, must start with `http` or `https` |
+| `EHDI_S3_BUCKET_NAME` | Yes      | None          | Bucket name for EHDI delivery storage                                                           |
 
 ### EICR Delivery Target
 
 #### Local File System EICR Directory
 
-| Variable Name          | Required | Default Value       | Description                                                |
-|------------------------|----------|---------------------|------------------------------------------------------------|
-| `LOCAL_EICR_FOLDER`    | No       | `./uploads/eicr`    | Local folder path for EICR file deliveries.                |
-
+| Variable Name       | Required | Default Value    | Description                                            |
+|---------------------|----------|------------------|--------------------------------------------------------|
+| `LOCAL_EICR_FOLDER` | No       | `./uploads/eicr` | Relative file system path to the EICR target directory |
 
 #### Azure EICR Container
 
-| Variable Name                    | Required | Default Value           | Description                                                    |
-|----------------------------------|----------|-------------------------|----------------------------------------------------------------|
-| `EICR_STORAGE_ACCOUNT`           | No       | None                    | Azure storage account name for EICR deliveries.                |
-| `EICR_STORAGE_KEY`               | No       | None                    | Azure storage account key for EICR deliveries.                 |
-| `EICR_TENANT_ID`                 | No       | None                    | Azure Active Directory tenant ID for EICR deliveries.          |
-| `EICR_CLIENT_ID`                 | No       | None                    | Azure Active Directory client ID for EICR deliveries.          |
-| `EICR_CLIENT_SECRET`             | No       | None                    | Azure Active Directory client secret for EICR deliveries.      |
-| `EICR_ENDPOINT`                  | No       | None                    | Azure endpoint for EICR storage.                               |
-| `EICR_CHECKPOINT_CONTAINER_NAME` | No       | `eicr-checkpoint`       | Azure container name for checkpoint data related to EICR.      |
-
+| Variable Name                    | Required | Default Value     | Description                                                         |
+|----------------------------------|----------|-------------------|---------------------------------------------------------------------|
+| `EICR_STORAGE_ACCOUNT`           | Yes      | None              | Azure EICR delivery storage account name                            |
+| `EICR_STORAGE_KEY`               | Yes      | None              | Azure EICR delivery storage account private access key or SAS token |
+| `EICR_ENDPOINT`                  | Yes      | None              | Azure EICR delivery storage endpoint URL                            |
+| `EICR_CHECKPOINT_CONTAINER_NAME` | No       | `eicr-checkpoint` | Container name for EICR delivery storage checkpoint data            |
+| `EICR_TENANT_ID`                 | No       | None              | EICR delivery account service principal tenant id                   |
+| `EICR_CLIENT_ID`                 | No       | None              | EICR delivery account service principal client id                   |
+| `EICR_CLIENT_SECRET`             | No       | None              | EICR delivery account service principal client secret               |
 
 #### S3 EICR Bucket
 
-| Variable Name                 | Required | Default Value   | Description                                                   |
-|-------------------------------|----------|-----------------|---------------------------------------------------------------|
-| `EICR_S3_ENDPOINT`            | No       | None            | S3-compatible storage endpoint for EICR deliveries.           |
-| `EICR_S3_BUCKET_NAME`         | No       | None            | Name of the S3 bucket for EICR deliveries.                    |
+Uses the same authentication defined for the [S3 bucket](#s3-storage-configs)
+
+| Variable Name         | Required | Default Value | Description                                                                                     |
+|-----------------------|----------|---------------|-------------------------------------------------------------------------------------------------|
+| `EICR_S3_ENDPOINT`    | Yes      | None          | S3-compatible storage endpoint URL for EICR delivery storage, must start with `http` or `https` |
+| `EICR_S3_BUCKET_NAME` | Yes      | None          | Bucket name for EICR delivery storage                                                           |
 
 ### NCIRD Delivery Target
 
 #### Local File System NCIRD Directory
 
-| Variable Name          | Required | Default Value       | Description                                                |
-|------------------------|----------|---------------------|------------------------------------------------------------|
-| `LOCAL_NCIRD_FOLDER`   | No       | `./uploads/ncird`   | Local folder path for NCIRD file deliveries.               |
+| Variable Name        | Required | Default Value     | Description                                             |
+|----------------------|----------|-------------------|---------------------------------------------------------|
+| `LOCAL_NCIRD_FOLDER` | No       | `./uploads/ncird` | Relative file system path to the NCIRD target directory |
 
 #### Azure NCIRD Container
 
-| Variable Name                     | Required | Default Value           | Description                                                    |
-|-----------------------------------|----------|-------------------------|----------------------------------------------------------------|
-| `NCIRD_STORAGE_ACCOUNT`           | No       | None                    | Azure storage account name for NCIRD deliveries.               |
-| `NCIRD_STORAGE_KEY`               | No       | None                    | Azure storage account key for NCIRD deliveries.                |
-| `NCIRD_TENANT_ID`                 | No       | None                    | Azure Active Directory tenant ID for NCIRD deliveries.         |
-| `NCIRD_CLIENT_ID`                 | No       | None                    | Azure Active Directory client ID for NCIRD deliveries.         |
-| `NCIRD_CLIENT_SECRET`             | No       | None                    | Azure Active Directory client secret for NCIRD deliveries.     |
-| `NCIRD_ENDPOINT`                  | No       | None                    | Azure endpoint for NCIRD storage.                              |
-| `NCIRD_CHECKPOINT_CONTAINER_NAME` | No       | `ncird-checkpoint`      | Azure container name for checkpoint data related to NCIRD.     |
+| Variable Name                     | Required | Default Value      | Description                                                          |
+|-----------------------------------|----------|--------------------|----------------------------------------------------------------------|
+| `NCIRD_STORAGE_ACCOUNT`           | Yes      | None               | Azure NCIRD delivery storage account name                            |
+| `NCIRD_STORAGE_KEY`               | Yes      | None               | Azure NCIRD delivery storage account private access key or SAS token |
+| `NCIRD_ENDPOINT`                  | Yes      | None               | Azure NCIRD delivery storage endpoint URL                            |
+| `NCIRD_CHECKPOINT_CONTAINER_NAME` | No       | `ncird-checkpoint` | Container name for NCIRD delivery storage checkpoint data            |
+| `NCIRD_TENANT_ID`                 | No       | None               | NCIRD delivery account service principal tenant id                   |
+| `NCIRD_CLIENT_ID`                 | No       | None               | NCIRD delivery account service principal client id                   |
+| `NCIRD_CLIENT_SECRET`             | No       | None               | NCIRD delivery account service principal client secret               |
 
 #### S3 NCIRD Bucket
 
-| Variable Name                | Required | Default Value   | Description                                                   |
-|------------------------------|----------|-----------------|---------------------------------------------------------------|
-| `NCIRD_S3_ENDPOINT`          | No       | None            | S3-compatible storage endpoint for NCIRD deliveries.          |
-| `NCIRD_S3_BUCKET_NAME`       | No       | None            | Name of the S3 bucket for NCIRD deliveries.                   |
+Uses the same authentication defined for the [S3 bucket](#s3-storage-configs)
 
+| Variable Name          | Required | Default Value | Description                                                                                      |
+|------------------------|----------|---------------|--------------------------------------------------------------------------------------------------|
+| `NCIRD_S3_ENDPOINT`    | Yes      | None          | S3-compatible storage endpoint URL for NCIRD delivery storage, must start with `http` or `https` |
+| `NCIRD_S3_BUCKET_NAME` | Yes      | None          | Bucket name for NCIRD delivery storage                                                           |

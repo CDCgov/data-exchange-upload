@@ -46,8 +46,6 @@ cd data-exchange-upload/upload-server
 
 ### 3. Start the Server
 
-Set the `CSRF_TOKEN` environment variable before starting the server ([see Configuration](#configurations)). You can generate a random 32-byte string for it [here](https://generate-random.org/encryption-key-generator?count=1&bytes=32&cipher=aes-256-cbc&string=&password=)
-
 Running the server with the default configurations will use the local file system for the storage backend and the delivery targets. It will start the Upload API server at [http://localhost:8080](http://localhost:8080) and a Tus client at [http://localhost:8081/](http://localhost:8081/), which will allow you to upload files to the Upload API server.
 
 These files will be uploaded by default to the `upload-server/uploads/tus-prefix/` directory. The base `uploads/` directory name and location can be changed using the `LOCAL_FOLDER_UPLOAD_TUS` environment variable. The `tus-prefix/` name can be changed using the `TUS_UPLOAD_PREFIX` environment variable.
@@ -201,39 +199,51 @@ If you name this file `.env` you can get the benefits of the [dotenv file format
 
 >[!WARNING]
 > Never check your `.env` file into source control. It should only be on your local computer or on the server you are using it on.
+
 ### Configuration Documentation
 
-Please see [env-configs](./docs/env-configs.md) documentation for more complete documentation on environment configs to be used in the `.env` file. 
+Please see [env-configs](./docs/env-configs.md) documentation for more complete documentation on environment configs to be used in the `.env` file.
 
 ### Common Service Configurations
 
 *upload-server/.env*:
 
 ```vim
-# common
-LOGGER_DEBUG_ON= # set whether the logging level should be DEBUG or INFO
-ENVIRONMENT= # set the environment of the service, default=DEV
+## logging and environment
+# enable or disable DEBUG logging level, default=INFO
+LOGGER_DEBUG_ON= 
+# environment for the service, system default=DEV
+ENVIRONMENT= 
 
-# server
-SERVER_PROTOCOL= # set if the server is http or https, default=http
-SERVER_HOSTNAME= # set the hostname of the server, default=localhost
-SERVER_PORT= # set the port for the server, default=8080
-TUSD_HANDLER_BASE_PATH= # set the path for the upload endpoint, default=/files/
-TUSD_HANDLER_INFO_PATH= # set the path for the info endpoint, default=/info/
-UPLOAD_CONFIG_PATH= # set the path to the `upload-configs/` directory, default=../upload-configs
-EVENT_MAX_RETRY_COUNT= # set the number of retries to publish an event, default=3
-METRICS_LABELS_FROM_MANIFEST= # which manifest keys to count in the metrics
+## server configs
+# Protocol use by the server (http or https), default=http
+SERVER_PROTOCOL= 
+# hostname of the server, default=localhost
+SERVER_HOSTNAME= 
+# port on which the server runs, default=8080
+SERVER_PORT= 
+# url path for handling tusd upload requests, default=/files/
+TUSD_HANDLER_BASE_PATH= 
+# url path for handling tusd info requests, default=/info/
+TUSD_HANDLER_INFO_PATH=
+# maximum number of retries for event processing, default=3 
+EVENT_MAX_RETRY_COUNT= 
+# string separated list of keys from the sender manifest config to count in the metrics, default=data_stream_id,data_stream_route,sender_id
+METRICS_LABELS_FROM_MANIFEST= 
 
 # tusd
-TUS_UPLOAD_PREFIX= # set sub directory to drop files into within the storage backend, default=tus-prefix
+# relative file system path to the tus uploads directory within the storage backend location, default=tus-prefix
+TUS_UPLOAD_PREFIX= 
 
 # ui
-UI_PORT= # set the port for the UI client, default=8081
-CSRF_TOKEN= # set 32-byte string for generating CSRF tokens, this is REQUIRED
-
-# processing status health
-PROCESSING_STATUS_HEALTH_URI= # set the URI of the Processing Status Health server
+# port on which the UI client runs, default=8081
+UI_PORT= 
+# CSRF token used for form security (32 byte string), default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW
+CSRF_TOKEN= 
 ```
+
+> [!WARNING]
+> The default `CSRF_TOKEN` is for development purposes only. You should replace this with a new string, you can generate a 32 byte string [here](https://generate-random.org/encryption-key-generator?count=1&bytes=32&cipher=aes-256-cbc&string=&password=)
 
 ### Configuring Distributed File Locking with Redis
 
@@ -242,7 +252,8 @@ When you want to scale this service horizontally, you'll need to use a distribut
 *upload-server/.env*:
 
 ```vim
-REDIS_CONNECTION_STRING=redis://redispw@cache:6379 # set the URI of the Redis instance
+# connection string to the Redis instance
+REDIS_CONNECTION_STRING=
 ```
 
 >Note: The full URI of the Redis instance must include authentication credentials such as username/password or access token. Make sure to use `rediss://` instead of `redis://` to use TLS for this traffic.
@@ -254,10 +265,14 @@ The Upload API has OAuth token verification middleware for the `/files/` and `/i
 *upload-server/.env*:
 
 ```vim
-OAUTH_AUTH_ENABLED=true            # enable or disable OAuth token verification
-OAUTH_ISSUER_URL=https://issuer.url # set the URL of the token issuer
-OAUTH_REQUIRED_SCOPES="scope1 scope2" # set the space-separated list of required scopes
-OAUTH_INTROSPECTION_URL=https://introspection.url # set the introspection url, used for opaque tokens
+# enable or disable OAuth token verification
+OAUTH_AUTH_ENABLED=false
+# URL of the OAuth token issuer
+OAUTH_ISSUER_URL=
+# space-separated list of required scopes
+OAUTH_REQUIRED_SCOPES=
+# optionally, URL for OAuth introspection, used for opaque tokens
+OAUTH_INTROSPECTION_URL=
 ```
 
 ### Configuring the storage backend
@@ -271,7 +286,8 @@ By default, this service uses the file system of the host machine it is running 
 *upload-server/.env*:
 
 ```vim
-LOCAL_FOLDER_UPLOADS_TUS= # set the relative path to the folder where tus will upload files to, default=./uploads
+# relative file system path to the base upload directory, default=./uploads
+LOCAL_FOLDER_UPLOADS_TUS= 
 ```
 
 ##### Sender manifest config location
@@ -281,7 +297,8 @@ By default, the service uses the sender manifest config files located in `../upl
 *upload-server/.env*:
 
 ```vim
-UPLOAD_CONFIG_PATH= # set the path to the `upload-configs/` directory, default=../upload-configs
+# relative file system path to the sender manifest configuration directory, default=../upload-configs
+UPLOAD_CONFIG_PATH= 
 ```
 
 #### Azure Storage Account
@@ -291,10 +308,14 @@ To upload to an Azure Storage Account, you'll need to collect the name, access k
 *upload-server/.env*:
 
 ```vim
-AZURE_STORAGE_ACCOUNT= # set the name of the storage account
-AZURE_STORAGE_KEY= # set the private access key or SAS token of the storage account
-AZURE_ENDPOINT= # set the URI of the storage account
-TUS_AZURE_CONTAINER_NAME= # set the container name for the uploads blob
+# Azure storage account name
+AZURE_STORAGE_ACCOUNT= 
+# Azure storage account private access key or SAS token
+AZURE_STORAGE_KEY= 
+# Azure storage endpoint URL
+AZURE_ENDPOINT= 
+# container name for tus base upload storage
+TUS_AZURE_CONTAINER_NAME= 
 ```
 
 ##### Azure local development
@@ -312,9 +333,12 @@ To use [Azure Service Principal](https://learn.microsoft.com/en-us/entra/identit
 *upload-server/.env*:
 
 ```vim
-AZURE_TENANT_ID= # set the tenant id
-AZURE_CLIENT_ID= # set the client id
-AZURE_CLIENT_SECRET= # set the client secret
+# Azure storage account service principal tenant id
+AZURE_TENANT_ID= 
+# Azure storage account service principal client id
+AZURE_CLIENT_ID= 
+# Azure storage account service principal client secret
+AZURE_CLIENT_SECRET= 
 ```
 
 ##### Optional Azure blob for sender manifest config files
@@ -324,7 +348,8 @@ If you would like to store the sender manifest config files on Azure, create a b
 *upload-server/.env*:
 
 ```vim
-DEX_MANIFEST_CONFIG_CONTAINER_NAME= # set the container name for the manifests blob
+# container name for sender manifest configuration files
+DEX_MANIFEST_CONFIG_CONTAINER_NAME= 
 ```
 
 If `DEX_MANIFEST_CONFIG_CONTAINER_NAME` is not set, the sender manifest config files on the file system will be used.
@@ -336,8 +361,10 @@ To use an AWS S3 bucket as the storage backend, you'll need to [create a bucket]
 *upload-server/.env*:
 
 ```vim
-S3_ENDPOINT= # set the URI of the S3 instance, must start with `http` or `https`
-S3_BUCKET_NAME= # set the globally unique name of the S3 bucket
+# s3-compatible storage endpoint URL, must start with `http` or `https`
+S3_ENDPOINT= 
+# bucket name for tus base upload storage
+S3_BUCKET_NAME= 
 ```
 
 ##### AWS local development
@@ -355,13 +382,17 @@ Authentication is handled using the standard AWS environment variables
 *upload-server/.env*:
 
 ```vim
-AWS_ACCESS_KEY_ID= # set the username or user ID of the user or service account with read and write access to the bucket
-AWS_SECRET_ACCESS_KEY= # set the password or private key of a user or service account
-AWS_SESSION_TOKEN= # optionally, set the session token for authentication, typically used for short lived keys
-AWS_REGION= # set the region of the S3 bucket
+# username or user ID of the user or service account with read and write access to the bucket
+AWS_ACCESS_KEY_ID= 
+# password or private key of a user or service account with read and write access to the bucket
+AWS_SECRET_ACCESS_KEY= 
+# optional, session token for authentication (typically used for short lived keys)
+AWS_SESSION_TOKEN= 
+# region of the s3 bucket
+AWS_REGION= 
 ```
 
-or using a `profile` in an [AWS Credential file](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html)
+or using a `profile` in an [AWS Credential file](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) with the AWS CLI
 
 *~/.aws/credentials/credentials*:
 
@@ -397,11 +428,13 @@ If you would like to store the sender manifest config files in an AWS S3 bucket,
 *upload-server/.env*:
 
 ```vim
-DEX_S3_MANIFEST_CONFIG_FOLDER_NAME= # set the name of the directory in side the bucket containing the `upload-config` files
-DEX_MANIFEST_CONFIG_BUCKET_NAME= # if there is a separate configs bucket, set the name of the configs bucket, if not set it defaults to the main bucket
+# Directory name inside the s3 bucket for the sender manifest configuration files within the upload bucket
+DEX_S3_MANIFEST_CONFIG_FOLDER_NAME= 
+# Bucket name for the sender manifest configurations, if not set it defaults to the upload bucket
+DEX_MANIFEST_CONFIG_BUCKET_NAME= 
 ```
 
-If `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` is not set, the sender manifest config files on the file system will be used.
+If neither `DEX_MANIFEST_CONFIG_BUCKET_NAME` or `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` are set, the sender manifest config files on the file system will be used.
 
 ### Configuring the reports location
 
@@ -414,7 +447,8 @@ To change the location of the report files
 *upload-server/.env*:
 
 ```vim
-LOCAL_REPORTS_FOLDER= # set the relative path to the report folder
+# relative file system path to the reports directory
+LOCAL_REPORTS_FOLDER= 
 ```
 
 #### Azure report service bus
@@ -424,9 +458,12 @@ Create an Azure service bus [queue](https://learn.microsoft.com/en-us/azure/serv
 *upload-server/.env*:
 
 ```vim
-REPORTER_CONNECTION_STRING= # set the connection string with credentials for Azure
-REPORTER_QUEUE= # set the queue name, if the service bus is a queue
-REPORTER_TOPIC= # set the topic name, if the service bus ia topic
+# Azure connection string with credential to the queue or topic
+REPORTER_CONNECTION_STRING= 
+# queue name for sending reports, use if the service bus is a queue
+REPORTER_QUEUE= 
+# topic name for sending reports, use if the service bus is a queue
+REPORTER_TOPIC= 
 ```
 
 ### Configuring the event publication and subscription
@@ -440,7 +477,8 @@ To change the location of the event files
 *upload-server/.env*:
 
 ```vim
-LOCAL_EVENTS_FOLDER= # set the relative path of the event directory
+# relative file system path to the events directory
+LOCAL_EVENTS_FOLDER= 
 ```
 
 #### Azure event publisher and subscriber service buses
@@ -452,8 +490,10 @@ Create an Azure service bus [topic](https://learn.microsoft.com/en-us/azure/serv
 *upload-server/.env*:
 
 ```vim
-PUBLISHER_CONNECTION_STRING= # set the connection string for Azure
-PUBLISHER_TOPIC= # set the topic name, if a topic was created
+# Azure connection string with credentials to the event publisher topic
+PUBLISHER_CONNECTION_STRING= 
+# topic name for the event publisher service bus
+PUBLISHER_TOPIC= 
 ```
 
 ##### Subscriber
@@ -463,9 +503,12 @@ Create a [subscription](https://learn.microsoft.com/en-us/azure/service-bus-mess
 *upload-server/.env*:
 
 ```vim
-SUBSCRIBER_CONNECTION_STRING= # set the connection string for Azure
-SUBSCRIBER_TOPIC= # set the topic of the new subscription
-SUBSCRIBER_SUBSCRIPTION= # set the name of the new subscription
+# Azure connection string with credentials to the event subscription
+SUBSCRIBER_CONNECTION_STRING= 
+# topic name to subscribe to for receiving events
+SUBSCRIBER_TOPIC= 
+# subscription name for the event subscriber
+SUBSCRIBER_SUBSCRIPTION= 
 ```
 
 ### Configuring the delivery targets
@@ -499,11 +542,14 @@ To change the default local file system directory for a target
 *upload-server/.env*:
 
 ```vim
-LOCAL_ROUTING_FOLDER= # set the relative path to the routing target directory 
-LOCAL_EDAV_FOLDER= # set the relative path to the edav target directory 
-LOCAL_EHDI_FOLDER= # set the relative path to the ehdi target directory 
-LOCAL_EICR_FOLDER= # set the relative path to the eicr target directory 
-LOCAL_NCIRD_FOLDER= # set the relative path to the ncird target directory 
+# relative file system path to the EDAV target directory
+LOCAL_EDAV_FOLDER= 
+# relative file system path to the EHDI target directory
+LOCAL_EHDI_FOLDER= 
+# relative file system path to the EICR target directory
+LOCAL_EICR_FOLDER= 
+# relative file system path to the NCIRD target directory
+LOCAL_NCIRD_FOLDER= 
 ```
 
 #### Azure blob target
@@ -513,14 +559,21 @@ Create an Azure [Blob container](https://learn.microsoft.com/en-us/azure/storage
 *upload-server/.env*:
 
 ```vim
-EDAV_STORAGE_ACCOUNT= # set the name of the edav account
-EDAV_STORAGE_KEY= # set the private access key or SAS token of the edav account
-EDAV_ENDPOINT= # set the URI of the edav account
-EDAV_CHECKPOINT_CONTAINER_NAME= # set the edav blob container name
+# Azure EDAV delivery storage account name
+EDAV_STORAGE_ACCOUNT= 
+# Azure EDAV delivery storage account private access key or SAS token
+EDAV_STORAGE_KEY= 
+# Azure EDAV delivery storage endpoint URL 
+EDAV_ENDPOINT= 
+# Container name for EDAV delivery storage checkpoint data
+EDAV_CHECKPOINT_CONTAINER_NAME= 
 
-EDAV_TENANT_ID= # optionally, set the service principal tenant id
-EDAV_CLIENT_ID= # optionally, set the service principal client id
-EDAV_CLIENT_SECRET= # optionally, set the service principal client secret
+# optionally, EDAV delivery account service principal tenant id
+EDAV_TENANT_ID= 
+# optionally, EDAV delivery account service principal client id
+EDAV_CLIENT_ID= 
+# optionally, EDAV delivery account service principal client secret
+EDAV_CLIENT_SECRET= 
 ```
 
 So to configure the `ehdi` target, `EDAV` in all of the variables would be replaced by `EHDI`, and so on.
@@ -531,8 +584,18 @@ Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/
 
 *upload-server/.env*:
 
+# s3-compatible storage endpoint URL, must start with `http` or `https`
+
+S3_ENDPOINT=
+
+# Bucket name for tus base upload storage
+
+S3_BUCKET_NAME=
+
 ```vim
+# s3-compatible storage endpoint URL for EHDI delivery storage, must start with `http` or `https`
 EHDI_S3_ENDPOINT=
+# bucket name for EHDI delivery storage
 EHDI_S3_BUCKET_NAME=
 ```
 
