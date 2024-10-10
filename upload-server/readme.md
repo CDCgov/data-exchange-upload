@@ -131,9 +131,12 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 }
 ```
 
-### Configuring basic upload routing
+### Configuring upload routing and delivery targets
 
-TODO
+This service is capable of copying files that are uploaded to other storage locations, even ones that are outside the on-prem or cloud environment your service is deployed to.  This is useful when you want your files to land in particular storage locations based on their metadata.  Setting this up begins with the creation of a
+YML file that defines delivery groups, and one or more delivery targets.  These targets currently support Azure Blob, S3, and local file system.
+
+By default, this service will use the YML file located at `configs/local/delivery.yml`, but you can create your own and point to it via the `DEX_DELIVERY_CONFIG_FILE` environment variable.
 
 ## Building the source
 
