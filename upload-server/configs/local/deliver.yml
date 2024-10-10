@@ -2,8 +2,6 @@ version: 1.0
 
 az-edav: &az-edav
   endpoint: $EDAV_ENDPOINT
-  storage_account: $AZURE_STORAGE_ACCOUNT
-  storage_key: $AZURE_STORAGE_KEY
   container_name: $EDAV_CHECKPOINT_CONTAINER_NAME
   tenant_id: $EDAV_TENANT_ID
   client_id: $EDAV_CLIENT_ID
@@ -11,8 +9,6 @@ az-edav: &az-edav
 
 az-ehdi: &az-ehdi
   endpoint: $EHDI_ENDPOINT
-  storage_account: $AZURE_STORAGE_ACCOUNT
-  storage_key: $AZURE_STORAGE_KEY
   container_name: $EHDI_CHECKPOINT_CONTAINER_NAME
   tenant_id: $EHDI_TENANT_ID
   client_id: $EHDI_CLIENT_ID
@@ -20,8 +16,6 @@ az-ehdi: &az-ehdi
 
 az-eicr: &az-eicr
   endpoint: $EICR_ENDPOINT
-  storage_account: $AZURE_STORAGE_ACCOUNT
-  storage_key: $AZURE_STORAGE_KEY
   container_name: $EICR_CHECKPOINT_CONTAINER_NAME
   tenant_id: $EICR_TENANT_ID
   client_id: $EICR_CLIENT_ID
@@ -29,8 +23,6 @@ az-eicr: &az-eicr
 
 az-ncird: &az-ncird
   endpoint: $NCIRD_ENDPOINT
-  storage_account: $AZURE_STORAGE_ACCOUNT
-  storage_key: $AZURE_STORAGE_KEY
   container_name: $NCIRD_CHECKPOINT_CONTAINER_NAME
   tenant_id: $NCIRD_TENANT_ID
   client_id: $NCIRD_CLIENT_ID
