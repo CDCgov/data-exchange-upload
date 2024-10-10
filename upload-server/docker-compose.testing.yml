@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   upload-server:
     command: go test -coverprofile=c.out -coverpkg=./... ./... -tags=integration

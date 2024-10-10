@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { UploadClient } from '../upload-client';
-dotenv.config({ path: '../../.env' });
+dotenv.config({ path: '../../../../upload-server/.env' });
 
 
 // Use test.describe to group your tests and use hooks like beforeAll

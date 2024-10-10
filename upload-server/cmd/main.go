@@ -28,7 +28,9 @@ import (
 const appMainExitCode = 1
 
 func init() {
-
+	// ------------------------------------------------------------------
+	// parse and load cli flags
+	// ------------------------------------------------------------------
 	if !testing.Testing() {
 		if err := cli.ParseFlags(); err != nil {
 			slog.Error("error starting app, error parsing cli flags", "error", err)
@@ -44,9 +46,6 @@ func init() {
 		} // .if
 	}
 
-	// ------------------------------------------------------------------
-	// parse and load config from os exported
-	// ------------------------------------------------------------------
 }
 
 func main() {
@@ -130,7 +129,7 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.TusUIFileEndpointUrl, appConfig.TusUIInfoEndpointUrl); err != nil {
+			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ServerFileEndpointUrl, appConfig.ServerInfoEndpointUrl); err != nil {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}
