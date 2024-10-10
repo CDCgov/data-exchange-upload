@@ -125,11 +125,11 @@ func main() {
 
 	slog.Info("started http server with tusd and dex handlers", "port", appConfig.ServerPort)
 
-	if appConfig.UIPort != "" {
+	if appConfig.UIUrl != "" {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ServerFileEndpointUrl, appConfig.ServerInfoEndpointUrl); err != nil {
+			if err := ui.Start(appConfig.UIUrl, appConfig.CsrfToken, appConfig.ServerFileEndpointUrl, appConfig.ServerInfoEndpointUrl); err != nil {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}

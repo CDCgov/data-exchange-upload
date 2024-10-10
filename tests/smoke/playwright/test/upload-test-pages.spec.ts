@@ -88,7 +88,7 @@ test.describe("File Uploader Page", () => {
 
 test.describe("Upload Status Page", () => {
     test("has the expected elements to display upload status", async ({ page, baseURL }) => {
-        const apiURL = baseURL.replace('8081', '8080')
+        const apiURL = process.env.SERVER_URL ?? baseURL.replace('8081', '8080')
         const dataStream = 'dextesting';
         const route = 'testevent1';
         const expectedFileName = 'small-test-file'

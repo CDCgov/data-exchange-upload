@@ -62,7 +62,8 @@ type AppConfig struct {
 	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 
 	// User Interface Configs
-	UIPort    string `env:"UI_PORT, default=:8081"`
+	UIPort    string `env:"UI_PORT, default=8081"`
+	UIUrl			string
 	CsrfToken string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
 	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
 
@@ -313,6 +314,8 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 	ac.ServerUrl = fmt.Sprintf("%s://%s:%s", ac.ServerProtocol, ac.ServerHostname, ac.ServerPort)
 	ac.ServerFileEndpointUrl = ac.ServerUrl + ac.TusdHandlerBasePath
 	ac.ServerInfoEndpointUrl = ac.ServerUrl + ac.TusdHandlerInfoPath
+
+	ac.UIUrl = fmt.Sprintf(":%s", ac.UIPort)
 
 	LoadedConfig = &ac
 	return ac, nil

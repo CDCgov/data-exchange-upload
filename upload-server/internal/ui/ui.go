@@ -275,8 +275,8 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, uploadURL string, infoURL string) error {
-	DefaultServer = NewServer(uiPort, csrfToken, uploadURL, infoURL)
+func Start(uiUrl string, csrfToken string, uploadURL string, infoURL string) error {
+	DefaultServer = NewServer(uiUrl, csrfToken, uploadURL, infoURL)
 
 	return DefaultServer.ListenAndServe()
 }
