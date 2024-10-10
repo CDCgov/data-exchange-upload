@@ -181,7 +181,6 @@ async function submitUploadForm() {
   // one file at a time
   file = fileList[0];
 
-  let endpoint;
   let chunkSize;
   let parallelUploads;
   if (previousUpload) {
@@ -207,12 +206,8 @@ async function submitUploadForm() {
       );
       return;
     }
-    ({ endpoint, chunkSize, parallelUploads } = metadata);
+    ({ chunkSize, parallelUploads } = metadata);
   } else {
-    // retrieve the values entered in the form
-    const endpointInput = document.querySelector("#endpoint");
-    endpoint = endpointInput.value;
-
     const chunkInput = document.querySelector("#chunksize");
     chunkSize = parseInt(chunkInput.value, 10);
     if (Number.isNaN(chunkSize)) {
@@ -229,13 +224,13 @@ async function submitUploadForm() {
   _toggleFormContainer(false);
 
   // Upload the file
-  await uploadFile(file, { endpoint, chunkSize, parallelUploads });
+  await uploadFile(file, { chunkSize, parallelUploads });
 }
 
 // Creates the tus client and uploads the file.
 // Handles onProgress, onSuccess, and onError.
 // Will resume an upload if one has already been started.
-async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
+async function uploadFile(file, { chunkSize, parallelUploads }) {
   console.log(`start uploading file: ${file.name}`);
 
   // used to determine the duration
@@ -256,6 +251,7 @@ async function uploadFile(file, { endpoint, chunkSize, parallelUploads }) {
       fileSize: file.size,
       fileLastModified: file.lastModified,
       endpoint,
+      uploadUrl,
       chunkSize,
       parallelUploads,
     },

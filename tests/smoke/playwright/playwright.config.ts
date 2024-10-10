@@ -1,18 +1,57 @@
 import { PlaywrightTestConfig, devices } from "@playwright/test";
 
+const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
+const testReportDir = './test-reports';
+const testResultsDir = './test-results';
+
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
   testDir: "./test",
 
   // Use this to change the number of browsers/contexts to run in parallel
   // Setting this to 1 will run tests serially which can help if you're seeing issues with parallel execution
-  workers: 1,
+  // Opt out of parallel tests on CI.
+  workers: process.env.CI ? 1 : 4,
 
-  // Configure retries for flaky tests
-  retries: 0,
+  // Fail the build on CI if you accidentally left test.only in the source code.
+  forbidOnly: !!process.env.CI,
+
+  // If a test fails, retry it additional 2 times
+  // Retry on CI only.
+  retries: process.env.CI ? 2 : 0,
 
   // Configure test timeout
   timeout: 30000,
+
+  // Reporter to use
+  reporter: process.env.CI
+    ? [
+        ['github'],
+        [
+          'json',
+          {
+            outputFile: `${testReportDir}/test-report.json`,
+          },
+        ],
+    ] : [
+        ['list'],
+        [
+          'html',
+          {
+            outputFolder: `${testReportDir}/html`,
+            open: 'never',
+          },
+        ],
+        [
+          'json',
+          {
+            outputFile: `${testReportDir}/test-report.json`,
+          },
+        ],
+      ],
+
+  // Artifacts folder where screenshots, videos, and traces are stored.
+  outputDir: testResultsDir,
 
   // Specify browser to use
   use: {
@@ -27,8 +66,10 @@ const config: PlaywrightTestConfig = {
     // Specify viewport size
     viewport: { width: 1280, height: 720 },
 
+    // Specify the server url
+    baseURL,
+    
     // More options can be set here
-    baseURL: "http://localhost:8081",
   },
 
   // Add any global setup or teardown in here
@@ -43,9 +84,6 @@ const config: PlaywrightTestConfig = {
     },
     // More projects can be configured here
   ],
-
-  // Configure reporter here. 'dot', 'list', 'junit', etc.
-  reporter: [['list']]
 };
 
 export default config;

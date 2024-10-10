@@ -16,7 +16,7 @@ test.describe.skip('File Upload and Trace Response Flow', () => {
   const password = process.env.SAMS_PASSWORD;
   const url = process.env.UPLOAD_URL;
   const PS_API_URL = process.env.PS_API_URL;
-  const fileName = path.resolve(__dirname, '..', '..', 'upload-files', '10KB-test-file');
+  const fileName = path.resolve(__dirname, 'test-data', '10KB-test-file');
   const client = new UploadClient(url);
 
   // Helper function to create metadata with different scenarios
