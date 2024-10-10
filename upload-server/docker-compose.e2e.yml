@@ -3,9 +3,8 @@ services:
     extends:
       file: docker-compose.yml
       service: cache
-    restart: no
     ports:
-      - 6380:6380
+      - 6380
     command: redis-server --port 6380
   upload-server:
     extends:
@@ -16,7 +15,6 @@ services:
       - SERVER_HOSTNAME=upload-server
       - SERVER_PORT=8082
       - UI_PORT=8083
-    restart: no
     ports:
       - 8082
       - 8083
@@ -27,7 +25,7 @@ services:
       - ../tests/smoke/playwright:/app
       - /app/node_modules
     working_dir: /app
-    command: sh -c "./wait-for-it.sh "http://upload-server:8083"; npm install; npm test --workers=1"
+    command: sh -c './wait-for-it.sh "$$UI_URL"; npm install; npm test --workers=1'
     environment:
       - CI=${CI}
       - SERVER_URL=http://upload-server:8082
