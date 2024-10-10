@@ -12,7 +12,7 @@ wait-for-url() {
     echo "Testing: $1"
     timeout --foreground -s TERM 600s bash -c \
         'while [[ "$(curl -s -o /dev/null -m 3 -L -w ''%{http_code}'' ${0})" != "200" ]];\
-        do echo "Waiting for ${0}" && sleep 2;\
+        do echo "Waiting for ${0}" && sleep 10;\
         done' ${1}
     local TIMEOUT_RETURN="$?"
     if [[ "${TIMEOUT_RETURN}" == 0 ]]; then
