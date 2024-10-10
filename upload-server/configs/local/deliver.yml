@@ -74,6 +74,7 @@ programs:
     delivery_targets:
       - name: ncird
         type: az-blob
+        path_template: generic-immunization-other/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}
         <<: *az-ncird
   - data_stream_id: influenza-vaccination
     data_stream_route: csv
@@ -86,6 +87,7 @@ programs:
     delivery_targets:
       - name: ncird
         type: az-blob
+        path_template: routine-immunization-zip/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}
         <<: *az-ncird
   - data_stream_id: rsp-prevention
     data_stream_route: csv
