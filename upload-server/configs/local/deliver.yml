@@ -93,3 +93,20 @@ programs:
       - name: ncird
         type: az-blob
         <<: *az-ncird
+  - data_stream_id: dextesting
+    data_stream_route: testevent1
+    delivery_targets:
+      - name: ncird
+        type: az-blob
+        <<: *az-ncird
+      - name: eicr
+        type: az-blob
+        path_template: $EICR_PATH_TEMPLATE
+        <<: *az-eicr
+      - name: ehdi
+        type: az-blob
+        path_template: $EHDI_PATH_TEMPLATE
+        <<: *az-ehdi
+      - name: edav
+        type: az-blob
+        <<: *az-edav
