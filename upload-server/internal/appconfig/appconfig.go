@@ -38,55 +38,59 @@ type AppConfig struct {
 	// App and for Logger
 	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
 
-	// Server
-	ServerPort string `env:"SERVER_PORT, default=8080"`
-
 	//QUESTION: this is arbitrary so is it useful?
-	Environment        string `env:"ENVIRONMENT, default=DEV"`
-	EventMaxRetryCount int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
+	Environment string `env:"ENVIRONMENT, default=DEV"`
 
-	UploadConfigPath string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
+	// Server
+	ServerProtocol        string `env:"SERVER_PROTOCOL, default=http"`
+	ServerHostname        string `env:"SERVER_HOSTNAME, default=localhost"`
+	ServerPort            string `env:"SERVER_PORT, default=8080"`
+	TusdHandlerBasePath   string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
+	TusdHandlerInfoPath   string `env:"TUSD_HANDLER_INFO_PATH, default=/info/"`
+	UploadConfigPath      string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
+	EventMaxRetryCount    int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
+	ServerUrl             string
+	ServerFileEndpointUrl string
+	ServerInfoEndpointUrl string
+	Metrics               MetricsConfig `env:", prefix=METRICS_"`
 
+	// TUSD
+	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
+
+	// UI
+	UIPort    string `env:"UI_PORT, default=:8081"`
+	CsrfToken string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
+	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
+
+	// TUS Upload file lock
+	TusRedisLockURI string `env:"REDIS_CONNECTION_STRING"`
+
+	// oauth
+	OauthConfig *OauthConfig `env:", prefix=OAUTH_"`
+
+	// process status health
+	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
+
+	// Local file system upload config
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
 	LocalEventsFolder     string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
-	LocalDEXFolder        string `env:"LOCAL_DEX_FOLDER, default=./uploads/dex"`
 
-	// TUSD
-	TusdHandlerBasePath string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
+	// Azure upload config
+	AzureConnection              *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
+	AzureUploadContainer         string              `env:"TUS_AZURE_CONTAINER_NAME"`
+	AzureManifestConfigContainer string              `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 
-	// UI
-	TusUIFileEndpointUrl string `env:"TUS_UI_FILE_ENDPOINT_URL, default=http://localhost:8080/files/"`
-	TusUIInfoEndpointUrl string `env:"TUS_UI_INFO_ENDPOINT_URL, default=http://localhost:8080/info/"`
-	UIPort               string `env:"UI_PORT, default=:8081"`
-	CsrfToken            string `env:"CSRF_TOKEN, default=SwVgY4SfiXNyXCT4U6AvLNURDYS7J+Y/V2j4ng2UVp0XwQY0IUELUT5J5b/FATcE"`
-	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
+	ReporterConnection   *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
+	PublisherConnection  *AzureQueueConfig `env:", prefix=PUBLISHER_,noinit"`
+	SubscriberConnection *AzureQueueConfig `env:", prefix=SUBSCRIBER_,noinit"`
 
-	// Processing Status
-	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
-
-	AzureConnection      *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
-	PublisherConnection  *AzureQueueConfig   `env:", prefix=PUBLISHER_,noinit"`
-	SubscriberConnection *AzureQueueConfig   `env:", prefix=SUBSCRIBER_,noinit"`
-	OauthConfig          *OauthConfig        `env:", prefix=OAUTH_"`
-
-	// Reporting
-	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
-
-	// Azure TUS Upload storage
-	TusRedisLockURI              string `env:"REDIS_CONNECTION_STRING"`
-	AzureUploadContainer         string `env:"TUS_AZURE_CONTAINER_NAME"`
-	AzureManifestConfigContainer string `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
-	TusUploadPrefix              string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
-
-	// S3
+	// S3 upload config
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
 	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
 	S3ManifestConfigFolder string           `env:"DEX_S3_MANIFEST_CONFIG_FOLDER_NAME"`
 
 	DeliveryConfigFile string `env:"DEX_DELIVERY_CONFIG_FILE, default=./configs/local/deliver.yml"`
-
-	Metrics MetricsConfig `env:", prefix=METRICS_"`
 } // .AppConfig
 
 type MetricsConfig struct {
@@ -189,11 +193,26 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 	if err := envconfig.Process(ctx, &ac); err != nil {
 		return AppConfig{}, err
 	} // .if
+
 	if ac.AzureConnection != nil {
+		if ac.AzureConnection.StorageName == "" || ac.AzureConnection.StorageKey == "" {
+			return AppConfig{}, fmt.Errorf("missing required values for connecting to Azure")
+		}
 		if ac.AzureConnection.ContainerEndpoint == "" {
 			ac.AzureConnection.ContainerEndpoint = fmt.Sprintf("https://%s.blob.core.windows.net", ac.AzureConnection.StorageName)
 		}
 	}
+
+	if ac.S3Connection != nil {
+		if ac.S3Connection.BucketName == "" || ac.S3Connection.Endpoint == "" {
+			return AppConfig{}, fmt.Errorf("missing required values for connecting to AWS S3")
+		}
+	}
+
+	ac.ServerUrl = fmt.Sprintf("%s://%s:%s", ac.ServerProtocol, ac.ServerHostname, ac.ServerPort)
+	ac.ServerFileEndpointUrl = ac.ServerUrl + ac.TusdHandlerBasePath
+	ac.ServerInfoEndpointUrl = ac.ServerUrl + ac.TusdHandlerInfoPath
+
 	LoadedConfig = &ac
 	return ac, nil
 } // .ParseConfig
