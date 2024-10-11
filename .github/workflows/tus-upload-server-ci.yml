@@ -45,6 +45,7 @@ jobs:
           TEST_REPORT_JSON: fs-test-report.json
           TEST_RESULTS_DIR: ./playwright/test-results/fs-results 
         run: |
+          podman-compose -f docker-compose.yml -f docker-compose.e2e.yml down
           podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up -d cache upload-server
           podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up --no-recreate upload-server --exit-code-from playwright
           podman-compose -f docker-compose.yml -f docker-compose.e2e.yml down
@@ -54,6 +55,7 @@ jobs:
           TEST_RESULTS_DIR: ./playwright/test-results/azure-results 
           AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
         run: |
+          podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml down
           podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up -d azurite cache upload-server
           podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up --no-recreate upload-server --exit-code-from playwright
           podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml down
@@ -62,6 +64,7 @@ jobs:
           TEST_REPORT_JSON: aws-test-report.json
           TEST_RESULTS_DIR: ./playwright/test-results/aws-results
         run: |
+          podman-compose -f docker-compose.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml down
           podman-compose -f docker-compose.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml up -d minio cache upload-server
           podman-compose -f docker-compose.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml up --no-recreate upload-server --exit-code-from playwright
           podman-compose -f docker-compose.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml down
