@@ -15,6 +15,7 @@ services:
     working_dir: /code
     environment:
       - REDIS_CONNECTION_STRING=redis://redispw@cache:6379
+      - SERVER_HOSTNAME=upload-server
       # Generate a random 32-byte string here https://generate-random.org/encryption-key-generator?count=1&bytes=32&cipher=aes-256-cbc&string=&password=
       - CSRF_TOKEN=${CSRF_TOKEN}
     ports:

@@ -1,19 +1,4 @@
 services:
-  upload-server:
-    image: golang:alpine
-    container_name: upload-server
-    volumes:
-      - .:/code
-      - ../upload-configs:/upload-configs
-    working_dir: /code
-    ports:
-      - 8082:8082
-      - 8083:8083
-    command: /bin/sh -c "./run-server.sh"
-    environment:
-      - SERVER_HOSTNAME=upload-server
-      - SERVER_PORT=8082
-      - UI_PORT=8083
   playwright:
     image: mcr.microsoft.com/playwright:v1.48.0-focal
     container_name: playwright
@@ -24,7 +9,10 @@ services:
     command: /bin/sh -c "npm install; ./wait-for-it.sh $$UI_URL; npm test --workers=1"
     environment:
       - CI=${CI}
-      - SERVER_URL=http://upload-server:8082
-      - UI_URL=http://upload-server:8083
+      - SERVER_URL=http://upload-server:8080
+      - UI_URL=http://upload-server:8081
+      - TEST_REPORT_DIR=${TEST_REPORT_DIR:-./test-reports}
+      - TEST_REPORT_JSON=${TEST_REPORT_JSON:-test-report.json}
+      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-./test-results}
     depends_on:
       - upload-server

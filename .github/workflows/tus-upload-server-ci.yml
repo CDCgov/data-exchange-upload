@@ -46,25 +46,43 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: true
-      TEST_REPORTS_DIR: ./playwright-report
+      TEST_REPORTS_DIR: ./playwright-reports
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compse
         run: pip3 install podman-compose
       - name: Pull Images
-        run: podman-compose -f docker-compose.e2e.yml pull
+        run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml pull
+      - name: Start Services
+        run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml up -d cache azurite minio
+      
       - name: Run Tests - File System
-        run: PLAYWRIGHT_JSON_OUTPUT_NAME=file-system-report.json podman-compose -f docker-compose.e2e.yml up --no-recreate --exit-code-from playwright
-  #     - name: Run Tests - Azure
-  #       run: ZURITE_STORAGE_KEY=${{ secrets.AZURITE_STORAGE_KEY }} PLAYWRIGHT_JSON_OUTPUT_NAME=azure-report.json podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up --exit-code-from playwright
-  #     - name: Run Tests - AWS
-  #       run: PLAYWRIGHT_JSON_OUTPUT_NAME=aws-report.json podman-compose -f docker-compose.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml up --exit-code-from playwright
-  #     - uses: actions/upload-artifact@v4
-  #       if: ${{ !cancelled() }}
-  #       with:
-  #         name: playwright-report
-  #         path: playwright-report/
-  #         retention-days: 30
+        run: |
+          podman-compose up -d --force-recreate upload-server
+          TEST_REPORT_JSON=fs-test-report.json TEST_RESULTS_DIR=./playwright-test-results/fs-results podman-compose -f docker-compose.e2e.yml up --force-recreate playwright --exit-code-from playwright
+      
+      - name: Run Tests - Azure
+        run: |
+          AZURE_STORAGE_KEY=${{ secrets.AZURITE_STORAGE_KEY }} podman-compose -f docker-compose.yml -f docker-compose.azurite.yml up -d --force-recreate upload-server
+          TEST_REPORT_JSON=azure-test-report.json TEST_RESULTS_DIR=./playwright-test-results/azure-results podman-compose -f docker-compose.e2e.yml up --force-recreate playwright --exit-code-from playwright
+
+      - name: Run Tests - AWS
+        run: |
+          podman-compose -f docker-compose.yml -f docker-compose.minio.yml up -d --force-recreate upload-server
+          TEST_REPORT_JSON=aws-test-report.json TEST_RESULTS_DIR=./playwright-test-results/aws-results podman-compose -f docker-compose.e2e.yml up --force-recreate playwright --exit-code-from playwright
+         
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-reports
+          path: playwright-reports/
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-test-results
+          path: playwright-test-results/
+          retention-days: 30
   run-fortify-scan:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
