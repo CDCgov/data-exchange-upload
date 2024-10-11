@@ -511,95 +511,110 @@ SUBSCRIBER_TOPIC=
 SUBSCRIBER_SUBSCRIPTION= 
 ```
 
-### Configuring the delivery targets
+### Configuring upload routing and delivery targets
 
-Once the file has been completely uploaded, it can be copied to several other destinations. The destinations the file will be copied to depend on the configurations in the sender manifest configuration file it is associated with. The possible targets are: `routing`, `edav`, `ehdi`, `eicr`, and `ncird`. For instance, files of this type will also be copied to `edav`, `ehdi`, `eicr`, and `ncird`.
+This service is capable of copying files that are uploaded to other storage locations, even ones that are outside the on-prem or cloud environment your service is deployed to.  This is useful when you want your files to land in particular storage locations based on their metadata.  Setting this up begins with the creation of a
+YML file that defines delivery groups, and one or more delivery targets.  These targets currently support Azure Blob, S3, and local file system.
 
-*upload-configs/v2/dextesting-testevent1.json*:
+By default, this service will use the YML file located at `configs/local/delivery.yml`, but you can create your own and point to it via the `DEX_DELIVERY_CONFIG_FILE` environment variable.
 
-```json
-{
-    "metadata_config": { ... },
-    "copy_config": {
-      "filename_suffix": "upload_id",
-      "folder_structure": "date_YYYY_MM_DD",
-      "targets": [
-         "edav",
-         "ehdi",
-         "eicr",
-         "ncird"
-      ]
-   }
-}
+Start by defining programs, which act as delivery groups
+
+*configs/local/delivery.yml*:
+
+```yml
+programs:
+  - data_stream_id: teststream1
+    data_stream_route: testroute1
+  - data_stream_id: teststream2
+    data_stream_route: testroute2
 ```
 
-Each of these endpoints can be configured independently to point to a local file system directory, an Azure Blob container, or an AWS S3 bucket. By default, they all use local file system directories. If an Azure connection is defined for a target, then it will take precedence over the local file system configuration and files will be delivered there. If an S3 connection is defined for a target, then it will take precedence over both the local file system and the Azure configuration and files will be delivered there.
-
-#### Local file system target
-
-To change the default local file system directory for a target
-
-*upload-server/.env*:
-
-```vim
-# relative file system path to the EDAV target directory
-LOCAL_EDAV_FOLDER= 
-# relative file system path to the EHDI target directory
-LOCAL_EHDI_FOLDER= 
-# relative file system path to the EICR target directory
-LOCAL_EICR_FOLDER= 
-# relative file system path to the NCIRD target directory
-LOCAL_NCIRD_FOLDER= 
-```
+Next, define at least one delivery target for each group.  Each of these target endpoints can be configured independently to point to a local file system directory, an Azure Blob container, or an AWS S3 bucket. Specify the type of connection you want by setting the `type` field to either `az-blob`, `s3`, or `file`.
 
 #### Azure blob target
 
-Create an Azure [Blob container](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer) or get the values from an existing Blob container. The environment variables for each target type are the same except each variable is prepended with the target name, for instance
+Create an Azure [Blob container](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer) or get the values from an existing Blob container. Then, set the required connection information, which can be a SAS token and connection string, or Azure service principle.  *Note that the service will create the container if it does not already exist*.
 
-*upload-server/.env*:
+*configs/local/delivery.yml*:
 
-```vim
-# Azure EDAV delivery storage account name
-EDAV_STORAGE_ACCOUNT= 
-# Azure EDAV delivery storage account private access key or SAS token
-EDAV_STORAGE_KEY= 
-# Azure EDAV delivery storage endpoint URL 
-EDAV_ENDPOINT= 
-# Container name for EDAV delivery storage checkpoint data
-EDAV_CHECKPOINT_CONTAINER_NAME= 
-
-# optionally, EDAV delivery account service principal tenant id
-EDAV_TENANT_ID= 
-# optionally, EDAV delivery account service principal client id
-EDAV_CLIENT_ID= 
-# optionally, EDAV delivery account service principal client secret
-EDAV_CLIENT_SECRET= 
+```yml
+programs:
+  - data_stream_id: teststream1
+    data_stream_route: testroute1
+    delivery_targets:
+      - name: target1
+        type: az-blob
+        endpoint: https://target1.blob.core.windows.net
+        container_name: target1_container
+        tenant_id: $AZURE_TENANT_ID
+        client_id: $AZURE_CLIENT_ID
+        client_secret: $AZURE_CLIENT_SECRET
+  - data_stream_id: teststream2
+    data_stream_route: testroute2
+    delivery_targets:
+      - name: target2
+        type: az-blob
+        endpoint: https://target2.blob.core.windows.net
+        container_name: target2_container
+        tenant_id: $AZURE_TENANT_ID
+        client_id: $AZURE_CLIENT_ID
+        client_secret: $AZURE_CLIENT_SECRET
 ```
 
-So to configure the `ehdi` target, `EDAV` in all of the variables would be replaced by `EHDI`, and so on.
+*Note that you can substiture environment variables using the `$` notation.  This is so you can keep secrets like service principle credentials or SAS tokens out of this configuration file.*
 
 #### AWS S3 bucket target
 
-Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) or get the values from an existing S3 bucket. The service currently only supports one set of AWS credentials ([see AWS Authentication](#aws-authentication)) so all of the S3 buckets have to be in the same AWS account. The environment variables for each target type are the same except each variable is prepended with the target name, for instance
+Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) or get the values from an existing S3 bucket.  Then, set the access credentials and endpoint for the bucket in the following way:
 
-*upload-server/.env*:
+*configs/local/delivery.yml*:
 
-# s3-compatible storage endpoint URL, must start with `http` or `https`
-
-S3_ENDPOINT=
-
-# Bucket name for tus base upload storage
-
-S3_BUCKET_NAME=
-
-```vim
-# s3-compatible storage endpoint URL for EHDI delivery storage, must start with `http` or `https`
-EHDI_S3_ENDPOINT=
-# bucket name for EHDI delivery storage
-EHDI_S3_BUCKET_NAME=
+```yml
+programs:
+  - data_stream_id: teststream1
+    data_stream_route: testroute1
+    delivery_targets:
+      - name: target1
+        type: s3
+        endpoint: https://target1.s3.aws.com
+        bucket_name: target1
+        access_key_id: $S3_ACCESS_KEY_ID
+        secret_access_key: $S3_SECRET_ACCESS_KEY
+        REGION: us-east-1
+  - data_stream_id: teststream2
+    data_stream_route: testroute2
+    delivery_targets:
+      - name: target2
+        type: s3
+        endpoint: https://target2.s3.aws.com
+        bucket_name: target2
+        access_key_id: $S3_ACCESS_KEY_ID
+        secret_access_key: $S3_SECRET_ACCESS_KEY
+        REGION: us-east-1
 ```
 
-So to configure the `eicr` target, `EHDI` in all of the variables would be replaced by `EICR`, and so on.
+#### Local file system target
+
+To use a local file system target, you simply need to set a directory path.  *Note that the service will create the path if it does not exist*
+
+*configs/local/delivery.yml*:
+
+```yml
+programs:
+  - data_stream_id: teststream1
+    data_stream_route: testroute1
+    delivery_targets:
+      - name: target1
+        type: file
+        path: /my/uploads/target1
+  - data_stream_id: teststream2
+    data_stream_route: testroute2
+    delivery_targets:
+      - name: target2
+        type: file
+        path: /my/uploads/target2
+```
 
 ## Testing
 

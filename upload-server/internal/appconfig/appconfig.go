@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -18,10 +17,6 @@ import (
 	"github.com/sethvargo/go-envconfig"
 ) // .import
 
-var DeliveryTargetEdav = "edav"
-var DeliveryTargetEhdi = "ehdi"
-var DeliveryTargetEicr = "eicr"
-var DeliveryTargetNcird = "ncird"
 var logger *slog.Logger
 
 func init() {
@@ -47,12 +42,12 @@ type AppConfig struct {
 	Environment string `env:"ENVIRONMENT, default=DEV"`
 
 	// Server Configs
-	ServerProtocol        string `env:"SERVER_PROTOCOL, default=http"`
-	ServerHostname        string `env:"SERVER_HOSTNAME, default=localhost"`
-	ServerPort            string `env:"SERVER_PORT, default=8080"`
-	TusdHandlerBasePath   string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
-	TusdHandlerInfoPath   string `env:"TUSD_HANDLER_INFO_PATH, default=/info/"`
-	EventMaxRetryCount    int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
+	ServerProtocol        string        `env:"SERVER_PROTOCOL, default=http"`
+	ServerHostname        string        `env:"SERVER_HOSTNAME, default=localhost"`
+	ServerPort            string        `env:"SERVER_PORT, default=8080"`
+	TusdHandlerBasePath   string        `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
+	TusdHandlerInfoPath   string        `env:"TUSD_HANDLER_INFO_PATH, default=/info/"`
+	EventMaxRetryCount    int           `env:"EVENT_MAX_RETRY_COUNT, default=3"`
 	Metrics               MetricsConfig `env:", prefix=METRICS_"`
 	ServerUrl             string
 	ServerFileEndpointUrl string
@@ -63,7 +58,7 @@ type AppConfig struct {
 
 	// User Interface Configs
 	UIPort    string `env:"UI_PORT, default=8081"`
-	UIUrl			string
+	UIUrl     string
 	CsrfToken string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
 	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
 
@@ -80,56 +75,28 @@ type AppConfig struct {
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
 	UploadConfigPath      string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
 	// Local File System Report Directory
-	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
-	LocalEventsFolder     string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
-
-	// Local File System Delivery Target Configs
-	LocalRoutingFolder string `env:"LOCAL_ROUTING_FOLDER, default=./uploads/routing"`
-	LocalEDAVFolder    string `env:"LOCAL_EDAV_FOLDER, default=./uploads/edav"`
-	LocalEhdiFolder    string `env:"LOCAL_EHDI_FOLDER, default=./uploads/ehdi"`
-	LocalEicrFolder    string `env:"LOCAL_EICR_FOLDER, default=./uploads/eicr"`
-	LocalNcirdFolder   string `env:"LOCAL_NCIRD_FOLDER, default=./uploads/ncird"`
+	LocalReportsFolder string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
+	LocalEventsFolder  string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
 
 	// Azure Storage Configs
 	AzureConnection              *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	AzureUploadContainer         string              `env:"TUS_AZURE_CONTAINER_NAME"`
 	AzureManifestConfigContainer string              `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
+
 	// Azure Report Queue
-	ReporterConnection   *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
+	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
 	// Azure Event Topics
 	// Azure Event Publisher Topic
-	PublisherConnection  *AzureQueueConfig `env:", prefix=PUBLISHER_,noinit"`
+	PublisherConnection *AzureQueueConfig `env:", prefix=PUBLISHER_,noinit"`
 	// Azure Event Subscriber Subscription
 	SubscriberConnection *AzureQueueConfig `env:", prefix=SUBSCRIBER_,noinit"`
-
-	// Azure Delivery Target Configs
-	// Azure Routing Container
-	RoutingConnection          *AzureStorageConfig `env:", prefix=ROUTING_, noinit"`
-	RoutingCheckpointContainer string              `env:"ROUTING_CHECKPOINT_CONTAINER_NAME, default=routing-checkpoint"`
-	// Azure EDAV Container
-	EdavConnection          *AzureStorageConfig `env:", prefix=EDAV_, noinit"`
-	EdavCheckpointContainer string              `env:"EDAV_CHECKPOINT_CONTAINER_NAME, default=edav-checkpoint"`
-	// Azure EHDI Container
-	EhdiConnection          *AzureStorageConfig `env:", prefix=EHDI_, noinit"`
-	EhdiCheckpointContainer string              `env:"EHDI_CHECKPOINT_CONTAINER_NAME, default=ehdi-checkpoint"`
-	// Azure EICR Container
-	EicrConnection          *AzureStorageConfig `env:", prefix=EICR_, noinit"`
-	EicrCheckpointContainer string              `env:"EICR_CHECKPOINT_CONTAINER_NAME, default=eicr-checkpoint"`
-	// Azure NCIRD Container
-	NcirdConnection          *AzureStorageConfig `env:", prefix=NCIRD_, noinit"`
-	NcirdCheckpointContainer string              `env:"NCIRD_CHECKPOINT_CONTAINER_NAME, default=ncird-checkpoint"`
 
 	// S3 Storage Configs
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
 	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
 	S3ManifestConfigFolder string           `env:"DEX_S3_MANIFEST_CONFIG_FOLDER_NAME"`
 
-	// S3 Delivery Target Configs
-	RoutingS3Connection *S3StorageConfig `env:", prefix=ROUTING_S3_, noinit"`
-	EdavS3Connection    *S3StorageConfig `env:", prefix=EDAV_S3_, noinit"`
-	EhdiS3Connection    *S3StorageConfig `env:", prefix=EHDI_S3_, noinit"`
-	EicrS3Connection    *S3StorageConfig `env:", prefix=EICR_S3_, noinit"`
-	NcirdS3Connection   *S3StorageConfig `env:", prefix=NCIRD_S3_, noinit"`
+	DeliveryConfigFile string `env:"DEX_DELIVERY_CONFIG_FILE, default=./configs/local/deliver.yml"`
 } // .AppConfig
 
 type MetricsConfig struct {
@@ -210,75 +177,12 @@ func (azc *AzureStorageConfig) Check() error {
 	return errors.Join(errs...)
 }
 
-func GetAzureContainerConfig(target string) (*AzureContainerConfig, error) {
-	switch target {
-	case DeliveryTargetEdav:
-		return &AzureContainerConfig{
-			AzureStorageConfig: *LoadedConfig.EdavConnection,
-			ContainerName:      LoadedConfig.EdavCheckpointContainer,
-		}, nil
-	case "routing":
-		return &AzureContainerConfig{
-			AzureStorageConfig: *LoadedConfig.RoutingConnection,
-			ContainerName:      LoadedConfig.RoutingCheckpointContainer,
-		}, nil
-	case DeliveryTargetEhdi:
-		return &AzureContainerConfig{
-			AzureStorageConfig: *LoadedConfig.EhdiConnection,
-			ContainerName:      LoadedConfig.EhdiCheckpointContainer,
-		}, nil
-	case DeliveryTargetEicr:
-		return &AzureContainerConfig{
-			AzureStorageConfig: *LoadedConfig.EicrConnection,
-			ContainerName:      LoadedConfig.EicrCheckpointContainer,
-		}, nil
-	case DeliveryTargetNcird:
-		return &AzureContainerConfig{
-			AzureStorageConfig: *LoadedConfig.NcirdConnection,
-			ContainerName:      LoadedConfig.NcirdCheckpointContainer,
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported azure target %s", target)
-	}
-}
-
-func LocalStoreConfig(target string, appConfig *AppConfig) (*LocalStorageConfig, error) {
-	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
+func LocalUploadStoreConfig(appConfig *AppConfig) *LocalStorageConfig {
+	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
 	fromPath := os.DirFS(fromPathStr)
-
-	switch target {
-	case DeliveryTargetEdav:
-		return &LocalStorageConfig{
-			FromPathStr: fromPathStr,
-			FromPath:    fromPath,
-			ToPath:      appConfig.LocalEDAVFolder,
-		}, nil
-	case "routing":
-		return &LocalStorageConfig{
-			FromPathStr: fromPathStr,
-			FromPath:    fromPath,
-			ToPath:      appConfig.LocalRoutingFolder,
-		}, nil
-	case DeliveryTargetEhdi:
-		return &LocalStorageConfig{
-			FromPathStr: fromPathStr,
-			FromPath:    fromPath,
-			ToPath:      appConfig.LocalEhdiFolder,
-		}, nil
-	case DeliveryTargetEicr:
-		return &LocalStorageConfig{
-			FromPathStr: fromPathStr,
-			FromPath:    fromPath,
-			ToPath:      appConfig.LocalEicrFolder,
-		}, nil
-	case DeliveryTargetNcird:
-		return &LocalStorageConfig{
-			FromPathStr: fromPathStr,
-			FromPath:    fromPath,
-			ToPath:      appConfig.LocalNcirdFolder,
-		}, nil
-	default:
-		return nil, fmt.Errorf("unsupported local target %s", target)
+	return &LocalStorageConfig{
+		FromPathStr: fromPathStr,
+		FromPath:    fromPath,
 	}
 }
 

@@ -421,13 +421,14 @@ func TestRouteInvalidTarget(t *testing.T) {
 	b := []byte(`{
 		"target": "blah"
 	}`)
-	resp, err := client.Post(ts.URL+"/route/1234", "application/json", bytes.NewBuffer(b))
+	path := ts.URL + "/route/1234"
+	resp, err := client.Post(path, "application/json", bytes.NewBuffer(b))
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.StatusCode != 400 {
-		t.Error("Expected 400 but got", resp.StatusCode)
+	if resp.StatusCode != 404 {
+		t.Error("Expected 404 but got", resp.StatusCode, path)
 	}
 }
 
@@ -594,12 +595,9 @@ func TestMain(m *testing.M) {
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
 		LocalFolderUploadsTus: "./" + TestFolderUploadsTus,
-		LocalEDAVFolder:       "./" + TestEDAVFolder,
-		LocalEhdiFolder:       "./" + TestEhdiFolder,
-		LocalEicrFolder:       "./" + TestEicrFolder,
-		LocalEventsFolder:     "./" + TestEventsFolder,
-		LocalNcirdFolder:      "./" + TestNcirdFolder,
 		LocalReportsFolder:    "./" + TestReportsFolder,
+		LocalEventsFolder:     "./" + TestEventsFolder,
+		DeliveryConfigFile:    "./delivery.yml",
 		TusdHandlerBasePath:   "/files/",
 		OauthConfig:           &oauthConfig,
 	}
