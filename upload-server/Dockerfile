@@ -25,6 +25,8 @@ FROM docker.io/library/alpine:3.20.2
 WORKDIR /app
 
 COPY --from=builder /app/dextusd .
+RUN mkdir -p ./configs/local
+COPY --from=builder /app/configs/local/deliver.yml ./configs/local/deliver.yml
 
 # Create the 'app' user and group
 RUN addgroup -S app && adduser -S -G app app
@@ -36,5 +38,4 @@ RUN chown app:app ./dextusd
 USER app
 
 EXPOSE 8080
-
-CMD ["./dextusd"]
+CMD [ "./dextusd" ]
