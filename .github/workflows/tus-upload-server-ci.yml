@@ -54,7 +54,7 @@ jobs:
       - name: Pull Images
         run: podman-compose -f docker-compose.e2e.yml pull
       - name: Start Server - File System
-        run: podman-compose -f docker-compose.e2e.yml up upload-server
+        run: podman-compose -f docker-compose.e2e.yml up upload-server -d
       - name: Run Tests - File System
         run: PLAYWRIGHT_JSON_OUTPUT_NAME=file-system-report.json podman-compose -f docker-compose.e2e.yml up --no-recreate --exit-code-from playwright
   #     - name: Run Tests - Azure
