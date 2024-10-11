@@ -55,7 +55,7 @@ programs:
         type: az-blob
         path_template: $EICR_PATH_TEMPLATE
         <<: *az-eicr
-  - data_stream_id: rsp-prevention
+  - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
