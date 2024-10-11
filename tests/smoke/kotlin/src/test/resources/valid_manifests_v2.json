@@ -13,6 +13,18 @@
       {
         "name": "edav",
         "path_template": "$dataStream/$route/$year/$month/$day/$filename_$uploadId"
+      },
+      {
+        "name": "ncird",
+        "path_template": "$dataStream/$route/$year/$month/$day/$filename_$uploadId"
+      },
+      {
+        "name": "ehdi",
+        "path_template": "$dataStream/$route/$year/$month/$day/$filename_$uploadId"
+      },
+      {
+        "name": "eicr",
+        "path_template": "$dataStream/$route/$year/$month/$day/$filename_$uploadId"
       }
     ]
   }

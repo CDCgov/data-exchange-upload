@@ -1,5 +1,4 @@
 import com.azure.identity.ClientSecretCredentialBuilder
-import com.azure.storage.blob.BlobClient
 import dex.DexUploadClient
 import org.testng.Assert
 import org.testng.ITestContext
@@ -16,7 +15,7 @@ import kotlin.collections.HashMap
 @Test()
 class FileCopy {
     private val testFile = TestFile.getResourceFile("10KB-test-file")
-    private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
+    private val dexUploadClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
     private val edavBlobClient = Azure.getBlobServiceClient(
         EnvConfig.EDAV_STORAGE_ACCOUNT_NAME,
@@ -37,7 +36,7 @@ class FileCopy {
 
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
     fun beforeFileCopy() {
-        authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
+        authToken = dexUploadClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
     }
 
     @BeforeMethod
@@ -56,37 +55,45 @@ class FileCopy {
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
         Thread.sleep(2000)
+        val fileInfo = dexUploadClient.getFileInfo(uid, authToken)
+        Assert.assertEquals(fileInfo.uploadStatus.status, "Complete", "File upload status is not 'Complete'")
+        Assert.assertEquals(fileInfo.deliveries?.size, case.deliveryTargets?.size, "Expected ${case.deliveryTargets?.size ?: 0 } deliveries")
+        Assert.assertTrue(fileInfo.deliveries?.all { it.status == "SUCCESS" }?:false, "Not all deliveries are 'SUCCESS' - Deliveries: ${fileInfo.deliveries}")
+        val expectedDeliveryNames = case.deliveryTargets?.map{ it.name }?.sorted()
+        val actualDeliveryNames = fileInfo.deliveries?.map{ it.name }?.sorted()
+        Assert.assertEquals(actualDeliveryNames, expectedDeliveryNames, "Actual delivery targets do not match expected targets")
 
-        // First, check bulk upload and .info file.
-        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid")
-        val uploadInfoBlob =
-            bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid.info")
-
-        Assert.assertTrue(uploadBlob.exists())
-        Assert.assertTrue(uploadInfoBlob.exists())
-        Assert.assertEquals(uploadBlob.properties.blobSize, testFile.length())
-
-        // Next, check that the file arrived in destination storage.
-        val config = loadUploadConfig(dexBlobClient, case.manifest)
-        val filenameSuffix = Filename.getFilenameSuffix(config.copyConfig, uid)
-        val expectedFilename = "${
-            Metadata.getFilePrefix(config.copyConfig, case.manifest)
-        }${Metadata.getFilename(case.manifest)}${filenameSuffix}${testFile.extension}"
-        var expectedBlobClient: BlobClient?
-
-        if (config.copyConfig.targets.contains("edav")) {
-            expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
-
-            Assert.assertNotNull(expectedBlobClient)
-            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
-        }
-
-        if (config.copyConfig.targets.contains("routing")) {
-            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
-
-            Assert.assertNotNull(expectedBlobClient)
-            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
-        }
+    //
+//        // First, check bulk upload and .info file.
+//        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid")
+//        val uploadInfoBlob =
+//            bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid.info")
+//
+//        Assert.assertTrue(uploadBlob.exists())
+//        Assert.assertTrue(uploadInfoBlob.exists())
+//        Assert.assertEquals(uploadBlob.properties.blobSize, testFile.length())
+//
+//        // Next, check that the file arrived in destination storage.
+//        val config = loadUploadConfig(dexBlobClient, case.manifest)
+//        val filenameSuffix = Filename.getFilenameSuffix(config.copyConfig, uid)
+//        val expectedFilename = "${
+//            Metadata.getFilePrefix(config.copyConfig, case.manifest)
+//        }${Metadata.getFilename(case.manifest)}${filenameSuffix}${testFile.extension}"
+//        var expectedBlobClient: BlobClient?
+//
+//        if (config.copyConfig.targets.contains("edav")) {
+//            expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
+//
+//            Assert.assertNotNull(expectedBlobClient)
+//            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
+//        }
+//
+//        if (config.copyConfig.targets.contains("routing")) {
+//            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
+//
+//            Assert.assertNotNull(expectedBlobClient)
+//            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
+//        }
     }
 
     @Test(

@@ -102,7 +102,7 @@ class DataProvider {
 
 data class TestCase(
     @JsonProperty("manifest")val manifest: Map<String, String>,
-    @JsonProperty("delivery_targets") val deliveryTargets: List<Target>
+    @JsonProperty("delivery_targets") val deliveryTargets: List<Target>?
 )
 
 data class Target(
