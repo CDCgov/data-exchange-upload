@@ -51,8 +51,8 @@ class FileCopy {
         dataProvider = "validManifestAllProvider",
         dataProviderClass = DataProvider::class
     )
-    fun shouldUploadFile(manifest: HashMap<String, String>) {
-        val uid = uploadClient.uploadFile(testFile, manifest)
+    fun shouldUploadFile(case: TestCase) {
+        val uid = uploadClient.uploadFile(testFile, case.manifest)
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
         Thread.sleep(2000)
@@ -67,11 +67,11 @@ class FileCopy {
         Assert.assertEquals(uploadBlob.properties.blobSize, testFile.length())
 
         // Next, check that the file arrived in destination storage.
-        val config = loadUploadConfig(dexBlobClient, manifest)
+        val config = loadUploadConfig(dexBlobClient, case.manifest)
         val filenameSuffix = Filename.getFilenameSuffix(config.copyConfig, uid)
         val expectedFilename = "${
-            Metadata.getFilePrefix(config.copyConfig, manifest)
-        }${Metadata.getFilename(manifest)}${filenameSuffix}${testFile.extension}"
+            Metadata.getFilePrefix(config.copyConfig, case.manifest)
+        }${Metadata.getFilename(case.manifest)}${filenameSuffix}${testFile.extension}"
         var expectedBlobClient: BlobClient?
 
         if (config.copyConfig.targets.contains("edav")) {
