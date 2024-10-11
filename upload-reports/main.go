@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -62,7 +63,6 @@ func main() {
 }
 
 func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (ReportDataRow, error) {
-	// TODO: look into concurrency for the multiple fetch calls
 	ctx := context.Background()
 	client := graphql.NewClient(apiURL, http.DefaultClient)
 
@@ -100,17 +100,34 @@ func getCsvData(config utils.AppConfig) [][]string {
 	}
 
 	datastreams := strings.Split(config.DataStreams, ",")
+	var wg sync.WaitGroup
+	dataChan := make(chan ReportDataRow, len(datastreams))
+
 	for _, ds := range datastreams {
-		datastream, route, err := utils.FormatStreamAndRoute(ds)
-		if err != nil {
-			log.Fatalf("There was an issue parsing the datastream and route: %v", err)
-		}
+		wg.Add(1)
+		go func(ds string) {
+			defer wg.Done()
 
-		rowData, err := fetchDataForDataStream(config.PsApiUrl, datastream, route, cleanedStartDate, cleanedEndDate)
-		if err != nil {
-			log.Fatalf("Error fetching data from GraphQL API: %v", err)
-		}
+			datastream, route, err := utils.FormatStreamAndRoute(ds)
+			if err != nil {
+				log.Printf("There was an issue parsing the datastream and route: %v", err)
+				return
+			}
 
+			rowData, err := fetchDataForDataStream(config.PsApiUrl, datastream, route, cleanedStartDate, cleanedEndDate)
+			if err != nil {
+				log.Printf("Error fetching data from GraphQL API: %v", err)
+				return
+			}
+
+			dataChan <- rowData
+		}(ds)
+	}
+
+	wg.Wait()
+	close(dataChan)
+
+	for rowData := range dataChan {
 		csvData = append(csvData, []string{
 			rowData.DataStream,
 			rowData.Route,
@@ -123,7 +140,6 @@ func getCsvData(config utils.AppConfig) [][]string {
 	}
 
 	return csvData
-
 }
 
 func createCSV(data [][]string) ([]byte, error) {
