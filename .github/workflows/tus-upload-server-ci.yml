@@ -28,23 +28,8 @@ jobs:
         run: go tool cover -func=c.out
       - name: Build Check
         run: go build -o upload-server ./cmd/main.go
-  simulation-test:
-    name: Simulation Test
-    runs-on: ubuntu-latest
-    env:
-      AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install podman compose
-        run: pip3 install podman-compose
-      - name: Run Tests
-        run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-server
-      - name: Show coverage
-        run: go tool cover -func=c.out
-  e2e-test:
-    if: ${{ always() }}
-    needs: simulation-test
-    name: E2E Test
+  integration-tests:
+    name: E2E and Simulation Tests
     runs-on: ubuntu-latest
     env:
       CI: true
@@ -55,7 +40,7 @@ jobs:
         run: pip3 install podman-compose
       - name: Pull Images
         run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml pull
-      - name: Run Tests - File System
+      - name: Run E2E Tests - File System
         env:
           TEST_REPORT_JSON: fs-test-report.json
           TEST_RESULTS_DIR: ./playwright/test-results/fs-results 
@@ -63,7 +48,7 @@ jobs:
           podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up --force-recreate --no-start
           podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up --no-recreate --exit-code-from playwright
           podman-compose -f docker-compose.yml -f docker-compose.e2e.yml down
-      - name: Run Tests - Azure
+      - name: Run E2E Tests - Azure
         env:
           TEST_REPORT_JSON: azure-test-report.json
           TEST_RESULTS_DIR: ./playwright/test-results/azure-results 
@@ -72,7 +57,7 @@ jobs:
           podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up --force-recreate --no-start
           podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up --no-recreate --exit-code-from playwright
           podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml down
-      - name: Run Tests - AWS
+      - name: Run E2E Tests - AWS
         env:
           TEST_REPORT_JSON: aws-test-report.json
           TEST_RESULTS_DIR: ./playwright/test-results/aws-results
@@ -86,6 +71,12 @@ jobs:
           name: playwright
           path: playwright/
           retention-days: 30
+      - name: Run Simulation Tests
+        env:
+          AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
+        run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-server
+      - name: Show coverage
+        run: go tool cover -func=c.out
   run-fortify-scan:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
