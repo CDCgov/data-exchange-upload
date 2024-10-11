@@ -1,7 +1,7 @@
 services:
   minio:
     image: quay.io/minio/minio
-    container_name: minio
+    hostname: minio
     ports:
       - "8000:8000"
       - "8001:8001"

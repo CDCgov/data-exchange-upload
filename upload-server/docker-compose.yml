@@ -1,14 +1,14 @@
 services:
   cache:
     image: redis:alpine
-    container_name: cache
+    hostname: redis
     restart: always
     ports:
       - 6379:6379
     command: redis-server
   upload-server:
     image: golang:alpine
-    container_name: upload-server
+    hostname: upload-server
     volumes:
       - .:/code
       - ../upload-configs:/upload-configs

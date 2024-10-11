@@ -1,7 +1,6 @@
 services:
   playwright:
     image: mcr.microsoft.com/playwright:v1.48.0-focal
-    container_name: playwright
     volumes:
       - ../tests/smoke/playwright:/app
       - /app/node_modules
