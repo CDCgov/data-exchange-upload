@@ -81,7 +81,7 @@ programs:
         type: az-blob
         path_template: routine-immunization-zip/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}
         <<: *az-ncird
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
