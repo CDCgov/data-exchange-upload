@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -79,7 +80,8 @@ func TestSaveCsvToFile(t *testing.T) {
 }
 
 func TestGetNewS3Client_Success(t *testing.T) {
-	client, err := getNewS3Client("us-east-1", "")
+	ctx := context.TODO()
+	client, err := createS3Client(ctx, "us-east-1", "")
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
 }
