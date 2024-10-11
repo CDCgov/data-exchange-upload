@@ -534,68 +534,86 @@ Next, define at least one delivery target for each group.  Each of these target 
 
 #### Azure blob target
 
-Create an Azure [Blob container](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer) or get the values from an existing Blob container. Then, set the required connection information, which can be a SAS token and connection string, or Azure service principle.
+Create an Azure [Blob container](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer) or get the values from an existing Blob container. Then, set the required connection information, which can be a SAS token and connection string, or Azure service principle.  *Note that the service will create the container if it does not already exist*.
 
-*upload-server/.env*:
+*configs/local/delivery.yml*:
 
-```vim
-# Azure EDAV delivery storage account name
-EDAV_STORAGE_ACCOUNT= 
-# Azure EDAV delivery storage account private access key or SAS token
-EDAV_STORAGE_KEY= 
-# Azure EDAV delivery storage endpoint URL 
-EDAV_ENDPOINT= 
-# Container name for EDAV delivery storage checkpoint data
-EDAV_CHECKPOINT_CONTAINER_NAME= 
-
-# optionally, EDAV delivery account service principal tenant id
-EDAV_TENANT_ID= 
-# optionally, EDAV delivery account service principal client id
-EDAV_CLIENT_ID= 
-# optionally, EDAV delivery account service principal client secret
-EDAV_CLIENT_SECRET= 
+```yml
+programs:
+  - data_stream_id: teststream1
+    data_stream_route: testroute1
+    delivery_targets:
+      - name: target1
+        type: az-blob
+        endpoint: https://target1.blob.core.windows.net
+        container_name: target1_container
+        tenant_id: $AZURE_TENANT_ID
+        client_id: $AZURE_CLIENT_ID
+        client_secret: $AZURE_CLIENT_SECRET
+  - data_stream_id: teststream2
+    data_stream_route: testroute2
+    delivery_targets:
+      - name: target2
+        type: az-blob
+        endpoint: https://target2.blob.core.windows.net
+        container_name: target2_container
+        tenant_id: $AZURE_TENANT_ID
+        client_id: $AZURE_CLIENT_ID
+        client_secret: $AZURE_CLIENT_SECRET
 ```
 
-So to configure the `ehdi` target, `EDAV` in all of the variables would be replaced by `EHDI`, and so on.
+*Note that you can substiture environment variables using the `$` notation.  This is so you can keep secrets like service principle credentials or SAS tokens out of this configuration file.*
 
 #### AWS S3 bucket target
 
-Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) or get the values from an existing S3 bucket. The service currently only supports one set of AWS credentials ([see AWS Authentication](#aws-authentication)) so all of the S3 buckets have to be in the same AWS account. The environment variables for each target type are the same except each variable is prepended with the target name, for instance
+Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) or get the values from an existing S3 bucket.  Then, set the access credentials and endpoint for the bucket in the following way:
 
-*upload-server/.env*:
+*configs/local/delivery.yml*:
 
-# s3-compatible storage endpoint URL, must start with `http` or `https`
-
-S3_ENDPOINT=
-
-# Bucket name for tus base upload storage
-
-S3_BUCKET_NAME=
-
-```vim
-# s3-compatible storage endpoint URL for EHDI delivery storage, must start with `http` or `https`
-EHDI_S3_ENDPOINT=
-# bucket name for EHDI delivery storage
-EHDI_S3_BUCKET_NAME=
+```yml
+programs:
+  - data_stream_id: teststream1
+    data_stream_route: testroute1
+    delivery_targets:
+      - name: target1
+        type: s3
+        endpoint: https://target1.s3.aws.com
+        bucket_name: target1
+        access_key_id: $S3_ACCESS_KEY_ID
+        secret_access_key: $S3_SECRET_ACCESS_KEY
+        REGION: us-east-1
+  - data_stream_id: teststream2
+    data_stream_route: testroute2
+    delivery_targets:
+      - name: target2
+        type: s3
+        endpoint: https://target2.s3.aws.com
+        bucket_name: target2
+        access_key_id: $S3_ACCESS_KEY_ID
+        secret_access_key: $S3_SECRET_ACCESS_KEY
+        REGION: us-east-1
 ```
-
-So to configure the `eicr` target, `EHDI` in all of the variables would be replaced by `EICR`, and so on.
 
 #### Local file system target
 
-To change the default local file system directory for a target
+To use a local file system target, you simply need to set a directory path.  *Note that the service will create the path if it does not exist*
 
-*upload-server/.env*:
+*configs/local/delivery.yml*:
 
-```vim
-# relative file system path to the EDAV target directory
-LOCAL_EDAV_FOLDER= 
-# relative file system path to the EHDI target directory
-LOCAL_EHDI_FOLDER= 
-# relative file system path to the EICR target directory
-LOCAL_EICR_FOLDER= 
-# relative file system path to the NCIRD target directory
-LOCAL_NCIRD_FOLDER= 
+```yml
+programs:
+  - data_stream_id: teststream1
+    data_stream_route: testroute1
+    delivery_targets:
+      - name: target1
+        type: file
+        path: /my/uploads/target1
+  - data_stream_id: teststream2
+    data_stream_route: testroute2
+    delivery_targets:
+      - name: target2
+        type: file
+        path: /my/uploads/target2
 ```
 
 ## Testing
