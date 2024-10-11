@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -56,7 +57,9 @@ func main() {
 			log.Fatalf("failed to create S3 client: %v", err)
 		}
 
-		if err := uploadCsvToS3(client, config.S3Config.BucketName, key, csvBytes); err != nil {
+		timeout := 10 * time.Second
+
+		if err := uploadCsvToS3(client, config.S3Config.BucketName, key, csvBytes, timeout); err != nil {
 			log.Fatalf("Error uploading CSV to S3: %v", err)
 		}
 	}
@@ -200,17 +203,22 @@ func getNewS3Client(region string, endpoint string) (*s3.Client, error) {
 	return client, nil
 }
 
-func uploadCsvToS3(client *s3.Client, bucketName string, key string, csvData []byte) error {
-	// TODO: add timeout
+func uploadCsvToS3(client *s3.Client, bucketName string, key string, csvData []byte, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	putInput := &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
 		Body:   bytes.NewReader(csvData),
 	}
 
-	_, err := client.PutObject(context.TODO(), putInput)
+	_, err := client.PutObject(ctx, putInput)
 	if err != nil {
-		fmt.Printf("Error putting to s3: %v", err)
+		if ctx.Err() == context.DeadlineExceeded {
+			return fmt.Errorf("upload to S3 timed out")
+		}
+		fmt.Printf("Error putting to S3: %v\n", err)
 		return fmt.Errorf("failed to upload CSV to S3: %v", err)
 	}
 
