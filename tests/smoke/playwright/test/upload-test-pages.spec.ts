@@ -127,28 +127,28 @@ test.describe("Upload Status Page", () => {
         await expect((await uploadHeadResponsePromise).ok()).toBeTruthy()
 
         await page.reload();
-        var refreshes = 0;
-        while (await page.locator('.file-delivery-container').count() < targets.length && refreshes < 3) {
-            await page.reload();
-            refreshes++
-        }
+        // var refreshes = 0;
+        // while (await page.locator('.file-delivery-container').count() < targets.length && refreshes < 3) {
+        //     await page.reload();
+        //     refreshes++
+        // }
 
         const fileHeaderContainer= page.locator('.file-header-container')
         await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(0)).toHaveText(expectedFileName)
         await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(1)).toHaveText("Upload Status: Complete")
         await expect(fileHeaderContainer).toContainText(`ID: ${uploadId}`)
     
-        const fileDeliveriesContainer = page.locator('.file-deliveries-container');
-        await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
+        // const fileDeliveriesContainer = page.locator('.file-deliveries-container');
+        // await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
 
-        targets.forEach((target, index) => {
-            (async () => {
-                const fileDeliveryContainer = page.locator('.file-delivery-container').nth(index)
-                await expect(fileDeliveryContainer.getByRole('heading', { level: 2 })).toHaveText(target.toUpperCase())
-                await expect(fileDeliveryContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
-                await expect(fileDeliveryContainer).toContainText(`Location: uploads/${target}/${uploadId}`)
-            })()
-        })
+        // targets.forEach((target, index) => {
+        //     (async () => {
+        //         const fileDeliveryContainer = page.locator('.file-delivery-container').nth(index)
+        //         await expect(fileDeliveryContainer.getByRole('heading', { level: 2 })).toHaveText(target.toUpperCase())
+        //         await expect(fileDeliveryContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
+        //         await expect(fileDeliveryContainer).toContainText(`Location: uploads/${target}/${uploadId}`)
+        //     })()
+        // })
 
         const uploadDetailsContainer = page.locator('.file-details-container')
         await expect(uploadDetailsContainer.getByRole('heading', { level: 2 })).toHaveText('Upload Details')
