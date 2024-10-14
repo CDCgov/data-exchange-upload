@@ -12,19 +12,19 @@
     "delivery_targets": [
       {
         "name": "edav",
-        "path_template": "$dataStream/$route/$year/$month/$day/$filename_$uploadId"
+        "path_template": "/{year}/{month}/{day}/{filename}_{uploadId}"
       },
       {
         "name": "ncird",
-        "path_template": "$dataStream/$route/$year/$month/$day/$filename_$uploadId"
+        "path_template": "/{year}/{month}/{day}/{filename}_{uploadId}"
       },
       {
         "name": "ehdi",
-        "path_template": "$dataStream/$route/$year/$month/$day/$filename_$uploadId"
+        "path_template": "/{year}/{month}/{day}/{filename}_{uploadId}"
       },
       {
         "name": "eicr",
-        "path_template": "$dataStream/$route/$year/$month/$day/$filename_$uploadId"
+        "path_template": "/{year}/{month}/{day}/{filename}_{uploadId}"
       }
     ]
   }

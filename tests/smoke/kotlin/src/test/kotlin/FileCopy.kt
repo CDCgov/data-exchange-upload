@@ -8,6 +8,9 @@ import tus.UploadClient
 import util.*
 import util.ConfigLoader.Companion.loadUploadConfig
 import util.DataProvider
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import java.time.LocalDate
 import kotlin.collections.HashMap
 
 
@@ -54,15 +57,42 @@ class FileCopy {
         val uid = uploadClient.uploadFile(testFile, case.manifest)
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
-        Thread.sleep(2000)
-        val fileInfo = dexUploadClient.getFileInfo(uid, authToken)
-        Assert.assertEquals(fileInfo.uploadStatus.status, "Complete", "File upload status is not 'Complete'")
-        Assert.assertEquals(fileInfo.deliveries?.size, case.deliveryTargets?.size, "Expected ${case.deliveryTargets?.size ?: 0 } deliveries")
-        Assert.assertTrue(fileInfo.deliveries?.all { it.status == "SUCCESS" }?:false, "Not all deliveries are 'SUCCESS' - Deliveries: ${fileInfo.deliveries}")
+        Thread.sleep(5000)
+        val uploadInfo = dexUploadClient.getFileInfo(uid, authToken)
+
+        // Check File Info
+        val expectedBytes = "10240"
+        Assert.assertEquals(uploadInfo.fileInfo.sizeBytes.toString(), expectedBytes)
+
+        // Check Upload Status
+        Assert.assertEquals(uploadInfo.uploadStatus.status, "Complete", "File upload status is not 'Complete'")
+
+        // Check Deliveries
+        Assert.assertEquals(uploadInfo.deliveries?.size, case.deliveryTargets?.size, "Expected ${case.deliveryTargets?.size ?: 0 } deliveries")
+        Assert.assertTrue(uploadInfo.deliveries?.all { it.status == "SUCCESS" }?:false, "Not all deliveries are 'SUCCESS' - Deliveries: ${uploadInfo.deliveries}")
+
         val expectedDeliveryNames = case.deliveryTargets?.map{ it.name }?.sorted()
-        val actualDeliveryNames = fileInfo.deliveries?.map{ it.name }?.sorted()
+        val actualDeliveryNames = uploadInfo.deliveries?.map{ it.name }?.sorted()
         Assert.assertEquals(actualDeliveryNames, expectedDeliveryNames, "Actual delivery targets do not match expected targets")
 
+        val currentDate = LocalDate.now()
+        uploadInfo.deliveries?.forEach { delivery ->
+            Assert.assertEquals(delivery.status, "SUCCESS") // remove the assertion above?
+            val actualLocation = URLDecoder.decode(delivery.location, StandardCharsets.UTF_8.toString())
+            val locationPattern = case.deliveryTargets?.find{ it.name == delivery.name}?.pathTemplate
+            val expectedLocation = locationPattern
+                // This feels hacky, but it works... no logic here to ensure that the
+                // locationPattern has all of these tokens to replace.
+                ?.replace("{dataStream}", case.manifest["data_stream_id"].toString())
+                ?.replace("{route}", case.manifest["data_stream_route"].toString())
+                ?.replace("{year}", currentDate.year.toString() )
+                ?.replace("{month}", String.format("%02d", currentDate.monthValue) )
+                ?.replace("{day}", String.format("%02d", currentDate.dayOfMonth) )
+                ?.replace("{filename}", case.manifest["received_filename"].toString())
+                ?.replace("{uploadId}",uid)
+            Assert.assertTrue(actualLocation.endsWith(expectedLocation.toString()), "Actual location ($actualLocation) does not end with the expected path: $expectedLocation")
+            Assert.assertEquals(delivery.issues, null)
+        }
     //
 //        // First, check bulk upload and .info file.
 //        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid")
