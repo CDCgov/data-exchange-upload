@@ -14,6 +14,24 @@ S3_BUCKET_NAME=<your_s3_bucket_name>
 S3_ENDPOINT=<your_s3_endpoint>
 ```
 
+If you are running this locally, you will need to export these env vars to the shell that you are going to run the app in.
+
+#### For Linux/MAC:
+
+```
+export PS_API_ENDPOINT=the_ps_api_url
+export S3_BUCKET_NAME=the_s3_bucket_name
+export S3_ENDPOINT=the_s3_bucket_endpoint
+```
+
+#### For Windows:
+
+```
+$env:PS_API_ENDPOINT = "the_ps_api_url"
+$env:S3_BUCKET_NAME = "the_s3_bucket_name"
+$env:S3_ENDPOINT = "the_s3_bucket_endpoint"
+```
+
 ### Command Line Variables
 
 The application accepts the following command-line variables:
