@@ -45,8 +45,6 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     continue-on-error: true
-    needs: simulation-test
-    if: ${{ always() }}
     env:
       CI: true
     steps:
