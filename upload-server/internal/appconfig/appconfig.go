@@ -219,7 +219,11 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 	ac.ServerFileEndpointUrl = ac.ServerUrl + ac.TusdHandlerBasePath
 	ac.ServerInfoEndpointUrl = ac.ServerUrl + ac.TusdHandlerInfoPath
 
-	ac.UIUrl = fmt.Sprintf(":%s", ac.UIPort)
+	if ac.UIPort != "" {
+		ac.UIUrl = fmt.Sprintf(":%s", ac.UIPort)
+	} else {
+		ac.UIUrl = ""
+	}
 
 	LoadedConfig = &ac
 	return ac, nil

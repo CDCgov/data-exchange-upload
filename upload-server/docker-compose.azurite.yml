@@ -11,7 +11,7 @@ services:
     environment:
       - AZURE_STORAGE_ACCOUNT=devstoreaccount1
       # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
-      - AZURE_STORAGE_KEY=${AZURE_STORAGE_KEY}
+      - AZURE_STORAGE_KEY=${AZURITE_STORAGE_KEY}
       - AZURE_ENDPOINT=http://azurite:10000/devstoreaccount1
       - TUS_AZURE_CONTAINER_NAME=test
       - DEX_DELIVERY_CONFIG_FILE

@@ -11,10 +11,12 @@ services:
     networks:
       - e2e-aws-network
   upload-server:
-    extends:
-      service: upload-server
-      file: docker-compose.e2e.yml
+    image: golang:alpine
     container_name: upload-server-aws
+    volumes:
+      - .:/code
+      - ../upload-configs:/upload-configs
+    working_dir: /code
     environment:
       - SERVER_HOSTNAME=upload-server-aws
       - S3_ENDPOINT=http://minio-test:8000
@@ -24,15 +26,18 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - DEX_MANIFEST_CONFIG_FOLDER_NAME=upload-configs
       - DEX_DELIVERY_CONFIG_FILE
+    command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-aws-network
     depends_on:
       - minio
   playwright:
-    extends:
-      service: playwright
-      file: docker-compose.e2e.yml
+    image: mcr.microsoft.com/playwright:v1.48.0-focal
     container_name: playwright-aws
+    volumes:
+      - ../tests/smoke/playwright:/app
+      - /app/node_modules
+    working_dir: /app
     environment:
       - CI=${CI}
       - SERVER_URL=http://upload-server-aws:8080
@@ -40,5 +45,6 @@ services:
       - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-./test-reports}
       - TEST_REPORT_JSON=aws-test-report.json
       - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-./test-results}
+    command: /bin/sh -c "npm install; ./wait-for-it.sh $$UI_URL; npm test --workers=1"
     networks:
       - e2e-aws-network
