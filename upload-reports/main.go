@@ -44,6 +44,7 @@ var reportHeaders = []string{
 
 func main() {
 	config := utils.GetConfig()
+	fmt.Printf("Datastreams: %v, StartDate: %v, EndDate: %v, TargetEnv: %v\n", config.DataStreams, config.StartDate, config.EndDate, config.TargetEnv)
 
 	cleanedStartDate, err := utils.FormatDateString(config.StartDate)
 	if err != nil {
