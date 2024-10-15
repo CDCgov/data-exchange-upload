@@ -45,8 +45,8 @@ jobs:
           TEST_REPORT_JSON: fs-test-report.json
           TEST_RESULTS_DIR: ./playwright/test-results/fs-results 
         run: |
-          podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up -d --remove-orphans cache upload-server
-          podman-compose -f docker-compose.yml -f docker-compose.e2e.yml up --no-recreate --exit-code-from playwright
+          podman-compose -f docker-compose.e2e.yml build --pull-always 
+          podman-compose -f docker-compose.e2e.yml up --no-recreate --no-build --remove-orphans --exit-code-from playwright
       # - name: Run E2E Tests - Azure
       #   env:
       #     TEST_REPORT_JSON: azure-test-report.json
