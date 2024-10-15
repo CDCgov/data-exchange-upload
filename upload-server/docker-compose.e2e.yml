@@ -7,7 +7,6 @@ services:
       - 6380
     command: redis-server --port 6380
   upload-server:
-    image: upload-server
     build:
       context: .
       dockerfile: Dockerfile
