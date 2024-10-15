@@ -49,44 +49,23 @@ jobs:
     if: ${{ always() }}
     env:
       CI: true
-      TEST_REPORTS_DIR: ./playwright-output/test-reports
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
         run: pip3 install podman-compose
-      - name: Pull Images
-        run: podman-compose -f docker-compose.e2e.yml -f docker-compose.e2e.azure.yml -f docker-compose.e2e.aws.yml pull
       - name: Run E2E Tests - File System
         id: fsTest
-        env:
-          TEST_RESULTS_DIR: ./playwright-output/test-results/fs-results
-        run: podman-compose -f docker-compose.e2e.yml up --build --exit-code-from playwright
-      - name: Stop - File System
-        run: podman-compose -f docker-compose.e2e.yml stop
+        run: podman-compose -f docker-compose.e2e.yml up --build --exit-code-from playwright --abort-on-container-exit
       - name: Run E2E Tests - Azure
         id: azureTest
         env:
-          TEST_RESULTS_DIR: ./playwright-output/test-results/azure-results
           AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
-        run: podman-compose -f docker-compose.e2e.azure.yml up --build --exit-code-from playwright
-      - name: Stop - Azure
-        run: podman-compose -f docker-compose.e2e.azure.yml stop
+        run: podman-compose -f docker-compose.e2e.azure.yml up --build --exit-code-from playwright --abort-on-container-exit
       - name: Run E2E Tests - AWS
         id: awsTest
-        env:
-          TEST_RESULTS_DIR: ./playwright-output/test-results/aws-results
-        run: podman-compose -f docker-compose.e2e.aws.yml up --build --exit-code-from playwright
-      - name: Stop - AWS
-        run: podman-compose -f docker-compose.e2e.aws.yml stop
+        run: podman-compose -f docker-compose.e2e.aws.yml up --build --exit-code-from playwright --abort-on-container-exit
       - name: Tear Down Containers
         run: podman-compose -f docker-compose.e2e.yml -f docker-compose.e2e.azure.yml -f docker-compose.e2e.aws.yml down
-      - uses: actions/upload-artifact@v4
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright
-          path: ~/tests/smoke/playwright/playwright-output/**/*
-          include-hidden-files: true
-          retention-days: 30
     outputs:
      actualResult: ${{ steps.fsTest.conclusion == 'failure' || steps.azureTest.conclusion == 'failure' || steps.awsTest.conclusion == 'failure' }}
   run-fortify-scan:
