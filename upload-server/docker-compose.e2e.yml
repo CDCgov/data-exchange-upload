@@ -7,9 +7,10 @@ services:
       - 6380
     command: redis-server --port 6380
   upload-server:
-    extends:
-      file: docker-compose.yml
-      service: upload-server
+    image: upload-server
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       - REDIS_CONNECTION_STRING=redis://redispw@cache:6380
       - SERVER_HOSTNAME=upload-server
