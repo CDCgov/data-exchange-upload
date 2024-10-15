@@ -26,15 +26,7 @@ const config: PlaywrightTestConfig = {
 
   // Reporter to use
   reporter: process.env.CI
-    ? [
-        ['github'],
-        [
-          'json',
-          {
-            outputFile: `${testReportDir}/${jsonReportFilename}`,
-          },
-        ],
-    ] : [
+    ? 'github' : [
         ['list'],
         [
           'html',
