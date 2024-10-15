@@ -67,7 +67,7 @@ func TestCreateCSV(t *testing.T) {
 
 func TestSaveCsvToFile(t *testing.T) {
 	testData := []byte("Test CSV Data")
-	err := saveCsvToFile(testData)
+	err := saveCsvToFile(testData, ".")
 	assert.NoError(t, err)
 
 	// Read back the file to check contents

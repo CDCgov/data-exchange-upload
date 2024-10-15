@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"flag"
 	"os"
 	"testing"
 )
@@ -30,13 +31,20 @@ func TestGetEnvVar(t *testing.T) {
 }
 
 func TestGetConfig(t *testing.T) {
-	os.Setenv("DATASTREAMS", "celr_csv")
-	os.Setenv("START_DATE", "2024-10-10T00:00:00Z")
-	os.Setenv("END_DATE", "2024-10-11T00:00:00Z")
-	os.Setenv("TARGET_ENV", "dev")
+	os.Args = []string{
+		"cmd",
+		"-dataStreams=celr_csv",
+		"-startDate=2024-10-10T00:00:00Z",
+		"-endDate=2024-10-11T00:00:00Z",
+		"-targetEnv=dev",
+		"-csvOutputPath=/tmp/output.csv",
+	}
+
 	os.Setenv("PS_API_ENDPOINT", "https://example.com/api")
 	os.Setenv("S3_BUCKET_NAME", "my-bucket")
 	os.Setenv("S3_ENDPOINT", "https://s3.us-west-2.amazonaws.com")
+
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
 	config := GetConfig()
 
@@ -52,6 +60,9 @@ func TestGetConfig(t *testing.T) {
 	if config.TargetEnv != "dev" {
 		t.Errorf("Expected TargetEnv 'dev', got '%s'", config.TargetEnv)
 	}
+	if config.CsvOutputPath != "/tmp/output.csv" {
+		t.Errorf("Expected CsvOutputPath '/tmp/output.csv', got '%s'", config.CsvOutputPath)
+	}
 	if config.PsApiUrl != "https://example.com/api" {
 		t.Errorf("Expected PsApiUrl 'https://example.com/api', got '%s'", config.PsApiUrl)
 	}
@@ -66,10 +77,6 @@ func TestGetConfig(t *testing.T) {
 		}
 	}
 
-	os.Unsetenv("DATASTREAMS")
-	os.Unsetenv("START_DATE")
-	os.Unsetenv("END_DATE")
-	os.Unsetenv("TARGET_ENV")
 	os.Unsetenv("PS_API_ENDPOINT")
 	os.Unsetenv("S3_BUCKET_NAME")
 	os.Unsetenv("S3_ENDPOINT")

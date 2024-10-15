@@ -32,11 +32,32 @@ type ReportDataRow struct {
 	DeliveryEndCount     int64
 }
 
+var reportHeaders = []string{
+	"Data Stream",
+	"Route",
+	"Start Date",
+	"End Date",
+	"Upload Count",
+	"Delivery Success Count",
+	"Delivery Fail Count",
+}
+
 func main() {
 	config := utils.GetConfig()
-	fmt.Printf("Target Env: %s, DataStreams: %v, Start Date: %s, End Date: %s\n", config.TargetEnv, config.DataStreams, config.StartDate, config.EndDate)
 
-	csvData := getCsvData(config)
+	cleanedStartDate, err := utils.FormatDateString(config.StartDate)
+	if err != nil {
+		log.Fatalf("Start date is in incorrect format: %v", err)
+	}
+
+	cleanedEndDate, err := utils.FormatDateString(config.EndDate)
+	if err != nil {
+		log.Fatalf("End date is in incorrect format: %v", err)
+	}
+
+	datastreams := strings.Split(config.DataStreams, ",")
+
+	csvData := getCsvData(datastreams, cleanedStartDate, cleanedEndDate, config.PsApiUrl)
 
 	csvBytes, err := createCSV(csvData)
 	if err != nil {
@@ -45,7 +66,7 @@ func main() {
 
 	fmt.Printf("CSV Data: %v\n", csvBytes)
 
-	saveCsvToFile(csvBytes)
+	saveCsvToFile(csvBytes, config.CsvOutputPath)
 	if err != nil {
 		log.Fatalf("Error saving CSV: %v", err)
 	}
@@ -67,14 +88,14 @@ func main() {
 	}
 }
 
-func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (ReportDataRow, error) {
+func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (*ReportDataRow, error) {
 	ctx := context.Background()
 	client := graphql.NewClient(apiURL, http.DefaultClient)
 
 	resp, err := psApi.GetUploadStats(ctx, client, datastream, route, startDate, endDate)
 
 	if err != nil {
-		fmt.Printf("There was an issue reaching graphql: %v\n", err)
+		return nil, err
 	}
 
 	reportRow := ReportDataRow{
@@ -87,29 +108,18 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 		DeliveryEndCount:     resp.GetGetUploadStats().UnDeliveredUploads.TotalCount,
 	}
 
-	return reportRow, nil
+	return &reportRow, nil
 }
 
-func getCsvData(config utils.AppConfig) [][]string {
+func getCsvData(datastreams []string, cleanedStartDate string, cleanedEndDate string, psApiUrl string) [][]string {
 	var csvData [][]string
-	csvData = append(csvData, []string{"Data Stream", "Route", "Start Date", "End Date", "Upload Count", "Delivery Success Count", "Delivery Fail Count"})
+	csvData = append(csvData, reportHeaders)
 
-	cleanedStartDate, err := utils.FormatDateString(config.StartDate)
-	if err != nil {
-		log.Fatalf("Start date is in incorrect format: %v", err)
-	}
-
-	cleanedEndDate, err := utils.FormatDateString(config.EndDate)
-	if err != nil {
-		log.Fatalf("End date is in incorrect format: %v", err)
-	}
-
-	datastreams := strings.Split(config.DataStreams, ",")
 	var wg sync.WaitGroup
-	dataChan := make(chan ReportDataRow, len(datastreams))
+	dataChan := make(chan *ReportDataRow, len(datastreams))
+	wg.Add(len(datastreams))
 
 	for _, ds := range datastreams {
-		wg.Add(1)
 		go func(ds string) {
 			defer wg.Done()
 
@@ -119,7 +129,7 @@ func getCsvData(config utils.AppConfig) [][]string {
 				return
 			}
 
-			rowData, err := fetchDataForDataStream(config.PsApiUrl, datastream, route, cleanedStartDate, cleanedEndDate)
+			rowData, err := fetchDataForDataStream(psApiUrl, datastream, route, cleanedStartDate, cleanedEndDate)
 			if err != nil {
 				log.Printf("Error fetching data from GraphQL API: %v", err)
 				return
@@ -129,7 +139,6 @@ func getCsvData(config utils.AppConfig) [][]string {
 		}(ds)
 	}
 
-	wg.Wait()
 	close(dataChan)
 
 	for rowData := range dataChan {
@@ -166,13 +175,8 @@ func createCSV(data [][]string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func saveCsvToFile(csvData []byte) error {
-	workingDir, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("failed to get the current working directory: %v", err)
-	}
-
-	fullPath := filepath.Join(workingDir, "upload-report.csv")
+func saveCsvToFile(csvData []byte, outputPath string) error {
+	fullPath := filepath.Join(outputPath, "upload-report.csv")
 
 	file, err := os.Create(fullPath)
 	if err != nil {
