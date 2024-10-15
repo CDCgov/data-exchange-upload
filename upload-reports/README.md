@@ -26,13 +26,16 @@ The application accepts the following command-line variables:
 
 ## Generating GraphQL Types
 
-This application is using the package [genqlient](https://github.com/Khan/genqlient) to manage type safe graphql implementation. Before running the application, generate the GraphQL types by executing the following command:
+This application is using the package [genqlient](https://github.com/Khan/genqlient) to manage type safe graphql implementation.
+Before running the application, generate the GraphQL types by executing the following command:
 
 ```
 go run github.com/Khan/genqlient ./psApi/genqlient.yaml
 ```
 
-For the above command to work, and up to date graphql schema must be kept in the `psApi` directory in the file `schema.graphql`
+For the above command to work, and up to date graphql schema must be kept in the `psApi` directory in the file `schema.graphql`.
+All graphql querries that this application needs are located in `upload-reports/psApi/genqlient.graphql`. The above command
+will generate all needed types based off of the querries file and the schema.
 
 ## Running the Application
 

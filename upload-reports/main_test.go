@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -62,18 +64,22 @@ func TestCreateCSV(t *testing.T) {
 	assert.NoError(t, err)
 
 	expected := "Data Stream,Route,Start Date,End Date,Upload Count,Delivery Success Count,Delivery Fail Count\nTestStream,TestRoute,2024-01-01,2024-01-02,10,5,2\n"
-	assert.Equal(t, expected, string(csvBytes))
+	assert.Equal(t, expected, string(csvBytes.Bytes()))
 }
 
 func TestSaveCsvToFile(t *testing.T) {
-	testData := []byte("Test CSV Data")
-	err := saveCsvToFile(testData, ".")
+	var buf bytes.Buffer
+	writer := csv.NewWriter(&buf)
+	writer.Write([]string{"Test CSV Data"})
+	writer.Flush()
+
+	err := saveCsvToFile(&buf, ".")
 	assert.NoError(t, err)
 
 	// Read back the file to check contents
 	data, err := os.ReadFile("upload-report.csv")
 	assert.NoError(t, err)
-	assert.Equal(t, "Test CSV Data", string(data))
+	assert.Equal(t, "Test CSV Data\n", string(data))
 
 	// Clean up the file
 	os.Remove("upload-report.csv")
