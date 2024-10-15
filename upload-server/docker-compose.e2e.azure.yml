@@ -1,25 +1,21 @@
+networks:
+  e2e-azure-network:
+
 services:
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
     container_name: azurite-test
-    ports:
-      - 10000:10000
-      - 10001:10001
-      - 10002:10002
+    networks:
+      - e2e-azure-network
   upload-server:
     image: golang:alpine
-    container_name: upload-server-azurite
+    container_name: upload-server-azure
     volumes:
       - .:/code
       - ../upload-configs:/upload-configs
     working_dir: /code
-    ports:
-      - 8084:8084
-      - 8085:8085
     environment:
-      - SERVER_HOSTNAME=upload-server-azurite
-      - SERVER_PORT=8084
-      - UI_PORT=8085
+      - SERVER_HOSTNAME=upload-server-azure
       - AZURE_STORAGE_ACCOUNT=devstoreaccount1
       # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
       - AZURE_STORAGE_KEY=${AZURITE_STORAGE_KEY}
@@ -27,6 +23,8 @@ services:
       - TUS_AZURE_CONTAINER_NAME=test
       - DEX_DELIVERY_CONFIG_FILE
     command: /bin/sh -c "./run-server.sh"
+    networks:
+      - e2e-azure-network
     depends_on:
       - azurite
   playwright:
@@ -38,10 +36,12 @@ services:
     working_dir: /app
     environment:
       - CI=${CI}
-      - SERVER_URL=http://upload-server-azurite:8084
-      - UI_URL=http://upload-server-azurite:8085
+      - SERVER_URL=http://upload-server-azure:8080
+      - UI_URL=http://upload-server-azure:8081
       - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-./test-reports}
       - TEST_REPORT_JSON=azure-test-report.json
       - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-./test-results}
     command: /bin/sh -c "npm install; ./wait-for-it.sh $$UI_URL; npm test --workers=1"
+    networks:
+      - e2e-azure-network
    

@@ -1,27 +1,24 @@
+networks:
+  e2e-aws-network:
+
 services:
   minio:
     image: quay.io/minio/minio
     container_name: minio-test
-    ports:
-      - 8000:8000
-      - 8001:8001
     command: server /data --console-address :8001 --address :8000
     volumes:
       - ./configs/local/minio:/data
+    networks:
+      - e2e-aws-network
   upload-server:
     image: golang:alpine
-    container_name: upload-server-minio
+    container_name: upload-server-aws
     volumes:
       - .:/code
       - ../upload-configs:/upload-configs
     working_dir: /code
-    ports:
-      - 8086:8086
-      - 8087:8087
     environment:
-      - SERVER_HOSTNAME=upload-server-minio
-      - SERVER_PORT=8086
-      - UI_PORT=8087
+      - SERVER_HOSTNAME=upload-server-aws
       - S3_ENDPOINT=http://minio-test:8000
       - S3_BUCKET_NAME=test-bucket
       - AWS_REGION=us-east-1
@@ -30,20 +27,24 @@ services:
       - DEX_MANIFEST_CONFIG_FOLDER_NAME=upload-configs
       - DEX_DELIVERY_CONFIG_FILE
     command: /bin/sh -c "./run-server.sh"
+    networks:
+      - e2e-aws-network
     depends_on:
       - minio
   playwright:
     image: mcr.microsoft.com/playwright:v1.48.0-focal
-    container_name: playwright-minio
+    container_name: playwright-aws
     volumes:
       - ../tests/smoke/playwright:/app
       - /app/node_modules
     working_dir: /app
     environment:
       - CI=${CI}
-      - SERVER_URL=http://upload-server-minio:8086
-      - UI_URL=http://upload-server-minio:8087
+      - SERVER_URL=http://upload-server-aws:8080
+      - UI_URL=http://upload-server-aws:8081
       - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-./test-reports}
       - TEST_REPORT_JSON=aws-test-report.json
       - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-./test-results}
     command: /bin/sh -c "npm install; ./wait-for-it.sh $$UI_URL; npm test --workers=1"
+    networks:
+      - e2e-aws-network

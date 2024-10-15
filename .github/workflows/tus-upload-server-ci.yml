@@ -60,9 +60,9 @@ jobs:
         id: awsTest
         env:
           TEST_RESULTS_DIR: ./playwright/test-results/aws-results
-        run: podman-compose -f docker-compose.aws.yml up --build --exit-code-from playwright
+        run: podman-compose -f docker-compose.e2e.aws.yml up --build --exit-code-from playwright
       - name: Tear Down - AWS
-        run: podman-compose -f docker-compose.aws.yml down
+        run: podman-compose -f docker-compose.e2e.aws.yml down
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
