@@ -96,8 +96,10 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 	resp, err := psApi.GetUploadStats(ctx, client, datastream, route, startDate, endDate)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Failed to fetch upload stats for datastream %s, route %s: %w", datastream, route, err)
 	}
+
+	fmt.Printf("Datastream: %v, Route: %v, UploadCount: %v\n", datastream, route, resp.GetGetUploadStats().CompletedUploadsCount)
 
 	reportRow := ReportDataRow{
 		DataStream:           datastream,
@@ -106,7 +108,7 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 		EndDate:              endDate,
 		UploadCount:          resp.GetGetUploadStats().CompletedUploadsCount,
 		DeliverySuccessCount: resp.GetGetUploadStats().PendingUploads.TotalCount,
-		DeliveryEndCount:     resp.GetGetUploadStats().UnDeliveredUploads.TotalCount,
+		DeliveryEndCount:     resp.GetGetUploadStats().UndeliveredUploads.TotalCount,
 	}
 
 	return &reportRow, nil

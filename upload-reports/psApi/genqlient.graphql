@@ -10,7 +10,7 @@ query GetUploadStats($datastream: String!, $route: String!, $dateStart: String, 
         pendingUploads {
             totalCount
         }
-        unDeliveredUploads {
+        undeliveredUploads {
             totalCount
         }
     }}

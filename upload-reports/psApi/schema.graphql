@@ -438,7 +438,7 @@ type PendingUploadCounts {
   """
   Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
   """
-  pendingUploads: [UnDeliveredUpload!]!
+  pendingUploads: [UndeliveredUpload!]!
 
   """
   Total number of undelivered uploads.
@@ -1359,7 +1359,7 @@ input TagInput {
 """
 Collection of undelivered found
 """
-type UnDeliveredUpload {
+type UndeliveredUpload {
   """
   Filename of the file that is not delivered.
   """
@@ -1374,7 +1374,7 @@ type UnDeliveredUpload {
 """
 Collection of undelivered uploads found
 """
-type UnDeliveredUploadCounts {
+type UndeliveredUploadCounts {
   """
   Total number of undelivered uploads.
   """
@@ -1383,7 +1383,7 @@ type UnDeliveredUploadCounts {
   """
   Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
   """
-  unDeliveredUploads: [UnDeliveredUpload!]!
+  undeliveredUploads: [UndeliveredUpload!]!
 }
 
 """
@@ -1418,7 +1418,7 @@ type UploadStats {
   """
   Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
   """
-  unDeliveredUploads: UnDeliveredUploadCounts!
+  undeliveredUploads: UndeliveredUploadCounts!
 
   """
   The total number of unique upload ids found for that day.  However, this does not mean that all those are successful uploads.  This will include any uploads that fail out due to retries on client side.

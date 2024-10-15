@@ -20,7 +20,7 @@ type GetUploadStatsGetUploadStats struct {
 	// Provides a list of all the uploads that are pending. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
 	PendingUploads GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts `json:"pendingUploads"`
 	// Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
-	UnDeliveredUploads GetUploadStatsGetUploadStatsUnDeliveredUploadsUnDeliveredUploadCounts `json:"unDeliveredUploads"`
+	UndeliveredUploads GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts `json:"undeliveredUploads"`
 }
 
 // GetCompletedUploadsCount returns GetUploadStatsGetUploadStats.CompletedUploadsCount, and is useful for accessing the field via an interface.
@@ -38,9 +38,9 @@ func (v *GetUploadStatsGetUploadStats) GetPendingUploads() GetUploadStatsGetUplo
 	return v.PendingUploads
 }
 
-// GetUnDeliveredUploads returns GetUploadStatsGetUploadStats.UnDeliveredUploads, and is useful for accessing the field via an interface.
-func (v *GetUploadStatsGetUploadStats) GetUnDeliveredUploads() GetUploadStatsGetUploadStatsUnDeliveredUploadsUnDeliveredUploadCounts {
-	return v.UnDeliveredUploads
+// GetUndeliveredUploads returns GetUploadStatsGetUploadStats.UndeliveredUploads, and is useful for accessing the field via an interface.
+func (v *GetUploadStatsGetUploadStats) GetUndeliveredUploads() GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts {
+	return v.UndeliveredUploads
 }
 
 // GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts includes the requested fields of the GraphQL type PendingUploadCounts.
@@ -57,17 +57,17 @@ func (v *GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts) GetTotal
 	return v.TotalCount
 }
 
-// GetUploadStatsGetUploadStatsUnDeliveredUploadsUnDeliveredUploadCounts includes the requested fields of the GraphQL type UnDeliveredUploadCounts.
+// GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts includes the requested fields of the GraphQL type UndeliveredUploadCounts.
 // The GraphQL type's documentation follows.
 //
 // Collection of undelivered uploads found
-type GetUploadStatsGetUploadStatsUnDeliveredUploadsUnDeliveredUploadCounts struct {
+type GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts struct {
 	// Total number of undelivered uploads.
 	TotalCount int64 `json:"totalCount"`
 }
 
-// GetTotalCount returns GetUploadStatsGetUploadStatsUnDeliveredUploadsUnDeliveredUploadCounts.TotalCount, and is useful for accessing the field via an interface.
-func (v *GetUploadStatsGetUploadStatsUnDeliveredUploadsUnDeliveredUploadCounts) GetTotalCount() int64 {
+// GetTotalCount returns GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts.TotalCount, and is useful for accessing the field via an interface.
+func (v *GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts) GetTotalCount() int64 {
 	return v.TotalCount
 }
 
@@ -111,7 +111,7 @@ query GetUploadStats ($datastream: String!, $route: String!, $dateStart: String,
 		pendingUploads {
 			totalCount
 		}
-		unDeliveredUploads {
+		undeliveredUploads {
 			totalCount
 		}
 	}
