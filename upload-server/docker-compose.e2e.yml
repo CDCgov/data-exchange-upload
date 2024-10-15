@@ -1,30 +1,27 @@
 services:
-  cache:
-    extends:
-      file: docker-compose.yml
-      service: cache
-    ports:
-      - 6380
-    command: redis-server --port 6380
   upload-server:
-    extends:
-      file: docker-compose.yml
-      service: upload-server
+    image: golang:alpine
+    container_name: upload-server
+    volumes:
+      - .:/code
+      - ../upload-configs:/upload-configs
+    working_dir: /code
+    ports:
+      - 8082:8082
+      - 8083:8083
+    command: /bin/sh -c "./run-server.sh"
     environment:
-      - REDIS_CONNECTION_STRING=redis://redispw@cache:6380
       - SERVER_HOSTNAME=upload-server
       - SERVER_PORT=8082
       - UI_PORT=8083
-    ports:
-      - 8082
-      - 8083
   playwright:
     image: mcr.microsoft.com/playwright:v1.48.0-focal
+    container_name: playwright
     volumes:
       - ../tests/smoke/playwright:/app
       - /app/node_modules
     working_dir: /app
-    command: /bin/sh -c "npm install; sleep 60; npm test --workers=1"
+    command: /bin/sh -c "npm install; ./wait-for-it.sh http://upload-server:8083; npm test --workers=1"
     environment:
       - CI=${CI}
       - SERVER_URL=http://upload-server:8082
