@@ -99,7 +99,7 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 		return nil, fmt.Errorf("Failed to fetch upload stats for datastream %s, route %s: %w", datastream, route, err)
 	}
 
-	fmt.Printf("Datastream: %v, Route: %v, UploadCount: %v\n", datastream, route, resp.GetGetUploadStats().CompletedUploadsCount)
+	fmt.Printf("PS-API -- Datastream: %v, Route: %v, UploadCount: %v\n", datastream, route, resp.GetGetUploadStats().CompletedUploadsCount)
 
 	reportRow := ReportDataRow{
 		DataStream:           datastream,
@@ -160,7 +160,7 @@ func getCsvData(datastreams []string, cleanedStartDate string, cleanedEndDate st
 	return csvData
 }
 
-func createCSV(data [][]string) ([]byte, error) {
+func createCSV(data [][]string) (*bytes.Buffer, error) {
 	var buf bytes.Buffer
 	writer := csv.NewWriter(&buf)
 
@@ -176,10 +176,10 @@ func createCSV(data [][]string) ([]byte, error) {
 		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return &buf, nil
 }
 
-func saveCsvToFile(csvData []byte, outputPath string) error {
+func saveCsvToFile(csvData *bytes.Buffer, outputPath string) error {
 	fullPath := filepath.Join(outputPath, "upload-report.csv")
 
 	file, err := os.Create(fullPath)
@@ -188,7 +188,7 @@ func saveCsvToFile(csvData []byte, outputPath string) error {
 	}
 	defer file.Close()
 
-	_, err = file.Write(csvData)
+	_, err = file.Write(csvData.Bytes())
 	if err != nil {
 		return fmt.Errorf("failed to write to file %s: %v", fullPath, err)
 	}
@@ -213,11 +213,11 @@ func createS3Client(ctx context.Context, region string, endpoint string) (*s3.Cl
 	return client, nil
 }
 
-func uploadCsvToS3(ctx context.Context, client *s3.Client, bucketName string, key string, csvData []byte) error {
+func uploadCsvToS3(ctx context.Context, client *s3.Client, bucketName string, key string, csvData *bytes.Buffer) error {
 	putInput := &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(key),
-		Body:   bytes.NewReader(csvData),
+		Body:   bytes.NewReader(csvData.Bytes()),
 	}
 
 	_, err := client.PutObject(ctx, putInput)
