@@ -40,12 +40,12 @@ jobs:
         run: pip3 install podman-compose
       # - name: Pull Images
       #   run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml pull
+      - name: Building Containers - File System
+        run: podman-compose -f docker-compose.e2e.yml up --pull-always --remove-orphans --no-start
+      - name: Start Server - File System
+        run: podman-compose -f docker-compose.e2e.yml start cache upload-server
       - name: Run E2E Tests - File System
-        env:
-          TEST_REPORT_JSON: fs-test-report.json
-          TEST_RESULTS_DIR: ./playwright/test-results/fs-results 
-        run: |
-          podman-compose -f docker-compose.e2e.yml up --pull-always --build --remove-orphans --exit-code-from playwright
+        run: podman-compose -f docker-compose.e2e.yml up --no-recreate --exit-code-from playwright
       # - name: Run E2E Tests - Azure
       #   env:
       #     TEST_REPORT_JSON: azure-test-report.json

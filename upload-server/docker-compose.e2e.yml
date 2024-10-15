@@ -7,9 +7,9 @@ services:
       - 6380
     command: redis-server --port 6380
   upload-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    extends:
+      file: docker-compose.yml
+      service: upload-server
     environment:
       - REDIS_CONNECTION_STRING=redis://redispw@cache:6380
       - SERVER_HOSTNAME=upload-server
@@ -24,7 +24,7 @@ services:
       - ../tests/smoke/playwright:/app
       - /app/node_modules
     working_dir: /app
-    command: /bin/sh -c "npm install; sleep 120; npm test --workers=1"
+    command: /bin/sh -c "npm install; sleep 60; npm test --workers=1"
     environment:
       - CI=${CI}
       - SERVER_URL=http://upload-server:8082
