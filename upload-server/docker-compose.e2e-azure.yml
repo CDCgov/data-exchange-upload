@@ -1,0 +1,50 @@
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    hostname: azurite
+    restart: always
+    ports:
+      - 10003:10000
+      - 10004:10001
+      - 10005:10002
+  upload-server:
+    image: golang:alpine
+    hostname: upload-server
+    volumes:
+      - .:/code
+      - ../upload-configs:/upload-configs
+    working_dir: /code
+    ports:
+      - 8084:8084
+      - 8085:8085
+    command: /bin/sh -c "./run-server.sh"
+    environment:
+      - SERVER_HOSTNAME=upload-server
+      - SERVER_PORT=8084
+      - UI_PORT=8085
+      - AZURE_STORAGE_ACCOUNT=devstoreaccount1
+      # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
+      - AZURE_STORAGE_KEY=${AZURE_STORAGE_KEY}
+      - AZURE_ENDPOINT=http://azurite:10005/devstoreaccount1
+      - TUS_AZURE_CONTAINER_NAME=test
+      - DEX_DELIVERY_CONFIG_FILE
+    depends_on:
+      - azurite
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.48.0-focal
+    hostname: playwright
+    volumes:
+      - ../tests/smoke/playwright:/app
+      - /app/node_modules
+    working_dir: /app
+    command: /bin/sh -c "npm install; ./wait-for-it.sh http://upload-server:8085; npm test --workers=1"
+    environment:
+      - CI=${CI}
+      - SERVER_URL=http://upload-server:8084
+      - UI_URL=http://upload-server:8085
+      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-./test-reports}
+      - TEST_REPORT_JSON=azure-test-report.json
+      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-./test-results}
+    depends_on:
+      - upload-server
+   
