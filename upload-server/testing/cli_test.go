@@ -289,7 +289,7 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 		"data_stream_id":    "test_stream",
 		"data_stream_route": "test_route",
 	}
-	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test_stream_test_route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FolderStructure: metadata.FolderStructureDate,
 		},
@@ -316,7 +316,7 @@ func TestGetFileDeliveryPrefixRoot(t *testing.T) {
 		"data_stream_id":    "test_stream",
 		"data_stream_route": "test_route",
 	}
-	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test_stream_test_route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FolderStructure: metadata.FolderStructureRoot,
 		},
@@ -341,7 +341,7 @@ func TestDeliveryFilenameSuffixUploadId(t *testing.T) {
 		"data_stream_route": "test_route",
 	}
 	tuid := "1234"
-	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test_stream_test_route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FilenameSuffix: metadata.FilenameSuffixUploadId,
 		},
@@ -364,7 +364,7 @@ func TestDeliveryFilenameSuffixNone(t *testing.T) {
 		"data_stream_route": "test_route",
 	}
 	tuid := "1234"
-	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test_stream_test_route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FilenameSuffix: "",
 		},
