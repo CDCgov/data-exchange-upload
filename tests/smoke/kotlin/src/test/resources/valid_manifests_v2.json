@@ -12,19 +12,35 @@
     "delivery_targets": [
       {
         "name": "edav",
-        "path_template": "/{year}/{month}/{day}/{filename}_{uploadId}"
+        "path_template": {
+          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "TEST": "/upload/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
+          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+        }
       },
       {
         "name": "ncird",
-        "path_template": "/{year}/{month}/{day}/{filename}_{uploadId}"
+        "path_template": {
+          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
+          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+        }
       },
       {
         "name": "ehdi",
-        "path_template": "/{year}/{month}/{day}/{filename}_{uploadId}"
+        "path_template": {
+          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "TEST": "/ddnid-ncbddd/DHDD/EHDI/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
+          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+        }
       },
       {
         "name": "eicr",
-        "path_template": "/{year}/{month}/{day}/{filename}_{uploadId}"
+        "path_template": {
+          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "TEST": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
+          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+        }
       }
     ]
   }

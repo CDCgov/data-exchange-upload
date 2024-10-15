@@ -10,7 +10,7 @@ import util.ConfigLoader.Companion.loadUploadConfig
 import util.DataProvider
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
-import java.time.LocalDate
+import java.time.LocalDateTime
 import kotlin.collections.HashMap
 
 
@@ -33,6 +33,7 @@ class FileCopy {
     private val edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
     private val routingContainerClient =
         routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
+    private val environment = EnvConfig.ENVIRONMENT
     private lateinit var authToken: String
     private lateinit var testContext: ITestContext
     private lateinit var uploadClient: UploadClient
@@ -57,7 +58,7 @@ class FileCopy {
         val uid = uploadClient.uploadFile(testFile, case.manifest)
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
-        Thread.sleep(5000)
+        Thread.sleep(2000)
         val uploadInfo = dexUploadClient.getFileInfo(uid, authToken)
 
         // Check File Info
@@ -75,55 +76,24 @@ class FileCopy {
         val actualDeliveryNames = uploadInfo.deliveries?.map{ it.name }?.sorted()
         Assert.assertEquals(actualDeliveryNames, expectedDeliveryNames, "Actual delivery targets do not match expected targets")
 
-        val currentDate = LocalDate.now()
+        val currentDateTime = LocalDateTime.now()
         uploadInfo.deliveries?.forEach { delivery ->
             Assert.assertEquals(delivery.status, "SUCCESS") // remove the assertion above?
             val actualLocation = URLDecoder.decode(delivery.location, StandardCharsets.UTF_8.toString())
-            val locationPattern = case.deliveryTargets?.find{ it.name == delivery.name}?.pathTemplate
-            val expectedLocation = locationPattern
-                // This feels hacky, but it works... no logic here to ensure that the
-                // locationPattern has all of these tokens to replace.
+            val pattern = case.deliveryTargets?.find{ it.name == delivery.name}?.pathTemplate?.get(environment)
+
+            val expectedLocation = pattern
                 ?.replace("{dataStream}", case.manifest["data_stream_id"].toString())
                 ?.replace("{route}", case.manifest["data_stream_route"].toString())
-                ?.replace("{year}", currentDate.year.toString() )
-                ?.replace("{month}", String.format("%02d", currentDate.monthValue) )
-                ?.replace("{day}", String.format("%02d", currentDate.dayOfMonth) )
+                ?.replace("{year}", currentDateTime.year.toString() )
+                ?.replace("{month}", String.format("%02d", currentDateTime.monthValue) )
+                ?.replace("{day}", String.format("%02d", currentDateTime.dayOfMonth) )
+                ?.replace("{hour}", String.format("%02d", currentDateTime.hour) )
                 ?.replace("{filename}", case.manifest["received_filename"].toString())
                 ?.replace("{uploadId}",uid)
             Assert.assertTrue(actualLocation.endsWith(expectedLocation.toString()), "Actual location ($actualLocation) does not end with the expected path: $expectedLocation")
             Assert.assertEquals(delivery.issues, null)
         }
-    //
-//        // First, check bulk upload and .info file.
-//        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid")
-//        val uploadInfoBlob =
-//            bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid.info")
-//
-//        Assert.assertTrue(uploadBlob.exists())
-//        Assert.assertTrue(uploadInfoBlob.exists())
-//        Assert.assertEquals(uploadBlob.properties.blobSize, testFile.length())
-//
-//        // Next, check that the file arrived in destination storage.
-//        val config = loadUploadConfig(dexBlobClient, case.manifest)
-//        val filenameSuffix = Filename.getFilenameSuffix(config.copyConfig, uid)
-//        val expectedFilename = "${
-//            Metadata.getFilePrefix(config.copyConfig, case.manifest)
-//        }${Metadata.getFilename(case.manifest)}${filenameSuffix}${testFile.extension}"
-//        var expectedBlobClient: BlobClient?
-//
-//        if (config.copyConfig.targets.contains("edav")) {
-//            expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
-//
-//            Assert.assertNotNull(expectedBlobClient)
-//            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
-//        }
-//
-//        if (config.copyConfig.targets.contains("routing")) {
-//            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
-//
-//            Assert.assertNotNull(expectedBlobClient)
-//            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
-//        }
     }
 
     @Test(
