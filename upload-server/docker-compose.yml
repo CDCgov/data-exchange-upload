@@ -6,6 +6,7 @@ services:
     ports:
       - 6379:6379
     command: redis-server
+    privileged: true
   upload-server:
     image: golang:alpine
     hostname: upload-server
