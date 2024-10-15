@@ -24,7 +24,7 @@ services:
       - ../tests/smoke/playwright:/app
       - /app/node_modules
     working_dir: /app
-    command: /bin/sh -c "npm install; ./wait-for-it.sh $$UI_URL; npm test --workers=1"
+    command: /bin/sh -c "npm install; sleep 600; npm test --workers=1"
     environment:
       - CI=${CI}
       - SERVER_URL=http://upload-server:8082
