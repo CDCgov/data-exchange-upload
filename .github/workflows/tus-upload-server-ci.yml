@@ -55,12 +55,12 @@ jobs:
       - name: Install podman compose
         run: pip3 install podman-compose
       - name: Pull Images
-        run: podman-compose -f docker-compose.e2e.yml -f docker-compose.e2e.azure.yml -f docker-compose.e2e.aws.yml pull --include-deps --policy "always"
+        run: podman-compose -f docker-compose.e2e.yml -f docker-compose.e2e.azure.yml -f docker-compose.e2e.aws.yml pull
       - name: Run E2E Tests - File System
         id: fsTest
         env:
           TEST_RESULTS_DIR: ./playwright-output/test-results/fs-results
-        run: podman-compose -f docker-compose.e2e.yml up --pull "never" --build --exit-code-from playwright
+        run: podman-compose -f docker-compose.e2e.yml up --build --exit-code-from playwright
       - name: Stop - File System
         run: podman-compose -f docker-compose.e2e.yml stop
       - name: Run E2E Tests - Azure
@@ -68,14 +68,14 @@ jobs:
         env:
           TEST_RESULTS_DIR: ./playwright-output/test-results/azure-results
           AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
-        run: podman-compose -f docker-compose.e2e.azure.yml up --pull "never" --build --exit-code-from playwright
+        run: podman-compose -f docker-compose.e2e.azure.yml up --build --exit-code-from playwright
       - name: Stop - Azure
         run: podman-compose -f docker-compose.e2e.azure.yml stop
       - name: Run E2E Tests - AWS
         id: awsTest
         env:
           TEST_RESULTS_DIR: ./playwright-output/test-results/aws-results
-        run: podman-compose -f docker-compose.e2e.aws.yml up --pull "never" --build --exit-code-from playwright
+        run: podman-compose -f docker-compose.e2e.aws.yml up --build --exit-code-from playwright
       - name: Stop - AWS
         run: podman-compose -f docker-compose.e2e.aws.yml stop
       - name: Tear Down Containers
