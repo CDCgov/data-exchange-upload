@@ -140,6 +140,7 @@ func getCsvData(datastreams []string, cleanedStartDate string, cleanedEndDate st
 		}(ds)
 	}
 
+	wg.Wait()
 	close(dataChan)
 
 	for rowData := range dataChan {
