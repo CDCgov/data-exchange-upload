@@ -34,7 +34,7 @@ jobs:
     continue-on-error: true
     env:
       CI: true
-      TEST_REPORTS_DIR: playwright/test-reports
+      TEST_REPORTS_DIR: ./playwright/test-reports
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
@@ -44,37 +44,33 @@ jobs:
       - name: Run E2E Tests - File System
         id: fsTest
         env:
-          TEST_RESULTS_DIR: playwright/test-results/fs-results
+          TEST_RESULTS_DIR: ./playwright/test-results/fs-results
         run: podman-compose -f docker-compose.e2e.yml up --build --exit-code-from playwright
       - name: Tear Down - File System
         run: podman-compose -f docker-compose.e2e.yml down
       - name: Run E2E Tests - Azure
         id: azureTest
         env:
-          TEST_RESULTS_DIR: playwright/test-results/azure-results
+          TEST_RESULTS_DIR: ./playwright/test-results/azure-results
           AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
         run: podman-compose -f docker-compose.e2e.azure.yml up --build --exit-code-from playwright
-      - name: Tear Down - File System
+      - name: Tear Down - Azure
         run: podman-compose -f docker-compose.e2e.azure.yml down
-      # - name: Run E2E Tests - Azure
-      #   env:
-      #     TEST_REPORT_JSON: azure-test-report.json
-      #     TEST_RESULTS_DIR: ./playwright/test-results/azure-results 
-      #     AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
-      #   run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.e2e.yml up --remove-orphans --build --exit-code-from playwright
-      # - name: Run E2E Tests - AWS
-      #   env:
-      #     TEST_REPORT_JSON: aws-test-report.json
-      #     TEST_RESULTS_DIR: ./playwright/test-results/aws-results
-      #   run: podman-compose -f docker-compose.yml -f docker-compose.minio.yml -f docker-compose.e2e.yml up --remove-orphans --build --exit-code-from playwright
+      - name: Run E2E Tests - AWS
+        id: awsTest
+        env:
+          TEST_RESULTS_DIR: ./playwright/test-results/aws-results
+        run: podman-compose -f docker-compose.aws.yml up --build --exit-code-from playwright
+      - name: Tear Down - AWS
+        run: podman-compose -f docker-compose.aws.yml down
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright
-          path: playwright/
+          path: ./playwright
           retention-days: 30
     outputs:
-     actualResult: ${{ steps.fsTest.conclusion == 'failure' || steps.azureTest.conclusion == 'failure' }}
+     actualResult: ${{ steps.fsTest.conclusion == 'failure' || steps.azureTest.conclusion == 'failure' || steps.awsTest.conclusion == 'failure' }}
   # simulation-test:
   #   needs: e2e-tests
   #   if: ${{ always() }}

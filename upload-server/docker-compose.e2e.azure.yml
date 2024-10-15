@@ -14,12 +14,12 @@ services:
       - ../upload-configs:/upload-configs
     working_dir: /code
     ports:
-      - 8082:8082
-      - 8083:8083
+      - 8084:8084
+      - 8085:8085
     environment:
       - SERVER_HOSTNAME=upload-server-azurite
-      - SERVER_PORT=8082
-      - UI_PORT=8083
+      - SERVER_PORT=8084
+      - UI_PORT=8085
       - AZURE_STORAGE_ACCOUNT=devstoreaccount1
       # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
       - AZURE_STORAGE_KEY=${AZURITE_STORAGE_KEY}
@@ -31,16 +31,17 @@ services:
       - azurite
   playwright:
     image: mcr.microsoft.com/playwright:v1.48.0-focal
+    container_name: playwright-azure
     volumes:
       - ../tests/smoke/playwright:/app
       - /app/node_modules
     working_dir: /app
     environment:
       - CI=${CI}
-      - SERVER_URL=http://upload-server-azurite:8082
-      - UI_URL=http://upload-server-azurite:8083
+      - SERVER_URL=http://upload-server-azurite:8084
+      - UI_URL=http://upload-server-azurite:8085
       - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-./test-reports}
       - TEST_REPORT_JSON=azure-test-report.json
       - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-./test-results}
-    command: /bin/sh -c "npm install; ./wait-for-it.sh http://upload-server-azurite:8083; npm test --workers=1"
+    command: /bin/sh -c "npm install; ./wait-for-it.sh $$UI_URL; npm test --workers=1"
    
