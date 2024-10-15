@@ -84,7 +84,8 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: playwright
-          path: ../tests/smoke/playwright/playwright-output
+          path: ~/tests/smoke/playwright/playwright-output/**/*
+          include-hidden-files: true
           retention-days: 30
     outputs:
      actualResult: ${{ steps.fsTest.conclusion == 'failure' || steps.azureTest.conclusion == 'failure' || steps.awsTest.conclusion == 'failure' }}

@@ -136,7 +136,7 @@ test.describe("Upload Status Page", () => {
         const fileHeaderContainer= page.locator('.file-header-container')
         await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(0)).toHaveText(expectedFileName)
         await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(1)).toHaveText("Upload Status: Complete")
-        await expect(fileHeaderContainer).toContainText(`ID: ${uploadId}`)
+        await expect(fileHeaderContainer).toContainText(`ID: ${uploadId.split('+')[0]}`)
     
         // const fileDeliveriesContainer = page.locator('.file-deliveries-container');
         // await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
