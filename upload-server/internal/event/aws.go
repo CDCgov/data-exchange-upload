@@ -5,13 +5,41 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"log/slog"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
+
+// arn format arn:aws:sns:region:account-id:topicname
+func NewSNSPublisher[T Identifiable](ctx context.Context, options sns.Options, topicARN string) (*SNSPublisher[T], error) {
+	p := &SNSPublisher[T]{
+		Options:  options,
+		TopicArn: topicARN,
+	}
+	client := p.Client()
+	_, err := client.GetTopicAttributes(ctx, &sns.GetTopicAttributesInput{
+		TopicArn: aws.String(topicARN),
+	})
+	if err != nil {
+		parts := strings.Split(topicARN, ":")
+
+		rsp, e := client.CreateTopic(ctx, &sns.CreateTopicInput{
+			Name: aws.String(parts[len(parts)-1]),
+		})
+		if e != nil {
+			return p, errors.Join(err, e)
+		}
+		slog.Info("Created topic", "arn", *rsp.TopicArn)
+		p.TopicArn = *rsp.TopicArn
+	}
+	return p, nil
+}
 
 type SNSPublisher[T Identifiable] struct {
 	Options  sns.Options
@@ -41,10 +69,75 @@ func (s SNSPublisher[T]) Publish(ctx context.Context, e T) error {
 	return err
 }
 
+func NewSQSSubscriber[T Identifiable](ctx context.Context, queueArn string, batchMax int, opts sqs.Options) (*SQSSubscriber[T], error) {
+	if !arn.IsARN(queueArn) {
+		return nil, errors.New("Not and arn")
+	}
+	qa, err := arn.Parse(queueArn)
+	if err != nil {
+		return nil, err
+	}
+	s := &SQSSubscriber[T]{
+		Config: opts,
+		Max:    batchMax,
+		ARN:    queueArn,
+	}
+	if err := s.queue(ctx, qa.Resource); err != nil {
+		return s, err
+	}
+
+	return s, nil
+}
+
 type SQSSubscriber[T Identifiable] struct {
 	Config   sqs.Options
 	QueueURL string
+	ARN      string
 	Max      int
+}
+
+func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) error {
+	client := s.Client()
+	rsp, err := client.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
+		QueueName: aws.String(name),
+	})
+	if err != nil {
+		rsp, e := client.CreateQueue(ctx, &sqs.CreateQueueInput{
+			QueueName: aws.String(name),
+		})
+		if e != nil {
+			return errors.Join(e, err)
+		}
+		s.QueueURL = *rsp.QueueUrl
+		return nil
+	}
+	s.QueueURL = *rsp.QueueUrl
+	return nil
+}
+
+func (s *SQSSubscriber[T]) Subscribe(ctx context.Context, topicArn string, opts sns.Options) error {
+	client := sns.New(opts)
+	rsp, err := client.ListSubscriptionsByTopic(ctx, &sns.ListSubscriptionsByTopicInput{
+		TopicArn: aws.String(topicArn),
+	})
+	if err != nil {
+		return err
+	}
+	for _, sub := range rsp.Subscriptions {
+		if *sub.Endpoint == s.QueueURL {
+			slog.Info("Found subscription", "sub", sub, "url", s.QueueURL)
+			return nil
+		}
+	}
+	if _, err := client.Subscribe(ctx, &sns.SubscribeInput{
+		Protocol: aws.String("sqs"),
+		TopicArn: aws.String(topicArn),
+		Endpoint: aws.String(s.ARN),
+	}); err != nil {
+		return err
+	}
+	//TODO log rsp
+	return nil
 }
 
 func (s *SQSSubscriber[T]) Client() *sqs.Client {
@@ -52,6 +145,7 @@ func (s *SQSSubscriber[T]) Client() *sqs.Client {
 }
 
 func (s *SQSSubscriber[T]) Listen(ctx context.Context, process func(context.Context, T) error) error {
+	slog.Info("Listening to sqs queue", "queue", s.QueueURL)
 	for {
 		select {
 		case <-ctx.Done():
@@ -79,13 +173,16 @@ func (s *SQSSubscriber[T]) Listen(ctx context.Context, process func(context.Cont
 }
 
 func (s *SQSSubscriber[T]) getBatch(ctx context.Context, max int) ([]types.Message, error) {
+	slog.Info("Getting batch of messages from sqs", "max", max)
 	svc := s.Client()
 
 	rsp, err := svc.ReceiveMessage(ctx, &sqs.ReceiveMessageInput{
 		QueueUrl:            aws.String(s.QueueURL),
 		MaxNumberOfMessages: int32(max),
+		WaitTimeSeconds:     1,
 		//VisibilityTimeout:   timeout,
 	})
+	slog.Info("Got response", "rsp", rsp)
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +190,16 @@ func (s *SQSSubscriber[T]) getBatch(ctx context.Context, max int) ([]types.Messa
 }
 
 func (s *SQSSubscriber[T]) decodeEvent(message types.Message) (T, error) {
+	var e T
 	id := *message.MessageId
 	body := *message.Body
-	b := bytes.NewBuffer([]byte(body))
+	snsMessage := map[string]string{}
+	if err := json.Unmarshal([]byte(body), &snsMessage); err != nil {
+		return e, err
+	}
+	b := bytes.NewBuffer([]byte(snsMessage["Message"]))
 	decoder := base64.NewDecoder(base64.StdEncoding, b)
 	jsonDecoder := json.NewDecoder(decoder)
-	var e T
 	if err := jsonDecoder.Decode(&e); err != nil {
 		return e, err
 	}
@@ -125,4 +226,8 @@ func (s *SQSSubscriber[T]) deleteMessage(ctx context.Context, handle *string) er
 	})
 	//TODO log resp
 	return err
+}
+
+func (s *SQSSubscriber[T]) Close() error {
+	return nil
 }
