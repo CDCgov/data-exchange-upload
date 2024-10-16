@@ -3,6 +3,9 @@ name: Template - Run E2E Tests Using Docker-Compose File
 on:
   workflow_call:
     inputs:
+      TEST_TITLE:
+        type: string
+        required: true
       COMPOSE_FILENAME:
         type: string
         required: true
@@ -32,6 +35,8 @@ jobs:
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} down
       - name: Test Report
         id: summary
-        run: cat ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }} > $GITHUB_STEP_SUMMARY
+        run: |
+          echo "# ${{ inputs.TEST_TITLE }}" > $GITHUB_STEP_SUMMARY
+          awk -v ORS='\n\n' 1 ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }} > $GITHUB_STEP_SUMMARY
     outputs:
       actualResult: ${{ steps.test.conclusion }}

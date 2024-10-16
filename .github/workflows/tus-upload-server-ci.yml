@@ -45,6 +45,7 @@ jobs:
     name: E2E Tests - File System Storage
     uses: ./.github/workflows/e2e-test-template.yml
     with:
+      TEST_TITLE: E2E Tests - File System Storage
       STORAGE_TYPE: fs
       COMPOSE_FILENAME: ./docker-compose.e2e.yml
     secrets: inherit
@@ -52,6 +53,7 @@ jobs:
     name: E2E Tests - Azure Blob Storage
     uses: ./.github/workflows/e2e-test-template.yml    
     with:
+      TEST_TITLE: E2E Tests - Azure Blob Storage
       COMPOSE_FILENAME: ./docker-compose.e2e.azure.yml
       STORAGE_TYPE: azure
     secrets: inherit
@@ -59,6 +61,7 @@ jobs:
     name: E2E Tests - AWS S3 Storage
     uses: ./.github/workflows/e2e-test-template.yml
     with:
+      TEST_TITLE: E2E Tests - AWS S3 Storage
       COMPOSE_FILENAME: ./docker-compose.e2e.aws.yml
       STORAGE_TYPE: aws
     secrets: inherit
