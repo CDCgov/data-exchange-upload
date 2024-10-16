@@ -18,16 +18,17 @@ jobs:
       CI: true
       AZURITE_STORAGE_KEY: ${{ (inputs.STORAGE_TYPE == 'azure') && secrets.AZURITE_STORAGE_KEY }}
       TEST_REPORT_GITHUB: ${{ inputs.STORAGE_TYPE}}-github-report.txt
+      DOCKER_FILE: (find . -type f -name ${{ inputs.DOCKER_FILENAME }})
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
         run: pip3 install podman-compose
       - name: Run E2E Tests
         id: test
-        run: podman-compose -f ${{ inputs.DOCKER_FILENAME}} up --build --exit-code-from playwright --abort-on-container-exit
+        run: podman-compose -f ${{ env.DOCKER_FILE }} up --build --exit-code-from playwright --abort-on-container-exit
       - name: Test Report
         run: cat ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }}
       - name: Tear Down Containers
-        run: podman-compose -f ${{ inputs.DOCKER_FILENAME}} down
+        run: podman-compose -f ${{ env.DOCKER_FILE}} down
     outputs:
       actualResult: ${{ steps.test.conclusion }}
