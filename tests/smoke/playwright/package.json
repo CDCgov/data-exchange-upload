@@ -10,7 +10,7 @@
     "test": "npm run wait; npx playwright test",
     "test:ci": "npm run wait; npx playwright test > ./test-reports/${TEST_REPORT_GITHUB:-github-report.txt}",
     "test:conditional": "if test \"$CI\" = true; then npm run test:ci; else npm run test; fi",
-    "test:docker": "npm run prep-reports; npm run test:conditional"
+    "test:docker": "npm install; npm run prep-reports; npm run test:conditional"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
