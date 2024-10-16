@@ -32,7 +32,7 @@ jobs:
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} down
       - name: Test Report
         id: summary
-        run: cat ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }}
+        run: |
+          while read line; do echo $line >> $GIT_STEP_SUMMARY done < file.txt ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }}
     outputs:
-      conclusion: ${{ steps.test.conclusion }}
-      summary: ${{ steps.summary.outputs }}
+      actualResult: ${{ steps.test.conclusion }}
