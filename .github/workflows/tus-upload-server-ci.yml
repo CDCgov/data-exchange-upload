@@ -46,20 +46,20 @@ jobs:
     uses: ./.github/workflows/e2e-test-template.yml
     with:
       STORAGE_TYPE: fs
-      DOCKER_FILENAME: docker-compose.e2e.yml
+      COMPOSE_FILENAME: ./docker-compose.e2e.yml
     secrets: inherit
   e2e-tests-azure:
     name: E2E Tests - Azure Blob Storage
     uses: ./.github/workflows/e2e-test-template.yml    
     with:
-      DOCKER_FILENAME: docker-compose.e2e.azure.yml
+      COMPOSE_FILENAME: ./docker-compose.e2e.azure.yml
       STORAGE_TYPE: azure
     secrets: inherit
   e2e-tests-aws:
     name: E2E Tests - AWS S3 Storage
     uses: ./.github/workflows/e2e-test-template.yml
     with:
-      DOCKER_FILENAME: docker-compose.e2e.aws.yml
+      COMPOSE_FILENAME: ./docker-compose.e2e.aws.yml
       STORAGE_TYPE: aws
     secrets: inherit
   run-fortify-scan:
