@@ -33,6 +33,7 @@ jobs:
       - name: Test Report
         id: summary
         run: |
-          while read line; do echo $line >> $GIT_STEP_SUMMARY done < ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }}
+          cat ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }} > $GIT_STEP_SUMMARY
+          echo "$GIT_STEP_SUMMARY"
     outputs:
       actualResult: ${{ steps.test.conclusion }}
