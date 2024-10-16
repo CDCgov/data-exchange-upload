@@ -33,7 +33,7 @@ jobs:
       - name: Test Report
         # Piping the logs through perl so that we can append the TEST_TITLE to make where they are coming from clearer
         # The only annotation types produced by the `github` report are 'debug', 'notice', 'warning', and 'error' so this should cover them all
-        run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} logs -f playwright | perl -pe 's/::(debug|notice|warning|error) title=/$&${{ inputs.TEST_TITLE }} /g'
+        run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} logs -f playwright | perl -pe 's/::(debug|notice|warning|error) title=/$&\[${{ inputs.TEST_TITLE }}\] /g'
       - name: Tear Down Containers
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} down
     outputs:
