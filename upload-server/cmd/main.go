@@ -89,7 +89,7 @@ func main() {
 	}
 	defer subscriber.Close()
 	go func() {
-		cli.SubscribeToEvents(ctx, subscriber, postprocessing.ProcessFileReadyEvent)
+		subscriber.Listen(ctx, postprocessing.ProcessFileReadyEvent)
 		mainWaitGroup.Done()
 	}()
 

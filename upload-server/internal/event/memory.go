@@ -31,30 +31,24 @@ type MemorySubscriber[T Identifiable] struct {
 	Chan chan T
 }
 
-func (ms *MemorySubscriber[T]) GetBatch(ctx context.Context, _ int) ([]T, error) {
-	select {
-	case <-ctx.Done():
-		return nil, nil
-	case evt := <-ms.Chan:
-		return []T{evt}, nil
+func (ms *MemorySubscriber[T]) Listen(ctx context.Context, process func(context.Context, T) error) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case evt := <-ms.Chan:
+			if err := process(ctx, evt); err != nil {
+				slog.Error("failed to handle event", "event", evt, "error", err.Error())
+				if evt.RetryCount() < MaxRetries {
+					evt.IncrementRetryCount()
+					// Retrying in a separate go routine so this doesn't block on channel write.
+					go func() {
+						ms.Chan <- evt
+					}()
+				}
+			}
+		}
 	}
-}
-
-func (ms *MemorySubscriber[T]) HandleSuccess(_ context.Context, e T) error {
-	slog.Info("successfully handled event", "event", e)
-	return nil
-}
-
-func (ms *MemorySubscriber[T]) HandleError(_ context.Context, e T, err error) error {
-	slog.Error("failed to handle event", "event", e, "error", err.Error())
-	if e.RetryCount() < MaxRetries {
-		e.IncrementRetryCount()
-		// Retrying in a separate go routine so this doesn't block on channel write.
-		go func() {
-			ms.Chan <- e
-		}()
-	}
-	return nil
 }
 
 func (ms *MemorySubscriber[T]) Close() error {

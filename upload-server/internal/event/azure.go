@@ -136,50 +136,59 @@ func NewAzureSubscriber[T Identifiable](ctx context.Context, subConn appconfig.A
 	}, nil
 }
 
+func NewEventFromServiceBusMessage[T Identifiable](m *azservicebus.ReceivedMessage) (T, error) {
+	var e T
+	err := json.Unmarshal(m.Body, &e)
+	if err != nil {
+		return e, err
+	}
+
+	e.SetIdentifier(m.MessageID)
+
+	return e, nil
+}
+
 type AzureSubscriber[T Identifiable] struct {
 	Context     context.Context
 	Receiver    *azservicebus.Receiver
 	Config      appconfig.AzureQueueConfig
 	AdminClient *admin.Client
+	Max         int
 }
 
-func (as *AzureSubscriber[T]) GetBatch(ctx context.Context, max int) ([]T, error) {
-	msgs, err := as.Receiver.ReceiveMessages(ctx, max, nil)
-	if err != nil {
-		return nil, err
-	}
+func (as *AzureSubscriber[T]) Listen(ctx context.Context, process func(context.Context, T) error) error {
+	defer as.Close()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			msgs, err := as.Receiver.ReceiveMessages(ctx, as.Max, nil)
+			if err != nil {
+				return err
+			}
 
-	var batch []T
-	for _, m := range msgs {
-		slog.Info("received event", "event", m.Body)
+			for _, m := range msgs {
+				slog.Info("received event", "event", m.Body)
 
-		var e T
-		e, err := NewEventFromServiceBusMessage[T](m)
-		if err != nil {
-			return nil, err
+				var e T
+				e, err := NewEventFromServiceBusMessage[T](m)
+				if err != nil {
+					//TODO log error
+					//TODO log error from dead letter
+					as.Receiver.DeadLetterMessage(ctx, m, nil)
+				}
+				if err := process(ctx, e); err != nil {
+					//TODO log error from dead letter
+					as.Receiver.DeadLetterMessage(ctx, m, nil)
+					continue
+				}
+				if err := as.Receiver.CompleteMessage(ctx, m, nil); err != nil {
+					slog.Error("failed to ack event", "error", err)
+				}
+			}
 		}
-		batch = append(batch, e)
 	}
-
-	return batch, nil
-}
-
-func (as *AzureSubscriber[T]) HandleSuccess(ctx context.Context, e T) error {
-	if e.OrigMessage() == nil {
-		return fmt.Errorf("malformed event %+v", e)
-	}
-	err := as.Receiver.CompleteMessage(ctx, e.OrigMessage(), nil)
-	if err != nil {
-		slog.Error("failed to ack event", "error", err)
-		return err
-	}
-	slog.Info("successfully handled event", "event ID", e.Identifier(), "event type", e.Type())
-	return nil
-}
-
-func (as *AzureSubscriber[T]) HandleError(ctx context.Context, e T, handlerError error) error {
-	slog.Error("failed to handle event", "event ID", e.Identifier(), "event type", e.Type(), "error", handlerError.Error())
-	return as.Receiver.DeadLetterMessage(ctx, e.OrigMessage(), nil)
 }
 
 func (as *AzureSubscriber[T]) Close() error {
