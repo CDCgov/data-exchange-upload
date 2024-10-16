@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -9,7 +10,7 @@ import (
 )
 
 func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
-	reports.Register(&event.MemoryPublisher[*reports.Report]{
+	reports.Register(&event.FilePublisher[*reports.Report]{
 		Dir: appConfig.LocalReportsFolder,
 	})
 

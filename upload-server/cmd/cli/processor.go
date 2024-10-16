@@ -2,10 +2,14 @@ package cli
 
 import (
 	"context"
+	"os"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"sync"
 )
 
 func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable[T], error) {
@@ -16,6 +20,36 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	}
 	sub = &event.MemorySubscriber[T]{
 		Chan: c,
+	}
+
+	if os.Getenv("SQS_EVENT_ARN") != "" {
+		s, err := event.NewSQSSubscriber[T](ctx, os.Getenv("SQS_EVENT_ARN"), 1, sqs.Options{
+			Region:       os.Getenv("SNS_AWS_REGION"),
+			BaseEndpoint: aws.String(os.Getenv("SNS_AWS_ENDPOINT_URL")),
+			Credentials: aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+				return aws.Credentials{
+					AccessKeyID:     os.Getenv("SNS_AWS_ACCESS_KEY_ID"),
+					SecretAccessKey: os.Getenv("SNS_AWS_SECRET_ACCESS_KEY"),
+				}, nil
+			}),
+		})
+		if err != nil {
+			return s, err
+		}
+		if err := s.Subscribe(ctx, os.Getenv("SNS_EVENT_TOPIC_ARN"), sns.Options{
+			Region:       os.Getenv("SNS_AWS_REGION"),
+			BaseEndpoint: aws.String(os.Getenv("SNS_AWS_ENDPOINT_URL")),
+			Credentials: aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+				return aws.Credentials{
+					AccessKeyID:     os.Getenv("SNS_AWS_ACCESS_KEY_ID"),
+					SecretAccessKey: os.Getenv("SNS_AWS_SECRET_ACCESS_KEY"),
+				}, nil
+			}),
+		}); err != nil {
+			return s, err
+		}
+		return s, nil
+
 	}
 
 	if appConfig.SubscriberConnection != nil {
@@ -29,47 +63,4 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	}
 
 	return sub, nil
-}
-
-func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subscribable[T], process func(context.Context, T) error) {
-	for {
-		var wg sync.WaitGroup
-		events, err := sub.GetBatch(ctx, 5)
-		if err != nil {
-			logger.Error("failed to get event batch", "error", err)
-			continue
-		}
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			for _, e := range events {
-				wg.Add(1)
-				go func(e T) {
-					defer wg.Done()
-					err := process(ctx, e)
-
-					if err != nil {
-						logger.Error("failed to process event", "event", e, "error", err)
-						err = sub.HandleError(ctx, e, err)
-						if err != nil {
-							logger.Error("failed to handle event error", "event", e, "error", err)
-						}
-						return
-					}
-					err = sub.HandleSuccess(ctx, e)
-					if err != nil {
-						logger.Error("failed to acknowledge event", "event", e, "error", err)
-						err = sub.HandleError(ctx, e, err)
-						if err != nil {
-							logger.Error("failed to handle event error", "event", e, "error", err)
-						}
-						return
-					}
-
-				}(e)
-			}
-			wg.Wait()
-		}
-	}
 }

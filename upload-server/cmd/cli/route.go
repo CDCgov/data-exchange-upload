@@ -2,9 +2,10 @@ package cli
 
 import (
 	"encoding/json"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"io"
 	"net/http"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
