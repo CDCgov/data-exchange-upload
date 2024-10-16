@@ -44,6 +44,6 @@ services:
       - UI_URL=http://upload-server-aws:8081
       - TEST_REPORT_JSON=${TEST_REPORT_JSON:-aws-test-report.json}
       - TEST_REPORT_GITHUB=${TEST_REPORT_GITHUB:-aws-github-report.txt}
-    command: /bin/sh -c "npm run test:docker"
+    command: npm run test:docker
     networks:
       - e2e-aws-network

@@ -1,0 +1,33 @@
+name: Template - Run E2E Tests Using Docker-Compose File
+
+on:
+  workflow_call:
+    inputs:
+      DOCKER_FILENAME:
+        type: string
+        required: true
+      STORAGE_TYPE:
+        type: string
+        required: true
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      CI: true
+      AZURITE_STORAGE_KEY: ${{ (inputs.STORAGE_TYPE == 'azure') && secrets.AZURITE_STORAGE_KEY }}
+      TEST_REPORT_GITHUB: ${{ inputs.STORAGE_TYPE}}-github-report.txt
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install podman compose
+        run: pip3 install podman-compose
+      - name: Run E2E Tests
+        id: test
+        run: podman-compose -f ${{ inputs.DOCKER_FILENAME}} up --build --exit-code-from playwright --abort-on-container-exit
+      - name: Test Report
+        run: cat ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }}
+      - name: Tear Down Containers
+        run: podman-compose -f ${{ inputs.DOCKER_FILENAME}} down
+    outputs:
+      actualResult: ${{ steps.test.conclusion }}
