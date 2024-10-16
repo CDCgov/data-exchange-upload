@@ -24,10 +24,14 @@ jobs:
         run: pip3 install podman-compose
       - name: Run E2E Tests
         id: test
-        run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} up --build --exit-code-from playwright --abort-on-container-exit
+        env:
+          COMPOSE_FILE: ${{ inputs.COMPOSE_FILENAME }}
+        run: podman-compose up --build --exit-code-from playwright --abort-on-container-exit
       - name: Test Report
         run: cat ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }}
       - name: Tear Down Containers
-        run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} down
+        env:
+          COMPOSE_FILE: ${{ inputs.COMPOSE_FILENAME }}
+        run: podman-compose down
     outputs:
       actualResult: ${{ steps.test.conclusion }}
