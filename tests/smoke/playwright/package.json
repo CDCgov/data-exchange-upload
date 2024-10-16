@@ -8,7 +8,7 @@
     "prep-reports": "mkdir -p test-reports && mkdir -p test-results",
     "wait": "./wait-for-it.sh ${UI_URL:-http://localhost:8081}",
     "test": "npm run wait; npx playwright test",
-    "test:ci": "npm run wait; npx playwright test > ./test-reports/${TEST_REPORT_GITHUB:-github-report.md}",
+    "test:ci": "npm run wait; npx playwright test",
     "test:conditional": "if test \"$CI\" = true; then npm run test:ci; else npm run test; fi",
     "test:docker": "npm install; npm run prep-reports; npm run test:conditional"
   },
