@@ -38,10 +38,9 @@ services:
       - CI=${CI}
       - SERVER_URL=http://upload-server-azure:8080
       - UI_URL=http://upload-server-azure:8081
-      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-./test-reports}
-      - TEST_REPORT_JSON=azure-test-report.json
-      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-./test-results}
-    command: /bin/sh -c "npm install; ./wait-for-it.sh $$UI_URL; npm test --workers=1"
+      - TEST_REPORT_JSON=${TEST_REPORT_JSON:-azure-test-report.json}
+      - TEST_REPORT_GITHUB=${TEST_REPORT_GITHUB:-azure-github-report.txt}
+    command: /bin/sh -c "npm run test:docker"
     networks:
       - e2e-azure-network
    

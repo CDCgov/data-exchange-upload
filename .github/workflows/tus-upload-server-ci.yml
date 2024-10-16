@@ -41,38 +41,71 @@ jobs:
         run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-server
       - name: Show coverage
         run: go tool cover -func=c.out
-  e2e-tests:
-    name: E2E Tests
+  e2e-tests-fs:
+    name: E2E Tests - File System Storage
     runs-on: ubuntu-latest
     continue-on-error: true
     env:
       CI: true
+      REPORT_DIRECTORY: ${{ github.workspace }}/tests/smoke/playwright/test-reports
+      TEST_REPORT_GITHUB: fs-github-report.txt
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
         run: pip3 install podman-compose
-      - name: Create folder
-        run: mkdir -p logs
-      - name: Run E2E Tests - File System
-        id: fsTest
-        run: |
-          podman-compose -f docker-compose.e2e.yml up --build --exit-code-from playwright --abort-on-container-exit
-          exitcode="$?"
-          cat logs/playwright-fs-test.txt
-          exit "$exitcode"
-      # - name: Run E2E Tests - Azure
-      #   id: azureTest
-      #   env:
-      #     AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
-      #   run: podman-compose -f docker-compose.e2e.azure.yml up --build --exit-code-from playwright --abort-on-container-exit
-      # - name: Run E2E Tests - AWS
-      #   id: awsTest
-      #   run: podman-compose -f docker-compose.e2e.aws.yml up --build --exit-code-from playwright --abort-on-container-exit
-      # - name: Tear Down Containers
-      #   run: podman-compose -f docker-compose.e2e.yml -f docker-compose.e2e.azure.yml -f docker-compose.e2e.aws.yml down
+      - name: Run E2E Tests
+        id: test
+        run: podman-compose -f docker-compose.e2e.yml up --build --exit-code-from playwright --abort-on-container-exit
+      - name: Test Report
+        run: cat ${{ env.REPORT_DIRECTORY }}/${{ env.TEST_REPORT_GITHUB }}
+      - name: Tear Down Containers
+        run: podman-compose -f docker-compose.e2e.yml down
     outputs:
-      actualResult: ${{ steps.fsTest.conclusion != 'failure' }}
-    #  actualResult: ${{ steps.fsTest.conclusion == 'failure' || steps.azureTest.conclusion == 'failure' || steps.awsTest.conclusion == 'failure' }}
+      actualResult: ${{ steps.test.conclusion }}
+  e2e-tests-azure:
+    name: E2E Tests - Azure Blob Storage
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      CI: true
+      REPORT_DIRECTORY: ${{ github.workspace }}/tests/smoke/playwright/test-reports
+      TEST_REPORT_GITHUB: azure-github-report.txt
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install podman compose
+        run: pip3 install podman-compose
+      - name: Run E2E Tests
+        id: test
+        env:
+          AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
+        run: podman-compose -f docker-compose.e2e.azure.yml up --build --exit-code-from playwright --abort-on-container-exit
+      - name: Test Report
+        run: cat ${{ env.REPORT_DIRECTORY }}/${{ env.TEST_REPORT_GITHUB }}
+      - name: Tear Down Containers
+        run: podman-compose -f docker-compose.e2e.azure.yml down
+    outputs:
+      actualResult: ${{ steps.test.conclusion }}
+  e2e-tests-aws:
+    name: E2E Tests - AWS S3 Storage
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      CI: true
+      REPORT_DIRECTORY: ${{ github.workspace }}/tests/smoke/playwright/test-reports
+      TEST_REPORT_GITHUB: aws-github-report.txt
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install podman compose
+        run: pip3 install podman-compose
+      - name: Run E2E Tests
+        id: test
+        run: podman-compose -f docker-compose.e2e.aws.yml up --build --exit-code-from playwright --abort-on-container-exit
+      - name: Test Report
+        run: cat ${{ env.REPORT_DIRECTORY }}/${{ env.TEST_REPORT_GITHUB }}
+      - name: Tear Down Containers
+        run: podman-compose -f docker-compose.e2e.aws.yml down
+    outputs:
+      actualResult: ${{ steps.test.conclusion }}
   run-fortify-scan:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:

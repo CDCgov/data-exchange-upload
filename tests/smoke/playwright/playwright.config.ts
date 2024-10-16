@@ -1,9 +1,7 @@
 import { PlaywrightTestConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
-const testReportDir = process.env.TEST_REPORT_DIR ?? './test-reports';
 const jsonReportFilename = process.env.TEST_REPORT_JSON ?? 'test-report.json'
-const testResultsDir = process.env.TEST_RESULTS_DIR ?? './test-results';
 
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
@@ -31,20 +29,20 @@ const config: PlaywrightTestConfig = {
         [
           'html',
           {
-            outputFolder: `${testReportDir}/html`,
+            outputFolder: `./test-reports/html`,
             open: 'never',
           },
         ],
         [
           'json',
           {
-            outputFile: `${testReportDir}/${jsonReportFilename}`,
+            outputFile: `./test-reports/${jsonReportFilename}`,
           },
         ],
       ],
 
   // Artifacts folder where screenshots, videos, and traces are stored.
-  outputDir: testResultsDir,
+  outputDir: './test-results',
 
   // Specify browser to use
   use: {

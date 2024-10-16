@@ -30,4 +30,4 @@ wait-for-url() {
 echo "Wait for URL: $@"
 wait-for-url "$@"
 echo ""
-echo "SUCCESSFUL"
+echo "URL is up"
