@@ -32,7 +32,7 @@ jobs:
         id: test
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} up --build --exit-code-from playwright --abort-on-container-exit
       - name: Test Report
-        run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} logs -f playwright
+        run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} logs -f playwright | perl -pe 's/Playwright Run Summary/${{ inputs.TEST_TITLE }}/g'
       - name: Tear Down Containers
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} down
       # - name: Test Report
