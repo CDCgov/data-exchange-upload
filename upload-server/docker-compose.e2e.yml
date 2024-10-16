@@ -26,7 +26,6 @@ services:
       - SERVER_URL=http://upload-server-fs:8080
       - UI_URL=http://upload-server-fs:8081
       - TEST_REPORT_JSON=${TEST_REPORT_JSON:-fs-test-report.json}
-      - TEST_REPORT_GITHUB=${TEST_REPORT_GITHUB:-fs-github-report.txt}
     command: npm run test:docker
     networks:
       - e2e-fs-network

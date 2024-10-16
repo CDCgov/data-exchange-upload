@@ -23,7 +23,6 @@ jobs:
     env:
       CI: true
       AZURITE_STORAGE_KEY: ${{ (inputs.STORAGE_TYPE == 'azure') && secrets.AZURITE_STORAGE_KEY }}
-      TEST_REPORT_GITHUB: ${{ inputs.STORAGE_TYPE}}-github-report.md
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
@@ -32,13 +31,10 @@ jobs:
         id: test
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} up --build --exit-code-from playwright --abort-on-container-exit
       - name: Test Report
-        run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} logs -f playwright | perl -pe 's/Playwright Run Summary/${{ inputs.TEST_TITLE }}/g'
+        # Piping the logs through perl so that we can append the TEST_TITLE to make where they are coming from clearer
+        # The only annotation types produced by the `github` report are 'debug', 'notice', 'warning', and 'error' so this should cover them all
+        run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} logs -f playwright | perl -pe 's/::(debug|notice|warning|error) title=/$&${{ inputs.TEST_TITLE }} /g'
       - name: Tear Down Containers
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} down
-      # - name: Test Report
-      #   id: summary
-      #   run: |
-      #     echo "# ${{ inputs.TEST_TITLE }}" > $GITHUB_STEP_SUMMARY
-      #     awk -v ORS='\n\n' 1 ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }} > $GITHUB_STEP_SUMMARY
     outputs:
       actualResult: ${{ steps.test.conclusion }}
