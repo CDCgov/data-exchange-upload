@@ -5,11 +5,12 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "npx tsc",
+    "prep-reports": "mkdir -p test-reports && mkdir -p test-results",
     "wait": "./wait-for-it.sh ${UI_URL:-http://localhost:8081}",
     "test": "npm run wait; npx playwright test",
-    "test:ci": "npm run wait; npx playwright test >> $GITHUB_STEP_SUMMARY",
+    "test:ci": "npm run wait; npx playwright test > ./test-reports/${TEST_REPORT_GITHUB:-github-report.md}",
     "test:conditional": "if test \"$CI\" = true; then npm run test:ci; else npm run test; fi",
-    "test:docker": "npm install; npm run test:conditional"
+    "test:docker": "npm install; npm run prep-reports; npm run test:conditional"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
