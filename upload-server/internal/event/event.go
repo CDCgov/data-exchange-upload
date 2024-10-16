@@ -2,14 +2,15 @@ package event
 
 import (
 	"encoding/json"
-	"fmt"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 )
 
 const FileReadyEventType = "FileReady"
 
-var MaxRetries int
-var FileReadyChan chan *FileReady
+var FileReadyPublisher Publishers[*FileReady]
+
+var MaxRetries = 5
 
 type Retryable interface {
 	RetryCount() int
@@ -72,22 +73,6 @@ func (fr *FileReady) SetOrigMessage(m *azservicebus.ReceivedMessage) {
 
 func (fr *FileReady) Identifier() string {
 	return fr.UploadId
-}
-
-func InitFileReadyChannel() {
-	FileReadyChan = make(chan *FileReady)
-}
-
-func CloseFileReadyChannel() {
-	close(FileReadyChan)
-}
-
-func GetChannel[T Identifiable]() (chan T, error) {
-	if r, ok := any(FileReadyChan).(chan T); ok {
-		return r, nil
-	}
-
-	return nil, fmt.Errorf("channel not found")
 }
 
 func NewFileReadyEvent(uploadId string, metadata map[string]string, target string) *FileReady {
