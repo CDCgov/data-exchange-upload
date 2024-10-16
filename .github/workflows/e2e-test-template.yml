@@ -30,7 +30,7 @@ jobs:
         id: test
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} up --build --exit-code-from playwright --abort-on-container-exit
       - name: Test Report
-        run: cat ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }}
+        run: cat ${{ github.workspace }}/tests/smoke/playwright/test-reports/${{ env.TEST_REPORT_GITHUB }} > $GITHUB_STEP_SUMMARY
       - name: Tear Down Containers
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} down
     outputs:
