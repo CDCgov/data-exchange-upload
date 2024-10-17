@@ -5,7 +5,7 @@ test.describe.configure({ mode: 'parallel' });
 const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
 
 test.describe("Upload API/UI", () => {
-    manifests.forEach(({ dataStream, route }) => {
+    manifests.forEach(({ dataStream, route }: { dataStream: string, route: string }) => {
         test(`can use the UI to upload a file for Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
 
             await page.goto(`/`);
@@ -21,7 +21,7 @@ test.describe("Upload API/UI", () => {
             const fileChooserPromise = page.waitForEvent('filechooser');
             await page.getByRole('button', {name: 'Browse Files'}).click(); 
             const fileChooser = await fileChooserPromise;
-            await fileChooser.setFiles('../upload-files/10KB-test-file');     
+            await fileChooser.setFiles('./test-data/10KB-test-file');     
 
             await expect(page.getByText('Upload Status: Complete')).toBeVisible();
         })
