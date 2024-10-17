@@ -10,7 +10,8 @@ import util.ConfigLoader.Companion.loadUploadConfig
 import util.DataProvider
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
+import java.util.TimeZone
 import kotlin.collections.HashMap
 
 
@@ -76,7 +77,9 @@ class FileCopy {
         val actualDeliveryNames = uploadInfo.deliveries?.map{ it.name }?.sorted()
         Assert.assertEquals(actualDeliveryNames, expectedDeliveryNames, "Actual delivery targets do not match expected targets")
 
-        val currentDateTime = LocalDateTime.now()
+    
+        val currentDateTime = ZonedDateTime.now(TimeZone.getTimeZone("GMT").toZoneId())
+        
         uploadInfo.deliveries?.forEach { delivery ->
             Assert.assertEquals(delivery.status, "SUCCESS") // remove the assertion above?
             val actualLocation = URLDecoder.decode(delivery.location, StandardCharsets.UTF_8.toString())

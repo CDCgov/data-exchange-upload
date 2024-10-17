@@ -5,7 +5,7 @@
       "data_stream_id": "dextesting",
       "data_stream_route": "testevent1",
       "received_filename": "dex-smoke-test",
-      "sender_id" : "test sender",
+      "sender_id": "test sender",
       "data_producer_id": "test-producer-id",
       "jurisdiction": "test-jurisdiction"
     },
@@ -13,33 +13,37 @@
       {
         "name": "edav",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/upload/edav/{uploadId}",
+          "DEV": "/upload/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
           "TEST": "/upload/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/upload/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}"
         }
       },
       {
         "name": "ncird",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/upload/ncird/{uploadId}",
+          "DEV": "/dex-dev/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
           "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/dex-stg/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}"
         }
       },
       {
         "name": "ehdi",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/upload/ehdi/{uploadId}",
+          "DEV": "/ddnid-ncbddd/DHDD/EHDI/DEX-DEV/{year}/{month}/{day}/{filename}_{uploadId}",
           "TEST": "/ddnid-ncbddd/DHDD/EHDI/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/ddnid-ncbddd/DHDD/EHDI/DEX-STG/{year}/{month}/{day}/{filename}_{uploadId}"
         }
       },
       {
         "name": "eicr",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/upload/eicr/{uploadId}",
+          "DEV": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-DEV/{year}/{month}/{day}/{filename}_{uploadId}",
           "TEST": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-STG/{year}/{month}/{day}/{filename}_{uploadId}"
         }
       }
     ]
@@ -62,9 +66,10 @@
       {
         "name": "ncird",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/upload/ncird/{uid}",
+          "DEV": "/dex-dev/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
           "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}"
         }
       }
     ]
@@ -87,9 +92,10 @@
       {
         "name": "ncird",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/upload/ncird/{uid}",
+          "DEV": "/dex-dev/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
           "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}"
         }
       }
     ]
@@ -107,14 +113,15 @@
       "meta_ext_submissionperiod": "smoke submission period",
       "meta_ext_sourceversion": "V2022-12-31",
       "meta_username": "test-username"
-      },
+    },
     "delivery_targets": [
       {
         "name": "ncird",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/dex-test/routine-immunization-zip/{year}/{month}/{day}/{filename}",
+          "DEV": "/dex-dev/routine-immunization-zip/{year}/{month}/{day}/{filename}",
           "TEST": "/dex-test/routine-immunization-zip/{year}/{month}/{day}/{filename}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/dex/routine-immunization-zip/{year}/{month}/{day}/{filename}"
         }
       }
     ]
@@ -137,9 +144,10 @@
       {
         "name": "ncird",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
+          "DEV": "/dex-dev/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
           "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}"
         }
       }
     ]
@@ -160,9 +168,10 @@
       {
         "name": "eicr",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
+          "DEV": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-DEV/{year}/{month}/{day}/{filename}_{uploadId}",
           "TEST": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-STG/{year}/{month}/{day}/{filename}_{uploadId}"
         }
       }
     ]
@@ -186,9 +195,10 @@
       {
         "name": "ehdi",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/ddnid-ncbddd/DHDD/EHDI/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
+          "DEV": "/ddnid-ncbddd/DHDD/EHDI/DEX-DEV/{year}/{month}/{day}/{filename}_{uploadId}",
           "TEST": "/ddnid-ncbddd/DHDD/EHDI/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/ddnid-ncbddd/DHDD/EHDI/DEX-STG/{year}/{month}/{day}/{hour}/{filename}_{uploadId}"
         }
       }
     ]
@@ -207,9 +217,10 @@
       {
         "name": "edav",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/upload/{dataStream}-{route}/{filename}",
+          "DEV": "/upload/{dataStream}-{route}/{filename}",
           "TEST": "/upload/{dataStream}-{route}/{filename}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/upload/{dataStream}-{route}/{filename}"
         }
       }
     ]
@@ -233,9 +244,10 @@
       {
         "name": "ncird",
         "path_template": {
-          "DEV": "/{year}/{month}/{day}/{filename}_{uploadId}",
+          "LOCAL": "/{dataStream}-other/{year}/{month}/{day}/{filename}",
+          "DEV": "/{dataStream}-other/{year}/{month}/{day}/{filename}",
           "TEST": "/{dataStream}-other/{year}/{month}/{day}/{filename}",
-          "STAGE": "/{year}/{month}/{day}/{filename}_{uploadId}"
+          "STAGE": "/{dataStream}-other/{year}/{month}/{day}/{filename}"
         }
       }
     ]
