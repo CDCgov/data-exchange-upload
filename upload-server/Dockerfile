@@ -29,7 +29,7 @@ RUN mkdir -p ./configs/local
 COPY --from=builder /app/configs/local/deliver.yml ./configs/local/deliver.yml
 
 # Create the 'app' user and group
-RUN addgroup -S -g 101 app && adduser -S -u 100 -G app app
+RUN addgroup -S app && adduser -S -G app app
 
 # Ensure the app user owns the binary
 RUN chown app:app ./dextusd

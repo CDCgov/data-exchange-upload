@@ -6,7 +6,7 @@ const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
 
 test.describe("Upload Landing Page", () => {
     test("has the expected elements to start a file upload process", async ({page}) => {
-        await page.goto(`/`, { waitUntil: 'load' });
+        await page.goto(`/`);
         const nav = page.getByRole('navigation')
         await expect(nav.getByRole("link").and(nav.getByText('Skip to main content Upload'))).toBeHidden()
         await expect(nav.getByRole("link").and(nav.getByText('Upload'))).toBeVisible()
@@ -21,7 +21,7 @@ test.describe("Upload Landing Page", () => {
 test.describe("Upload Manifest Page", () => {
     manifests.forEach(({ dataStream, route }: { dataStream: string, route: string }) => {
         test(`has the expected metadata elements for Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
-            await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`, { waitUntil: 'load' });
+            await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
             const nav = page.locator('nav')
             await expect(nav.getByRole("link").and(nav.getByText('Skip to main content'))).toBeHidden()
             await expect(nav.getByRole("link").and(nav.getByText('Upload'))).toBeVisible()
@@ -63,7 +63,7 @@ test.describe("File Uploader Page", () => {
         const dataStream = 'dextesting';
         const route = 'testevent1';
 
-        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`, { waitUntil: 'load' });
+        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
         
         await page.getByLabel('Sender Id').fill('Sender123')
         await page.getByLabel('Data Producer Id').fill('Producer123')
@@ -97,7 +97,7 @@ test.describe("Upload Status Page", () => {
         const expectedJurisdiction = 'Jurisdiction123'
         const targets = ['edav', 'ehdi', 'eicr', 'ncird']
     
-        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`, { waitUntil: 'load'});
+        await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
         
         await page.getByLabel('Sender Id').fill(expectedSender)
         await page.getByLabel('Data Producer Id').fill(expectedDataProducer)
@@ -126,12 +126,9 @@ test.describe("Upload Status Page", () => {
         await expect((await uploadPatchResponsePromise).ok()).toBeTruthy()
         await expect((await uploadHeadResponsePromise).ok()).toBeTruthy()
 
+        // await page.waitForTimeout(30000); // wait for 30 seconds for all of the deliveries to complete
         await page.reload();
-        // var refreshes = 0;
-        // while (await page.locator('.file-delivery-container').count() < targets.length && refreshes < 3) {
-        //     await page.reload();
-        //     refreshes++
-        // }
+        // await expect(page.locator('.file-delivery-container').count()).toEqual(targets.length)
 
         const fileHeaderContainer= page.locator('.file-header-container')
         await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(0)).toHaveText(expectedFileName)

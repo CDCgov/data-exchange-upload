@@ -17,7 +17,7 @@ const config: PlaywrightTestConfig = {
 
   // If a test fails, retry it additional 2 times
   // Retry on CI only.
-  retries: process.env.CI ? 2 : 0,
+  retries: 0,
 
   // Configure test timeout
   timeout: 30000,

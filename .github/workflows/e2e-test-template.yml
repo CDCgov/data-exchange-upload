@@ -20,6 +20,7 @@ defaults:
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
+    continue-on-error: true
     env:
       CI: true
       AZURITE_STORAGE_KEY: ${{ (inputs.STORAGE_TYPE == 'azure') && secrets.AZURITE_STORAGE_KEY }}

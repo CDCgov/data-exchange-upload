@@ -8,7 +8,7 @@ test.describe("Upload API/UI", () => {
     manifests.forEach(({ dataStream, route }: { dataStream: string, route: string }) => {
         test(`can use the UI to upload a file for Data stream: ${dataStream} / Route: ${route}`, async ({ page }) => {
 
-            await page.goto(`/`, { waitUntil: 'load' });
+            await page.goto(`/`);
             await page.getByLabel('Data Stream', {exact: true}).fill(dataStream);
             await page.getByLabel('Data Stream Route').fill(route);
             await page.getByRole('button', {name: /next/i }).click();
