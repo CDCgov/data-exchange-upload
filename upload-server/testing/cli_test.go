@@ -286,10 +286,10 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	ctx := context.TODO()
 	m := map[string]string{
 		"version":           "2.0",
-		"data_stream_id":    "test_stream",
-		"data_stream_route": "test_route",
+		"data_stream_id":    "test-stream",
+		"data_stream_route": "test-route",
 	}
-	metadata.Cache.SetConfig("v2/test_stream_test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test-stream_test-route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FolderStructure: metadata.FolderStructureDate,
 		},
@@ -313,10 +313,10 @@ func TestGetFileDeliveryPrefixRoot(t *testing.T) {
 	ctx := context.TODO()
 	m := map[string]string{
 		"version":           "2.0",
-		"data_stream_id":    "test_stream",
-		"data_stream_route": "test_route",
+		"data_stream_id":    "test-stream",
+		"data_stream_route": "test-route",
 	}
-	metadata.Cache.SetConfig("v2/test_stream_test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test-stream_test-route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FolderStructure: metadata.FolderStructureRoot,
 		},
@@ -337,11 +337,11 @@ func TestDeliveryFilenameSuffixUploadId(t *testing.T) {
 	ctx := context.TODO()
 	m := map[string]string{
 		"version":           "2.0",
-		"data_stream_id":    "test_stream",
-		"data_stream_route": "test_route",
+		"data_stream_id":    "test-stream",
+		"data_stream_route": "test-route",
 	}
 	tuid := "1234"
-	metadata.Cache.SetConfig("v2/test_stream_test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test-stream_test-route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FilenameSuffix: metadata.FilenameSuffixUploadId,
 		},
@@ -360,11 +360,11 @@ func TestDeliveryFilenameSuffixNone(t *testing.T) {
 	ctx := context.TODO()
 	m := map[string]string{
 		"version":           "2.0",
-		"data_stream_id":    "test_stream",
-		"data_stream_route": "test_route",
+		"data_stream_id":    "test-stream",
+		"data_stream_route": "test-route",
 	}
 	tuid := "1234"
-	metadata.Cache.SetConfig("v2/test_stream_test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test-stream_test-route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FilenameSuffix: "",
 		},
