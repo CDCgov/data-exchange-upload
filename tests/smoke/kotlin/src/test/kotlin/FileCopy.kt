@@ -1,5 +1,4 @@
 import com.azure.identity.ClientSecretCredentialBuilder
-import com.azure.storage.blob.BlobClient
 import dex.DexUploadClient
 import org.testng.Assert
 import org.testng.ITestContext
@@ -9,6 +8,10 @@ import tus.UploadClient
 import util.*
 import util.ConfigLoader.Companion.loadUploadConfig
 import util.DataProvider
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import java.time.ZonedDateTime
+import java.util.TimeZone
 import kotlin.collections.HashMap
 
 
@@ -16,7 +19,7 @@ import kotlin.collections.HashMap
 @Test()
 class FileCopy {
     private val testFile = TestFile.getResourceFile("10KB-test-file")
-    private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
+    private val dexUploadClient = DexUploadClient(EnvConfig.UPLOAD_URL)
     private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
     private val edavBlobClient = Azure.getBlobServiceClient(
         EnvConfig.EDAV_STORAGE_ACCOUNT_NAME,
@@ -31,13 +34,14 @@ class FileCopy {
     private val edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
     private val routingContainerClient =
         routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
+    private val environment = EnvConfig.ENVIRONMENT
     private lateinit var authToken: String
     private lateinit var testContext: ITestContext
     private lateinit var uploadClient: UploadClient
 
     @BeforeTest(groups = [Constants.Groups.FILE_COPY])
     fun beforeFileCopy() {
-        authToken = authClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
+        authToken = dexUploadClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
     }
 
     @BeforeMethod
@@ -51,41 +55,47 @@ class FileCopy {
         dataProvider = "validManifestAllProvider",
         dataProviderClass = DataProvider::class
     )
-    fun shouldUploadFile(manifest: HashMap<String, String>) {
-        val uid = uploadClient.uploadFile(testFile, manifest)
+    fun shouldUploadFile(case: TestCase) {
+        val uid = uploadClient.uploadFile(testFile, case.manifest)
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
         Thread.sleep(2000)
+        val uploadInfo = dexUploadClient.getFileInfo(uid, authToken)
 
-        // First, check bulk upload and .info file.
-        val uploadBlob = bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid")
-        val uploadInfoBlob =
-            bulkUploadsContainerClient.getBlobClient("${Constants.TUS_PREFIX_DIRECTORY_NAME}/$uid.info")
+        // Check File Info
+        val expectedBytes = "10240"
+        Assert.assertEquals(uploadInfo.fileInfo.sizeBytes.toString(), expectedBytes)
 
-        Assert.assertTrue(uploadBlob.exists())
-        Assert.assertTrue(uploadInfoBlob.exists())
-        Assert.assertEquals(uploadBlob.properties.blobSize, testFile.length())
+        // Check Upload Status
+        Assert.assertEquals(uploadInfo.uploadStatus.status, "Complete", "File upload status is not 'Complete'")
 
-        // Next, check that the file arrived in destination storage.
-        val config = loadUploadConfig(dexBlobClient, manifest)
-        val filenameSuffix = Filename.getFilenameSuffix(config.copyConfig, uid)
-        val expectedFilename = "${
-            Metadata.getFilePrefix(config.copyConfig, manifest)
-        }${Metadata.getFilename(manifest)}${filenameSuffix}${testFile.extension}"
-        var expectedBlobClient: BlobClient?
+        // Check Deliveries
+        Assert.assertEquals(uploadInfo.deliveries?.size, case.deliveryTargets?.size, "Expected ${case.deliveryTargets?.size ?: 0 } deliveries")
+        Assert.assertTrue(uploadInfo.deliveries?.all { it.status == "SUCCESS" }?:false, "Not all deliveries are 'SUCCESS' - Deliveries: ${uploadInfo.deliveries}")
 
-        if (config.copyConfig.targets.contains("edav")) {
-            expectedBlobClient = edavContainerClient.getBlobClient(expectedFilename)
+        val expectedDeliveryNames = case.deliveryTargets?.map{ it.name }?.sorted()
+        val actualDeliveryNames = uploadInfo.deliveries?.map{ it.name }?.sorted()
+        Assert.assertEquals(actualDeliveryNames, expectedDeliveryNames, "Actual delivery targets do not match expected targets")
 
-            Assert.assertNotNull(expectedBlobClient)
-            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
-        }
+    
+        val currentDateTime = ZonedDateTime.now(TimeZone.getTimeZone("GMT").toZoneId())
+        
+        uploadInfo.deliveries?.forEach { delivery ->
+            Assert.assertEquals(delivery.status, "SUCCESS") // remove the assertion above?
+            val actualLocation = URLDecoder.decode(delivery.location, StandardCharsets.UTF_8.toString())
+            val pattern = case.deliveryTargets?.find{ it.name == delivery.name}?.pathTemplate?.get(environment)
 
-        if (config.copyConfig.targets.contains("routing")) {
-            expectedBlobClient = routingContainerClient.getBlobClient(expectedFilename)
-
-            Assert.assertNotNull(expectedBlobClient)
-            Assert.assertEquals(expectedBlobClient!!.properties.blobSize, testFile.length())
+            val expectedLocation = pattern
+                ?.replace("{dataStream}", case.manifest["data_stream_id"].toString())
+                ?.replace("{route}", case.manifest["data_stream_route"].toString())
+                ?.replace("{year}", currentDateTime.year.toString() )
+                ?.replace("{month}", String.format("%02d", currentDateTime.monthValue) )
+                ?.replace("{day}", String.format("%02d", currentDateTime.dayOfMonth) )
+                ?.replace("{hour}", String.format("%02d", currentDateTime.hour) )
+                ?.replace("{filename}", case.manifest["received_filename"].toString())
+                ?.replace("{uploadId}",uid)
+            Assert.assertTrue(actualLocation.endsWith(expectedLocation.toString()), "Actual location ($actualLocation) does not end with the expected path: $expectedLocation")
+            Assert.assertEquals(delivery.issues, null)
         }
     }
 

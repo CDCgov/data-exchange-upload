@@ -43,7 +43,7 @@ class Metadata {
             return prefix
         }
 
-        fun getFilePrefix(copyConfig: CopyConfig, manifest: HashMap<String, String>): String {
+        fun getFilePrefix(copyConfig: CopyConfig, manifest: Map<String, String>): String {
             var prefix = "${getUseCaseFromManifest(manifest)}/"
 
             if (copyConfig.folderStructure == "date_YYYY_MM_DD") {
@@ -79,7 +79,7 @@ class Metadata {
             }
         }
 
-        fun getFilename(manifest: HashMap<String, String>): String {
+        fun getFilename(manifest: Map<String, String>): String {
             val filenameKeys = arrayOf("received_filename", "meta_ext_filename", "filename", "original_filename")
 
             return manifest.entries.first { filenameKeys.contains(it.key) }.value

@@ -21,7 +21,7 @@ class ConfigLoader {
             }
         }
 
-        fun loadUploadConfig(dexBlobClient: BlobServiceClient, manifest: HashMap<String, String>): UploadConfig {
+        fun loadUploadConfig(dexBlobClient: BlobServiceClient, manifest: Map<String, String>): UploadConfig {
             val versionFolder = when (manifest["version"]) {
                 "2.0" -> "v2"
                 else -> "v1"
