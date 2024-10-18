@@ -3,6 +3,8 @@
 # local uploads folders
 uploads/*
 cmd/tests/*
+testing/test
+
 
 # ref: https://raw.githubusercontent.com/github/gitignore/main/Go.gitignore
 

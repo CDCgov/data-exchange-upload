@@ -52,6 +52,10 @@ func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) 
 	return r, nil
 }
 
+func (ss *S3Source) SourceType() string {
+	return storage_type_s3
+}
+
 func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
 	// Get the object from S3
 	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
@@ -99,6 +103,10 @@ type S3Destination struct {
 	SecretAccessKey string `yaml:"secret_access_key"`
 	Endpoint        string `yaml:"endpoint"`
 	Region          string `yaml:"region"`
+}
+
+func (sd *S3Destination) DestinationType() string {
+	return storage_type_s3
 }
 
 func (sd *S3Destination) Retrieve(ctx context.Context) (aws.Credentials, error) {

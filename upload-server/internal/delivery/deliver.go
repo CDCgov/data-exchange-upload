@@ -25,6 +25,10 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
 
+const storage_type_file string = "file"
+const storage_type_blob string = "az-blob"
+const storage_type_s3 string = "s3"
+
 var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
 var destinations = map[string]map[string]Destination{}
@@ -89,10 +93,12 @@ func GetSource(name string) (Source, bool) {
 type Source interface {
 	Reader(context.Context, string) (io.Reader, error)
 	GetMetadata(context.Context, string) (map[string]string, error)
+	SourceType() string
 }
 
 type Destination interface {
 	Upload(context.Context, string, io.Reader, map[string]string) (string, error)
+	DestinationType() string
 }
 
 type PathInfo struct {
@@ -121,12 +127,12 @@ type Target struct {
 }
 
 var DestinationTypes = map[string]func() Destination{
-	"s3":      func() Destination { return &S3Destination{} },
-	"file":    func() Destination { return &FileDestination{} },
-	"az-blob": func() Destination { return &AzureDestination{} },
+	storage_type_s3:   func() Destination { return &S3Destination{} },
+	storage_type_file: func() Destination { return &FileDestination{} },
+	storage_type_blob: func() Destination { return &AzureDestination{} },
 }
 
-var ErrUnknownDestinationType = errors.New("Unknown destination type")
+var ErrUnknownDestinationType = errors.New("unknown destination type")
 
 func (t *Target) UnmarshalYAML(n *yaml.Node) error {
 	type alias Target

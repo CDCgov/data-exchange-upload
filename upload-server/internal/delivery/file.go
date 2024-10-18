@@ -19,6 +19,10 @@ type FileDestination struct {
 	PathTemplate string `yaml:"path_template"`
 }
 
+func (fd *FileDestination) DestinationType() string {
+	return storage_type_file
+}
+
 func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
 	if err := os.MkdirAll(fd.ToPath, 0755); err != nil {
 		return "", err
@@ -54,6 +58,10 @@ func (fd *FileDestination) Health(_ context.Context) (rsp models.ServiceHealthRe
 
 type FileSource struct {
 	FS fs.FS
+}
+
+func (fd *FileSource) SourceType() string {
+	return storage_type_file
 }
 
 func (fd *FileSource) Reader(_ context.Context, path string) (io.Reader, error) {
