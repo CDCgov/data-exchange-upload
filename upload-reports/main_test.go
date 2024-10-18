@@ -49,9 +49,9 @@ func TestFetchDataForDataStream(t *testing.T) {
 	assert.Equal(t, "route1", reportRow.Route)
 	assert.Equal(t, "2024-01-01", reportRow.StartDate)
 	assert.Equal(t, "2024-01-31", reportRow.EndDate)
-	assert.Equal(t, int64(10), reportRow.UploadCount)
-	assert.Equal(t, int64(5), reportRow.DeliverySuccessCount)
-	assert.Equal(t, int64(2), reportRow.DeliveryEndCount)
+	assert.Equal(t, int64(10), reportRow.TotalUploadCount)
+	assert.Equal(t, int64(5), reportRow.PendingUploadCount)
+	assert.Equal(t, int64(2), reportRow.UndeliveredUploadCount)
 }
 
 func TestCreateCSV(t *testing.T) {

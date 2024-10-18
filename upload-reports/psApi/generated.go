@@ -15,8 +15,6 @@ import (
 type GetUploadStatsGetUploadStats struct {
 	// Number of uploads that have been completed.  This means, not only did the upload start, but according to the upload status reports we have received 100% of the expected chunks.
 	CompletedUploadsCount int64 `json:"completedUploadsCount"`
-	// Number of uploads where we have received at least one chunk of data, but not all of them.
-	InProgressUploadsCount int64 `json:"inProgressUploadsCount"`
 	// Provides a list of all the uploads that are pending. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
 	PendingUploads GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts `json:"pendingUploads"`
 	// Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
@@ -26,11 +24,6 @@ type GetUploadStatsGetUploadStats struct {
 // GetCompletedUploadsCount returns GetUploadStatsGetUploadStats.CompletedUploadsCount, and is useful for accessing the field via an interface.
 func (v *GetUploadStatsGetUploadStats) GetCompletedUploadsCount() int64 {
 	return v.CompletedUploadsCount
-}
-
-// GetInProgressUploadsCount returns GetUploadStatsGetUploadStats.InProgressUploadsCount, and is useful for accessing the field via an interface.
-func (v *GetUploadStatsGetUploadStats) GetInProgressUploadsCount() int64 {
-	return v.InProgressUploadsCount
 }
 
 // GetPendingUploads returns GetUploadStatsGetUploadStats.PendingUploads, and is useful for accessing the field via an interface.
@@ -50,11 +43,39 @@ func (v *GetUploadStatsGetUploadStats) GetUndeliveredUploads() GetUploadStatsGet
 type GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts struct {
 	// Total number of undelivered uploads.
 	TotalCount int64 `json:"totalCount"`
+	// Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
+	PendingUploads []GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCountsPendingUploadsUndeliveredUpload `json:"pendingUploads"`
 }
 
 // GetTotalCount returns GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts.TotalCount, and is useful for accessing the field via an interface.
 func (v *GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts) GetTotalCount() int64 {
 	return v.TotalCount
+}
+
+// GetPendingUploads returns GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts.PendingUploads, and is useful for accessing the field via an interface.
+func (v *GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts) GetPendingUploads() []GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCountsPendingUploadsUndeliveredUpload {
+	return v.PendingUploads
+}
+
+// GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCountsPendingUploadsUndeliveredUpload includes the requested fields of the GraphQL type UndeliveredUpload.
+// The GraphQL type's documentation follows.
+//
+// Collection of undelivered found
+type GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCountsPendingUploadsUndeliveredUpload struct {
+	// Filename of the file that is not delivered.
+	Filename string `json:"filename"`
+	// UploadId of the file that is not delivered.
+	UploadId string `json:"uploadId"`
+}
+
+// GetFilename returns GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCountsPendingUploadsUndeliveredUpload.Filename, and is useful for accessing the field via an interface.
+func (v *GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCountsPendingUploadsUndeliveredUpload) GetFilename() string {
+	return v.Filename
+}
+
+// GetUploadId returns GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCountsPendingUploadsUndeliveredUpload.UploadId, and is useful for accessing the field via an interface.
+func (v *GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCountsPendingUploadsUndeliveredUpload) GetUploadId() string {
+	return v.UploadId
 }
 
 // GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts includes the requested fields of the GraphQL type UndeliveredUploadCounts.
@@ -64,11 +85,39 @@ func (v *GetUploadStatsGetUploadStatsPendingUploadsPendingUploadCounts) GetTotal
 type GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts struct {
 	// Total number of undelivered uploads.
 	TotalCount int64 `json:"totalCount"`
+	// Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
+	UndeliveredUploads []GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCountsUndeliveredUploadsUndeliveredUpload `json:"undeliveredUploads"`
 }
 
 // GetTotalCount returns GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts.TotalCount, and is useful for accessing the field via an interface.
 func (v *GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts) GetTotalCount() int64 {
 	return v.TotalCount
+}
+
+// GetUndeliveredUploads returns GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts.UndeliveredUploads, and is useful for accessing the field via an interface.
+func (v *GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCounts) GetUndeliveredUploads() []GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCountsUndeliveredUploadsUndeliveredUpload {
+	return v.UndeliveredUploads
+}
+
+// GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCountsUndeliveredUploadsUndeliveredUpload includes the requested fields of the GraphQL type UndeliveredUpload.
+// The GraphQL type's documentation follows.
+//
+// Collection of undelivered found
+type GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCountsUndeliveredUploadsUndeliveredUpload struct {
+	// Filename of the file that is not delivered.
+	Filename string `json:"filename"`
+	// UploadId of the file that is not delivered.
+	UploadId string `json:"uploadId"`
+}
+
+// GetFilename returns GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCountsUndeliveredUploadsUndeliveredUpload.Filename, and is useful for accessing the field via an interface.
+func (v *GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCountsUndeliveredUploadsUndeliveredUpload) GetFilename() string {
+	return v.Filename
+}
+
+// GetUploadId returns GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCountsUndeliveredUploadsUndeliveredUpload.UploadId, and is useful for accessing the field via an interface.
+func (v *GetUploadStatsGetUploadStatsUndeliveredUploadsUndeliveredUploadCountsUndeliveredUploadsUndeliveredUpload) GetUploadId() string {
+	return v.UploadId
 }
 
 // GetUploadStatsResponse is returned by GetUploadStats on success.
@@ -107,12 +156,19 @@ const GetUploadStats_Operation = `
 query GetUploadStats ($datastream: String!, $route: String!, $dateStart: String, $dateEnd: String) {
 	getUploadStats(dataStreamId: $datastream, dataStreamRoute: $route, dateStart: $dateStart, dateEnd: $dateEnd) {
 		completedUploadsCount
-		inProgressUploadsCount
 		pendingUploads {
 			totalCount
+			pendingUploads {
+				filename
+				uploadId
+			}
 		}
 		undeliveredUploads {
 			totalCount
+			undeliveredUploads {
+				filename
+				uploadId
+			}
 		}
 	}
 }

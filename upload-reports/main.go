@@ -23,13 +23,13 @@ import (
 )
 
 type ReportDataRow struct {
-	DataStream           string
-	Route                string
-	StartDate            string
-	EndDate              string
-	UploadCount          int64
-	DeliverySuccessCount int64
-	DeliveryEndCount     int64
+	DataStream             string
+	Route                  string
+	StartDate              string
+	EndDate                string
+	TotalUploadCount       int64
+	PendingUploadCount     int64
+	UndeliveredUploadCount int64
 }
 
 var reportHeaders = []string{
@@ -37,9 +37,17 @@ var reportHeaders = []string{
 	"Route",
 	"Start Date",
 	"End Date",
-	"Upload Count",
-	"Delivery Success Count",
-	"Delivery Fail Count",
+	"Total Upload Count",
+	"Pending Upload Count",
+	"Undelivered Upload Count",
+}
+
+var anomalousItemsHeaders = []string{
+	"Upload ID",
+	"File Name",
+	"Data Stream",
+	"Route",
+	"Category",
 }
 
 func main() {
@@ -102,13 +110,13 @@ func fetchDataForDataStream(apiURL string, datastream string, route string, star
 	fmt.Printf("PS-API -- Datastream: %v, Route: %v, UploadCount: %v\n", datastream, route, resp.GetGetUploadStats().CompletedUploadsCount)
 
 	reportRow := ReportDataRow{
-		DataStream:           datastream,
-		Route:                route,
-		StartDate:            startDate,
-		EndDate:              endDate,
-		UploadCount:          resp.GetGetUploadStats().CompletedUploadsCount,
-		DeliverySuccessCount: resp.GetGetUploadStats().PendingUploads.TotalCount,
-		DeliveryEndCount:     resp.GetGetUploadStats().UndeliveredUploads.TotalCount,
+		DataStream:             datastream,
+		Route:                  route,
+		StartDate:              startDate,
+		EndDate:                endDate,
+		TotalUploadCount:       resp.GetGetUploadStats().CompletedUploadsCount,
+		PendingUploadCount:     resp.GetGetUploadStats().PendingUploads.TotalCount,
+		UndeliveredUploadCount: resp.GetGetUploadStats().UndeliveredUploads.TotalCount,
 	}
 
 	return &reportRow, nil
@@ -151,9 +159,9 @@ func getCsvData(datastreams []string, cleanedStartDate string, cleanedEndDate st
 			rowData.Route,
 			rowData.StartDate,
 			rowData.EndDate,
-			strconv.FormatInt(rowData.UploadCount, 10),
-			strconv.FormatInt(rowData.DeliverySuccessCount, 10),
-			strconv.FormatInt(rowData.DeliveryEndCount, 10),
+			strconv.FormatInt(rowData.TotalUploadCount, 10),
+			strconv.FormatInt(rowData.PendingUploadCount, 10),
+			strconv.FormatInt(rowData.UndeliveredUploadCount, 10),
 		})
 	}
 
