@@ -53,7 +53,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	dataStreamId, dataStreamRoute := metadata.GetDataStreamID(m), metadata.GetDataStreamRoute(m)
-	if _, ok := delivery.GetDestinationTarget(dataStreamId, dataStreamRoute, body.Target); !ok {
+	if _, ok := delivery.GetGroupTarget(dataStreamId, dataStreamRoute, body.Target); !ok {
 		http.Error(rw, "Invalid target", http.StatusBadRequest)
 		return
 	}
