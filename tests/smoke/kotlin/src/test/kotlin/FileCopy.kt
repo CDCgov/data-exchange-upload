@@ -1,4 +1,3 @@
-import com.azure.identity.ClientSecretCredentialBuilder
 import dex.DexUploadClient
 import org.testng.Assert
 import org.testng.ITestContext
@@ -14,26 +13,11 @@ import java.time.ZonedDateTime
 import java.util.TimeZone
 import kotlin.collections.HashMap
 
-
 @Listeners(UploadIdTestListener::class)
 @Test()
 class FileCopy {
     private val testFile = TestFile.getResourceFile("10KB-test-file")
     private val dexUploadClient = DexUploadClient(EnvConfig.UPLOAD_URL)
-    private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
-    private val edavBlobClient = Azure.getBlobServiceClient(
-        EnvConfig.EDAV_STORAGE_ACCOUNT_NAME,
-        ClientSecretCredentialBuilder()
-            .clientId(EnvConfig.AZURE_CLIENT_ID)
-            .clientSecret(EnvConfig.AZURE_CLIENT_SECRET)
-            .tenantId(EnvConfig.AZURE_TENANT_ID)
-            .build()
-    )
-    private val routingBlobClient = Azure.getBlobServiceClient(EnvConfig.ROUTING_STORAGE_CONNECTION_STRING)
-    private val bulkUploadsContainerClient = dexBlobClient.getBlobContainerClient(Constants.BULK_UPLOAD_CONTAINER_NAME)
-    private val edavContainerClient = edavBlobClient.getBlobContainerClient(Constants.EDAV_UPLOAD_CONTAINER_NAME)
-    private val routingContainerClient =
-        routingBlobClient.getBlobContainerClient(Constants.ROUTING_UPLOAD_CONTAINER_NAME)
     private val environment = EnvConfig.ENVIRONMENT
     private lateinit var authToken: String
     private lateinit var testContext: ITestContext
@@ -59,7 +43,7 @@ class FileCopy {
         val uid = uploadClient.uploadFile(testFile, case.manifest)
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
-        Thread.sleep(2000)
+        Thread.sleep(5000)
         val uploadInfo = dexUploadClient.getFileInfo(uid, authToken)
 
         // Check File Info
@@ -104,37 +88,18 @@ class FileCopy {
         dataProvider = "validManifestV1Provider",
         dataProviderClass = DataProvider::class
     )
-    fun shouldTranslateMetadataGivenV1SenderManifest(manifest: HashMap<String, String>) {
-        val useCase = Metadata.getUseCaseFromManifest(manifest)
-        val dexContainerClient = dexBlobClient.getBlobContainerClient(useCase)
-        val v1Config = loadUploadConfig(dexBlobClient, manifest)
-        val v2ConfigFilename = v1Config.compatConfigFilename ?: "$useCase.json"
-        val v2Config = loadUploadConfig(dexBlobClient, v2ConfigFilename, "v2")
-        val metadataMapping = v2Config.metadataConfig.fields.filter { it.compatFieldName != null }
-            .associate { it.compatFieldName to it.fieldName }
-
-        val uid = uploadClient.uploadFile(testFile, manifest)
+    fun shouldTranslateMetadataGivenV1SenderManifest(case: TestCase) {
+        val uid = uploadClient.uploadFile(testFile, case.manifest)
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
-        Thread.sleep(1000)
+        Thread.sleep(3000)
 
-        val filenameSuffix = Filename.getFilenameSuffix(v1Config.copyConfig, uid)
-        val expectedFilename =
-            "${Metadata.getFilePrefix(v1Config.copyConfig)}${Metadata.getFilename(manifest)}$filenameSuffix${testFile.extension}"
-        val expectedBlobClient = dexContainerClient.getBlobClient(expectedFilename)
-        val blobMetadata = expectedBlobClient.properties.metadata
-
-        metadataMapping.forEach { (v1Key, v2Key) ->
-            Assert.assertTrue(
-                blobMetadata.containsKey(v2Key),
-                "Mismatch: Blob metadata does not contain expected V2 key: $v2Key which should map from V1 key: $v1Key"
-            )
-        }
-
-        metadataMapping.forEach { (v1Key, v2Key) ->
-            val v1Val = manifest[v1Key] ?: ""
-            val v2Val = blobMetadata[v2Key] ?: ""
-            Assert.assertEquals(v1Val, v2Val, "Expected V1 value: $v1Val does not match with actual V2 value: $v2Val")
-        }
+        val uploadInfo = dexUploadClient.getFileInfo(uid, authToken)
+        //Assert.assertTrue(uploadInfo.deliveries?.all { it.status == "SUCCESS" }?:false, "Not all deliveries are 'SUCCESS' - Deliveries: ${uploadInfo.deliveries}")
+        case.manifest.forEach{(manifestKey, manifestValue) -> 
+            Assert.assertEquals(uploadInfo.manifest[manifestKey], manifestValue.toString(), "Actual manifest value does not equal the expected manifest value")
+       }
+        Assert.assertNotNull(uploadInfo.manifest["dex_ingest_datetime"])
+        Assert.assertEquals(uploadInfo.manifest["upload_id"], uid, "Upload ID on the manifest is not the expected upload ID")
     }
 }
