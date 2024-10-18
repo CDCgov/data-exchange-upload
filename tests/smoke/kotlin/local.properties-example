@@ -1,4 +1,5 @@
 #dev
+environment=DEV
 upload.url=https://apidev.cdc.gov
 ps.api.url=https://dex-dev-svc.cdc.gov
 sams.username=
@@ -11,6 +12,7 @@ azure.client.secret=
 azure.tenant.id=
 
 # tst
+environment=TEST
 upload.url=https://apitst.cdc.gov
 ps.api.url=https://dex-tst-svc.cdc.gov
 sams.username=
@@ -23,6 +25,7 @@ azure.client.secret=
 azure.tenant.id=
 
 # stg
+environment=STAGE
 upload.url=https://apistg.cdc.gov
 ps.api.url=https://dex-stg-svc.cdc.gov
 sams.username=

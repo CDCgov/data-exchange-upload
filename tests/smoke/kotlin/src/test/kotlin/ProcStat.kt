@@ -4,19 +4,19 @@ import dex.DexUploadClient
 import org.testng.ITestContext
 import org.testng.TestNGException
 import org.testng.annotations.*
-import util.*
-import util.DataProvider
 import org.testng.Assert.*
 import org.slf4j.LoggerFactory
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import model.DataResponse
+import util.*
+import util.DataProvider
 
 @Listeners(UploadIdTestListener::class)
 @Test()
 class ProcStat {
     private val testFile = TestFile.getResourceFile("10KB-test-file")
     private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
-    private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
+    //private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
     private val procStatReqSpec = given().relaxedHTTPSValidation()
         .apply {
             baseUri(EnvConfig.PROC_STAT_URL)
@@ -42,9 +42,9 @@ class ProcStat {
         dataProvider = "validManifestAllProvider",
         dataProviderClass = DataProvider::class
     )
-    fun shouldHaveReportsForSuccessfulFileUpload(manifest: HashMap<String, String>, testContext: ITestContext) {
-        val config = ConfigLoader.loadUploadConfig(dexBlobClient, manifest)
-        val uid = uploadClient.uploadFile(testFile, manifest)
+    fun shouldHaveReportsForSuccessfulFileUpload(case: TestCase, testContext: ITestContext) {
+        //val config = ConfigLoader.loadUploadConfig(dexBlobClient, case.manifest)
+        val uid = uploadClient.uploadFile(testFile, case.manifest)
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)
         log.debug("File uploaded successfully with UID: $uid")
@@ -158,16 +158,18 @@ class ProcStat {
                     assertNotNull(destinationName, "Destination name is missing for $schemaName")
                     log.info("Blob File Copy - Source URL: $sourceUrl, Destination URL: $destinationUrl")
 
-                    val expectedDestinations = config.copyConfig.targets
+//                    val expectedDestinations = config.copyConfig.targets
 
-                    val actualDestination = expectedDestinations.any { expectedDest ->
-                        destinationName?.trim()?.equals(expectedDest.trim(), ignoreCase = true) ?: false
-                    }
+                    val expectedDestinations = case.deliveryTargets!!.map{ it.name }.sorted()
 
-                    assertTrue(
-                        actualDestination,
-                        "None of the expected destinations ('${expectedDestinations.joinToString(", ")}') were found in the response. Found: $destinationName"
-                    )
+//                    val actualDestination = expectedDestinations?.any { expectedDest ->
+//                        destinationName?.trim()?.equals(expectedDest.trim(), ignoreCase = true) ?: false
+//                    }
+                    assertTrue(expectedDestinations.contains(destinationName), "Actual destination $destinationName is not in expected target destinations ${expectedDestinations.toString()}")
+//                    assertTrue(
+//                        actualDestination?,
+//                        "None of the expected destinations ('${expectedDestinations.joinToString(", ")}') were found in the response. Found: $destinationName"
+//                    )
                 }
 
                 else -> {
