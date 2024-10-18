@@ -9,13 +9,13 @@ import (
 	"fmt"
 )
 
-type Config struct {
+type ConfigIdentification struct {
 	DataStreamID    string
 	DataStreamRoute string
 }
 
-func (c *Config) Path() string {
-	path := fmt.Sprintf("%s/%s-%s.json", "v2", c.DataStreamID, c.DataStreamRoute)
+func (c *ConfigIdentification) Path() string {
+	path := fmt.Sprintf("%s/%s_%s.json", "v2", c.DataStreamID, c.DataStreamRoute)
 	return path
 }
 
@@ -29,7 +29,7 @@ func NewFromManifest(manifest handler.MetaData) (validation.ConfigLocation, erro
 		return nil, errors.Join(validation.ErrFailure, &validation.ErrorMissing{Field: "data_stream_route"})
 	}
 
-	return &Config{
+	return &ConfigIdentification{
 		DataStreamID:    dataStreamID,
 		DataStreamRoute: dataStreamRoute,
 	}, nil
