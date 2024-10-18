@@ -18,6 +18,10 @@ type AzureSource struct {
 	Prefix              string
 }
 
+func (ad *AzureSource) SourceType() string {
+	return storage_type_blob
+}
+
 func (ad *AzureSource) Reader(ctx context.Context, path string) (io.Reader, error) {
 	// Get blob src blob client.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.Prefix + "/" + path)
@@ -95,6 +99,10 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 		ad.toClient = containerClient
 	}
 	return ad.toClient, nil
+}
+
+func (ad *AzureDestination) DestinationType() string {
+	return storage_type_blob
 }
 
 func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
