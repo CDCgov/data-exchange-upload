@@ -1,24 +1,17 @@
 package main
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
-	"encoding/csv"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cdcgov/data-exchange-upload/upload-reports/psApi"
 	"github.com/cdcgov/data-exchange-upload/upload-reports/utils"
 )
@@ -57,6 +50,7 @@ var summaryHeaders = []string{
 	"Pending Upload Count",
 	"Undelivered Upload Count",
 }
+var summaryFilename = "summary-report.csv"
 
 var anomalousItemHeaders = []string{
 	"Upload ID",
@@ -65,65 +59,48 @@ var anomalousItemHeaders = []string{
 	"Route",
 	"Category",
 }
+var anomalousItemFilename = "anomalous-items.csv"
 
 func main() {
 	config := utils.GetConfig()
 	fmt.Printf("Datastreams: %v, StartDate: %v, EndDate: %v, TargetEnv: %v\n", config.DataStreams, config.StartDate, config.EndDate, config.TargetEnv)
 
-	cleanedStartDate, err := utils.FormatDateString(config.StartDate)
-	if err != nil {
-		log.Fatalf("Start date is in incorrect format: %v", err)
-	}
-
-	cleanedEndDate, err := utils.FormatDateString(config.EndDate)
-	if err != nil {
-		log.Fatalf("End date is in incorrect format: %v", err)
-	}
+	cleanedStartDate, cleanedEndDate := getFormattedDates(config.StartDate, config.EndDate)
 
 	datastreams := strings.Split(config.DataStreams, ",")
 
 	summaryData, anomalousData := getCsvData(datastreams, cleanedStartDate, cleanedEndDate, config.PsApiUrl)
 
-	summaryBytes, err := createCSV(summaryData)
-	if err != nil {
-		log.Fatalf("Error creating CSV for summary data: %v", err)
-	}
+	summaryBytes := generateCsvBytes(summaryData, "summary")
+	anomalousBytes := generateCsvBytes(anomalousData, "anomalous")
 
-	anomalousBytes, err := createCSV(anomalousData)
-	if err != nil {
-		log.Fatalf("Error creating CSV for anomalous data: %v", err)
-	}
-
-	saveCsvToFile(summaryBytes, config.CsvOutputPath, "summary-report.csv")
-	if err != nil {
-		log.Fatalf("Error saving CSV for summary data: %v", err)
-	}
-
-	saveCsvToFile(anomalousBytes, config.CsvOutputPath, "anomalous-items.csv")
-	if err != nil {
-		log.Fatalf("Error saving CSV for anomalous data: %v", err)
-	}
+	saveCsvFiles(summaryBytes, anomalousBytes, config.CsvOutputPath)
 
 	if config.S3Config != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		zipBytes, err := createZipArchive(summaryBytes, anomalousBytes)
-		if err != nil {
-			log.Fatalf("failed to create ZIP archive: %v", err)
-		}
-
-		key := fmt.Sprintf("upload-report-%s-%s.zip", config.TargetEnv, config.StartDate)
-
-		client, err := createS3Client(ctx, "us-east-1", config.S3Config.Endpoint)
-		if err != nil {
-			log.Fatalf("failed to create S3 client: %v", err)
-		}
-
-		if err := uploadCsvToS3(ctx, client, config.S3Config.BucketName, key, zipBytes); err != nil {
-			log.Fatalf("Error uploading CSV to S3: %v", err)
-		}
+		uploadToS3(&config, summaryBytes, anomalousBytes)
 	}
+}
+
+func getFormattedDates(startDate, endDate string) (string, string) {
+	cleanedStartDate, err := utils.FormatDateString(startDate)
+	if err != nil {
+		log.Fatalf("Start date is in incorrect format: %v", err)
+	}
+
+	cleanedEndDate, err := utils.FormatDateString(endDate)
+	if err != nil {
+		log.Fatalf("End date is in incorrect format: %v", err)
+	}
+
+	return cleanedStartDate, cleanedEndDate
+}
+
+func generateCsvBytes(data [][]string, dataType string) *bytes.Buffer {
+	csvBytes, err := utils.CreateCSV(data)
+	if err != nil {
+		log.Fatalf("Error creating CSV for %s data: %v", dataType, err)
+	}
+	return csvBytes
 }
 
 func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (*SummaryRow, []AnomalousItemRow, error) {
@@ -246,105 +223,34 @@ func getCsvData(datastreams []string, cleanedStartDate string, cleanedEndDate st
 	return summaryData, anomalousData
 }
 
-func createCSV(data [][]string) (*bytes.Buffer, error) {
-	var buf bytes.Buffer
-	writer := csv.NewWriter(&buf)
-
-	for _, record := range data {
-		if err := writer.Write(record); err != nil {
-			return nil, err
-		}
+func saveCsvFiles(summaryBytes, anomalousBytes *bytes.Buffer, outputPath string) {
+	if err := utils.SaveCsvToFile(summaryBytes, outputPath, summaryFilename); err != nil {
+		log.Fatalf("Error saving CSV for summary data: %v", err)
 	}
 
-	writer.Flush()
-
-	if err := writer.Error(); err != nil {
-		return nil, err
+	if err := utils.SaveCsvToFile(anomalousBytes, outputPath, anomalousItemFilename); err != nil {
+		log.Fatalf("Error saving CSV for anomalous data: %v", err)
 	}
-
-	return &buf, nil
 }
 
-func saveCsvToFile(csvData *bytes.Buffer, outputPath string, filename string) error {
-	fullPath := filepath.Join(outputPath, filename)
+func uploadToS3(config *utils.AppConfig, summaryBytes, anomalousBytes *bytes.Buffer) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	file, err := os.Create(fullPath)
+	zipBytes, err := utils.CreateZipArchive(summaryBytes, anomalousBytes, summaryFilename, anomalousItemFilename)
 	if err != nil {
-		return fmt.Errorf("failed to create the file %v: %v", file, err)
+		log.Fatalf("Failed to create ZIP archive: %v", err)
 	}
-	defer file.Close()
 
-	_, err = file.Write(csvData.Bytes())
+	key := fmt.Sprintf("upload-report-%s-%s.zip", config.TargetEnv, config.StartDate)
+	client, err := utils.CreateS3Client(ctx, "us-east-1", config.S3Config.Endpoint)
 	if err != nil {
-		return fmt.Errorf("failed to write to file %s: %v", fullPath, err)
+		log.Fatalf("Failed to create S3 client: %v", err)
 	}
 
-	fmt.Printf("CSV successfully saved to file: %s\n", fullPath)
-	return nil
-}
-
-func createZipArchive(overviewData, anomalousData *bytes.Buffer) (*bytes.Buffer, error) {
-	buf := new(bytes.Buffer)
-	zipWriter := zip.NewWriter(buf)
-
-	overviewFile, err := zipWriter.Create("summary-report.csv")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create overview file in zip: %v", err)
-	}
-	_, err = overviewFile.Write(overviewData.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("failed to write overview data to zip: %v", err)
+	if err := utils.UploadCsvToS3(ctx, client, config.S3Config.BucketName, key, zipBytes); err != nil {
+		log.Fatalf("Error uploading ZIP to S3: %v", err)
 	}
 
-	anomalousFile, err := zipWriter.Create("anomalous-items.csv")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create anomalous file in zip: %v", err)
-	}
-	_, err = anomalousFile.Write(anomalousData.Bytes())
-	if err != nil {
-		return nil, fmt.Errorf("failed to write anomalous data to zip: %v", err)
-	}
-
-	if err := zipWriter.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close zip writer: %v", err)
-	}
-
-	return buf, nil
-}
-
-func createS3Client(ctx context.Context, region string, endpoint string) (*s3.Client, error) {
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
-	if err != nil {
-		return nil, fmt.Errorf("unable to load SDK config, %v", err)
-	}
-
-	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		if endpoint != "" {
-			o.UsePathStyle = true
-			o.BaseEndpoint = &endpoint
-		}
-	})
-
-	return client, nil
-}
-
-func uploadCsvToS3(ctx context.Context, client *s3.Client, bucketName string, key string, csvData *bytes.Buffer) error {
-	putInput := &s3.PutObjectInput{
-		Bucket:      aws.String(bucketName),
-		Key:         aws.String(key),
-		Body:        bytes.NewReader(csvData.Bytes()),
-		ContentType: aws.String("application/zip"),
-	}
-
-	_, err := client.PutObject(ctx, putInput)
-	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return fmt.Errorf("upload to S3 timed out")
-		}
-		fmt.Printf("Error putting to S3: %v\n", err)
-		return fmt.Errorf("failed to upload CSV to S3: %v", err)
-	}
-
-	fmt.Printf("Successfully uploaded %s to S3 bucket %s\n", key, bucketName)
-	return nil
+	fmt.Println("ZIP file successfully uploaded to S3")
 }
