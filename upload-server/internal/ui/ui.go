@@ -98,11 +98,12 @@ type ManifestTemplateData struct {
 }
 
 type UploadTemplateData struct {
-	UploadUrl    string
-	UploadStatus string
-	Info         info.InfoResponse
-	Navbar       components.Navbar
-	NewUploadBtn components.NewUploadBtn
+	UploadEndpoint string
+	UploadUrl      string
+	UploadStatus   string
+	Info           info.InfoResponse
+	Navbar         components.Navbar
+	NewUploadBtn   components.NewUploadBtn
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -246,18 +247,19 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			return
 		}
 
-		uploadUrl, err := url.JoinPath(uploadUrl, id)
+		uploadDestinationUrl, err := url.JoinPath(uploadUrl, id)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
-			UploadUrl:    uploadUrl,
-			Info:         fileInfo,
-			UploadStatus: fileInfo.UploadStatus.Status,
-			Navbar:       components.NewNavbar(true),
-			NewUploadBtn: components.NewUploadBtn{},
+			UploadEndpoint: uploadUrl,
+			UploadUrl:      uploadDestinationUrl,
+			Info:           fileInfo,
+			UploadStatus:   fileInfo.UploadStatus.Status,
+			Navbar:         components.NewNavbar(true),
+			NewUploadBtn:   components.NewUploadBtn{},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -279,8 +281,8 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, uploadURL string, infoURL string) error {
-	DefaultServer = NewServer(uiPort, csrfToken, uploadURL, infoURL)
+func Start(uiUrl string, csrfToken string, uploadURL string, infoURL string) error {
+	DefaultServer = NewServer(uiUrl, csrfToken, uploadURL, infoURL)
 
 	return DefaultServer.ListenAndServe()
 }
