@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log/slog"
 	"os"
@@ -27,6 +28,13 @@ import (
 
 var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
+// TODO
+// populate groups
+// get health checks from targets
+// try and delete destinations
+var groups map[string]Group
+var targets map[string]Destination
+
 var destinations = map[string]map[string]Destination{}
 
 func RegisterDestination(name string, targetName string, d Destination) {
@@ -37,23 +45,29 @@ func RegisterDestination(name string, targetName string, d Destination) {
 	}
 }
 
-func GetDestinationTargetNames(dataStreamId string, dataStreamRoute string) []string {
-	targets, ok := destinations[dataStreamId+"-"+dataStreamRoute]
-	if !ok {
-		return []string{}
-	}
-	targetNames := make([]string, len(targets))
-	i := 0
-	for t := range targets {
-		targetNames[i] = t
-		i++
-	}
-	return targetNames
+//func GetGroupTargetNames(group Group) []string {
+//	targets, ok := destinations[group.Key()]
+//	if !ok {
+//		return []string{}
+//	}
+//	targetNames := make([]string, len(targets))
+//	i := 0
+//	for t := range targets {
+//		targetNames[i] = t
+//		i++
+//	}
+//	return targetNames
+//}
+
+func GetGroupTarget(group Group, target string) (Destination, bool) {
+	d, ok := destinations[group.Key()][target]
+	return d, ok
 }
 
-func GetDestinationTarget(dataStreamId string, dataStreamRoute string, target string) (Destination, bool) {
-	d, ok := destinations[dataStreamId+"-"+dataStreamRoute][target]
-	return d, ok
+func FindGroupFromMetadata(meta handler.MetaData) (Group, bool) {
+	dataStreamId, dataStreamRoute := metadataPkg.GetDataStreamID(meta), metadataPkg.GetDataStreamRoute(meta)
+	g, ok := groups[dataStreamId + "_" + dataStreamRoute]
+	return g, ok
 }
 
 func getTargetHealthChecks() []any {
@@ -113,6 +127,19 @@ type Group struct {
 	DataStreamId    string   `yaml:"data_stream_id"`
 	DataStreamRoute string   `yaml:"data_stream_route"`
 	DeliveryTargets []TargetDesignation `yaml:"delivery_targets"`
+}
+
+func (g *Group) Key() string {
+	return g.DataStreamId + "_" + g.DataStreamRoute
+}
+
+func (g *Group) TargetNames() []string {
+	names := make([]string, len(g.DeliveryTargets))
+	for i, t := range g.DeliveryTargets {
+		names[i] = t.Name
+	}
+
+	return names
 }
 
 type TargetDesignation struct {
@@ -180,26 +207,22 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	if err != nil {
 		return err
 	}
-	for _, p := range cfg.Groups {
-		name := p.DataStreamId + "-" + p.DataStreamRoute
 
-		if p.DeliveryTargets == nil {
-			slog.Warn(fmt.Sprintf("no targets configured for group %s", name))
+	for _, t := range cfg.Targets {
+		targets[t.Name] = t.Destination
+	}
+
+	for _, g := range cfg.Groups {
+		if g.DeliveryTargets == nil {
+			slog.Warn(fmt.Sprintf("no targets configured for group %s", g.Key()))
 		}
-		for _, t := range p.DeliveryTargets {
-			var d *Destination
-			for _, target := range cfg.Targets {
-				if target.Name == t.Name {
-					d = &target.Destination
-				}
+		for _, t := range g.DeliveryTargets {
+			d, ok := targets[t.Name]
+			if !ok {
+				return fmt.Errorf("target %s not found", t.Name)
 			}
 
-			if d == nil {
-				slog.Warn(fmt.Sprintf("unknown target designation %s", t.Name))
-				continue
-			}
-
-			RegisterDestination(name, t.Name, *d)
+			RegisterDestination(g.Key(), t.Name, d)
 		}
 	}
 
