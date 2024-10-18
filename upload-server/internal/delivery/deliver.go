@@ -105,13 +105,19 @@ type PathInfo struct {
 }
 
 type Config struct {
-	Programs []Program `yaml:"programs"`
+	Targets []Target `yaml:"targets"`
+	Groups []Group `yaml:"routing_groups"`
 }
 
-type Program struct {
+type Group struct {
 	DataStreamId    string   `yaml:"data_stream_id"`
 	DataStreamRoute string   `yaml:"data_stream_route"`
-	DeliveryTargets []Target `yaml:"delivery_targets"`
+	DeliveryTargets []TargetDesignation `yaml:"delivery_targets"`
+}
+
+type TargetDesignation struct {
+	Name string `yaml:"name"`
+	PathTemplate string `yaml:"path_template"`
 }
 
 type Target struct {
@@ -174,14 +180,26 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	if err != nil {
 		return err
 	}
-	for _, p := range cfg.Programs {
+	for _, p := range cfg.Groups {
 		name := p.DataStreamId + "-" + p.DataStreamRoute
 
 		if p.DeliveryTargets == nil {
-			slog.Warn(fmt.Sprintf("no targets configured for program %s", name))
+			slog.Warn(fmt.Sprintf("no targets configured for group %s", name))
 		}
 		for _, t := range p.DeliveryTargets {
-			RegisterDestination(name, t.Name, t.Destination)
+			var d *Destination
+			for _, target := range cfg.Targets {
+				if target.Name == t.Name {
+					d = &target.Destination
+				}
+			}
+
+			if d == nil {
+				slog.Warn(fmt.Sprintf("unknown target designation %s", t.Name))
+				continue
+			}
+
+			RegisterDestination(name, t.Name, *d)
 		}
 	}
 
