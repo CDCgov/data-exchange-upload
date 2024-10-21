@@ -5,13 +5,14 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
+
+	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
@@ -108,12 +109,14 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) *http.Server {
+func NewServer(port string, csrfToken string, uploadUrl string, infoUrl string) *http.Server {
 	router := GetRouter(uploadUrl, infoUrl)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
 	)(router)
+
+	addr := fmt.Sprintf(":%s", port)
 
 	s := &http.Server{
 		Addr:    addr,
@@ -129,7 +132,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 		dataStreamRoute := r.FormValue("data_stream_route")
 
 		configId := v2.ConfigIdentification{
-			DataStreamID: dataStream,
+			DataStreamID:    dataStream,
 			DataStreamRoute: dataStreamRoute,
 		}
 
@@ -281,8 +284,8 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 
 var DefaultServer *http.Server
 
-func Start(uiUrl string, csrfToken string, uploadURL string, infoURL string) error {
-	DefaultServer = NewServer(uiUrl, csrfToken, uploadURL, infoURL)
+func Start(uiPort string, csrfToken string, uploadURL string, infoURL string) error {
+	DefaultServer = NewServer(uiPort, csrfToken, uploadURL, infoURL)
 
 	return DefaultServer.ListenAndServe()
 }
