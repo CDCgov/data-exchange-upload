@@ -54,7 +54,7 @@ class ClientContext {
         this.options.onUploadUrlAvailable = cb;
     }
 
-    newUploadContext(filename: string, metadata: { [key: string]: string }) {
+    newUploadContext(filename: string, metadata: { [key: string]: string }): UploadContext {
         return new UploadContext(filename, metadata, this.baseURL, this.storage, this.options);
     }
 
