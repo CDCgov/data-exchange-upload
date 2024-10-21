@@ -22,7 +22,7 @@ func (ad *AzureSource) SourceType() string {
 	return storageTypeAzureBlob
 }
 
-func (ad *AzureSource) Reader(ctx context.Context, path string) (io.Reader, error) {
+func (ad *AzureSource) Reader(ctx context.Context, path string, concurrency int) (io.Reader, error) {
 	// Get blob src blob client.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.Prefix + "/" + path)
 	s, err := srcBlobClient.DownloadStream(ctx, nil)
@@ -104,7 +104,7 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 	}
 	return ad.toClient, nil
 }
-func (ad *AzureDestination) Copy(ctx context.Context, source *Source, destContainer string, destObjectPath string, concurrency int) (string, error) {
+func (ad *AzureDestination) Copy(ctx context.Context, path string, source *Source, concurrency int) (string, error) {
 	return "url", nil
 }
 

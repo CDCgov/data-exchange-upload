@@ -34,14 +34,14 @@ var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 var destinations = map[string]map[string]Destination{}
 
 type Source interface {
-	Reader(context.Context, string) (io.Reader, error)
+	Reader(context.Context, string, int) (io.Reader, error)
 	GetMetadata(context.Context, string) (map[string]string, error)
 	GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error)
 	SourceType() string
 }
 
 type Destination interface {
-	Copy(ctx context.Context, source *Source, destContainer string, destObjectPath string, concurrency int) (string, error)
+	Copy(ctx context.Context, path string, source *Source, concurrency int) (string, error)
 	DestinationType() string
 }
 

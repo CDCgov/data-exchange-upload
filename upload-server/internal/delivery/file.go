@@ -23,13 +23,11 @@ func (fd *FileDestination) DestinationType() string {
 	return storageTypeLocalFile
 }
 
-func (fd *FileDestination) Copy(ctx context.Context, source *Source, destContainer string, destObjectPath string, concurrency int) (string, error) {
-	return "file name", nil
-}
-
-func (fd *FileDestination) CopyFromRemoteStorage(ctx context.Context, sourceContainer string, sourceObjectPath string,
-	destContainer string, destObjectPath string, source *Source, concurrency int) error {
-	return nil
+func (fd *FileDestination) Copy(ctx context.Context, path string, source *Source, concurrency int) (string, error) {
+	s := *source
+	reader, _ := s.Reader(ctx, path, concurrency)
+	metadata, _ := s.GetMetadata(ctx, path)
+	return fd.Upload(ctx, path, reader, metadata)
 }
 
 func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
