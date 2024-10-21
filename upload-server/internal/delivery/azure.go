@@ -104,22 +104,36 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 	return ad.toClient, nil
 }
 
-func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
+func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) error {
 	blobName, err := getDeliveredFilename(ctx, path, ad.PathTemplate, m)
 	if err != nil {
-		return blobName, err
+		return err
 	}
 
 	c, err := ad.Client()
 	if err != nil {
-		return blobName, err
+		return err
 	}
 	client := c.NewBlockBlobClient(blobName)
 
 	_, err = client.UploadStream(ctx, r, &azblob.UploadStreamOptions{
 		Metadata: storeaz.PointerizeMetadata(m),
 	})
-	return client.URL(), err
+	return err
+}
+
+func (ad *AzureDestination) URI(ctx context.Context, id string, metadata map[string]string) (string, error) {
+	blobName, err := getDeliveredFilename(ctx, id, ad.PathTemplate, metadata)
+	if err != nil {
+		return "", err
+	}
+	c, err := ad.Client()
+	if err != nil {
+		return "", err
+	}
+	client := c.NewBlockBlobClient(blobName)
+
+	return client.URL(), nil
 }
 
 type azDestinationWriter struct {

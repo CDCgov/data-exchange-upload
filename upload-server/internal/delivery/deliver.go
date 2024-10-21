@@ -91,7 +91,8 @@ type Source interface {
 }
 
 type Destination interface {
-	Upload(context.Context, string, io.Reader, map[string]string) (string, error)
+	Upload(context.Context, string, io.Reader, map[string]string) error
+	URI(context.Context, string, map[string]string) (string, error)
 }
 
 type PathInfo struct {
@@ -214,16 +215,16 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 }
 
 // target may end up being a type
-func Deliver(ctx context.Context, path string, s Source, d Destination) (string, error) {
+func Deliver(ctx context.Context, path string, s Source, d Destination) error {
 
 	manifest, err := s.GetMetadata(ctx, path)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	r, err := s.Reader(ctx, path)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if rc, ok := r.(io.Closer); ok {
 		defer rc.Close()

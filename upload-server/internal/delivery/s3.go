@@ -20,11 +20,11 @@ type S3Source struct {
 	Prefix     string
 }
 
-type ReadTo interface {
-	ReadTo(ctx context.Context, path string, w io.WriterAt) error
+type ReadInto interface {
+	ReadInto(ctx context.Context, path string, w io.WriterAt) error
 }
 
-func (ss *S3Source) ReadTo(ctx context.Context, path string, w io.WriterAt) error {
+func (ss *S3Source) ReadInto(ctx context.Context, path string, w io.WriterAt) error {
 	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
 	id := strings.Split(path, "+")[0]
 	srcFileName := ss.Prefix + "/" + id
@@ -144,10 +144,10 @@ func (sd *S3Destination) Client() *s3.Client {
 	return sd.toClient
 }
 
-func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
+func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) error {
 	destFileName, err := getDeliveredFilename(ctx, path, sd.PathTemplate, m)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	uploader := manager.NewUploader(sd.Client())
@@ -158,9 +158,17 @@ func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m
 		Metadata: m,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to upload file to %s %s: %w", sd.BucketName, path, err)
+		return fmt.Errorf("failed to upload file to %s %s: %w", sd.BucketName, path, err)
 	}
 
+	return nil
+}
+
+func (sd *S3Destination) URI(ctx context.Context, id string, metadata map[string]string) (string, error) {
+	destFileName, err := getDeliveredFilename(ctx, id, sd.PathTemplate, metadata)
+	if err != nil {
+		return "", err
+	}
 	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, destFileName)
 	return s3URL, nil
 }

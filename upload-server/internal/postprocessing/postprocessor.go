@@ -2,6 +2,7 @@ package postprocessing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"reflect"
@@ -28,6 +29,34 @@ func init() {
 type PostProcessor struct {
 	UploadBaseDir string
 	UploadDir     string
+}
+
+type DeliveryMethod func(context.Context, string, delivery.Source, delivery.Destination) error
+
+func ParallelStreamDelivery(ctx context.Context, id string, s delivery.Source, d delivery.Destination) error {
+	dw, ok := d.(delivery.Writable)
+	srcr, sok := s.(delivery.ReadInto)
+	//TODO this isn't sustainable, implement a pattern registry or something
+	if !sok || !ok {
+		return errors.New("Cannot use this delivery method")
+	}
+	metadata, err := s.GetMetadata(ctx, id)
+	if err != nil {
+		return err
+	}
+	w, err := dw.Writer(ctx, id, metadata)
+	if err != nil {
+		return err
+	}
+	if err := srcr.ReadInto(ctx, id, w); err != nil {
+		return err
+	}
+	return nil
+}
+
+var DeliveryMethods = []DeliveryMethod{
+	ParallelStreamDelivery,
+	delivery.Deliver,
 }
 
 func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
@@ -65,29 +94,24 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		return err
 	}
 	//TODO get uri from the deliverer
-	var uri string
-	dw, ok := d.(delivery.Writable)
-	srcr, sok := src.(delivery.ReadTo)
-	//TODO this isn't sustainable, implement a pattern registry or something
-	if sok && ok {
-		w, err := dw.Writer(ctx, e.UploadId, e.Metadata)
-		if err != nil {
-			return err
+	var deliveryErr error
+	for _, method := range DeliveryMethods {
+		deliveryErr = method(ctx, e.UploadId, src, d)
+		if deliveryErr != nil {
+			slog.Warn("Delivery Method failed", "method", method, "id", e.UploadId)
 		}
-		if err := srcr.ReadTo(ctx, e.UploadId, w); err != nil {
-			return err
-		}
-	} else {
-		u, err := delivery.Deliver(ctx, e.UploadId, src, d)
+	}
+	if deliveryErr != nil {
+		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
+			Level:   reports.IssueLevelError,
+			Message: deliveryErr.Error(),
+		})
+		return deliveryErr
+	}
 
-		if err != nil {
-			rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
-				Level:   reports.IssueLevelError,
-				Message: err.Error(),
-			})
-			return err
-		}
-		uri = u
+	uri, err := d.URI(ctx, e.UploadId, e.Metadata)
+	if err != nil {
+		slog.Warn("failed to get uri for delivery", "event", e)
 	}
 
 	m, err := src.GetMetadata(ctx, e.UploadId)

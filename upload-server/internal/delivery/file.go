@@ -19,19 +19,23 @@ type FileDestination struct {
 	PathTemplate string `yaml:"path_template"`
 }
 
-func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
+func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) error {
 	if err := os.MkdirAll(fd.ToPath, 0755); err != nil {
-		return "", err
+		return err
 	}
 	dest, err := os.Create(filepath.Join(fd.ToPath, id))
 	if err != nil {
-		return dest.Name(), err
+		return err
 	}
 	defer dest.Close()
 	if _, err := io.Copy(dest, r); err != nil {
-		return dest.Name(), err
+		return err
 	}
-	return dest.Name(), nil
+	return nil
+}
+
+func (fd *FileDestination) URI(ctx context.Context, id string, metadata map[string]string) (string, error) {
+	return filepath.Join(fd.ToPath, id), nil
 }
 
 func (fd *FileDestination) Health(_ context.Context) (rsp models.ServiceHealthResp) {
