@@ -20,7 +20,16 @@ type FileDestination struct {
 }
 
 func (fd *FileDestination) DestinationType() string {
-	return storage_type_file
+	return storageTypeLocalFile
+}
+
+func (fd *FileDestination) Copy(ctx context.Context, source *Source, destContainer string, destObjectPath string, concurrency int) (string, error) {
+	return "file name", nil
+}
+
+func (fd *FileDestination) CopyFromRemoteStorage(ctx context.Context, sourceContainer string, sourceObjectPath string,
+	destContainer string, destObjectPath string, source *Source, concurrency int) error {
+	return nil
 }
 
 func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
@@ -61,7 +70,7 @@ type FileSource struct {
 }
 
 func (fd *FileSource) SourceType() string {
-	return storage_type_file
+	return storageTypeLocalFile
 }
 
 func (fd *FileSource) Reader(_ context.Context, path string) (io.Reader, error) {
@@ -97,6 +106,10 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 	}
 
 	return m, nil
+}
+
+func (fd *FileSource) GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error) {
+	return "", nil
 }
 
 func (fd *FileSource) Health(_ context.Context) (rsp models.ServiceHealthResp) {

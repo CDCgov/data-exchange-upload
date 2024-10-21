@@ -19,7 +19,7 @@ type AzureSource struct {
 }
 
 func (ad *AzureSource) SourceType() string {
-	return storage_type_blob
+	return storageTypeAzureBlob
 }
 
 func (ad *AzureSource) Reader(ctx context.Context, path string) (io.Reader, error) {
@@ -43,6 +43,10 @@ func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string
 		return nil, err
 	}
 	return storeaz.DepointerizeMetadata(resp.Metadata), nil
+}
+
+func (ad *AzureSource) GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error) {
+	return "", nil
 }
 
 func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
@@ -100,9 +104,12 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 	}
 	return ad.toClient, nil
 }
+func (ad *AzureDestination) Copy(ctx context.Context, source *Source, destContainer string, destObjectPath string, concurrency int) (string, error) {
+	return "url", nil
+}
 
 func (ad *AzureDestination) DestinationType() string {
-	return storage_type_blob
+	return storageTypeAzureBlob
 }
 
 func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {

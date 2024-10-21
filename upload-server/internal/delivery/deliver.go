@@ -25,13 +25,50 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
 
-const storage_type_file string = "file"
-const storage_type_blob string = "az-blob"
-const storage_type_s3 string = "s3"
+const storageTypeLocalFile string = "file"
+const storageTypeAzureBlob string = "az-blob"
+const storageTypeS3 string = "s3"
 
 var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
 var destinations = map[string]map[string]Destination{}
+
+type Source interface {
+	Reader(context.Context, string) (io.Reader, error)
+	GetMetadata(context.Context, string) (map[string]string, error)
+	GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error)
+	SourceType() string
+}
+
+type Destination interface {
+	Copy(ctx context.Context, source *Source, destContainer string, destObjectPath string, concurrency int) (string, error)
+	DestinationType() string
+}
+
+type PathInfo struct {
+	Year     string
+	Month    string
+	Day      string
+	Hour     string
+	UploadId string
+	Filename string
+}
+
+type Config struct {
+	Programs []Program `yaml:"programs"`
+}
+
+type Program struct {
+	DataStreamId    string   `yaml:"data_stream_id"`
+	DataStreamRoute string   `yaml:"data_stream_route"`
+	DeliveryTargets []Target `yaml:"delivery_targets"`
+}
+
+type Target struct {
+	Name        string      `yaml:"name"`
+	Type        string      `yaml:"type"`
+	Destination Destination `yaml:"-"`
+}
 
 func RegisterDestination(name string, targetName string, d Destination) {
 	if _, ok := destinations[name]; ok {
@@ -90,46 +127,10 @@ func GetSource(name string) (Source, bool) {
 	return s, ok
 }
 
-type Source interface {
-	Reader(context.Context, string) (io.Reader, error)
-	GetMetadata(context.Context, string) (map[string]string, error)
-	SourceType() string
-}
-
-type Destination interface {
-	Upload(context.Context, string, io.Reader, map[string]string) (string, error)
-	DestinationType() string
-}
-
-type PathInfo struct {
-	Year     string
-	Month    string
-	Day      string
-	Hour     string
-	UploadId string
-	Filename string
-}
-
-type Config struct {
-	Programs []Program `yaml:"programs"`
-}
-
-type Program struct {
-	DataStreamId    string   `yaml:"data_stream_id"`
-	DataStreamRoute string   `yaml:"data_stream_route"`
-	DeliveryTargets []Target `yaml:"delivery_targets"`
-}
-
-type Target struct {
-	Name        string      `yaml:"name"`
-	Type        string      `yaml:"type"`
-	Destination Destination `yaml:"-"`
-}
-
 var DestinationTypes = map[string]func() Destination{
-	storage_type_s3:   func() Destination { return &S3Destination{} },
-	storage_type_file: func() Destination { return &FileDestination{} },
-	storage_type_blob: func() Destination { return &AzureDestination{} },
+	storageTypeS3:        func() Destination { return &S3Destination{} },
+	storageTypeLocalFile: func() Destination { return &FileDestination{} },
+	storageTypeAzureBlob: func() Destination { return &AzureDestination{} },
 }
 
 var ErrUnknownDestinationType = errors.New("unknown destination type")
@@ -163,7 +164,6 @@ func unmarshalDeliveryConfig(confBody string) (*Config, error) {
 	return c, nil
 }
 
-// Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
 	var src Source
 	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
@@ -224,9 +224,8 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	return nil
 }
 
-// target may end up being a type
 func Deliver(ctx context.Context, path string, s Source, d Destination) (string, error) {
-
+	return d.Copy(ctx, s)
 	manifest, err := s.GetMetadata(ctx, path)
 	if err != nil {
 		return "", err
@@ -239,7 +238,7 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 	if rc, ok := r.(io.Closer); ok {
 		defer rc.Close()
 	}
-	return d.Upload(ctx, path, r, manifest)
+	//return d.Upload(ctx, path, r, manifest)
 }
 
 func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string, manifest map[string]string) (string, error) {
