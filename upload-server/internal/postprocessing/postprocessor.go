@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"reflect"
 	"strings"
@@ -51,6 +52,11 @@ func ParallelStreamDelivery(ctx context.Context, id string, s delivery.Source, d
 	if err := srcr.ReadInto(ctx, id, w); err != nil {
 		return err
 	}
+	if c, ok := w.(io.Closer); ok {
+		if err := c.Close(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -93,7 +99,6 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
-	//TODO get uri from the deliverer
 	var deliveryErr error
 	for _, method := range DeliveryMethods {
 		deliveryErr = method(ctx, e.UploadId, src, d)
