@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"io"
 	"net/http"
 	"net/url"
@@ -127,7 +128,12 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
 
-		config, err := metadata.Cache.GetConfig(r.Context(), fmt.Sprintf("v2/%s-%s.json", dataStream, dataStreamRoute))
+		configId := v2.ConfigIdentification{
+			DataStreamID: dataStream,
+			DataStreamRoute: dataStreamRoute,
+		}
+
+		config, err := metadata.Cache.GetConfig(r.Context(), configId.Path())
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusNotFound)
 			return
