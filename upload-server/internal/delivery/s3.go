@@ -53,7 +53,7 @@ func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) 
 }
 
 func (ss *S3Source) SourceType() string {
-	return storage_type_s3
+	return storageTypeS3
 }
 
 func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
@@ -70,6 +70,10 @@ func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]st
 	}
 
 	return output.Metadata, nil
+}
+
+func (ss *S3Source) GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error) {
+	return "", nil
 }
 
 func (ss *S3Source) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
@@ -106,7 +110,7 @@ type S3Destination struct {
 }
 
 func (sd *S3Destination) DestinationType() string {
-	return storage_type_s3
+	return storageTypeS3
 }
 
 func (sd *S3Destination) Retrieve(ctx context.Context) (aws.Credentials, error) {
@@ -129,6 +133,10 @@ func (sd *S3Destination) Client() *s3.Client {
 	// Create a Session with a custom region
 	sd.toClient = s3.New(options)
 	return sd.toClient
+}
+
+func (sd *S3Destination) Copy(ctx context.Context, source *Source, destContainer string, destObjectPath string, concurrency int) (string, error) {
+	return "url", nil
 }
 
 func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
