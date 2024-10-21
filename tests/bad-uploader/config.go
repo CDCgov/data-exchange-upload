@@ -38,7 +38,7 @@ var (
 		"data_producer_id":  "dex simulation harness",
 		"jurisdiction":      "test",
 	}
-	manifestTargets = []string{"ncird"}
+	manifestTargets = []string{"edav", "eicr", "ehdi", "ncird"}
 
 	testcase TestCase
 	cases    TestCases
@@ -236,7 +236,7 @@ func init() {
 			Chunk:                   chunk,
 			Size:                    size,
 			Manifest:                manifest,
-			TimeLimit:               Duration(120 * time.Second),
+			TimeLimit:               Duration(60 * time.Minute),
 			ExpectedDeliveryTargets: manifestTargets,
 		}
 		if templatePath != "" {

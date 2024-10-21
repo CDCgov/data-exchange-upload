@@ -18,7 +18,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -199,12 +198,8 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		}
 	}
 	if appConfig.S3Connection != nil {
-		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
-		if err != nil {
-			return err
-		}
 		src = &S3Source{
-			FromClient: s3Client,
+			Connection: appConfig.S3Connection,
 			BucketName: appConfig.S3Connection.BucketName,
 			Prefix:     appConfig.TusUploadPrefix,
 		}
