@@ -71,7 +71,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 		// if there are no errors, then the upload-complete file has been created
 		// we can stop here and set the status to Complete and set the last chunk received
 		// to the time the file was created, no other calculations are needed
-		lastChunkReceived := uploadCompletedFileInfo.ModTime().UTC().Format(time.RFC3339)
+		lastChunkReceived := uploadCompletedFileInfo.ModTime().UTC().Format(time.RFC3339Nano)
 		return info.FileUploadStatus{
 			Status:            info.UploadComplete,
 			LastChunkReceived: lastChunkReceived,
@@ -107,7 +107,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 	uploadStartedModTime := uploadStartedFileInfo.ModTime()
 	uploadStatusModTime := uploadStatusReportFileInfo.ModTime()
 
-	lastChunkReceived := uploadStatusModTime.UTC().Format(time.RFC3339)
+	lastChunkReceived := uploadStatusModTime.UTC().Format(time.RFC3339Nano)
 
 	if uploadStartedModTime.Unix() == uploadStatusModTime.Unix() {
 		// when the file upload is initiated the upload-started and upload-status reports
@@ -128,5 +128,5 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx contex
 		}, nil
 	}
 
-	return info.FileUploadStatus{}, errors.New("Unable to determine the status of the upload")
+	return info.FileUploadStatus{}, errors.New("unable to determine the status of the upload")
 }
