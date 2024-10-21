@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"sort"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -122,10 +123,11 @@ func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader
 }
 
 type azDestinationWriter struct {
-	baseID string
-	chunks []string
-	client *blockblob.Client
-	ctx    context.Context
+	baseID   string
+	chunks   []int
+	client   *blockblob.Client
+	ctx      context.Context
+	metadata map[string]string
 }
 
 type reader struct {
@@ -137,14 +139,13 @@ func (r *reader) Close() error {
 }
 
 func (adw *azDestinationWriter) WriteAt(p []byte, off int64) (n int, err error) {
-	id := []byte(fmt.Sprintf("%05d%s", off, adw.baseID))
+	id := []byte(fmt.Sprintf("%d:%s", off, adw.baseID))
 	if len(id) > 64 {
 		id = id[:64]
 	}
 	if len(id) != 64 {
 		return 0, errors.New("Length for id must be 64")
 	}
-	//TODO ensure the length is exactly 64 or something before encoding
 	chunkID := base64.StdEncoding.EncodeToString(id)
 	b := bytes.NewReader(p)
 	r := &reader{b}
@@ -152,14 +153,23 @@ func (adw *azDestinationWriter) WriteAt(p []byte, off int64) (n int, err error) 
 	if err != nil {
 		return n, err
 	}
-	adw.chunks = append(adw.chunks, chunkID)
+	//TODO does this need to be thread safe?
+	adw.chunks = append(adw.chunks, int(off))
 	slog.Debug("Staged block", "response", rsp, "chunkID", chunkID, "size", len(p), "at", off)
 	return len(p), nil
 }
+
+func (adw *azDestinationWriter) Chunks() (chunks []string) {
+	sort.Ints(adw.chunks)
+	for _, c := range adw.chunks {
+		chunks = append(chunks, fmt.Sprintf("%d:%s", c, adw.baseID))
+	}
+	return chunks
+}
 func (adw *azDestinationWriter) Close() error {
-	//TODO Sort the chunks
-	//TODO Metadata
-	_, err := adw.client.CommitBlockList(adw.ctx, adw.chunks, &blockblob.CommitBlockListOptions{})
+	_, err := adw.client.CommitBlockList(adw.ctx, adw.Chunks(), &blockblob.CommitBlockListOptions{
+		Metadata: storeaz.PointerizeMetadata(adw.metadata),
+	})
 	return err
 }
 
@@ -178,9 +188,10 @@ func (ad *AzureDestination) Writer(ctx context.Context, id string, m map[string]
 	}
 	client := c.NewBlockBlobClient(blobName)
 	adw := &azDestinationWriter{
-		baseID: id,
-		ctx:    ctx,
-		client: client,
+		baseID:   id,
+		ctx:      ctx,
+		client:   client,
+		metadata: m,
 	}
 	return adw, nil
 }
