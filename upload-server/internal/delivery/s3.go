@@ -28,12 +28,16 @@ type S3Source struct {
 	Prefix     string
 }
 
-func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) {
+func (ss *S3Source) Reader(ctx context.Context, path string, concurrency int) (io.Reader, error) {
 	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
 	id := strings.Split(path, "+")[0]
 	srcFileName := ss.Prefix + "/" + id
-	downloader := manager.NewDownloader(ss.FromClient)
-	downloader.Concurrency = 1
+	if concurrency <= 0 {
+		concurrency = 5
+	}
+	downloader := manager.NewDownloader(ss.FromClient, func(d *manager.Downloader) {
+		d.Concurrency = concurrency
+	})
 
 	r, w := io.Pipe()
 
@@ -135,7 +139,7 @@ func (sd *S3Destination) Client() *s3.Client {
 	return sd.toClient
 }
 
-func (sd *S3Destination) Copy(ctx context.Context, source *Source, destContainer string, destObjectPath string, concurrency int) (string, error) {
+func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, concurrency int) (string, error) {
 	return "url", nil
 }
 
