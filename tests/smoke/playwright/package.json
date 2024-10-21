@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "tus-js-client": "^4.0.1",
+    "tus-js-client": "latest",
     "uuid": "^9.0.1"
   },
   "keywords": [],
