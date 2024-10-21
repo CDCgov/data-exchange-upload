@@ -3,11 +3,12 @@ package postprocessing
 import (
 	"context"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"log/slog"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -63,14 +64,30 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
-	uri, err := delivery.Deliver(ctx, e.UploadId, src, d)
+	//TODO get uri from the deliverer
+	var uri string
+	dw, ok := d.(delivery.Writable)
+	srcr, sok := src.(delivery.ReadTo)
+	//TODO this isn't sustainable, implement a pattern registry or something
+	if sok && ok {
+		w, err := dw.Writer(ctx, e.UploadId, e.Metadata)
+		if err != nil {
+			return err
+		}
+		if err := srcr.ReadTo(ctx, e.UploadId, w); err != nil {
+			return err
+		}
+	} else {
+		u, err := delivery.Deliver(ctx, e.UploadId, src, d)
 
-	if err != nil {
-		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
-			Level:   reports.IssueLevelError,
-			Message: err.Error(),
-		})
-		return err
+		if err != nil {
+			rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
+				Level:   reports.IssueLevelError,
+				Message: err.Error(),
+			})
+			return err
+		}
+		uri = u
 	}
 
 	m, err := src.GetMetadata(ctx, e.UploadId)

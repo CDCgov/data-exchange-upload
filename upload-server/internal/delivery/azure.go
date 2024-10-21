@@ -1,12 +1,18 @@
 package delivery
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"io"
+	"log/slog"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
@@ -113,6 +119,70 @@ func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader
 		Metadata: storeaz.PointerizeMetadata(m),
 	})
 	return client.URL(), err
+}
+
+type azDestinationWriter struct {
+	baseID string
+	chunks []string
+	client *blockblob.Client
+	ctx    context.Context
+}
+
+type reader struct {
+	*bytes.Reader
+}
+
+func (r *reader) Close() error {
+	return nil
+}
+
+func (adw *azDestinationWriter) WriteAt(p []byte, off int64) (n int, err error) {
+	id := []byte(fmt.Sprintf("%05d%s", off, adw.baseID))
+	if len(id) > 64 {
+		id = id[:64]
+	}
+	if len(id) != 64 {
+		return 0, errors.New("Length for id must be 64")
+	}
+	//TODO ensure the length is exactly 64 or something before encoding
+	chunkID := base64.StdEncoding.EncodeToString(id)
+	b := bytes.NewReader(p)
+	r := &reader{b}
+	rsp, err := adw.client.StageBlock(adw.ctx, chunkID, r, &blockblob.StageBlockOptions{})
+	if err != nil {
+		return n, err
+	}
+	adw.chunks = append(adw.chunks, chunkID)
+	slog.Debug("Staged block", "response", rsp, "chunkID", chunkID, "size", len(p), "at", off)
+	return len(p), nil
+}
+func (adw *azDestinationWriter) Close() error {
+	//TODO Sort the chunks
+	//TODO Metadata
+	_, err := adw.client.CommitBlockList(adw.ctx, adw.chunks, &blockblob.CommitBlockListOptions{})
+	return err
+}
+
+type Writable interface {
+	Writer(ctx context.Context, id string, m map[string]string) (io.WriterAt, error)
+}
+
+func (ad *AzureDestination) Writer(ctx context.Context, id string, m map[string]string) (io.WriterAt, error) {
+	blobName, err := getDeliveredFilename(ctx, id, ad.PathTemplate, m)
+	if err != nil {
+		return nil, err
+	}
+	c, err := ad.Client()
+	if err != nil {
+		return nil, err
+	}
+	client := c.NewBlockBlobClient(blobName)
+	adw := &azDestinationWriter{
+		baseID: id,
+		ctx:    ctx,
+		client: client,
+	}
+	return adw, nil
 }
 
 func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealthResp) {

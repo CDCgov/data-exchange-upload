@@ -28,6 +28,25 @@ type S3Source struct {
 	Prefix     string
 }
 
+type ReadTo interface {
+	ReadTo(ctx context.Context, path string, w io.WriterAt) error
+}
+
+func (ss *S3Source) ReadTo(ctx context.Context, path string, w io.WriterAt) error {
+	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
+	id := strings.Split(path, "+")[0]
+	srcFileName := ss.Prefix + "/" + id
+	downloader := manager.NewDownloader(ss.FromClient)
+	downloader.BufferProvider = manager.NewPooledBufferedWriterReadFromProvider(1024 * 1024 * 5)
+	//downloader.Concurrency = 8
+
+	_, err := downloader.Download(ctx, w, &s3.GetObjectInput{
+		Bucket: &ss.BucketName,
+		Key:    &srcFileName,
+	})
+	return err
+}
+
 func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) {
 	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
 	id := strings.Split(path, "+")[0]
