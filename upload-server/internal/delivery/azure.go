@@ -176,7 +176,15 @@ func (adw *azDestinationWriter) WriteAt(p []byte, off int64) (n int, err error) 
 func (adw *azDestinationWriter) Chunks() (chunks []string) {
 	sort.Ints(adw.chunks)
 	for _, c := range adw.chunks {
-		chunks = append(chunks, fmt.Sprintf("%d:%s", c, adw.baseID))
+		id := []byte(fmt.Sprintf("%d:%s", c, adw.baseID))
+		if len(id) > 64 {
+			id = id[:64]
+		}
+		if len(id) != 64 {
+			panic("Length for id must be 64")
+		}
+		chunkID := base64.StdEncoding.EncodeToString(id)
+		chunks = append(chunks, chunkID)
 	}
 	return chunks
 }

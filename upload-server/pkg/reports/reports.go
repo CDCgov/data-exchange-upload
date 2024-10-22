@@ -2,11 +2,12 @@ package reports
 
 import (
 	"context"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"log/slog"
 	"reflect"
 	"strings"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 )
 
 var logger *slog.Logger
@@ -41,4 +42,5 @@ func CloseAll() {
 	for _, r := range Reporters {
 		r.Close()
 	}
+	Reporters = []event.Publisher[*Report]{}
 }

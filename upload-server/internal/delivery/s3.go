@@ -33,8 +33,10 @@ func (ss *S3Source) ReadInto(ctx context.Context, path string, w io.WriterAt) er
 		return err
 	}
 	downloader := manager.NewDownloader(client)
-	downloader.BufferProvider = manager.NewPooledBufferedWriterReadFromProvider(1024 * 1024 * 5)
-	//downloader.Concurrency = 8
+	//downloader.PartSize = 1024 * 1024 * 50
+	//downloader.ClientOptions
+	downloader.BufferProvider = manager.NewPooledBufferedWriterReadFromProvider(1024 * 1024 * 10)
+	//downloader.Concurrency = 20
 
 	if _, err := downloader.Download(ctx, w, &s3.GetObjectInput{
 		Bucket: &ss.BucketName,

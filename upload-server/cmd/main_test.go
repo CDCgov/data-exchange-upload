@@ -13,10 +13,72 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	dexTesting "github.com/cdcgov/data-exchange-upload/upload-server/testing"
 )
 
 var AZURITE_KEY = os.Getenv("AZURITE_STORAGE_KEY")
+
+func BenchmarkTusAzS3Parallel(b *testing.B) {
+	postprocessing.DeliveryMethods = []postprocessing.DeliveryMethod{
+		postprocessing.ParallelStreamDelivery,
+	}
+	name := "s3_to_azure"
+	c := cases[name]
+	setUp(name, c)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		main()
+	}()
+	time.Sleep(1 * time.Second)
+
+	benchURL := fmt.Sprintf("http://localhost:%s", os.Getenv("SERVER_PORT"))
+	testCase := dexTesting.Cases["good"]
+	b.ResetTimer()
+	for range b.N {
+		if _, err := dexTesting.RunTusTestCase(benchURL, "../testing/test.txt", testCase); err != nil {
+			b.Error("good", err)
+		} else {
+			b.Log("test case", "good", "passed")
+		}
+	}
+	b.StopTimer()
+	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	wg.Wait()
+}
+
+func BenchmarkTusAzS3Stream(b *testing.B) {
+	postprocessing.DeliveryMethods = []postprocessing.DeliveryMethod{
+		delivery.Deliver,
+	}
+	name := "s3_to_azure"
+	c := cases[name]
+	setUp(name, c)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		main()
+	}()
+	time.Sleep(1 * time.Second)
+
+	benchURL := fmt.Sprintf("http://localhost:%s", os.Getenv("SERVER_PORT"))
+	testCase := dexTesting.Cases["good"]
+	b.ResetTimer()
+	for range b.N {
+		if _, err := dexTesting.RunTusTestCase(benchURL, "../testing/test.txt", testCase); err != nil {
+			b.Error("good", err)
+		} else {
+			b.Log("test case", "good", "passed")
+		}
+	}
+	b.StopTimer()
+	syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+	wg.Wait()
+}
 
 func TestTus(t *testing.T) {
 	for name, c := range cases {
@@ -106,9 +168,4 @@ var cases = map[string]map[string]string{
 		"AZURITE_KEY":              AZURITE_KEY,
 		"DEX_DELIVERY_CONFIG_FILE": "../configs/testing/mix_destinations.yml",
 	},
-}
-
-func TestMain(m *testing.M) {
-	result := m.Run()
-	os.Exit(result)
 }

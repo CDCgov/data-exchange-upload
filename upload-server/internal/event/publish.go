@@ -45,30 +45,28 @@ type Publisher[T Identifiable] interface {
 
 func NewEventPublisher[T Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (Publisher[T], error) {
 	var p Publisher[T]
-	c, err := GetChannel[T]()
-	if err != nil {
-		return nil, err
-	}
-
-	p = &MemoryPublisher[T]{
+	p = &MemoryBus[T]{
 		Dir:  appConfig.LocalEventsFolder,
-		Chan: c,
+		Chan: make(chan T),
 	}
 
 	if appConfig.PublisherConnection != nil {
+		var err error
 		p, err = NewAzurePublisher[T](ctx, *appConfig.PublisherConnection)
 		health.Register(p)
+		return p, err
 	}
 
 	return p, nil
 }
 
-type MemoryPublisher[T Identifiable] struct {
-	Dir  string
-	Chan chan T
+type MemoryBus[T Identifiable] struct {
+	Dir    string
+	Chan   chan T
+	closed bool
 }
 
-func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
+func (mp *MemoryBus[T]) Publish(ctx context.Context, event T) error {
 	err := os.MkdirAll(mp.Dir, 0750)
 	if err != nil && !os.IsExist(err) {
 		return err
@@ -88,7 +86,7 @@ func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 		return err
 	}
 
-	if mp.Chan != nil {
+	if mp.Chan != nil && !mp.closed {
 		go func() {
 			mp.Chan <- event
 		}()
@@ -96,15 +94,47 @@ func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 	return nil
 }
 
-func (mp *MemoryPublisher[T]) Close() error {
+func (mp *MemoryBus[T]) Close() error {
+	mp.closed = true
+	if !mp.closed && mp.Chan != nil {
+		close(mp.Chan)
+	}
 	return nil
 }
 
-func (mp *MemoryPublisher[T]) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+func (mp *MemoryBus[T]) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "Memory Publisher"
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 	return rsp
+}
+
+func (ms *MemoryBus[T]) GetBatch(ctx context.Context, _ int) ([]T, error) {
+	select {
+	case <-ctx.Done():
+		return nil, nil
+	case evt := <-ms.Chan:
+		return []T{evt}, nil
+	}
+}
+
+func (ms *MemoryBus[T]) HandleSuccess(_ context.Context, e T) error {
+	logger.Info("successfully handled event", "event", e)
+	return nil
+}
+
+func (ms *MemoryBus[T]) HandleError(ctx context.Context, e T, err error) error {
+	logger.Error("failed to handle event", "event", e, "error", err.Error())
+	if e.RetryCount() < MaxRetries {
+		e.IncrementRetryCount()
+		// Retrying in a separate go routine so this doesn't block on channel write.
+		go func() {
+			if ctx.Err() == nil {
+				ms.Chan <- e
+			}
+		}()
+	}
+	return nil
 }
 
 type AzurePublisher[T Identifiable] struct {

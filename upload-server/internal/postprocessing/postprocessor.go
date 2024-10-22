@@ -103,7 +103,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	for _, method := range DeliveryMethods {
 		deliveryErr = method(ctx, e.UploadId, src, d)
 		if deliveryErr != nil {
-			slog.Warn("Delivery Method failed", "method", method, "id", e.UploadId)
+			slog.Warn("Delivery Method failed", "method", method, "id", e.UploadId, "err", deliveryErr)
 		}
 	}
 	if deliveryErr != nil {
