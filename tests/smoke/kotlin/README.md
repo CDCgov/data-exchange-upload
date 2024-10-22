@@ -1,80 +1,113 @@
-# Upload API Smoke Tests with TestNG
-
-This is a Kotlin/Gradle project that uses the TestNG framework to automate smoke testing for the Upload API. These tests
-upload actual files and verify the functionality for metadata verification, file copy, and Processing Status API
-integration. They are intended to be run after a release to the tst, stg, or prd environments. They can also be run
-locally on a machine within the CDC network.
+# Upload API End to End Tests with TestNG
+This is a Kotlin/Gradle project that uses the TestNG framework to automate end to end testing for the Upload API. These tests upload actual files and verify the functionality for metadata verification, file copy, Processing Status API integration and healthcheck testing. They are intended to be run after a release to the `DEV`, `TEST` or `STAGE` environments or for frequent checking of functionality against any environment, including local environments.
 
 ## Local Setup
 
 The following tools need to be installed on your machine:
 
-- Java JDK 17
-- Gradle
+- [Java JDK 17](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html)
+- [Gradle](https://gradle.org/install/)
+
+> [!TIP]
+> For Windows users, the gradlew batch file in the repo can be used to execute gradle commands as long as Gradle is installed.
 
 ### Install Gradle Dependencies
 
-Next, run `gradle build` to install dependencies for this project. This also installs the TestNG dependency.  **Note
-that you may need to turn off Zscalar in order for this operation to be successful.**
+Next, run `gradle build` to install dependencies for this project. This also installs the TestNG dependency and other related dependencies for the project.  
+
+> [!NOTE]
+> You may need to turn off Zscalar in order for this operation to be successful.
 
 ### Environment Setup
 
-Next, set required environment variables. This can be done by setting local gradle properties in a `local.properties`
-file at the root level, or passing them in on the command line as Java system properties. To see a list of required
-variables, look at the `src/test/kotlin/util/EnvConfig.kt` file.
-These environment variables are how you target different DEX environments. For example, for the dev environment, all
-environment variables need to point to URLs, endpoints, and services uses by the Upload API dev environment.
+Copy `local.properites-example` to `local.properties` for the basic required environment variables at the root level of the project. 
 
-The EnvConfig class reads configuration values from a local.properties file. This setup allows us to manage environment-specific settings, like URLs and credentials.
+The following are the currently configured environment variables that can be set for the tests to run.
 
-Storage account keys can be found in our key vaults (ocio-<env>-upload-vault). 
-Example of dev key vault: `ocio-dev-upload-vault - Microsoft Azure`. Need to have `su` account for Microsoft Azure portal as a pre-requisite.
+| Environment Variable | Required? | Description                                      |
+| ---------------------| --------- | -------------------------------------------------|
+| environment          | Yes       | Environment to target (LOCAL, DEV, TEST, STAGE)
+| upload.url           | Yes       | URL of the upload API
+| ps.api.url           | Yes       | URL for Processing Status API  
+| sams.username        | No        | SAMS username for authentication (if needed)
+| sams.password        | No        | SAMS password for authentication (if needed)
 
-![img.png](img.png)
+The EnvConfig class (`src/test/kotlin/util/EnvConfig.kt`) reads configuration values from a local.properties file. This setup allows us to manage environment-specific settings, like URLs and credentials.
 
 ### Running tests
 
-This project contains a set of test suites that define the tests to be run. These suites are grouped by environment and
-are broken up by use case.
-They are run by executing the `gradle test` comment with a few gradle properties that are passed in as command line
-arguments:
+This project contains a set of test suites that define the tests to be run for different functional areas.  Tests are located in `/src/test/kotlin`.  The test files are:
+| Test File      | Purpose        |
+|----------------|----------------|
+| `FileCopy.kt ` | Testing that the upload api can accept files for different manifest configurations and can upload and transfer files as expected.
+| `Health.kt`    | Test the healthcheck endpoint
+| `Info.kt `     | Test the /info endpoint 
+| `ProcStat.kt`  | Testing processing status reports after an upload
 
-- `manifestFilter` - This is a required argument that allows you to select a subset of use cases you want to run the
-  tests against. It is a comma-separated list of values for each key that you want to run. Available manifests are added
-  to a file which is under resources folder in json format. By default, the tests will run for all use cases.
+They are run by executing the `gradle test` with the option of using some command line parameters.
+
+#### Optional Parameters
+
+- `manifestFilter` - This argument allows you to select a subset of use cases you want to run the tests against. It is a comma-separated list of values for each key that you want to run. Available manifests are added to a file which is under resources folder in json format. By default, the tests will run for all use cases.
 
 #### Examples:
+The following are some examples of test run commands.
 
-- Run all use cases:
+> [!TIP]
+> The `--tests` parameter lets you select only a specific test file to run or a specific test within a file.
 
-`gradle test`
+> [!TIP]
+> The --rerun command may be needed in order to force tests to rerun, otherwise tests may be skipped if there are no changes.
+
+##### Run All Tests
+
+```
+gradle test
+```
+
+##### Run tests from a specific file
+
+```
+gradle test --tests "FileCopy"
+```
+
+##### Run tests from a specific file and a specific test
+
+```
+gradle test --tests "FileCopy.shouldUploadFile"
+```
+
+##### Run tests filtered by manifest
+
+> [!TIP]
+> This filter is a semicolon-separated string of key-value pairs.
+> Each key can have multiple comma-separated values.
+```
+gradle test -PmanifestFilter='data_stream_id=ehdi'
+```
+```
+gradle test -PmanifestFilter='meta_destination_id=ndlp&meta_ext_source=IZGW'
+```
+```
+gradle test -PmanifestFilter='jurisdiction=AKA,CA;data_stream_route=csv,other&sender_id=CA-ABCs,IZGW'
+```
 
 ## Data Providers for TestNG
 
-This project includes a `DataProvider` utility class that supplies test data to TestNG tests. The class uses the Jackson
-library to read and filter JSON manifests based on criteria specified through system properties.
+This project includes a `DataProvider` utility class that supplies test data to TestNG tests.  The test data being used in tests are essentially test cases that define how a single test can be repeated and validated for different cases defined within the json being used as a source for the DataProvider.
 
-### How It Works
+### Data Provider Definitions
 
-1. Loading Manifests:
+The `dataProvider` decorator before a test defines what data provider should be used to pass in data into the test.  These are the currently defined Data Providers in `/src/test/kotlin/util/DataProvider.kt`
 
-- The `DataProvider` class reads JSON manifest files specified in the data provider methods.
+| Data Provider Name                      | Associated json file                      | Description                 |
+|-----------------------------------------|-------------------------------------------|-----------------------------|
+| `versionProvider`                       | N/A                                       | Returns an array of `["v1", "v2"]` for versions
+| `validManifestAllProvider`              | `valid_manifests_v2.json`                 | All v2 manifests and path configs |
+| `validManifestV1Provider`               | `valid_manifests_v1.json`                 | All v1 manifests and configs | 
+| `invalidManifestRequiredFieldsProvider` | `invalid_manifests_required_fields.json`  | Manifests with invalid values |
+| `invalidManifestInvalidValueProvider`   | `invalid_manifests_invalid_value.json`    | Manifests with invalid fields  |
 
-2. Filtering Manifests:
-
-- A system property `manifestFilter` can be set to define filtering criteria.
-- This filter is a semicolon-separated string of key-value pairs.
-- Each key can have multiple comma-separated values.
-
-### Example Usage
-
-To filter specific key-value pairs in the JSON manifests, use the `manifestFilter` system property.
-Here are the example commands to run the tests with manifest filters:
-
-`gradle test -PmanifestFilter='meta_destination_id=ndlp&meta_ext_source=IZGW'`
-`gradle test -PmanifestFilter='jurisdiction=AKA,CA;data_stream_route=csv,other&sender_id=CA-ABCs,IZGW'`
-
-We can run tests for specified manifest in a single command line argument.
 
 ### Future Improvements
 
