@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
@@ -59,7 +60,7 @@ func (aui *AzureUploadInspector) InspectUploadedFile(c context.Context, id strin
 	}
 
 	uploadedFileInfo := map[string]any{
-		"updated_at": propertiesResponse.LastModified,
+		"updated_at": propertiesResponse.LastModified.Format(time.RFC3339Nano),
 		"size_bytes": propertiesResponse.ContentLength,
 	}
 
