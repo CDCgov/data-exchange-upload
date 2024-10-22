@@ -611,9 +611,8 @@ func TestMain(m *testing.M) {
 	defer reports.CloseAll()
 	err = event.InitFileReadyPublisher(testContext, appConfig)
 	defer event.FileReadyPublisher.Close()
-	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
-		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
+		cli.SubscribeToEvents(testContext, event.FileReadyPublisher.(event.Subscribable[*event.FileReady]), postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 
