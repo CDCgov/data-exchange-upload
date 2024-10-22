@@ -10,12 +10,12 @@ services:
       - SERVICES=sns,sqs
   upload-server:
     environment:
-      - SQS_EVENT_ARN=arn:aws:sqs:us-east-1:000000000042:test-topic
-      - SNS_EVENT_TOPIC_ARN=arn:aws:sns:us-east-1:000000000042:test-topic
-      - SNS_AWS_REGION=us-east-1
-      - SNS_AWS_DEFAULT_REGION=us-east-1
-      - SNS_AWS_ACCESS_KEY_ID=LSIAQAAAAAAVNCBMPNSG
-      - SNS_AWS_SECRET_ACCESS_KEY=bogus
-      - SNS_AWS_ENDPOINT_URL=http://localstack:4566
+      - SQS_SUBSCRIBER_EVENT_ARN=arn:aws:sns:us-east-1:000000000042:test-topic
+      - SNS_PUBLISHER_EVENT_ARN=arn:aws:sns:us-east-1:000000000042:test-topic
+      - SNS_REPORTER_EVENT_ARN=arn:aws:sns:us-east-1:000000000042:report-topic
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=LSIAQAAAAAAVNCBMPNSG
+      - AWS_SECRET_ACCESS_KEY=bogus
+      - AWS_ENDPOINT_URL=http://localstack:4566
     depends_on:
       - localstack

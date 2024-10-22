@@ -85,6 +85,10 @@ type AppConfig struct {
 	PublisherConnection  *AzureQueueConfig `env:", prefix=PUBLISHER_,noinit"`
 	SubscriberConnection *AzureQueueConfig `env:", prefix=SUBSCRIBER_,noinit"`
 
+	SNSReporterConnection   *SNSConfig `env:", prefix=SNS_REPORTER_"`
+	SNSPublisherConnection  *SNSConfig `env:", prefix=SNS_PUBLISHER_"`
+	SQSSubscriberConnection *SQSConfig `env:", prefix=SQS_SUBSCRIBER_"`
+
 	// S3 upload config
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
 	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
@@ -114,6 +118,25 @@ func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResp)
+}
+
+type SNSConfig struct {
+	EventArn string `env:"EVENT_ARN"`
+	/*
+		Region          string `env:"REGION"`
+		AccessKeyID     string `env:"ACCESS_KEY_ID"`
+		SecretAccessKey string `env:"SECRET_ACCESS_KEY"`
+	*/
+}
+
+type SQSConfig struct {
+	EventArn string `env:"EVENT_ARN"`
+	/*
+		Endpoint        string `env:"ENDPOINT"`
+		Region          string `env:"REGION"`
+		AccessKeyID     string `env:"ACCESS_KEY_ID"`
+		SecretAccessKey string `env:"SECRET_ACCESS_KEY"`
+	*/
 }
 
 type AzureStorageConfig struct {

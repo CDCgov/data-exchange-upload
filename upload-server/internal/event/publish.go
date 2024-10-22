@@ -5,10 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 )
@@ -52,17 +49,8 @@ type Publisher[T Identifiable] interface {
 func NewEventPublisher[T Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (Publishers[T], error) {
 	p := Publishers[T]{}
 
-	if os.Getenv("SNS_EVENT_TOPIC_ARN") != "" {
-		snsPub, err := NewSNSPublisher[T](ctx, sns.Options{
-			Region:       os.Getenv("SNS_AWS_REGION"),
-			BaseEndpoint: aws.String(os.Getenv("SNS_AWS_ENDPOINT_URL")),
-			Credentials: aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
-				return aws.Credentials{
-					AccessKeyID:     os.Getenv("SNS_AWS_ACCESS_KEY_ID"),
-					SecretAccessKey: os.Getenv("SNS_AWS_SECRET_ACCESS_KEY"),
-				}, nil
-			}),
-		}, os.Getenv("SNS_EVENT_TOPIC_ARN"))
+	if arn := appConfig.SNSPublisherConnection.EventArn; arn != "" {
+		snsPub, err := NewSNSPublisher[T](ctx, arn)
 		if err != nil {
 			return p, err
 		}
