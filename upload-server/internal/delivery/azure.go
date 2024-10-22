@@ -3,6 +3,7 @@ package delivery
 import (
 	"context"
 	"io"
+	"strconv"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -42,7 +43,10 @@ func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string
 	if err != nil {
 		return nil, err
 	}
-	return storeaz.DepointerizeMetadata(resp.Metadata), nil
+	props := storeaz.DepointerizeMetadata(resp.Metadata)
+	props["last_modified"] = resp.LastModified.Format(time.RFC3339Nano)
+	props["content_length"] = strconv.FormatInt(*resp.ContentLength, 10)
+	return props, nil
 }
 
 func (ad *AzureSource) GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error) {
@@ -105,6 +109,20 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 	return ad.toClient, nil
 }
 func (ad *AzureDestination) Copy(ctx context.Context, path string, source *Source, concurrency int) (string, error) {
+
+	return "url", nil
+}
+
+func (ad *AzureDestination) copyWholeFromSignedURL(ctx context.Context, sourceSignedURL string, destContainer string, destPath string,
+	metadata map[string]string) (string, error) {
+	return "url", nil
+}
+
+func (ad *AzureDestination) copyBlocksFromSignedURL() (string, error) {
+	return "url", nil
+}
+
+func (ad *AzureDestination) copyFromStream() (string, error) {
 	return "url", nil
 }
 
