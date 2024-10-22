@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -73,11 +75,27 @@ func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]st
 		return nil, fmt.Errorf("unable to retrieve object: %w", err)
 	}
 
-	return output.Metadata, nil
+	props := output.Metadata
+	props["last_modified"] = output.LastModified.Format(time.RFC3339Nano)
+	props["content_length"] = strconv.FormatInt(*output.ContentLength, 10)
+	return props, nil
 }
 
 func (ss *S3Source) GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error) {
-	return "", nil
+	presignClient := s3.NewPresignClient(ss.FromClient)
+	request, err := presignClient.PresignGetObject(ctx,
+		&s3.GetObjectInput{
+			Bucket: aws.String(containerName),
+			Key:    aws.String(objectPath),
+		},
+		func(options *s3.PresignOptions) {
+			options.Expires = time.Hour
+		},
+	)
+	if err != nil {
+		return "", fmt.Errorf("could not obtain presigned url: %s", err.Error())
+	}
+	return request.URL, nil
 }
 
 func (ss *S3Source) Health(ctx context.Context) (rsp models.ServiceHealthResp) {

@@ -9,6 +9,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
@@ -99,6 +101,11 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 
 	var m map[string]string
 	err = json.Unmarshal(b, &m)
+	info, e := f.Stat()
+	if e == nil {
+		m["last_modified"] = info.ModTime().Format(time.RFC3339Nano)
+		m["content_length"] = strconv.FormatInt(info.Size(), 10)
+	}
 	if err != nil {
 		return nil, err
 	}
