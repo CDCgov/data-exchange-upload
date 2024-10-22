@@ -9,7 +9,7 @@ The following tools need to be installed on your machine:
 - [Gradle](https://gradle.org/install/)
 
 > [!TIP]
-> For Windows users, the gradlew batch file in the repo can be used to execute gradle commands as long as Gradle is installed.
+> For Windows users, the `gradlew` batch file in the repo can be used to execute gradle commands as long as Gradle is installed.
 
 ### Install Gradle Dependencies
 
@@ -26,7 +26,7 @@ The following are the currently configured environment variables that can be set
 
 | Environment Variable | Required? | Description                                      |
 | ---------------------| --------- | -------------------------------------------------|
-| environment          | Yes       | Environment to target (LOCAL, DEV, TEST, STAGE)
+| environment          | Yes       | Environment to target (`LOCAL`, `DEV`, `TEST`, `STAGE`)
 | upload.url           | Yes       | URL of the upload API
 | ps.api.url           | Yes       | URL for Processing Status API  
 | sams.username        | No        | SAMS username for authentication (if needed)
@@ -57,7 +57,7 @@ The following are some examples of test run commands.
 > The `--tests` parameter lets you select only a specific test file to run or a specific test within a file.
 
 > [!TIP]
-> The --rerun command may be needed in order to force tests to rerun, otherwise tests may be skipped if there are no changes.
+> The `--rerun` command may be needed in order to force tests to rerun, otherwise tests may be skipped if there are no changes.
 
 ##### Run All Tests
 
