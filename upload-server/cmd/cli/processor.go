@@ -19,7 +19,8 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 		Chan: c,
 	}
 
-	if arn := appConfig.SQSSubscriberConnection.EventArn; arn != "" {
+	if appConfig.SQSSubscriberConnection != nil {
+		arn := appConfig.SQSSubscriberConnection.EventArn
 		s, err := event.NewSQSSubscriber[T](ctx, arn, 1)
 		if err != nil {
 			return s, err

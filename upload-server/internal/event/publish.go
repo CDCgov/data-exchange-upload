@@ -49,7 +49,8 @@ type Publisher[T Identifiable] interface {
 func NewEventPublisher[T Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (Publishers[T], error) {
 	p := Publishers[T]{}
 
-	if arn := appConfig.SNSPublisherConnection.EventArn; arn != "" {
+	if appConfig.SNSPublisherConnection != nil {
+		arn := appConfig.SNSPublisherConnection.EventArn
 		snsPub, err := NewSNSPublisher[T](ctx, arn)
 		if err != nil {
 			return p, err

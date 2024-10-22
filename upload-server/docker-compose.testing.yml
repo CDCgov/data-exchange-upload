@@ -1,4 +1,9 @@
 services:
+  cache:
+    image: redis:alpine
+    container_name: cache
+    restart: always
+    command: redis-server
   upload-server:
     command: go test -coverprofile=c.out -coverpkg=./... ./... -tags=integration
     environment:

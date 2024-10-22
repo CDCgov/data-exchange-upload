@@ -85,9 +85,9 @@ type AppConfig struct {
 	PublisherConnection  *AzureQueueConfig `env:", prefix=PUBLISHER_,noinit"`
 	SubscriberConnection *AzureQueueConfig `env:", prefix=SUBSCRIBER_,noinit"`
 
-	SNSReporterConnection   *SNSConfig `env:", prefix=SNS_REPORTER_"`
-	SNSPublisherConnection  *SNSConfig `env:", prefix=SNS_PUBLISHER_"`
-	SQSSubscriberConnection *SQSConfig `env:", prefix=SQS_SUBSCRIBER_"`
+	SNSReporterConnection   *SNSConfig `env:", prefix=SNS_REPORTER_,noinit"`
+	SNSPublisherConnection  *SNSConfig `env:", prefix=SNS_PUBLISHER_,noinit"`
+	SQSSubscriberConnection *SQSConfig `env:", prefix=SQS_SUBSCRIBER_,noinit"`
 
 	// S3 upload config
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
