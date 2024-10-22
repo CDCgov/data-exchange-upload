@@ -18,7 +18,6 @@ import kotlin.collections.HashMap
 class FileCopy {
     private val testFile = TestFile.getResourceFile("10KB-test-file")
     private val dexUploadClient = DexUploadClient(EnvConfig.UPLOAD_URL)
-    private val environment = EnvConfig.ENVIRONMENT
     private lateinit var authToken: String
     private lateinit var testContext: ITestContext
     private lateinit var uploadClient: UploadClient
@@ -47,28 +46,24 @@ class FileCopy {
         val uploadInfo = dexUploadClient.getFileInfo(uid, authToken)
 
         // Check File Info
-        val expectedBytes = "10240"
-        Assert.assertEquals(uploadInfo.fileInfo.sizeBytes.toString(), expectedBytes)
+        val expectedBytes: Long = 10240
+        Assert.assertEquals(uploadInfo.fileInfo.sizeBytes, expectedBytes)
 
         // Check Upload Status
         Assert.assertEquals(uploadInfo.uploadStatus.status, "Complete", "File upload status is not 'Complete'")
 
         // Check Deliveries
         Assert.assertEquals(uploadInfo.deliveries?.size, case.deliveryTargets?.size, "Expected ${case.deliveryTargets?.size ?: 0 } deliveries")
-        Assert.assertTrue(uploadInfo.deliveries?.all { it.status == "SUCCESS" }?:false, "Not all deliveries are 'SUCCESS' - Deliveries: ${uploadInfo.deliveries}")
 
         val expectedDeliveryNames = case.deliveryTargets?.map{ it.name }?.sorted()
         val actualDeliveryNames = uploadInfo.deliveries?.map{ it.name }?.sorted()
         Assert.assertEquals(actualDeliveryNames, expectedDeliveryNames, "Actual delivery targets do not match expected targets")
 
-    
         val currentDateTime = ZonedDateTime.now(TimeZone.getTimeZone("GMT").toZoneId())
-        
         uploadInfo.deliveries?.forEach { delivery ->
             Assert.assertEquals(delivery.status, "SUCCESS") // remove the assertion above?
             val actualLocation = URLDecoder.decode(delivery.location, StandardCharsets.UTF_8.toString())
-            val pattern = case.deliveryTargets?.find{ it.name == delivery.name}?.pathTemplate?.get(environment)
-
+            val pattern = case.deliveryTargets?.find{ it.name == delivery.name}?.pathTemplate?.get(EnvConfig.ENVIRONMENT)
             val expectedLocation = pattern
                 ?.replace("{dataStream}", case.manifest["data_stream_id"].toString())
                 ?.replace("{route}", case.manifest["data_stream_route"].toString())

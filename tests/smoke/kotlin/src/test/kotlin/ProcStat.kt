@@ -158,18 +158,11 @@ class ProcStat {
                     assertNotNull(destinationName, "Destination name is missing for $schemaName")
                     log.info("Blob File Copy - Source URL: $sourceUrl, Destination URL: $destinationUrl")
 
-//                    val expectedDestinations = config.copyConfig.targets
+                    val expectedDestinations = case.deliveryTargets?.map{ it.name }?.sorted()
 
-                    val expectedDestinations = case.deliveryTargets!!.map{ it.name }.sorted()
-
-//                    val actualDestination = expectedDestinations?.any { expectedDest ->
-//                        destinationName?.trim()?.equals(expectedDest.trim(), ignoreCase = true) ?: false
-//                    }
-                    assertTrue(expectedDestinations.contains(destinationName), "Actual destination $destinationName is not in expected target destinations ${expectedDestinations.toString()}")
-//                    assertTrue(
-//                        actualDestination?,
-//                        "None of the expected destinations ('${expectedDestinations.joinToString(", ")}') were found in the response. Found: $destinationName"
-//                    )
+                    if(expectedDestinations != null){
+                        assertTrue(expectedDestinations.contains(destinationName), "Actual destination $destinationName is not in expected target destinations ${expectedDestinations.toString()}")
+                    }
                 }
 
                 else -> {

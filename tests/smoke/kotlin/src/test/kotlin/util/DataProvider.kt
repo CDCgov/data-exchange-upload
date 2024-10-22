@@ -107,5 +107,5 @@ data class TestCase(
 
 data class Target(
     @JsonProperty("name") val name: String,
-    @JsonProperty("path_template") val pathTemplate: Map<String, String>
+    @JsonProperty("path_template") val pathTemplate: Map<Environment, String>
 )
