@@ -3,10 +3,12 @@ package delivery
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"io"
 	"log/slog"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -14,6 +16,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
+
+const size5MB = 5 * 1024 * 1024
+const s3MaxCopySize = size5MB * 1024
+const s3MaxParts = 10000
 
 type writeAtWrapper struct {
 	writer io.Writer
@@ -158,7 +164,147 @@ func (sd *S3Destination) Client() *s3.Client {
 }
 
 func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, concurrency int) (string, error) {
+	s := *source
+	metadata, err := s.GetMetadata(ctx, path)
+	if err != nil {
+		return "", err
+	}
+	length, err := strconv.ParseInt(metadata["content_length"], 10, 64)
+	if err != nil {
+		length = 1
+	}
+	if s.SourceType() == sd.DestinationType() {
+		// copy s3 to s3
+		// going to assume we have correct IAM permissions
+		return sd.copyFromLocalStorage(ctx, )
+	} else if s.SourceType() == storageTypeAzureBlob {
+		// copy azure to s3
+	} else {
+		// copy s3 to local file
+	}
+
 	return "url", nil
+}
+
+func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContainer string, sourceFile string,
+	sourceMetadata map[string]string, sourceLength int64, destContainer string, destFile string, concurrency int) (string, error) {
+	source := fmt.Sprintf("%s/%s", sourceContainer, sourceFile)
+	if sourceLength < s3MaxCopySize {
+		_, err := sd.toClient.CopyObject(ctx, &s3.CopyObjectInput{
+			CopySource: aws.String(source),
+			Bucket:     aws.String(destContainer),
+			Key:        aws.String(destFile),
+		})
+		if err != nil {
+			return "", fmt.Errorf("unable to copy object to S3 bucket: %v", err)
+		}
+		return fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, destFile), nil
+	} else {
+		lengthInt := int(sourceLength)
+		upload, err := sd.toClient.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+			Bucket:   aws.String(destContainer),
+			Key:      aws.String(destFile),
+			Metadata: sourceMetadata,
+		})
+		if err != nil {
+			return "", fmt.Errorf("unable to create multipart upload: %v", err)
+		}
+		uploadId := *upload.UploadId
+		var partSize = size5MB
+		if lengthInt > partSize*s3MaxParts {
+			// we need to increase the Part size
+			partSize = lengthInt / s3MaxParts
+		}
+		numChunks := lengthInt / partSize
+		var chunkNum int
+		var start = 0
+		var end = 0
+		chunkIdMap := make(map[int]string)
+		for chunkNum = 1; chunkNum <= numChunks; chunkNum++ {
+			end = start + partSize - 1
+			if chunkNum == numChunks {
+				end = lengthInt - 1
+			}
+			chunkIdMap[chunkNum] = fmt.Sprintf("bytes=%d-%d", start, end)
+			start = end + 1
+		}
+		wg := sync.WaitGroup{}
+		errCh := make(chan error, 1)
+		responseCh := make(chan types.CompletedPart, numChunks)
+		completedParts := make([]types.CompletedPart, numChunks)
+
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		routines := 0
+		for chunkId, rangeHeader := range chunkIdMap {
+			wg.Add(1)
+			routines++
+			go func(chunkId int, rangeHeader string) {
+				defer wg.Done()
+				uploadPartResp, err := sd.toClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
+					Bucket:          aws.String(destContainer),
+					CopySource:      aws.String(source),
+					CopySourceRange: aws.String(rangeHeader),
+					Key:             aws.String(destFile),
+					PartNumber:      aws.Int32(int32(chunkId)),
+					UploadId:        aws.String(uploadId),
+				})
+				if err != nil {
+					select {
+					case errCh <- err:
+						// error was set
+					default:
+						// some other error is already set
+					}
+					cancel()
+				} else {
+					responseCh <- types.CompletedPart{
+						ETag:       uploadPartResp.CopyPartResult.ETag,
+						PartNumber: aws.Int32(int32(chunkId)),
+					}
+				}
+
+			}(chunkId, rangeHeader)
+			if routines >= concurrency {
+				wg.Wait()
+				routines = 0
+			}
+		}
+		wg.Wait()
+		close(responseCh)
+		select {
+		case err = <-errCh:
+			// there was an error during staging
+			_, _ = sd.toClient.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+				Bucket:   aws.String(destContainer),
+				Key:      aws.String(destFile),
+				UploadId: aws.String(uploadId),
+			})
+			return "", fmt.Errorf("error staging blocks; copy aborted: %v", err)
+		default:
+			// no error was encountered
+		}
+
+		// arrange parts in ordered list
+		for part := range responseCh {
+			partNum := *part.PartNumber
+			completedParts[partNum-1] = part
+		}
+
+		completion, err := sd.toClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+			Bucket:   aws.String(destContainer),
+			Key:      aws.String(destFile),
+			UploadId: aws.String(uploadId),
+			MultipartUpload: &types.CompletedMultipartUpload{
+				Parts: completedParts,
+			},
+		})
+		if err != nil {
+			return "", fmt.Errorf("unable to complete multipart upload: %v", err)
+		}
+		return *completion.Location, nil
+	}
+
 }
 
 func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
