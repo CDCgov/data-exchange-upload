@@ -38,6 +38,7 @@ type Source interface {
 	GetMetadata(context.Context, string) (map[string]string, error)
 	GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error)
 	SourceType() string
+	Container() string
 }
 
 type Destination interface {
