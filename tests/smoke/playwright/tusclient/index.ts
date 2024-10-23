@@ -3,7 +3,8 @@ import * as http from 'http';
 import { MemoryStorage } from './memory-storage';
 import * as client from './upload-client';
 
-type ClientOptions = Pick<client.UploadOptions, 'headers' | 'retryDelays' | 'chunkSize'>;
+export type ContextOptions = Pick<client.UploadOptions, 'headers' | 'retryDelays' | 'chunkSize'>;
+export type UploadHooks = client.UploadHooks;
 
 type UploadResponse = client.UploadResponse;
 type UploadStatusType = client.UploadStatusType;
@@ -12,8 +13,8 @@ type HttpResponse = client.HttpResponse;
 type RawHttpRequest = http.ClientRequest;
 type RawHttpResponse = http.IncomingMessage;
 
-function newContext(baseUrl: string): ClientContext {
-  return new ClientContext(baseUrl);
+function newContext(baseUrl: string, options: ContextOptions = {}): ClientContext {
+  return new ClientContext(baseUrl, options);
 }
 
 export default {
@@ -23,17 +24,18 @@ export default {
 class ClientContext {
   private baseURL: string;
   private storage: MemoryStorage;
-  private options: ClientOptions;
+  private options: ContextOptions;
 
-  constructor(baseURL: string, options: ClientOptions = {}) {
+  constructor(baseURL: string, options: ContextOptions = {}) {
     this.baseURL = baseURL;
     this.storage = new MemoryStorage();
     this.options = options;
   }
 
-  setAuthenticationHeaders(authHeaders: { [key: string]: string }): void {
+  setAuthenticationToken(authToken: string): void {
     this.options.headers = {
-      ...authHeaders
+      ...this.options.headers,
+      Authorization: `Bearer ${authToken}`
     };
   }
 
@@ -45,13 +47,21 @@ class ClientContext {
     this.options.chunkSize = chunkSize;
   }
 
-  async upload(filename: string, metadata: { [key: string]: string }): Promise<UploadContext> {
-    const response = await client.uploadFile(filename, {
-      ...this.options,
-      metadata,
-      endpoint: this.baseURL,
-      urlStorage: this.storage
-    });
+  async upload(
+    filename: string,
+    metadata: { [key: string]: string },
+    hooks: UploadHooks = {}
+  ): Promise<UploadContext> {
+    const response = await client.uploadFile(
+      filename,
+      {
+        ...this.options,
+        metadata,
+        endpoint: this.baseURL,
+        urlStorage: this.storage
+      },
+      hooks
+    );
     return new UploadContext(response);
   }
 }
@@ -117,11 +127,6 @@ class UploadContext {
     return this.response.uploadStatus ?? null;
   }
 
-  private evaluateNotNull(obj: any): any | null {
-    expect(obj).not.toBeNull();
-    return obj;
-  }
-
   assertUploadStatus(expectedStatus: UploadStatusType): void {
     expect(this.response.uploadStatus).toEqual(expectedStatus);
   }
@@ -141,11 +146,6 @@ class UploadContext {
   assertResponse(expectedStatusCode: number, expectedBodySubstring: string): void {
     expect(this.getResponseStatusCode()).toEqual(expectedStatusCode);
     expect(this.getResponseBodyString()).toContain(expectedBodySubstring);
-  }
-
-  assertValidationErrors(expectedError: string): void {
-    expect(this.getResponseBodyJson()?.validation_errors).not.toBeNull();
-    expect(this.getResponseBodyJson()?.validation_errors).toContain(expectedError);
   }
 
   assertSuccess() {

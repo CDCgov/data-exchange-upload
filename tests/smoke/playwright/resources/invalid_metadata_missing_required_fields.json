@@ -1,0 +1,169 @@
+[
+  {
+    "name": "Missing meta_destination_id for dextesting_testevent1 - config v1",
+    "metadata": {
+      "meta_ext_event": "testevent1",
+      "filename": "dex-smoke-test"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field meta_destination_id was missing"]
+  },
+  {
+    "name": "Missing meta_ext_event for dextesting_testevent1 - config v1",
+    "metadata": {
+      "meta_destination_id": "dextesting",
+      "filename": "dex-smoke-test"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field meta_ext_event was missing"]
+  },
+  {
+    "name": "Missing filename for dextesting_testevent1 - config v1",
+    "metadata": {
+      "meta_destination_id": "dextesting",
+      "meta_ext_event": "testevent1"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field filename was missing"]
+  },
+  {
+    "name": "Missing sender_id for dextesting_testevent1",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "dextesting",
+      "data_stream_route": "testevent1",
+      "received_filename": "dex-smoke-test",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field sender_id was missing"]
+  },
+  {
+    "name": "Missing sender_id for covid-all-monthly-vaccination_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "covid-all-monthly-vaccination",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field sender_id was missing"]
+  },
+  {
+    "name": "Missing jurisdiction for influenza-vaccination_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "influenza-vaccination",
+      "data_stream_route": "csv",
+      "sender_id": "IZGW",
+      "received_filename": "dex-smoke-test",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field jurisdiction was missing"]
+  },
+  {
+    "name": "Missing meta_ext_objectkey for routing-immunization_other",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "routine-immunization",
+      "data_stream_route": "other",
+      "received_filename": "dex-smoke-test",
+      "sender_id": "IZGW",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field meta_ext_objectkey was missing"]
+  },
+  {
+    "name": "Missing meta_ext_submissionperiod for rsv-prevention_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "rsv-prevention",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "sender_id": "IZGW",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field meta_ext_submissionperiod was missing"]
+  },
+  {
+    "name": "Missing sender_id for ehdi_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "ehdi",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "RI",
+      "data_producer_id": "RI-PHA"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field sender_id was missing"]
+  },
+  {
+    "name": "Missing meta_ext_file_timestamp for eicr_fhir",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "eicr",
+      "data_stream_route": "fhir",
+      "data_producer_id": "test-producer-id",
+      "sender_id": "APHL",
+      "jurisdiction": "test-jurisdiction",
+      "received_filename": "dex-smoke-test",
+      "meta_ext_objectkey": "test-obj-key"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field meta_ext_file_timestamp was missing"]
+  },
+  {
+    "name": "Missing sender_id for pulsenet_localsequencefile",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "pulsenet",
+      "data_stream_route": "localsequencefile",
+      "received_filename": "dex-smoke-test",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field sender_id was missing"]
+  },
+  {
+    "name": "Missing meta_username from generic-immunization_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "generic-immunization",
+      "data_stream_route": "csv",
+      "data_producer_id": "XXA",
+      "sender_id": "IZGW",
+      "jurisdiction": "XXA",
+      "received_filename": "dex-smoke-test",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_file_timestamp": "test-file-timestamp",
+      "meta_ext_sourceversion": "V2024-09-04",
+      "meta_ext_submissionperiod": "test-submissionperiod"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["field meta_username was missing"]
+  }
+]

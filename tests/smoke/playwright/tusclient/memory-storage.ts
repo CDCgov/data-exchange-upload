@@ -35,6 +35,18 @@ export class MemoryStorage implements UrlStorage {
     });
   }
 
+  findUploadByUploadUrl(uploadUrl: string): Promise<PreviousUpload | null> {
+    return new Promise(resolve => {
+      this.uploadMap.forEach((value, key) => {
+        if (value.uploadUrl == uploadUrl) {
+          resolve(value);
+        }
+      });
+
+      resolve(null);
+    });
+  }
+
   removeUpload(urlStorageKey: string): Promise<void> {
     return new Promise(resolve => {
       const uploadsToDelete: string[] = [];

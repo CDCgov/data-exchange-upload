@@ -17,49 +17,48 @@ export type UploadOptions = {
   chunkSize?: number | null;
 };
 
-export type EventType = 'created' | 'updated' | 'complete' | 'paused' | 'terminated' | 'resumed';
+export type UploadHooks = {
+  onUploadInitiated?: (response: UploadResponse) => void;
+  onUploadCreated?: (response: UploadResponse) => void;
+  onRequestSent?: (response: UploadResponse) => void;
+  onResponseReceived?: (response: UploadResponse) => void;
+  onChunkSent?: (response: UploadResponse) => void;
+  onChunkComplete?: (response: UploadResponse) => void;
+  onUploadPaused?: (response: UploadResponse) => Promise<void>;
+  onUploadResumed?: (response: UploadResponse) => void;
+  shouldTerminateUpload?: boolean;
+};
+
+type EventType =
+  | 'initiated'
+  | 'created'
+  | 'request'
+  | 'response'
+  | 'chunkSent'
+  | 'chunkComplete'
+  | 'complete'
+  | 'paused'
+  | 'terminated'
+  | 'resumed';
 export type UploadStatusType = 'Initiated' | 'In Progress' | 'Complete' | 'Failed';
 export type UploadResponse = Readonly<Response>;
 
-function initResponse(filename: string): Response {
-  return {
-    filename: filename,
-    uploadId: null,
-    uploadUrl: null,
-    uploadStatus: null,
-
-    startTime: null,
-    endTime: null,
-    lastProgressTime: null,
-
-    chunkSize: null,
-    bytesSent: null,
-    bytesAccepted: null,
-    bytesTotal: null,
-
-    errorMessage: null,
-
-    httpRequests: [],
-    httpResponses: []
-  };
-}
-
 type Response = {
   filename: string;
-  uploadId: string | null;
-  uploadUrl: string | null;
-  uploadStatus: UploadStatusType | null;
+  uploadId?: string;
+  uploadUrl?: string;
+  uploadStatus?: UploadStatusType;
 
-  startTime: number | null;
-  endTime: number | null;
-  lastProgressTime: number | null;
+  startTime?: number;
+  endTime?: number;
+  lastProgressTime?: number;
 
-  chunkSize: number | null;
-  bytesSent: number | null;
-  bytesAccepted: number | null;
-  bytesTotal: number | null;
+  chunkSize?: number;
+  bytesSent?: number;
+  bytesAccepted?: number;
+  bytesTotal?: number;
 
-  errorMessage: string | null;
+  errorMessage?: string;
 
   httpRequests: tus.HttpRequest[];
   httpResponses: tus.HttpResponse[];
@@ -70,13 +69,18 @@ class UploadClient {
   private options: tus.UploadOptions;
   private emitter: EventEmitter;
   private tusClient: tus.Upload;
+  private previousUpload: PreviousUpload | null = null;
   private response: Response;
   private _isUploading: boolean;
 
   constructor(filename: string, options: UploadOptions) {
     this.emitter = new EventEmitter();
     this.file = fs.createReadStream(filename);
-    this.response = initResponse(filename);
+    this.response = {
+      filename,
+      httpRequests: [],
+      httpResponses: []
+    };
 
     this.options = {
       uploadLengthDeferred: true,
@@ -89,6 +93,7 @@ class UploadClient {
       urlStorage: options.urlStorage,
       headers: {
         'Tus-Resumable': '1.0.0',
+        'Content-Length': '0',
         ...options.headers
       },
       onBeforeRequest: (req: tus.HttpRequest) => this.onBeforeRequest(req),
@@ -110,7 +115,7 @@ class UploadClient {
   private onBeforeRequest(req: tus.HttpRequest) {
     this.response.httpRequests.push(req);
 
-    this.emit('updated', this.response);
+    this.emit('request', this.response);
   }
 
   private onAfterResponse(req: tus.HttpRequest, res: tus.HttpResponse) {
@@ -120,14 +125,14 @@ class UploadClient {
     this.response.uploadStatus = 'In Progress';
     this.response.lastProgressTime = Date.now();
 
-    this.emit('updated', this.response);
+    this.emit('response', this.response);
   }
 
   private onProgress(bytesSent: number, bytesTotal: number) {
     this.response.bytesSent = bytesSent;
     this.response.bytesTotal = bytesTotal;
 
-    this.emit('updated', this.response);
+    this.emit('chunkSent', this.response);
   }
 
   private onChunkComplete(chunkSize: number, bytesAccepted: number, bytesTotal: number): void {
@@ -135,7 +140,7 @@ class UploadClient {
     this.response.bytesAccepted = bytesAccepted;
     this.response.bytesTotal = bytesTotal;
 
-    this.emit('updated', this.response);
+    this.emit('chunkComplete', this.response);
   }
 
   private onUploadUrlAvailable(): void {
@@ -148,9 +153,13 @@ class UploadClient {
       if (uploadId) {
         this.response.uploadId = uploadId;
       }
+      this.findPreviousUploadFromUploadUrl(this.tusClient.url).then(upload => {
+        this.previousUpload = upload;
+      });
+      this.emit('created', this.response);
+    } else {
+      setTimeout(() => this.onUploadUrlAvailable(), 1000);
     }
-
-    this.emit('created', this.response);
   }
 
   private onSuccess(): void {
@@ -182,23 +191,25 @@ class UploadClient {
     return this._isUploading;
   }
 
-  async start(): Promise<{ errorMessage?: string }> {
-    this.tusClient.start();
-    return {};
+  async upload(): Promise<{ errorMessage?: string }> {
+    if (this.previousUpload || this.tusClient.url) {
+      return this.resume();
+    } else {
+      return this.start();
+    }
   }
 
-  async upload(): Promise<{ errorMessage?: string }> {
+  async start(): Promise<{ errorMessage?: string }> {
     if (this._isUploading == true) {
       return {
         errorMessage: 'Cannot start the upload because it is already active'
       };
     }
 
-    if (this.tusClient.url) {
-      return this.resume();
-    } else {
-      return this.start();
-    }
+    this.tusClient.start();
+    this._isUploading = true;
+    this.emit('initiated', this.response);
+    return {};
   }
 
   async pause(): Promise<{ errorMessage?: string }> {
@@ -224,26 +235,29 @@ class UploadClient {
 
     try {
       await this.tusClient.abort(shouldTerminate);
-      this.emit(shouldTerminate ? 'terminated' : 'paused', this.response);
       this._isUploading = false;
+      this.emit(shouldTerminate ? 'terminated' : 'paused', this.response);
       return {};
     } catch (error: any) {
       return { errorMessage: `${error}` };
     }
   }
 
-  async findPreviousUploads(): Promise<PreviousUpload[]> {
+  private async findPreviousUploads(): Promise<PreviousUpload[]> {
     const tusUploads = await this.tusClient.findPreviousUploads();
     return tusUploads.map(upload => upload as PreviousUpload);
   }
 
-  resumeFromPreviousUpload(upload: PreviousUpload): void {
-    return this.tusClient.resumeFromPreviousUpload(upload);
+  async findPreviousUploadFromUploadUrl(uploadUrl: string): Promise<PreviousUpload | null> {
+    const uploads: PreviousUpload[] = await this.findPreviousUploads();
+    const upload = uploads.find(value => value.uploadUrl == uploadUrl);
+
+    return upload ?? null;
   }
 
   async resume(): Promise<{ errorMessage?: string }> {
     if (this._isUploading == true) {
-      return { errorMessage: 'Cannot resume the upload because it is active' };
+      return { errorMessage: 'Cannot resume the upload because it is already active' };
     }
 
     if (this.tusClient.url == null) {
@@ -252,18 +266,21 @@ class UploadClient {
       };
     }
 
-    const uploadUrl = this.tusClient.url;
-
-    const uploads: PreviousUpload[] = await this.findPreviousUploads();
-    const upload = uploads.find(value => value.uploadUrl == uploadUrl);
+    let upload: PreviousUpload | null = null;
+    if (this.previousUpload) {
+      upload = this.previousUpload;
+    } else {
+      upload = await this.findPreviousUploadFromUploadUrl(this.tusClient.url);
+    }
 
     if (!upload) {
       return { errorMessage: 'Previous Upload not found' };
     }
 
-    this.resumeFromPreviousUpload(upload);
-    this.emit('resumed', this.response);
+    this.tusClient.resumeFromPreviousUpload(upload);
+    this.tusClient.start();
     this._isUploading = true;
+    this.emit('resumed', this.response);
     return {};
   }
 
@@ -274,50 +291,74 @@ class UploadClient {
 
 export async function uploadFile(
   filename: string,
-  options: UploadOptions
-): Promise<UploadResponse> {
-  const client = new UploadClient(filename, options);
-  return new Promise(resolve => {
-    client.addListener('complete', response => {
-      resolve(response);
-    });
-
-    client.upload();
-  });
-}
-
-export async function startUploadAndPause(
-  filename: string,
-  options: UploadOptions
-): Promise<UploadResponse> {
-  const client = new UploadClient(filename, options);
-  return new Promise(resolve => {
-    client.addListener('paused', response => resolve(response));
-    client.addListener('created', () => {
-      client.pause();
-    });
-
-    client.upload();
-  });
-}
-
-export async function startUploadAndPauseAndResume(
-  filename: string,
   options: UploadOptions,
-  cb?: (response: UploadResponse) => Promise<void>
+  {
+    onUploadInitiated,
+    onUploadCreated,
+    onRequestSent,
+    onResponseReceived,
+    onChunkSent,
+    onChunkComplete,
+    onUploadPaused,
+    onUploadResumed,
+    shouldTerminateUpload
+  }: UploadHooks = {}
 ): Promise<UploadResponse> {
   const client = new UploadClient(filename, options);
   return new Promise(resolve => {
-    client.addListener('resumed', response => resolve(response));
-    client.addListener('paused', response => {
-      if (cb && typeof cb == 'function') {
-        cb(response).then(() => client.resume());
-      } else {
-        client.resume();
+    client.addListener('initiated', response => {
+      if (onUploadInitiated && typeof onUploadInitiated == 'function') {
+        onUploadInitiated(response);
       }
     });
-    client.addListener('created', () => {
-      client.pause();
+
+    client.addListener('created', response => {
+      if (onUploadCreated && typeof onUploadCreated == 'function') {
+        onUploadCreated(response);
+      }
+
+      if (shouldTerminateUpload) {
+        client.addListener('terminated', response => {
+          resolve(response);
+        });
+
+        client.terminate();
+      } else if (onUploadPaused && typeof onUploadPaused == 'function') {
+        client.addListener('paused', response => {
+          onUploadPaused(response).then(() => client.resume());
+        });
+
+        client.pause();
+      }
+    });
+    client.addListener('request', response => {
+      if (onRequestSent && typeof onRequestSent == 'function') {
+        onRequestSent(response);
+      }
+    });
+    client.addListener('response', response => {
+      if (onResponseReceived && typeof onResponseReceived == 'function') {
+        onResponseReceived(response);
+      }
+    });
+    client.addListener('chunkSent', response => {
+      if (onChunkSent && typeof onChunkSent == 'function') {
+        onChunkSent(response);
+      }
+    });
+    client.addListener('chunkComplete', response => {
+      if (onChunkComplete && typeof onChunkComplete == 'function') {
+        onChunkComplete(response);
+      }
+    });
+    client.addListener('resumed', response => {
+      if (onUploadResumed && typeof onUploadResumed == 'function') {
+        onUploadResumed(response);
+      }
+    });
+
+    client.addListener('complete', response => {
+      resolve(response);
     });
 
     client.upload();
