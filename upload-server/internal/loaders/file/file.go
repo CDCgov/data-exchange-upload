@@ -18,5 +18,6 @@ func (l *FileConfigLoader) LoadConfig(_ context.Context, path string) ([]byte, e
 	if err != nil {
 		return nil, errors.Join(err, validation.ErrNotFound)
 	}
+	defer file.Close()
 	return io.ReadAll(file)
 }
