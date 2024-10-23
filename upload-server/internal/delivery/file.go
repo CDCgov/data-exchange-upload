@@ -25,9 +25,9 @@ func (fd *FileDestination) DestinationType() string {
 	return storageTypeLocalFile
 }
 
-func (fd *FileDestination) Copy(ctx context.Context, path string, source *Source, concurrency int) (string, error) {
+func (fd *FileDestination) Copy(ctx context.Context, path string, source *Source, _ int) (string, error) {
 	s := *source
-	reader, _ := s.Reader(ctx, path, concurrency)
+	reader, _ := s.Reader(ctx, path)
 	metadata, _ := s.GetMetadata(ctx, path)
 	return fd.Upload(ctx, path, reader, metadata)
 }
@@ -71,6 +71,10 @@ type FileSource struct {
 
 func (fd *FileSource) SourceType() string {
 	return storageTypeLocalFile
+}
+
+func (fd *FileSource) Container() string {
+	return "n/a"
 }
 
 func (fd *FileSource) Reader(_ context.Context, path string) (io.Reader, error) {

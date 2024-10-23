@@ -34,7 +34,7 @@ var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 var destinations = map[string]map[string]Destination{}
 
 type Source interface {
-	Reader(context.Context, string, int) (io.Reader, error)
+	Reader(context.Context, string) (io.Reader, error)
 	GetMetadata(context.Context, string) (map[string]string, error)
 	GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error)
 	SourceType() string
@@ -202,6 +202,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		}
 		src = &AzureSource{
 			FromContainerClient: tusContainerClient,
+			StorageContainer:    appConfig.AzureUploadContainer,
 			Prefix:              appConfig.TusUploadPrefix,
 		}
 	}
