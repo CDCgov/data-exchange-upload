@@ -193,7 +193,7 @@ func (s *SQSSubscriber[T]) Listen(ctx context.Context, process func(context.Cont
 }
 
 func (s *SQSSubscriber[T]) getBatch(ctx context.Context, max int) ([]types.Message, error) {
-	slog.Info("Getting batch of messages from sqs", "max", max)
+	slog.Debug("Getting batch of messages from sqs", "max", max)
 	svc, err := s.Client(ctx)
 	if err != nil {
 		return nil, err
