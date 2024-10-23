@@ -1,4 +1,33 @@
 services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./configs/local/prometheus:/etc/prometheus
+      - prom_data:/prometheus
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./configs/local/grafana/provisioning:/etc/grafana/provisioning
+  cache:
+    image: redis:alpine
+    container_name: cache
+    restart: always
+    ports:
+      - 6379:6379
+    command: redis-server
   upload-server:
     image: golang:alpine
     container_name: upload-server
@@ -7,11 +36,14 @@ services:
       - ../upload-configs:/upload-configs
     working_dir: /code
     environment:
+      - REDIS_CONNECTION_STRING=redis://redispw@cache:6379
       # Generate a random 32-byte string here https://generate-random.org/encryption-key-generator?count=1&bytes=32&cipher=aes-256-cbc&string=&password=
-      - CSRF_TOKEN=p67SW3MKNtR7QvxCrrc/QCjX6JFet9/Hsd1+5ZEfpBe5rrSraZftryOQMz5zcYsy
+      - CSRF_TOKEN=${CSRF_TOKEN}
     ports:
       - ${SERVER_PORT:-8080}:${SERVER_PORT:-8080}
       - ${UI_PORT:-8081}:${UI_PORT:-8081}
     command: /bin/sh -c "./run-server.sh"
+    depends_on:
+      - cache
 volumes:
   prom_data:
