@@ -36,15 +36,12 @@ type S3Source struct {
 	Prefix     string
 }
 
-func (ss *S3Source) Reader(ctx context.Context, path string, concurrency int) (io.Reader, error) {
+func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) {
 	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
 	id := strings.Split(path, "+")[0]
 	srcFileName := ss.Prefix + "/" + id
-	if concurrency <= 0 {
-		concurrency = 5
-	}
 	downloader := manager.NewDownloader(ss.FromClient, func(d *manager.Downloader) {
-		d.Concurrency = concurrency
+		d.Concurrency = 1
 	})
 
 	r, w := io.Pipe()
@@ -66,6 +63,10 @@ func (ss *S3Source) Reader(ctx context.Context, path string, concurrency int) (i
 
 func (ss *S3Source) SourceType() string {
 	return storageTypeS3
+}
+
+func (ss *S3Source) Container() string {
+	return ss.BucketName
 }
 
 func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
@@ -176,23 +177,29 @@ func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, 
 	if s.SourceType() == sd.DestinationType() {
 		// copy s3 to s3
 		// going to assume we have correct IAM permissions
-		return sd.copyFromLocalStorage(ctx, )
-	} else if s.SourceType() == storageTypeAzureBlob {
-		// copy azure to s3
+		return sd.copyFromLocalStorage(ctx, s.Container(), path, metadata, length, concurrency)
 	} else {
-		// copy s3 to local file
+		// stream
+		reader, err := s.Reader(ctx, path)
+		if err != nil {
+			return "", fmt.Errorf("unable to get source stream reader: %v", err)
+		}
+		return sd.Upload(ctx, path, reader, metadata)
 	}
 
-	return "url", nil
 }
 
 func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContainer string, sourceFile string,
-	sourceMetadata map[string]string, sourceLength int64, destContainer string, destFile string, concurrency int) (string, error) {
+	sourceMetadata map[string]string, sourceLength int64, concurrency int) (string, error) {
 	source := fmt.Sprintf("%s/%s", sourceContainer, sourceFile)
+	destFile, err := getDeliveredFilename(ctx, sourceFile, sd.PathTemplate, sourceMetadata)
+	if err != nil {
+		return "", err
+	}
 	if sourceLength < s3MaxCopySize {
 		_, err := sd.toClient.CopyObject(ctx, &s3.CopyObjectInput{
 			CopySource: aws.String(source),
-			Bucket:     aws.String(destContainer),
+			Bucket:     aws.String(sd.BucketName),
 			Key:        aws.String(destFile),
 		})
 		if err != nil {
@@ -202,7 +209,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContain
 	} else {
 		lengthInt := int(sourceLength)
 		upload, err := sd.toClient.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
-			Bucket:   aws.String(destContainer),
+			Bucket:   aws.String(sd.BucketName),
 			Key:      aws.String(destFile),
 			Metadata: sourceMetadata,
 		})
@@ -242,7 +249,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContain
 			go func(chunkId int, rangeHeader string) {
 				defer wg.Done()
 				uploadPartResp, err := sd.toClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
-					Bucket:          aws.String(destContainer),
+					Bucket:          aws.String(sd.BucketName),
 					CopySource:      aws.String(source),
 					CopySourceRange: aws.String(rangeHeader),
 					Key:             aws.String(destFile),
@@ -276,7 +283,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContain
 		case err = <-errCh:
 			// there was an error during staging
 			_, _ = sd.toClient.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
-				Bucket:   aws.String(destContainer),
+				Bucket:   aws.String(sd.BucketName),
 				Key:      aws.String(destFile),
 				UploadId: aws.String(uploadId),
 			})
@@ -292,7 +299,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContain
 		}
 
 		completion, err := sd.toClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
-			Bucket:   aws.String(destContainer),
+			Bucket:   aws.String(sd.BucketName),
 			Key:      aws.String(destFile),
 			UploadId: aws.String(uploadId),
 			MultipartUpload: &types.CompletedMultipartUpload{

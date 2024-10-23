@@ -16,6 +16,7 @@ import (
 
 type AzureSource struct {
 	FromContainerClient *container.Client
+	StorageContainer    string
 	Prefix              string
 }
 
@@ -23,7 +24,11 @@ func (ad *AzureSource) SourceType() string {
 	return storageTypeAzureBlob
 }
 
-func (ad *AzureSource) Reader(ctx context.Context, path string, concurrency int) (io.Reader, error) {
+func (ad *AzureSource) Container() string {
+	return ad.StorageContainer
+}
+
+func (ad *AzureSource) Reader(ctx context.Context, path string) (io.Reader, error) {
 	// Get blob src blob client.
 	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.Prefix + "/" + path)
 	s, err := srcBlobClient.DownloadStream(ctx, nil)
