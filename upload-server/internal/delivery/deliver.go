@@ -42,7 +42,7 @@ type Source interface {
 }
 
 type Destination interface {
-	Copy(ctx context.Context, path string, source *Source, concurrency int) (string, error)
+	Copy(ctx context.Context, path string, source *Source, length int64, concurrency int) (string, error)
 	DestinationType() string
 }
 
@@ -227,19 +227,27 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 }
 
 func Deliver(ctx context.Context, path string, s Source, d Destination) (string, error) {
-	return d.Copy(ctx, s)
+
 	manifest, err := s.GetMetadata(ctx, path)
 	if err != nil {
 		return "", err
 	}
-
-	r, err := s.Reader(ctx, path)
-	if err != nil {
-		return "", err
+	length, e := strconv.ParseInt(manifest["content_length"], 10, 64)
+	if e != nil {
+		length = 1
 	}
-	if rc, ok := r.(io.Closer); ok {
-		defer rc.Close()
+	concurrency := 5
+	if length > size5MB {
+		concurrency = int(length) / (size5MB / 5)
 	}
+	return d.Copy(ctx, path, &s, concurrency)
+	//r, err := s.Reader(ctx, path)
+	//if err != nil {
+	//	return "", err
+	//}
+	//if rc, ok := r.(io.Closer); ok {
+	//	defer rc.Close()
+	//}
 	//return d.Upload(ctx, path, r, manifest)
 }
 

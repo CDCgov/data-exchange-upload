@@ -113,7 +113,7 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 	}
 	return ad.toClient, nil
 }
-func (ad *AzureDestination) Copy(ctx context.Context, path string, source *Source, concurrency int) (string, error) {
+func (ad *AzureDestination) Copy(ctx context.Context, path string, source *Source, length int64, concurrency int) (string, error) {
 
 	return "url", nil
 }
