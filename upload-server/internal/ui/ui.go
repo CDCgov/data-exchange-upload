@@ -53,10 +53,13 @@ func FormatDateTime(dateTimeString string) string {
 		return ""
 	}
 
-	date, err := time.Parse(time.RFC3339, dateTimeString)
+	date, err := time.Parse(time.RFC3339Nano, dateTimeString)
 
 	if err != nil {
-		return ""
+		date, err = time.Parse(time.RFC3339, dateTimeString)
+		if err != nil {
+			return ""
+		}
 	}
 
 	return date.UTC().Format(time.RFC850)

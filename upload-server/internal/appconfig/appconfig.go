@@ -107,7 +107,7 @@ func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		System:     "DEX",
 		DexProduct: "UPLOAD API",
 		DexApp:     "upload server",
-		ServerTime: time.Now().Format(time.RFC3339),
+		ServerTime: time.Now().Format(time.RFC3339Nano),
 	}) // .jsonResp
 	if err != nil {
 		errMsg := "error marshal json for root response"

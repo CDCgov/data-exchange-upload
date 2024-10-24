@@ -1,5 +1,9 @@
 package util
 
+enum class Environment(val env: String) {
+    LOCAL("LOCAL"), DEV("DEV"), TEST("TEST"), STAGE("STAGE")
+}
+
 class Constants {
     companion object {
         const val TEST_DESTINATION = "dextesting"
