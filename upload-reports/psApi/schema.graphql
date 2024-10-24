@@ -1405,10 +1405,6 @@ type UploadStats {
   """
   duplicateFilenames: [DuplicateFilenameCounts!]!
 
-  """
-  Number of uploads where we have received at least one chunk of data, but not all of them.
-  """
-  inProgressUploadsCount: Long!
 
   """
   Provides a list of all the uploads that are pending. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
