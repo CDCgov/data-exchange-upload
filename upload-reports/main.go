@@ -185,10 +185,8 @@ func getCsvData(datastreams []string, cleanedStartDate string, cleanedEndDate st
 			}
 
 			summaryChan <- rowData
+			anomalousChan <- anomalousData
 
-			if len(anomalousData) > 0 {
-				anomalousChan <- anomalousData
-			}
 		}(ds)
 	}
 
