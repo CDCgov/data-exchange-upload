@@ -165,6 +165,8 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		r.Form.Del("gorilla.csrf.Token");
 		manifest := map[string]string{"version": "2.0"}
 		for k, v := range r.Form {
 			manifest[k] = v[0]
