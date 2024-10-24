@@ -2,8 +2,13 @@ package delivery
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
+	"github.com/google/uuid"
 	"io"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -13,6 +18,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
+
+const maxPartsAzure = 50000
 
 type AzureSource struct {
 	FromContainerClient *container.Client
@@ -118,13 +125,93 @@ func (ad *AzureDestination) Copy(ctx context.Context, path string, source *Sourc
 	return "url", nil
 }
 
-func (ad *AzureDestination) copyWholeFromSignedURL(ctx context.Context, sourceSignedURL string, destContainer string, destPath string,
+func (ad *AzureDestination) copyWholeFromSignedURL(ctx context.Context, sourceSignedURL string, destPath string,
 	metadata map[string]string) (string, error) {
-	return "url", nil
+	destBlob := ad.toClient.NewBlockBlobClient(destPath)
+
+	_, e := destBlob.UploadBlobFromURL(ctx, sourceSignedURL,
+		&blockblob.UploadBlobFromURLOptions{
+			Metadata: storeaz.PointerizeMetadata(metadata),
+		})
+
+	if e != nil {
+		return "", fmt.Errorf("unable to copy blob: %v", e)
+	}
+	return destBlob.URL(), nil
 }
 
-func (ad *AzureDestination) copyBlocksFromSignedURL() (string, error) {
-	return "url", nil
+func (ad *AzureDestination) copyBlocksFromSignedURL(ctx context.Context, sourceSignedURL string, destPath string,
+	length int64, concurrency int, metadata map[string]string) (string, error) {
+	var partSize int64 = size5MB
+	if length > size5MB*maxPartsAzure {
+		// we need to increase the Part size
+		partSize = length / maxPartsAzure
+	}
+	numChunks := length / partSize
+	blockBlobClient := ad.toClient.NewBlockBlobClient(destPath)
+	blockBase := uuid.New()
+	blockIDs := make([]string, numChunks)
+	var chunkNum int64
+	var start int64 = 0
+	var count = partSize
+	chunkIdMap := make(map[string]azblob.HTTPRange)
+	for chunkNum = 0; chunkNum < numChunks; chunkNum++ {
+		end := start + count
+		if chunkNum == numChunks-1 {
+			count = 0
+		}
+		chunkId := base64.StdEncoding.EncodeToString([]byte(blockBase.String() + fmt.Sprintf("%05d", chunkNum)))
+		blockIDs[chunkNum] = chunkId
+		chunkIdMap[chunkId] = azblob.HTTPRange{
+			Offset: start,
+			Count:  count,
+		}
+		start = end
+	}
+	wg := sync.WaitGroup{}
+	errCh := make(chan error, 1)
+	ctx, cancel := context.WithCancel(ctx)
+	routines := 0
+	defer cancel()
+	for id := range chunkIdMap {
+		wg.Add(1)
+		routines++
+		go func(chunkId string) {
+			defer wg.Done()
+			_, err := blockBlobClient.StageBlockFromURL(ctx, chunkId, sourceSignedURL, &blockblob.StageBlockFromURLOptions{
+				Range: chunkIdMap[chunkId],
+			})
+
+			if err != nil {
+				select {
+				case errCh <- err:
+					// error was set
+				default:
+					// some other error is already set
+				}
+				cancel()
+			}
+		}(id)
+		if routines >= concurrency {
+			wg.Wait()
+			routines = 0
+		}
+	}
+	wg.Wait()
+	select {
+	case err := <-errCh:
+		// there was an error during staging
+		return "", fmt.Errorf("error staging blocks: %v", err)
+	default:
+		// no error was encountered
+	}
+	_, err := blockBlobClient.CommitBlockList(ctx, blockIDs,
+		&blockblob.CommitBlockListOptions{Metadata: storeaz.PointerizeMetadata(metadata)})
+	if err != nil {
+		return "", fmt.Errorf("unable to commit blocks: %v", err)
+	}
+
+	return blockBlobClient.URL(), nil
 }
 
 func (ad *AzureDestination) copyFromStream() (string, error) {
