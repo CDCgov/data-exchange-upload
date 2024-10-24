@@ -1,13 +1,4 @@
-import { UrlStorage } from 'tus-js-client';
-
-export interface PreviousUpload {
-  size: number | null;
-  metadata: { [key: string]: string };
-  creationTime: string;
-  urlStorageKey: string;
-  uploadUrl: string | null;
-  parallelUploadUrls: string[] | null;
-}
+import { PreviousUpload, UrlStorage } from './index.d';
 
 export class MemoryStorage implements UrlStorage {
   private uploadMap: Map<string, PreviousUpload>;
@@ -37,7 +28,7 @@ export class MemoryStorage implements UrlStorage {
 
   findUploadByUploadUrl(uploadUrl: string): Promise<PreviousUpload | null> {
     return new Promise(resolve => {
-      this.uploadMap.forEach((value, key) => {
+      this.uploadMap.forEach(value => {
         if (value.uploadUrl == uploadUrl) {
           resolve(value);
         }

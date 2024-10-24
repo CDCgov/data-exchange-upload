@@ -1,15 +1,28 @@
 import { expect } from '@playwright/test';
 import * as http from 'http';
+import {
+  UploadOptions as ClientOptions,
+  HttpRequest,
+  HttpResponse,
+  UploadResponse,
+  UploadStatusType
+} from './index.d';
 import { MemoryStorage } from './memory-storage';
 import * as client from './upload-client';
 
-export type ContextOptions = Pick<client.UploadOptions, 'headers' | 'retryDelays' | 'chunkSize'>;
-export type UploadHooks = client.UploadHooks;
+export type ContextOptions = Pick<ClientOptions, 'headers' | 'retryDelays' | 'chunkSize'>;
+export type UploadHooks = Pick<
+  ClientOptions,
+  | 'onBeforeRequest'
+  | 'onAfterResponse'
+  | 'onProgress'
+  | 'onChunkComplete'
+  | 'onUploadStarted'
+  | 'onUploadCreated'
+  | 'onUploadPaused'
+  | 'onUploadResumed'
+>;
 
-type UploadResponse = client.UploadResponse;
-type UploadStatusType = client.UploadStatusType;
-type HttpRequest = client.HttpRequest;
-type HttpResponse = client.HttpResponse;
 type RawHttpRequest = http.ClientRequest;
 type RawHttpResponse = http.IncomingMessage;
 
@@ -52,16 +65,13 @@ class ClientContext {
     metadata: { [key: string]: string },
     hooks: UploadHooks = {}
   ): Promise<UploadContext> {
-    const response = await client.uploadFile(
-      filename,
-      {
-        ...this.options,
-        metadata,
-        endpoint: this.baseURL,
-        urlStorage: this.storage
-      },
-      hooks
-    );
+    const response = await client.uploadFile(filename, {
+      ...this.options,
+      metadata,
+      endpoint: this.baseURL,
+      urlStorage: this.storage,
+      ...hooks
+    });
     return new UploadContext(response);
   }
 }
