@@ -40,11 +40,11 @@ test.describe(
     const testCaseFiles: TestSuite[] = [
       {
         suiteName: 'Missing Required Fields',
-        testCaseFilename: './resources/invalid_metadata_missing_required_fields.json'
+        testCaseFilename: resolve(__dirname, '..', 'resources', 'invalid_metadata_missing_required_fields.json')
       },
       {
         suiteName: 'Invalid Values',
-        testCaseFilename: './resources/invalid_metadata_invalid_values.json'
+        testCaseFilename: resolve(__dirname, '..', 'resources', 'invalid_metadata_invalid_values.json')
       }
     ];
 
