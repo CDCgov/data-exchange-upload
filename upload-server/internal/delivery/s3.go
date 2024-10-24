@@ -4,52 +4,71 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 )
 
-type writeAtWrapper struct {
-	writer io.Writer
-}
-
-func (w *writeAtWrapper) WriteAt(p []byte, _ int64) (int, error) {
-	// Ignoring offset because we force sequential writing
-	return w.writer.Write(p)
-}
-
 type S3Source struct {
-	FromClient *s3.Client
+	Connection *appconfig.S3StorageConfig
 	BucketName string
 	Prefix     string
+}
+
+type ReadInto interface {
+	ReadInto(ctx context.Context, path string, w io.WriterAt) error
+}
+
+func (ss *S3Source) ReadInto(ctx context.Context, path string, w io.WriterAt) error {
+	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
+	id := strings.Split(path, "+")[0]
+	srcFileName := ss.Prefix + "/" + id
+	client, err := ss.Client()
+	if err != nil {
+		return err
+	}
+	downloader := manager.NewDownloader(client)
+	//downloader.PartSize = 1024 * 1024 * 50
+	//downloader.ClientOptions
+	downloader.BufferProvider = manager.NewPooledBufferedWriterReadFromProvider(1024 * 1024 * 10)
+	//downloader.Concurrency = 20
+
+	if _, err := downloader.Download(ctx, w, &s3.GetObjectInput{
+		Bucket: &ss.BucketName,
+		Key:    &srcFileName,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (ss *S3Source) Client() (*s3.Client, error) {
+	return stores3.New(context.TODO(), ss.Connection)
 }
 
 func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) {
 	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
 	id := strings.Split(path, "+")[0]
 	srcFileName := ss.Prefix + "/" + id
-	downloader := manager.NewDownloader(ss.FromClient)
-	downloader.Concurrency = 1
+	client, err := ss.Client()
+	if err != nil {
+		return nil, err
+	}
+	rsp, err := client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(ss.BucketName),
+		Key:    aws.String(srcFileName),
+		//TODO ReadAt with Range
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	r, w := io.Pipe()
-
-	go func() {
-		defer w.Close()
-
-		_, err := downloader.Download(ctx, &writeAtWrapper{w}, &s3.GetObjectInput{
-			Bucket: &ss.BucketName,
-			Key:    &srcFileName,
-		})
-		if err != nil {
-			slog.Error(err.Error())
-		}
-	}()
-
-	return r, nil
+	return rsp.Body, nil
 }
 
 func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
@@ -57,7 +76,11 @@ func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]st
 	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
 	id := strings.Split(tuid, "+")[0]
 	srcFilename := ss.Prefix + "/" + id
-	output, err := ss.FromClient.HeadObject(ctx, &s3.HeadObjectInput{
+	client, err := ss.Client()
+	if err != nil {
+		return nil, err
+	}
+	output, err := client.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(ss.BucketName),
 		Key:    aws.String(srcFilename),
 	})
@@ -72,17 +95,17 @@ func (ss *S3Source) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "S3 source " + ss.BucketName
 	rsp.Status = models.STATUS_UP
 
-	if ss.FromClient == nil {
+	client, err := ss.Client()
+	if err != nil {
 		// Running in azure, but deliverer not set up.
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = "S3 source not configured"
+		return rsp
 	}
 
-	_, err := ss.FromClient.HeadBucket(ctx, &s3.HeadBucketInput{
+	if _, err := client.HeadBucket(ctx, &s3.HeadBucketInput{
 		Bucket: &ss.BucketName,
-	})
-
-	if err != nil {
+	}); err != nil {
 		rsp.Status = models.STATUS_DOWN
 		rsp.HealthIssue = err.Error()
 	}
@@ -123,10 +146,10 @@ func (sd *S3Destination) Client() *s3.Client {
 	return sd.toClient
 }
 
-func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
+func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) error {
 	destFileName, err := getDeliveredFilename(ctx, path, sd.PathTemplate, m)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	uploader := manager.NewUploader(sd.Client())
@@ -137,9 +160,17 @@ func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m
 		Metadata: m,
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed to upload file to %s %s: %w", sd.BucketName, path, err)
+		return fmt.Errorf("failed to upload file to %s %s: %w", sd.BucketName, path, err)
 	}
 
+	return nil
+}
+
+func (sd *S3Destination) URI(ctx context.Context, id string, metadata map[string]string) (string, error) {
+	destFileName, err := getDeliveredFilename(ctx, id, sd.PathTemplate, metadata)
+	if err != nil {
+		return "", err
+	}
 	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, destFileName)
 	return s3URL, nil
 }

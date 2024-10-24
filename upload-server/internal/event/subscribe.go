@@ -3,17 +3,14 @@ package event
 import (
 	"context"
 	"fmt"
+	"io"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-	"io"
 )
-
-type MemorySubscriber[T Identifiable] struct {
-	Chan chan T
-}
 
 type AzureSubscriber[T Identifiable] struct {
 	Context     context.Context
@@ -28,44 +25,6 @@ type Subscribable[T Identifiable] interface {
 	GetBatch(ctx context.Context, max int) ([]T, error)
 	HandleSuccess(ctx context.Context, event T) error
 	HandleError(ctx context.Context, event T, handlerError error) error
-}
-
-func (ms *MemorySubscriber[T]) GetBatch(ctx context.Context, _ int) ([]T, error) {
-	select {
-	case <-ctx.Done():
-		return nil, nil
-	case evt := <-ms.Chan:
-		return []T{evt}, nil
-	}
-}
-
-func (ms *MemorySubscriber[T]) HandleSuccess(_ context.Context, e T) error {
-	logger.Info("successfully handled event", "event", e)
-	return nil
-}
-
-func (ms *MemorySubscriber[T]) HandleError(_ context.Context, e T, err error) error {
-	logger.Error("failed to handle event", "event", e, "error", err.Error())
-	if e.RetryCount() < MaxRetries {
-		e.IncrementRetryCount()
-		// Retrying in a separate go routine so this doesn't block on channel write.
-		go func() {
-			ms.Chan <- e
-		}()
-	}
-	return nil
-}
-
-func (ms *MemorySubscriber[T]) Close() error {
-	logger.Info("closing in-memory subscriber")
-	return nil
-}
-
-func (ms *MemorySubscriber[T]) Health(_ context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "Memory Subscriber"
-	rsp.Status = models.STATUS_UP
-	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
-	return rsp
 }
 
 func (as *AzureSubscriber[T]) GetBatch(ctx context.Context, max int) ([]T, error) {

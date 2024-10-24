@@ -606,15 +606,13 @@ func TestMain(m *testing.M) {
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
-	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
 	err := cli.InitReporters(testContext, appConfig)
 	defer reports.CloseAll()
 	err = event.InitFileReadyPublisher(testContext, appConfig)
 	defer event.FileReadyPublisher.Close()
-	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
-		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
+		cli.SubscribeToEvents(testContext, event.FileReadyPublisher.(event.Subscribable[*event.FileReady]), postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 
@@ -632,7 +630,6 @@ func TestMain(m *testing.M) {
 	testRes := m.Run()
 
 	ts.Close()
-	event.CloseFileReadyChannel()
 	os.Exit(testRes)
 }
 

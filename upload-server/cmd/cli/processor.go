@@ -2,20 +2,17 @@ package cli
 
 import (
 	"context"
+	"sync"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"sync"
 )
 
 func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable[T], error) {
 	var sub event.Subscribable[T]
-	c, err := event.GetChannel[T]()
-	if err != nil {
-		return nil, err
-	}
-	sub = &event.MemorySubscriber[T]{
-		Chan: c,
+	sub = &event.MemoryBus[T]{
+		Chan: make(chan T),
 	}
 
 	if appConfig.SubscriberConnection != nil {

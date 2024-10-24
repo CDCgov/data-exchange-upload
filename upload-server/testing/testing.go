@@ -177,38 +177,48 @@ func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
 
 		tuid = filepath.Base(uploader.Url())
 
-		time.Sleep(1 * time.Second)
-		// check the file
-		resp, err := http.Get(url + "/info/" + tuid)
-		if err != nil {
-			return "", err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return "", fmt.Errorf("failed to get upload info %s", resp.Status)
-		}
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return "", err
-		}
+		count := 0
+		for {
+			// check the file
+			resp, err := http.Get(url + "/info/" + tuid)
+			if err != nil {
+				return "", err
+			}
+			if resp.StatusCode != http.StatusOK {
+				return "", fmt.Errorf("failed to get upload info %s", resp.Status)
+			}
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return "", err
+			}
 
-		infoJson := &info.InfoResponse{}
-		if err := json.Unmarshal(body, infoJson); err != nil {
-			return "", err
-		}
+			infoJson := &info.InfoResponse{}
+			if err := json.Unmarshal(body, infoJson); err != nil {
+				return "", err
+			}
 
-		_, ok := infoJson.FileInfo["size_bytes"]
-		if !ok {
-			return "", fmt.Errorf("invalid info response: %s", infoJson)
-		}
+			_, ok := infoJson.FileInfo["size_bytes"]
+			if !ok {
+				return "", fmt.Errorf("invalid info response: %s", infoJson)
+			}
 
-		// check hydrated manifest fields
-		_, ok = infoJson.Manifest["dex_ingest_datetime"]
-		if !ok {
-			return "", fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
-		}
+			// check hydrated manifest fields
+			_, ok = infoJson.Manifest["dex_ingest_datetime"]
+			if !ok {
+				return "", fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
+			}
 
-		if len(infoJson.Deliveries) != len(c.deliveries) {
-			return "", fmt.Errorf("incorrect deliveries: %+v %+v", infoJson.Deliveries, c.deliveries)
+			if count > 1000 {
+				return "", fmt.Errorf("failed to deliver in time %d/%d", len(infoJson.Deliveries), len(c.deliveries))
+			}
+			count++
+			if len(infoJson.Deliveries) == len(c.deliveries) {
+				return tuid, nil
+			}
+			if len(infoJson.Deliveries) >= len(c.deliveries) {
+				return tuid, fmt.Errorf("too many deliveries! %d/%d %+v", len(infoJson.Deliveries), len(c.deliveries), infoJson.Deliveries)
+			}
+			time.Sleep(10 * time.Millisecond)
 		}
 	}
 
