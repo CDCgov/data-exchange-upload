@@ -240,7 +240,7 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 	if length > size5MB {
 		concurrency = int(length) / (size5MB / 5)
 	}
-	return d.Copy(ctx, path, &s, concurrency)
+	return d.Copy(ctx, path, &s, length, concurrency)
 	//r, err := s.Reader(ctx, path)
 	//if err != nil {
 	//	return "", err
