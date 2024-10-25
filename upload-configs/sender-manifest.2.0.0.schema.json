@@ -3,6 +3,7 @@
     "$id": "https://github.com/CDCgov/data-exchange-upload/upload-configs",
     "title": "Sender Manifest",
     "description": "Schema utilized for metadata that accompanies file uploads.",
+    "version": "2.0.0",
     "type": "object",
     "required-fields": [
         "version", 
