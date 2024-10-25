@@ -57,7 +57,7 @@ type AppConfig struct {
 	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 
 	// User Interface Configs
-	UIPort           string `env:"UI_PORT, default=:8081"`
+	UIPort           string `env:"UI_PORT, default=8081"`
 	UIServerProtocol string `env:"UI_SERVER_PROTOCOL, default=http"`
 	UIServerHost     string `env:"UI_SERVER_HOSTNAME, default=localhost:8080"`
 	CsrfToken        string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`

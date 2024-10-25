@@ -18,7 +18,7 @@ services:
       - REDIS_CONNECTION_STRING=redis://redispw@cache:6379
       # Generate a random 32-byte string here https://generate-random.org/encryption-key-generator?count=1&bytes=32&cipher=aes-256-cbc&string=&password=
       - CSRF_TOKEN=${CSRF_TOKEN}
-      - DEX_DELIVERY_CONFIG_FILE=${DEX_DELIVERY_CONFIG_FILE:-/code/configs/testing/file_destinations.yml}
+      - DEX_DELIVERY_CONFIG_FILE
     ports:
       - ${SERVER_PORT:-8080}:${SERVER_PORT:-8080}
       - ${UI_PORT:-8081}:${UI_PORT:-8081}
