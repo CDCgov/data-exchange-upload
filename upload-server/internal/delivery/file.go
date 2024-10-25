@@ -25,10 +25,9 @@ func (fd *FileDestination) DestinationType() string {
 	return storageTypeLocalFile
 }
 
-func (fd *FileDestination) Copy(ctx context.Context, path string, source *Source, _ int64, _ int) (string, error) {
+func (fd *FileDestination) Copy(ctx context.Context, path string, source *Source, metadata map[string]string, _ int64, _ int) (string, error) {
 	s := *source
 	reader, _ := s.Reader(ctx, path)
-	metadata, _ := s.GetMetadata(ctx, path)
 	return fd.Upload(ctx, path, reader, metadata)
 }
 

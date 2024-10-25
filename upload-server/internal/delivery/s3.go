@@ -164,12 +164,8 @@ func (sd *S3Destination) Client() *s3.Client {
 	return sd.toClient
 }
 
-func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, length int64, concurrency int) (string, error) {
+func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, metadata map[string]string, length int64, concurrency int) (string, error) {
 	s := *source
-	metadata, err := s.GetMetadata(ctx, path)
-	if err != nil {
-		return "", err
-	}
 	if s.SourceType() == sd.DestinationType() {
 		// copy s3 to s3
 		// going to assume we have correct IAM permissions

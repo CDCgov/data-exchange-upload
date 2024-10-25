@@ -42,7 +42,7 @@ type Source interface {
 }
 
 type Destination interface {
-	Copy(ctx context.Context, path string, source *Source, length int64, concurrency int) (string, error)
+	Copy(ctx context.Context, path string, source *Source, metadata map[string]string, length int64, concurrency int) (string, error)
 	DestinationType() string
 }
 
@@ -240,7 +240,7 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 	if length > size5MB {
 		concurrency = int(length) / (size5MB / 5)
 	}
-	return d.Copy(ctx, path, &s, length, concurrency)
+	return d.Copy(ctx, path, &s, manifest, length, concurrency)
 	//r, err := s.Reader(ctx, path)
 	//if err != nil {
 	//	return "", err

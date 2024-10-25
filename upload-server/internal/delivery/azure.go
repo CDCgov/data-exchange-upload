@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blockblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/sas"
 	"github.com/google/uuid"
 	"io"
 	"strconv"
@@ -20,6 +21,7 @@ import (
 )
 
 const maxPartsAzure = 50000
+const sizeLargeObject = 50 * 1024 * 1024
 
 type AzureSource struct {
 	FromContainerClient *container.Client
@@ -61,8 +63,18 @@ func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string
 	return props, nil
 }
 
-func (ad *AzureSource) GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error) {
-	return "", nil
+func (ad *AzureSource) GetSignedObjectURL(_, _, objectPath string) (string, error) {
+	sourceBlob := ad.FromContainerClient.NewBlockBlobClient(objectPath)
+	sourceURL, er := sourceBlob.GetSASURL(sas.BlobPermissions{
+		Read:   true,
+		Add:    true,
+		Create: true,
+		Write:  true,
+	}, time.Now().Add(time.Hour), nil)
+	if er != nil {
+		return "", fmt.Errorf("unable to get signed url for source object: %v", er)
+	}
+	return sourceURL, nil
 }
 
 func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
@@ -120,35 +132,61 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 	}
 	return ad.toClient, nil
 }
-func (ad *AzureDestination) Copy(ctx context.Context, path string, source *Source, length int64, concurrency int) (string, error) {
-
-	return "url", nil
+func (ad *AzureDestination) Copy(ctx context.Context, path string, source *Source, metadata map[string]string, length int64, concurrency int) (string, error) {
+	s := *source
+	blobName, err := getDeliveredFilename(ctx, path, ad.PathTemplate, metadata)
+	if err != nil {
+		return "", fmt.Errorf("unable to determine destination blob name: %v", err)
+	}
+	if s.SourceType() != storageTypeLocalFile {
+		sourceUrl, err := s.GetSignedObjectURL(ctx, s.Container(), path)
+		if err != nil {
+			return "", fmt.Errorf("unable to obtain signed url: %v", err)
+		}
+		if length < sizeLargeObject {
+			return ad.copyWholeFromSignedURL(ctx, sourceUrl, blobName, metadata)
+		}
+		return ad.copyBlocksFromSignedURL(ctx, sourceUrl, blobName, length, concurrency, metadata)
+	}
+	r, err := s.Reader(ctx, path)
+	if err != nil {
+		return "", fmt.Errorf("unable to obtain source reader: %v", err)
+	}
+	return ad.copyFromStream(ctx, r, blobName, metadata)
 }
 
 func (ad *AzureDestination) copyWholeFromSignedURL(ctx context.Context, sourceSignedURL string, destPath string,
 	metadata map[string]string) (string, error) {
-	destBlob := ad.toClient.NewBlockBlobClient(destPath)
+	client, e := ad.Client()
+	if e != nil {
+		return "", fmt.Errorf("unable to obtain Azure container client: %v", e)
+	}
+	destBlob := client.NewBlockBlobClient(destPath)
 
-	_, e := destBlob.UploadBlobFromURL(ctx, sourceSignedURL,
+	_, err := destBlob.UploadBlobFromURL(ctx, sourceSignedURL,
 		&blockblob.UploadBlobFromURLOptions{
 			Metadata: storeaz.PointerizeMetadata(metadata),
 		})
 
-	if e != nil {
-		return "", fmt.Errorf("unable to copy blob: %v", e)
+	if err != nil {
+		return "", fmt.Errorf("unable to copy blob: %v", err)
 	}
 	return destBlob.URL(), nil
 }
 
 func (ad *AzureDestination) copyBlocksFromSignedURL(ctx context.Context, sourceSignedURL string, destPath string,
 	length int64, concurrency int, metadata map[string]string) (string, error) {
+	client, e := ad.Client()
+	if e != nil {
+		return "", fmt.Errorf("unable to obtain Azure container client: %v", e)
+	}
 	var partSize int64 = size5MB
 	if length > size5MB*maxPartsAzure {
 		// we need to increase the Part size
 		partSize = length / maxPartsAzure
 	}
 	numChunks := length / partSize
-	blockBlobClient := ad.toClient.NewBlockBlobClient(destPath)
+	blockBlobClient := client.NewBlockBlobClient(destPath)
 	blockBase := uuid.New()
 	blockIDs := make([]string, numChunks)
 	var chunkNum int64
@@ -214,8 +252,20 @@ func (ad *AzureDestination) copyBlocksFromSignedURL(ctx context.Context, sourceS
 	return blockBlobClient.URL(), nil
 }
 
-func (ad *AzureDestination) copyFromStream() (string, error) {
-	return "url", nil
+func (ad *AzureDestination) copyFromStream(ctx context.Context, r io.Reader, blobName string, metadata map[string]string) (string, error) {
+	c, err := ad.Client()
+	if err != nil {
+		return "", fmt.Errorf("unable to obtain Azure container client: %v", err)
+	}
+	client := c.NewBlockBlobClient(blobName)
+
+	_, err = client.UploadStream(ctx, r, &azblob.UploadStreamOptions{
+		Metadata: storeaz.PointerizeMetadata(metadata),
+	})
+	if err != nil {
+		return "", fmt.Errorf("unable to upload stream: %v", err)
+	}
+	return client.URL(), nil
 }
 
 func (ad *AzureDestination) DestinationType() string {
