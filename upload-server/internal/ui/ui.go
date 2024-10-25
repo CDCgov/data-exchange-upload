@@ -110,8 +110,8 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(addr string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string) *http.Server {
-	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl)
+func NewServer(addr string, csrfToken string, externalUploadUrl string, internalInfoUrl string, internalUploadUrl string) *http.Server {
+	router := GetRouter(externalUploadUrl, internalInfoUrl, internalUploadUrl)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
@@ -124,7 +124,7 @@ func NewServer(addr string, csrfToken string, externalUploadUrl string, external
 	return s
 }
 
-func GetRouter(externalUploadUrl string, externalInfoUrl string, internalUploadUrl string) *mux.Router {
+func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
@@ -207,7 +207,7 @@ func GetRouter(externalUploadUrl string, externalInfoUrl string, internalUploadU
 		id := vars["upload_id"]
 
 		// Check for upload
-		u, err := url.Parse(externalInfoUrl)
+		u, err := url.Parse(internalInfoUrl)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -282,8 +282,8 @@ func GetRouter(externalUploadUrl string, externalInfoUrl string, internalUploadU
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, externalUploadURL string, externalInfoURL string, internalUploadUrl string) error {
-	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, externalInfoURL, internalUploadUrl)
+func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string) error {
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl)
 
 	return DefaultServer.ListenAndServe()
 }
