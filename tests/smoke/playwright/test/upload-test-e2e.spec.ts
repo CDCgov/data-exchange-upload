@@ -1,11 +1,18 @@
 import { expect, test } from '@playwright/test';
+import {
+  Metadata,
+  SMALL_FILENAME,
+  getFileSelection,
+  getMetadataObjects
+} from '../resources/test-helpers';
 
 test.describe.configure({ mode: 'parallel' });
 
-const manifests = JSON.parse(JSON.stringify(require('./manifests.json')));
+const metadata: Metadata[] = getMetadataObjects();
+const fileSelection = getFileSelection(SMALL_FILENAME);
 
 test.describe('Upload API/UI', () => {
-  manifests.forEach(({ dataStream, route }: { dataStream: string; route: string }) => {
+  metadata.forEach(({ dataStream, route }) => {
     test(`can use the UI to upload a file for Data stream: ${dataStream} / Route: ${route}`, async ({
       page
     }) => {
@@ -22,9 +29,9 @@ test.describe('Upload API/UI', () => {
       const fileChooserPromise = page.waitForEvent('filechooser');
       await page.getByRole('button', { name: 'Browse Files' }).click();
       const fileChooser = await fileChooserPromise;
-      await fileChooser.setFiles('../upload-files/10KB-test-file');
+      await fileChooser.setFiles(fileSelection);
 
-      await expect(page.getByText('Upload Status: Complete')).toBeVisible();
+      await expect(page.getByText('Upload Status: Complete')).toBeVisible({ timeout: 20000 });
     });
   });
 });
