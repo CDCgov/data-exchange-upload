@@ -21,7 +21,8 @@
     "properties": {
         "version": {
             "type": "string",
-            "description": "Denotes the sender manifest schema version; this value must equal '2.0'."        
+            "description": "Denotes the sender manifest schema version.",
+            "required": "2.0"        
         },
         "data_stream_id": {
             "type": "string",
