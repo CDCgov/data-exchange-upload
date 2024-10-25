@@ -2,11 +2,20 @@ package cli
 
 import (
 	"context"
+	"crypto/md5"
+	"fmt"
+	"sync"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"sync"
+	"go.opentelemetry.io/otel"
+	otrace "go.opentelemetry.io/otel/trace"
 )
+
+type key int
+
+var UploadID key
 
 func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable[T], error) {
 	var sub event.Subscribable[T]
@@ -32,6 +41,7 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 }
 
 func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subscribable[T], process func(context.Context, T) error) {
+	tracer := otel.Tracer("event-handling")
 	for {
 		var wg sync.WaitGroup
 		events, err := sub.GetBatch(ctx, 5)
@@ -45,8 +55,10 @@ func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subs
 		default:
 			for _, e := range events {
 				wg.Add(1)
-				go func(e T) {
+				go func(ctx context.Context, e T) {
 					defer wg.Done()
+					_, span := tracer.Start(ctx, fmt.Sprintf("Handling-%s", e.Identifier()))
+					defer span.End()
 					err := process(ctx, e)
 
 					if err != nil {
@@ -67,7 +79,7 @@ func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subs
 						return
 					}
 
-				}(e)
+				}(context.WithValue(ctx, UploadID, otrace.TraceID(md5.Sum([]byte(e.Identifier())))), e)
 			}
 			wg.Wait()
 		}
