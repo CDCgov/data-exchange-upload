@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	evt "github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )

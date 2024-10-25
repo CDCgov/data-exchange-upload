@@ -2,7 +2,6 @@ package cli
 
 import (
 	"encoding/json"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"io"
 	"net/http"
 
@@ -52,8 +51,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dataStreamId, dataStreamRoute := metadata.GetDataStreamID(m), metadata.GetDataStreamRoute(m)
-	if _, ok := delivery.GetGroupTarget(dataStreamId, dataStreamRoute, body.Target); !ok {
+	if _, ok := delivery.GetTarget(body.Target); !ok {
 		http.Error(rw, "Invalid target", http.StatusBadRequest)
 		return
 	}

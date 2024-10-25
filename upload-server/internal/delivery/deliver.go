@@ -35,15 +35,15 @@ var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 var groups map[string]Group
 var targets map[string]Destination
 
-var destinations = map[string]map[string]Destination{}
+//var destinations = map[string]map[string]Destination{}
 
-func RegisterDestination(name string, targetName string, d Destination) {
-	if _, ok := destinations[name]; ok {
-		destinations[name][targetName] = d
-	} else {
-		destinations[name] = map[string]Destination{targetName: d}
-	}
-}
+//func RegisterDestination(name string, targetName string, d Destination) {
+//	if _, ok := destinations[name]; ok {
+//		destinations[name][targetName] = d
+//	} else {
+//		destinations[name] = map[string]Destination{targetName: d}
+//	}
+//}
 
 //func GetGroupTargetNames(group Group) []string {
 //	targets, ok := destinations[group.Key()]
@@ -59,34 +59,35 @@ func RegisterDestination(name string, targetName string, d Destination) {
 //	return targetNames
 //}
 
-func GetGroupTarget(group Group, target string) (Destination, bool) {
-	d, ok := destinations[group.Key()][target]
+func GetTarget(target string) (Destination, bool) {
+	d, ok := targets[target]
 	return d, ok
 }
 
 func FindGroupFromMetadata(meta handler.MetaData) (Group, bool) {
 	dataStreamId, dataStreamRoute := metadataPkg.GetDataStreamID(meta), metadataPkg.GetDataStreamRoute(meta)
-	g, ok := groups[dataStreamId + "_" + dataStreamRoute]
+	group := Group{
+		DataStreamId:    dataStreamId,
+		DataStreamRoute: dataStreamRoute,
+	}
+	g, ok := groups[group.Key()]
 	return g, ok
 }
 
-func getTargetHealthChecks() []any {
-	targetSet := map[string]Destination{}
-	var dests []any
+func getDeliveryHealthChecks(srcs []Source, dests []Destination) []any {
+	checks := make([]any, len(srcs)+len(dests))
+	i := 0
 
-	for _, destination := range destinations {
-		targetCount := 0
-		for name, t := range destination {
-			targetSet[name] = t
-			targetCount++
-		}
+	for _, s := range srcs {
+		checks[i] = s
+		i++
+	}
+	for _, d := range dests {
+		checks[i] = d
+		i++
 	}
 
-	for _, dest := range targetSet {
-		dests = append(dests, dest)
-	}
-
-	return dests
+	return checks
 }
 
 var sources = map[string]Source{}
@@ -120,12 +121,12 @@ type PathInfo struct {
 
 type Config struct {
 	Targets []Target `yaml:"targets"`
-	Groups []Group `yaml:"routing_groups"`
+	Groups  []Group  `yaml:"routing_groups"`
 }
 
 type Group struct {
-	DataStreamId    string   `yaml:"data_stream_id"`
-	DataStreamRoute string   `yaml:"data_stream_route"`
+	DataStreamId    string              `yaml:"data_stream_id"`
+	DataStreamRoute string              `yaml:"data_stream_route"`
 	DeliveryTargets []TargetDesignation `yaml:"delivery_targets"`
 }
 
@@ -143,7 +144,7 @@ func (g *Group) TargetNames() []string {
 }
 
 type TargetDesignation struct {
-	Name string `yaml:"name"`
+	Name         string `yaml:"name"`
 	PathTemplate string `yaml:"path_template"`
 }
 
@@ -193,6 +194,7 @@ func unmarshalDeliveryConfig(confBody string) (*Config, error) {
 // Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
 	var src Source
+	var dests []Destination
 	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
 	fromPath := os.DirFS(fromPathStr)
 	src = &FileSource{
@@ -210,23 +212,23 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 
 	for _, t := range cfg.Targets {
 		targets[t.Name] = t.Destination
+		dests = append(dests, t.Destination)
 	}
 
 	for _, g := range cfg.Groups {
+		groups[g.Key()] = g
 		if g.DeliveryTargets == nil {
 			slog.Warn(fmt.Sprintf("no targets configured for group %s", g.Key()))
 		}
-		for _, t := range g.DeliveryTargets {
-			d, ok := targets[t.Name]
-			if !ok {
-				return fmt.Errorf("target %s not found", t.Name)
-			}
-
-			RegisterDestination(g.Key(), t.Name, d)
-		}
+		//for _, t := range g.DeliveryTargets {
+		//	d, ok := targets[t.Name]
+		//	if !ok {
+		//		return fmt.Errorf("target %s not found", t.Name)
+		//	}
+		//
+		//	RegisterDestination(g.Key(), t.Name, d)
+		//}
 	}
-
-	targets := getTargetHealthChecks()
 
 	if appConfig.AzureConnection != nil {
 		// TODO Can the tus container client be singleton?
@@ -252,8 +254,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 	RegisterSource("upload", src)
 
-	targets = append(targets, src)
-	if err := health.Register(targets...); err != nil {
+	if err := health.Register(getDeliveryHealthChecks([]Source{src}, dests)...); err != nil {
 		slog.Error("failed to register some health checks", "error", err)
 	}
 	return nil
