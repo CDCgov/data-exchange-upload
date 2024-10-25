@@ -5,7 +5,7 @@
     "description": "Schema utilized for metadata that accompanies file uploads.",
     "version": "2.0.0",
     "type": "object",
-    "required-fields": [
+    "required": [
         "version", 
         "data_stream_id", 
         "data_stream_route", 
@@ -14,7 +14,7 @@
         "jurisdiction", 
         "received_filename"
     ],
-    "optional-fields": [
+    "optional": [
         "custom_metadata_field_1", 
         "custom_metadata_field_2"
     ],
