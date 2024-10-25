@@ -1,48 +1,50 @@
 networks:
-  e2e-aws-network:
+  e2e-minio-network:
 
 services:
   minio:
     image: quay.io/minio/minio
-    container_name: minio-test
+    hostname: minio
     volumes:
       - ./configs/local/minio:/data
     command: server /data --console-address :8001 --address :8000
     networks:
-      - e2e-aws-network
+      - e2e-minio-network
   upload-server:
     image: golang:alpine
-    container_name: upload-server-aws
+    container_name: upload-server-minio
     volumes:
       - .:/code
       - ../upload-configs:/upload-configs
     working_dir: /code
     environment:
-      - SERVER_HOSTNAME=upload-server-aws
-      - S3_ENDPOINT=http://minio-test:8000
+      - SERVER_HOSTNAME=upload-server-minio
+      - S3_ENDPOINT=http://minio:8000
       - S3_BUCKET_NAME=test-bucket
       - AWS_REGION=us-east-1
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - DEX_MANIFEST_CONFIG_FOLDER_NAME=upload-configs
-      - DEX_DELIVERY_CONFIG_FILE
+      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/s3_destinations.yml
+      - EHDI_PATH_TEMPLATE
+      - EICR_PATH_TEMPLATE
     command: /bin/sh -c "./run-server.sh"
     networks:
-      - e2e-aws-network
+      - e2e-minio-network
     depends_on:
       - minio
   playwright:
     image: mcr.microsoft.com/playwright:v1.48.0-focal
-    container_name: playwright-aws
+    container_name: playwright-minio
     volumes:
       - ../tests/smoke/playwright:/app
       - /app/node_modules
     working_dir: /app
     environment:
-      - CI=${CI}
-      - SERVER_URL=http://upload-server-aws:8080
-      - UI_URL=http://upload-server-aws:8081
-      - TEST_REPORT_JSON=${TEST_REPORT_JSON:-aws-test-report.json}
+      - CI
+      - SERVER_URL=http://upload-server-minio:8080
+      - UI_URL=http://upload-server-minio:8081
+      - TEST_REPORT_JSON=${TEST_REPORT_JSON:-minio-test-report.json}
     command: npm run test:docker
     networks:
-      - e2e-aws-network
+      - e2e-minio-network

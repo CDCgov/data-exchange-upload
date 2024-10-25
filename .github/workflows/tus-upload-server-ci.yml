@@ -54,7 +54,7 @@ jobs:
     uses: ./.github/workflows/e2e-test-template.yml    
     with:
       TEST_TITLE: E2E Azure Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.azure.yml
+      COMPOSE_FILENAME: ./docker-compose.e2e.azurite.yml
       STORAGE_TYPE: azure
     secrets: inherit
   e2e-tests-aws:
@@ -62,7 +62,7 @@ jobs:
     uses: ./.github/workflows/e2e-test-template.yml
     with:
       TEST_TITLE: E2E AWS Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.aws.yml
+      COMPOSE_FILENAME: ./docker-compose.e2e.minio.yml
       STORAGE_TYPE: aws
     secrets: inherit
   run-fortify-scan:

@@ -11,6 +11,8 @@ services:
     working_dir: /code
     environment:
       - SERVER_HOSTNAME=upload-server-fs
+      - UPLOAD_CONFIG_PATH=/upload-configs
+      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/file_destinations.yml
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-fs-network
@@ -22,7 +24,7 @@ services:
       - /app/node_modules
     working_dir: /app
     environment:
-      - CI=${CI}
+      - CI
       - SERVER_URL=http://upload-server-fs:8080
       - UI_URL=http://upload-server-fs:8081
       - TEST_REPORT_JSON=${TEST_REPORT_JSON:-fs-test-report.json}

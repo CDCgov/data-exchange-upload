@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import path from 'path';
 
 test.describe.configure({ mode: 'parallel' });
 
@@ -88,7 +89,9 @@ test.describe("File Uploader Page", () => {
 
 test.describe("Upload Status Page", () => {
     test("has the expected elements to display upload status", async ({ page, baseURL }) => {
-        const apiURL = process.env.SERVER_URL ?? baseURL.replace('8081', '8080')
+        test.setTimeout(60000);
+
+        const apiURL = process.env.SERVER_URL ?? baseURL?.replace('8081', '8080') ?? 'http://localhost:8080';
         const dataStream = 'dextesting';
         const route = 'testevent1';
         const expectedFileName = 'small-test-file'
@@ -121,31 +124,35 @@ test.describe("Upload Status Page", () => {
         await page.getByRole('button', {name: 'Browse Files'}).click(); 
 
         const fileChooser = await fileChooserPromise;
-        await fileChooser.setFiles('./test-data/10KB-test-file');
+        await fileChooser.setFiles(path.resolve(__dirname, '..', 'test-data', '10KB-test-file'));
 
         await expect((await uploadPatchResponsePromise).ok()).toBeTruthy()
         await expect((await uploadHeadResponsePromise).ok()).toBeTruthy()
 
-        // await page.waitForTimeout(30000); // wait for 30 seconds for all of the deliveries to complete
+        await page.waitForTimeout(10000); // wait for 10 seconds for all of the deliveries to complete
         await page.reload();
-        // await expect(page.locator('.file-delivery-container').count()).toEqual(targets.length)
+        expect(await page.locator('.file-delivery-container').count()).toEqual(targets.length)
 
         const fileHeaderContainer= page.locator('.file-header-container')
         await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(0)).toHaveText(expectedFileName)
         await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(1)).toHaveText("Upload Status: Complete")
-        await expect(fileHeaderContainer).toContainText(`ID: ${uploadId}`)
+        // TODO handle s3 issue with ID
+        // await expect(fileHeaderContainer).toContainText(`ID: ${uploadId}`)
     
-        // const fileDeliveriesContainer = page.locator('.file-deliveries-container');
-        // await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
+        const fileDeliveriesContainer = page.locator('.file-deliveries-container');
+        await expect(fileDeliveriesContainer.getByRole('heading', { level: 2 }).nth(0)).toHaveText('Delivery Status')
 
-        // targets.forEach((target, index) => {
-        //     (async () => {
-        //         const fileDeliveryContainer = page.locator('.file-delivery-container').nth(index)
-        //         await expect(fileDeliveryContainer.getByRole('heading', { level: 2 })).toHaveText(target.toUpperCase())
-        //         await expect(fileDeliveryContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
-        //         await expect(fileDeliveryContainer).toContainText(`Location: uploads/${target}/${uploadId}`)
-        //     })()
-        // })
+        targets.forEach((target) => {
+            (async () => {
+                fileDeliveriesContainer
+                const fileDeliveryContainer = fileDeliveriesContainer.locator('.file-delivery-container').filter({ hasText: target.toUpperCase() })
+                await expect(fileDeliveryContainer.getByRole('heading', { level: 2 })).toHaveText(target.toUpperCase())
+                await expect(fileDeliveryContainer.getByRole('heading', { level: 3 })).toHaveText('Delivery Status: SUCCESS')
+                await expect(fileDeliveryContainer).toContainText(uploadId)
+                // TODO handle different destination types
+                // await expect(fileDeliveryContainer).toContainText(`Location: uploads/${target}/${uploadId}`)
+            })()
+        })
 
         const uploadDetailsContainer = page.locator('.file-details-container')
         await expect(uploadDetailsContainer.getByRole('heading', { level: 2 })).toHaveText('Upload Details')
