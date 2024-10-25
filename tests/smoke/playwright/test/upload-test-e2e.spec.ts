@@ -1,8 +1,21 @@
 import { expect, test } from '@playwright/test';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 
 test.describe.configure({ mode: 'parallel' });
 
 const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
+const filename = resolve(__dirname, '..', 'test-data', '10KB-test-file');
+
+const fileSelected: {
+    name: string;
+    mimeType: string;
+    buffer: Buffer;
+} = {
+    name: filename,
+    mimeType: 'text/plain',
+    buffer: readFileSync(filename)
+};
 
 test.describe("Upload API/UI", () => {
     manifests.forEach(({ dataStream, route }: { dataStream: string, route: string }) => {
@@ -21,7 +34,7 @@ test.describe("Upload API/UI", () => {
             const fileChooserPromise = page.waitForEvent('filechooser');
             await page.getByRole('button', {name: 'Browse Files'}).click(); 
             const fileChooser = await fileChooserPromise;
-            await fileChooser.setFiles('./test-data/10KB-test-file');     
+            await fileChooser.setFiles(fileSelected);
 
             await expect(page.getByText('Upload Status: Complete')).toBeVisible({ timeout: 20000 });
         })

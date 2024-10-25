@@ -10,7 +10,8 @@ services:
       - ../upload-configs:/upload-configs
     working_dir: /code
     environment:
-      - SERVER_HOSTNAME=upload-server-fs
+      - UI_SERVER_EXTERNAL_HOST=upload-server-fs:8080
+      - UI_SERVER_INTERNAL_HOST=upload-server-fs:8080
       - UPLOAD_CONFIG_PATH=/upload-configs
       - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/file_destinations.yml
     command: /bin/sh -c "./run-server.sh"

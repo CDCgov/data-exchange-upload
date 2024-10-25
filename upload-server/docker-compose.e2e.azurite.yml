@@ -15,7 +15,8 @@ services:
       - ../upload-configs:/upload-configs
     working_dir: /code
     environment:
-      - SERVER_HOSTNAME=upload-server-azurite
+      - UI_SERVER_EXTERNAL_HOST=upload-server-azurite:8080
+      - UI_SERVER_INTERNAL_HOST=upload-server-azurite:8080
       - AZURE_STORAGE_ACCOUNT=devstoreaccount1
       # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
       - AZURE_STORAGE_KEY=${AZURITE_STORAGE_KEY}

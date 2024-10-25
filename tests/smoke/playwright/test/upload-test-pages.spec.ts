@@ -1,9 +1,21 @@
 import { expect, test } from '@playwright/test';
-import path from 'path';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 
 test.describe.configure({ mode: 'parallel' });
 
 const manifests = JSON.parse(JSON.stringify(require("./manifests.json")))
+const filename = resolve(__dirname, '..', 'test-data', '10KB-test-file');
+
+const fileSelected: {
+    name: string;
+    mimeType: string;
+    buffer: Buffer;
+} = {
+    name: filename,
+    mimeType: 'text/plain',
+    buffer: readFileSync(filename)
+};
 
 test.describe("Upload Landing Page", () => {
     test("has the expected elements to start a file upload process", async ({page}) => {
@@ -124,14 +136,14 @@ test.describe("Upload Status Page", () => {
         await page.getByRole('button', {name: 'Browse Files'}).click(); 
 
         const fileChooser = await fileChooserPromise;
-        await fileChooser.setFiles(path.resolve(__dirname, '..', 'test-data', '10KB-test-file'));
+        await fileChooser.setFiles(fileSelected);
 
         await expect((await uploadPatchResponsePromise).ok()).toBeTruthy()
         await expect((await uploadHeadResponsePromise).ok()).toBeTruthy()
 
         await page.waitForTimeout(10000); // wait for 10 seconds for all of the deliveries to complete
         await page.reload();
-        expect(await page.locator('.file-delivery-container').count()).toEqual(targets.length)
+        await expect(await page.locator('.file-delivery-container').count()).toEqual(targets.length)
 
         const fileHeaderContainer= page.locator('.file-header-container')
         await expect(fileHeaderContainer.getByRole('heading', { level: 1 }).nth(0)).toHaveText(expectedFileName)
