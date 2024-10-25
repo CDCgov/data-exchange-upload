@@ -226,6 +226,7 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 	ac.ExternalServerFileEndpointUrl = ac.ExternalServerUrl + ac.TusdHandlerBasePath
 	ac.ExternalServerInfoEndpointUrl = ac.ExternalServerUrl + ac.TusdHandlerInfoPath
 	ac.InternalServerFileEndpointUrl = ac.InternalServerUrl + ac.TusdHandlerBasePath
+	ac.InternalServerInfoEndpointUrl = ac.InternalServerUrl + ac.TusdHandlerInfoPath
 
 	LoadedConfig = &ac
 	return ac, nil
