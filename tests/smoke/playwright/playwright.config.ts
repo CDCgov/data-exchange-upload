@@ -1,7 +1,7 @@
 import { PlaywrightTestConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
-const jsonReportFilename = process.env.TEST_REPORT_JSON ?? 'test-report.json'
+const jsonReportFilename = process.env.TEST_REPORT_JSON ?? 'test-report.json';
 
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
@@ -24,21 +24,22 @@ const config: PlaywrightTestConfig = {
 
   // Reporter to use
   reporter: process.env.CI
-    ? 'github' : [
+    ? 'github'
+    : [
         ['list'],
         [
           'html',
           {
             outputFolder: `./test-reports/html`,
-            open: 'never',
-          },
+            open: 'never'
+          }
         ],
         [
           'json',
           {
-            outputFile: `./test-reports/${jsonReportFilename}`,
-          },
-        ],
+            outputFile: `./test-reports/${jsonReportFilename}`
+          }
+        ]
       ],
 
   // Artifacts folder where screenshots, videos, and traces are stored.
@@ -58,8 +59,8 @@ const config: PlaywrightTestConfig = {
     viewport: { width: 1280, height: 720 },
 
     // Specify the server url
-    baseURL,
-    
+    baseURL
+
     // More options can be set here
   },
 
@@ -74,7 +75,7 @@ const config: PlaywrightTestConfig = {
       use: { ...devices['Desktop Chrome'] }
     }
     // More projects can be configured here
-  ],
+  ]
 };
 
 export default config;

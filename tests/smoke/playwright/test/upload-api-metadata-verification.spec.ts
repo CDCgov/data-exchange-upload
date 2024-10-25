@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import dotenv from 'dotenv';
+import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import tusClient from '../tus-playwright';
-const { readFileSync } = require('fs');
 
 dotenv.config({ path: '../../../../upload-server/.env' });
 
@@ -40,17 +40,27 @@ test.describe(
     const testCaseFiles: TestSuite[] = [
       {
         suiteName: 'Missing Required Fields',
-        testCaseFilename: resolve(__dirname, '..', 'resources', 'invalid_metadata_missing_required_fields.json')
+        testCaseFilename: resolve(
+          __dirname,
+          '..',
+          'resources',
+          'invalid_metadata_missing_required_fields.json'
+        )
       },
       {
         suiteName: 'Invalid Values',
-        testCaseFilename: resolve(__dirname, '..', 'resources', 'invalid_metadata_invalid_values.json')
+        testCaseFilename: resolve(
+          __dirname,
+          '..',
+          'resources',
+          'invalid_metadata_invalid_values.json'
+        )
       }
     ];
 
     testCaseFiles.forEach(({ suiteName, testCaseFilename }) => {
       test.describe(suiteName, () => {
-        const testCases: TestCase[] = JSON.parse(readFileSync(testCaseFilename));
+        const testCases: TestCase[] = JSON.parse(readFileSync(testCaseFilename).toString());
 
         testCases.forEach(({ name, metadata, expectedStatusCode, expectedErrorMessages }) => {
           test(name, async () => {

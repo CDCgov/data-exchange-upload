@@ -4,17 +4,17 @@ import { resolve } from 'path';
 
 test.describe.configure({ mode: 'parallel' });
 
-const metadata = JSON.parse(JSON.stringify(require("./manifests.json")))
+const metadata = JSON.parse(JSON.stringify(require('./manifests.json')));
 const filename = resolve(__dirname, '..', 'test-data', '10KB-test-file');
 
 const fileSelected: {
-    name: string;
-    mimeType: string;
-    buffer: Buffer;
+  name: string;
+  mimeType: string;
+  buffer: Buffer;
 } = {
-    name: filename,
-    mimeType: 'text/plain',
-    buffer: readFileSync(filename)
+  name: filename,
+  mimeType: 'text/plain',
+  buffer: readFileSync(filename)
 };
 
 test.describe('Upload API/UI', () => {
