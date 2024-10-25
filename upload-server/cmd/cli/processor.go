@@ -79,7 +79,7 @@ func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subs
 						return
 					}
 
-				}(context.WithValue(ctx, UploadID, otrace.TraceID(md5.Sum([]byte(e.Identifier())))), e)
+				}(context.WithValue(ctx, UploadID, otrace.TraceID(md5.Sum([]byte(e.GetUploadID())))), e)
 			}
 			wg.Wait()
 		}

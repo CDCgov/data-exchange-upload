@@ -3,6 +3,7 @@ package event
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 )
 
@@ -20,6 +21,7 @@ type Retryable interface {
 type Identifiable interface {
 	Retryable
 	Identifier() string
+	GetUploadID() string
 	Type() string
 	OrigMessage() *azservicebus.ReceivedMessage
 	SetIdentifier(id string)
@@ -71,6 +73,10 @@ func (fr *FileReady) SetOrigMessage(m *azservicebus.ReceivedMessage) {
 }
 
 func (fr *FileReady) Identifier() string {
+	return fr.UploadId + fr.DestinationTarget
+}
+
+func (fr *FileReady) GetUploadID() string {
 	return fr.UploadId
 }
 

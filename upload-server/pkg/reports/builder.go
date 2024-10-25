@@ -38,6 +38,10 @@ type Report struct {
 	Content             any             `json:"content"` // TODO: Can we limit this to a specific type (i.e. ReportContent or UploadStatusTYpe type?
 }
 
+func (r *Report) GetUploadID() string {
+	return r.UploadID
+}
+
 func (r *Report) RetryCount() int {
 	return r.Event.RetryCount
 }

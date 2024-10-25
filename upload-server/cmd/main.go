@@ -223,7 +223,11 @@ func main() {
 		})
 	}
 	//TODO move this down a layer to trace metrics vs tus etc.
-	tracingMiddleware := otelhttp.NewMiddleware("upload-http")
+	tracingMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+			otelhttp.NewMiddleware(fmt.Sprintf("%s %s", r.Method, r.URL.Path))(next).ServeHTTP(rw, r)
+		})
+	}
 	httpServer := http.Server{
 
 		Addr: ":" + appConfig.ServerPort,
