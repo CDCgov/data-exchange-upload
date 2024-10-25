@@ -32,10 +32,9 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 	sourceName := body.Source
 	if sourceName == "" {
-		sourceName = "upload"
+		sourceName = delivery.UploadSrc
 	}
 	src, ok := delivery.GetSource(sourceName)
 	if !ok {

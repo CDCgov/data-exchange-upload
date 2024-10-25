@@ -26,6 +26,8 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
 
+var UploadSrc = "upload"
+
 var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
 // TODO
@@ -193,6 +195,8 @@ func unmarshalDeliveryConfig(confBody string) (*Config, error) {
 
 // Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
+	groups = make(map[string]Group)
+	targets = make(map[string]Destination)
 	var src Source
 	var dests []Destination
 	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
@@ -214,6 +218,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		targets[t.Name] = t.Destination
 		dests = append(dests, t.Destination)
 	}
+	slog.Info("targets", "targets", targets)
 
 	for _, g := range cfg.Groups {
 		groups[g.Key()] = g
@@ -252,7 +257,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 			Prefix:     appConfig.TusUploadPrefix,
 		}
 	}
-	RegisterSource("upload", src)
+	RegisterSource(UploadSrc, src)
 
 	if err := health.Register(getDeliveryHealthChecks([]Source{src}, dests)...); err != nil {
 		slog.Error("failed to register some health checks", "error", err)
