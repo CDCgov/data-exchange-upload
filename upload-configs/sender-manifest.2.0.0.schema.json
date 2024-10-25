@@ -1,6 +1,6 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://github.com/CDCgov/data-exchange-upload/upload-configs",
+    "$id": "https://github.com/CDCgov/data-exchange-upload/upload-configs/sender-manifest",
     "title": "Data Exchange (DEX) Sender Manifest",
     "description": "Schema utilized for metadata that accompanies file uploads.",
     "version": "2.0.0",
