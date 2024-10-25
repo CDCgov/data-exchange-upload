@@ -5,7 +5,7 @@ services:
     command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ./configs/local/tempo.yml:/etc/tempo.yaml
-      - ./tempo-data:/var/tempo
+      - tempo-data:/var/tempo
     ports:
       - "14268:14268" # jaeger ingest
       - "3200:3200" # tempo
@@ -37,15 +37,21 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=traceQLStreaming
     volumes:
       - ./configs/local/grafana/provisioning:/etc/grafana/provisioning
-  go-auto:
-    image: otel/autoinstrumentation-go
-    container_name: go-auto
-    privileged: true
-    pid: container:upload-server
+  #go-auto:
+  #  image: ghcr.io/open-telemetry/opentelemetry-go-instrumentation/autoinstrumentation-go:v0.16.0-alpha@sha256:cb16331d4ea7663d970616a9c1bbf642cf9e29e451f841a79441b24eca43570c
+  #  container_name: go-auto
+  #  privileged: true
+  #  pid: container:upload-server
+  #  environment:
+  #    - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+  #    - OTEL_GO_AUTO_TARGET_EXE=/code/phdou
+  #    - OTEL_SERVICE_NAME=upload-server
+  #- OTEL_PROPAGATORS=tracecontext,baggage
+  #  depends_on:
+  #    - upload-server
+  upload-server:
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
-      - OTEL_GO_AUTO_TARGET_EXE=/code/phdou
       - OTEL_SERVICE_NAME=upload-server
-      #- OTEL_PROPAGATORS=tracecontext,baggage
-    depends_on:
-      - upload-server
+volumes:
+  tempo-data:

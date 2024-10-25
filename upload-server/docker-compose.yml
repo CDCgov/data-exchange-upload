@@ -18,7 +18,7 @@ services:
     ports:
       - ${SERVER_PORT:-8080}:${SERVER_PORT:-8080}
       - ${UI_PORT:-8081}:${UI_PORT:-8081}
-    command: /bin/sh -c "go build -o phdou ./cmd && ./phdou"
+    command: /bin/sh -c "./run-server.sh"
     depends_on:
       - cache
 volumes:

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -23,6 +24,13 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/joho/godotenv"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 ) // .import
 
 const appMainExitCode = 1
@@ -48,9 +56,48 @@ func init() {
 
 }
 
+// Initializes an OTLP exporter, and configures the corresponding trace provider.
+func initTracerProvider(ctx context.Context) (func(context.Context) error, error) {
+	res, err := resource.New(ctx,
+		resource.WithAttributes(
+			// The service name used to display traces in backends
+			semconv.ServiceNameKey.String("upload-server"),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+	// Set up a trace exporter
+	traceExporter, err := otlptracehttp.New(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
+	}
+
+	// Register the trace exporter with a TracerProvider, using a batch
+	// span processor to aggregate spans before export.
+	bsp := trace.NewBatchSpanProcessor(traceExporter)
+	tracerProvider := trace.NewTracerProvider(
+		trace.WithSampler(trace.AlwaysSample()),
+		trace.WithResource(res),
+		trace.WithSpanProcessor(bsp),
+	)
+	otel.SetTracerProvider(tracerProvider)
+
+	// Set global propagator to tracecontext (the default is no-op).
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+
+	// Shutdown will flush any remaining spans and shut down the exporter.
+	return tracerProvider.Shutdown, nil
+}
+
 func main() {
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	var mainWaitGroup sync.WaitGroup
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	tpShutdown, err := initTracerProvider(ctx)
+	if err != nil {
+		slog.Error("error starting app, error starting tracing", "error", err)
+		os.Exit(appMainExitCode)
+	}
 
 	appConfig, err := appconfig.ParseConfig(ctx)
 	if err != nil {
@@ -104,11 +151,14 @@ func main() {
 	// ------------------------------------------------------------------
 	// Start http custom server
 	// ------------------------------------------------------------------
+
+	//TODO move this down a layer to trace metrics vs tus etc.
+	tracingMiddleware := otelhttp.NewMiddleware("upload-http")
 	httpServer := http.Server{
 
 		Addr: ":" + appConfig.ServerPort,
 
-		Handler: metrics.TrackHTTP(handler),
+		Handler: tracingMiddleware(metrics.TrackHTTP(handler)),
 		// etc...
 
 	} // .httpServer
@@ -152,6 +202,7 @@ func main() {
 	defer httpShutdownCancelFunc()
 	httpServer.Shutdown(httpShutdownCtx)
 	ui.Close(httpShutdownCtx)
+	tpShutdown(httpShutdownCtx)
 
 	mainWaitGroup.Wait()
 
