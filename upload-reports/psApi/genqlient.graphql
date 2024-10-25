@@ -6,11 +6,18 @@ query GetUploadStats($datastream: String!, $route: String!, $dateStart: String, 
         dateEnd: $dateEnd
     )  {
         completedUploadsCount
-        inProgressUploadsCount
         pendingUploads {
             totalCount
+            pendingUploads {
+                filename
+                uploadId
+            }
         }
         undeliveredUploads {
             totalCount
+            undeliveredUploads {
+                filename
+                uploadId
+            }
         }
     }}

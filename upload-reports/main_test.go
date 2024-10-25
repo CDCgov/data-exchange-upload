@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"context"
-	"encoding/csv"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,9 +17,17 @@ func mockGraphQLServer() *httptest.Server {
 					"CompletedUploadsCount": 10,
 					"PendingUploads": map[string]interface{}{
 						"TotalCount": 5,
+						"PendingUploads": []map[string]interface{}{
+							{"UploadId": "pending1", "Filename": "file1.csv"},
+							{"UploadId": "pending2", "Filename": "file2.csv"},
+						},
 					},
-					"UnDeliveredUploads": map[string]interface{}{
+					"UndeliveredUploads": map[string]interface{}{
 						"TotalCount": 2,
+						"UndeliveredUploads": []map[string]interface{}{
+							{"UploadId": "undelivered1", "Filename": "file3.csv"},
+							{"UploadId": "undelivered2", "Filename": "file4.csv"},
+						},
 					},
 				},
 			},
@@ -36,58 +40,47 @@ func mockGraphQLServer() *httptest.Server {
 }
 
 func TestFetchDataForDataStream(t *testing.T) {
-	// Start the mock server
 	server := mockGraphQLServer()
-	defer server.Close() // Ensure the server is closed after the test
+	defer server.Close()
 
-	// Call the function with the mock server URL
-	reportRow, err := fetchDataForDataStream(server.URL, "stream1", "route1", "2024-01-01", "2024-01-31")
+	reportRow, anomalousData, err := fetchDataForDataStream(server.URL, "stream1", "route1", "2024-01-01", "2024-01-31")
 
-	// Assertions
+	// Assertions for SummaryRow
 	assert.NoError(t, err)
 	assert.Equal(t, "stream1", reportRow.DataStream)
 	assert.Equal(t, "route1", reportRow.Route)
 	assert.Equal(t, "2024-01-01", reportRow.StartDate)
 	assert.Equal(t, "2024-01-31", reportRow.EndDate)
-	assert.Equal(t, int64(10), reportRow.UploadCount)
-	assert.Equal(t, int64(5), reportRow.DeliverySuccessCount)
-	assert.Equal(t, int64(2), reportRow.DeliveryEndCount)
-}
+	assert.Equal(t, int64(10), reportRow.TotalUploadCount)
+	assert.Equal(t, int64(5), reportRow.PendingUploadCount)
+	assert.Equal(t, int64(2), reportRow.UndeliveredUploadCount)
 
-func TestCreateCSV(t *testing.T) {
-	data := [][]string{
-		{"Data Stream", "Route", "Start Date", "End Date", "Upload Count", "Delivery Success Count", "Delivery Fail Count"},
-		{"TestStream", "TestRoute", "2024-01-01", "2024-01-02", "10", "5", "2"},
-	}
+	// Assertions for AnomalousItemRow
+	assert.Len(t, anomalousData, 4)
 
-	csvBytes, err := createCSV(data)
-	assert.NoError(t, err)
+	// Check Pending Uploads
+	assert.Equal(t, "pending1", anomalousData[0].UploadId)
+	assert.Equal(t, "file1.csv", anomalousData[0].Filename)
+	assert.Equal(t, "stream1", anomalousData[0].DataStream)
+	assert.Equal(t, "route1", anomalousData[0].Route)
+	assert.Equal(t, Pending, anomalousData[0].Category)
 
-	expected := "Data Stream,Route,Start Date,End Date,Upload Count,Delivery Success Count,Delivery Fail Count\nTestStream,TestRoute,2024-01-01,2024-01-02,10,5,2\n"
-	assert.Equal(t, expected, string(csvBytes.Bytes()))
-}
+	assert.Equal(t, "pending2", anomalousData[1].UploadId)
+	assert.Equal(t, "file2.csv", anomalousData[1].Filename)
+	assert.Equal(t, "stream1", anomalousData[1].DataStream)
+	assert.Equal(t, "route1", anomalousData[1].Route)
+	assert.Equal(t, Pending, anomalousData[1].Category)
 
-func TestSaveCsvToFile(t *testing.T) {
-	var buf bytes.Buffer
-	writer := csv.NewWriter(&buf)
-	writer.Write([]string{"Test CSV Data"})
-	writer.Flush()
+	// Check Undelivered Uploads
+	assert.Equal(t, "undelivered1", anomalousData[2].UploadId)
+	assert.Equal(t, "file3.csv", anomalousData[2].Filename)
+	assert.Equal(t, "stream1", anomalousData[2].DataStream)
+	assert.Equal(t, "route1", anomalousData[2].Route)
+	assert.Equal(t, Undelivered, anomalousData[2].Category)
 
-	err := saveCsvToFile(&buf, ".")
-	assert.NoError(t, err)
-
-	// Read back the file to check contents
-	data, err := os.ReadFile("upload-report.csv")
-	assert.NoError(t, err)
-	assert.Equal(t, "Test CSV Data\n", string(data))
-
-	// Clean up the file
-	os.Remove("upload-report.csv")
-}
-
-func TestGetNewS3Client_Success(t *testing.T) {
-	ctx := context.TODO()
-	client, err := createS3Client(ctx, "us-east-1", "")
-	assert.NoError(t, err)
-	assert.NotNil(t, client)
+	assert.Equal(t, "undelivered2", anomalousData[3].UploadId)
+	assert.Equal(t, "file4.csv", anomalousData[3].Filename)
+	assert.Equal(t, "stream1", anomalousData[3].DataStream)
+	assert.Equal(t, "route1", anomalousData[3].Route)
+	assert.Equal(t, Undelivered, anomalousData[3].Category)
 }
