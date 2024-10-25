@@ -110,8 +110,8 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) *http.Server {
-	router := GetRouter(uploadUrl, infoUrl)
+func NewServer(addr string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string) *http.Server {
+	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
@@ -124,7 +124,7 @@ func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) 
 	return s
 }
 
-func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
+func GetRouter(externalUploadUrl string, externalInfoUrl string, internalUploadUrl string) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
@@ -171,7 +171,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			Metadata: manifest,
 		}
 
-		req, err := http.NewRequest("POST", uploadUrl, nil)
+		req, err := http.NewRequest("POST", internalUploadUrl, nil)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -207,7 +207,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 		id := vars["upload_id"]
 
 		// Check for upload
-		u, err := url.Parse(infoUrl)
+		u, err := url.Parse(externalInfoUrl)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -249,7 +249,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			return
 		}
 
-		uploadUrl, err := url.JoinPath(uploadUrl, id)
+		uploadUrl, err := url.JoinPath(externalUploadUrl, id)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -282,8 +282,8 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, uploadURL string, infoURL string) error {
-	DefaultServer = NewServer(uiPort, csrfToken, uploadURL, infoURL)
+func Start(uiPort string, csrfToken string, externalUploadURL string, externalInfoURL string, internalUploadUrl string) error {
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, externalInfoURL, internalUploadUrl)
 
 	return DefaultServer.ListenAndServe()
 }
