@@ -23,9 +23,6 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 			return resp, fmt.Errorf("no routing group found for metadata %+v", meta)
 		}
 
-		//dataStreamId, dataStreamRoute := metadata.GetDataStreamID(meta), metadata.GetDataStreamRoute(meta)
-		//targets := delivery.GetGroupTargetNames(dataStreamId, dataStreamRoute)
-
 		for _, target := range routeGroup.TargetNames() {
 			e := evt.NewFileReadyEvent(id, meta, target)
 			err := evt.FileReadyPublisher.Publish(ctx, e)

@@ -30,36 +30,8 @@ var UploadSrc = "upload"
 
 var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
-// TODO
-// populate groups
-// get health checks from targets
-// try and delete destinations
 var groups map[string]Group
 var targets map[string]Destination
-
-//var destinations = map[string]map[string]Destination{}
-
-//func RegisterDestination(name string, targetName string, d Destination) {
-//	if _, ok := destinations[name]; ok {
-//		destinations[name][targetName] = d
-//	} else {
-//		destinations[name] = map[string]Destination{targetName: d}
-//	}
-//}
-
-//func GetGroupTargetNames(group Group) []string {
-//	targets, ok := destinations[group.Key()]
-//	if !ok {
-//		return []string{}
-//	}
-//	targetNames := make([]string, len(targets))
-//	i := 0
-//	for t := range targets {
-//		targetNames[i] = t
-//		i++
-//	}
-//	return targetNames
-//}
 
 func GetTarget(target string) (Destination, bool) {
 	d, ok := targets[target]
@@ -225,14 +197,6 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		if g.DeliveryTargets == nil {
 			slog.Warn(fmt.Sprintf("no targets configured for group %s", g.Key()))
 		}
-		//for _, t := range g.DeliveryTargets {
-		//	d, ok := targets[t.Name]
-		//	if !ok {
-		//		return fmt.Errorf("target %s not found", t.Name)
-		//	}
-		//
-		//	RegisterDestination(g.Key(), t.Name, d)
-		//}
 	}
 
 	if appConfig.AzureConnection != nil {
