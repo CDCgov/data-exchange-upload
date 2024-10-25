@@ -1,10 +1,11 @@
-name: "CI - Upload Server"
+name: 'CI - Upload Server'
 
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - upload-server/**
+      - tests/**
 
 defaults:
   run:
@@ -38,7 +39,9 @@ jobs:
       - name: Install podman compose
         run: pip3 install podman-compose
       - name: Run Tests
-        run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-server
+        run:
+          podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f
+          docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-server
       - name: Show coverage
         run: go tool cover -func=c.out
   e2e-tests-fs:
@@ -51,7 +54,7 @@ jobs:
     secrets: inherit
   e2e-tests-azure:
     name: E2E Tests - Azure Blob Storage
-    uses: ./.github/workflows/e2e-test-template.yml    
+    uses: ./.github/workflows/e2e-test-template.yml
     with:
       TEST_TITLE: E2E Azure Tests
       COMPOSE_FILENAME: ./docker-compose.e2e.azurite.yml

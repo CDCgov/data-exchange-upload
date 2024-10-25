@@ -1,13 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { getMetadataObjects, Metadata } from '../resources/test-helpers';
 
 test.describe.configure({ mode: 'parallel' });
 
-const metadata = JSON.parse(JSON.stringify(require('./manifests.json')));
+const metadata: Metadata[] = getMetadataObjects();
 const axeRuleTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 test.describe('Upload Landing Page', () => {
-  test('has accessible features when loaded', async ({ page }, testInfo) => {
+  test('has accessible features when loaded', async ({ page }) => {
     await page.goto(`/`);
     const results = await new AxeBuilder({ page }).withTags(axeRuleTags).analyze();
 
@@ -16,7 +17,7 @@ test.describe('Upload Landing Page', () => {
 });
 
 test.describe('Upload Manifest Page', () => {
-  metadata.forEach(({ dataStream, route }: { dataStream: string; route: string }) => {
+  metadata.forEach(({ dataStream, route }) => {
     test(`Checks accessibility for individual metadata page: ${dataStream} / ${route}`, async ({
       page
     }) => {
@@ -28,7 +29,7 @@ test.describe('Upload Manifest Page', () => {
 });
 
 test.describe('File Upload Page', () => {
-  test(`Checks accessibliity for the upload page for the dextesting/testevent1 manifest`, async ({
+  test(`Checks accessability for the upload page for the dextesting/testevent1 manifest`, async ({
     page
   }) => {
     await page.goto(`/manifest?data_stream_id=dextesting&data_stream_route=testevent1`);

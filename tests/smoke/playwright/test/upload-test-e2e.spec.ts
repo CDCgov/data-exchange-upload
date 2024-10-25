@@ -1,24 +1,18 @@
 import { expect, test } from '@playwright/test';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import {
+  Metadata,
+  SMALL_FILENAME,
+  getFileSelection,
+  getMetadataObjects
+} from '../resources/test-helpers';
 
 test.describe.configure({ mode: 'parallel' });
 
-const metadata = JSON.parse(JSON.stringify(require('./manifests.json')));
-const filename = resolve(__dirname, '..', 'test-data', '10KB-test-file');
-
-const fileSelected: {
-  name: string;
-  mimeType: string;
-  buffer: Buffer;
-} = {
-  name: filename,
-  mimeType: 'text/plain',
-  buffer: readFileSync(filename)
-};
+const metadata: Metadata[] = getMetadataObjects();
+const fileSelection = getFileSelection(SMALL_FILENAME);
 
 test.describe('Upload API/UI', () => {
-  metadata.forEach(({ dataStream, route }: { dataStream: string; route: string }) => {
+  metadata.forEach(({ dataStream, route }) => {
     test(`can use the UI to upload a file for Data stream: ${dataStream} / Route: ${route}`, async ({
       page
     }) => {
@@ -35,7 +29,7 @@ test.describe('Upload API/UI', () => {
       const fileChooserPromise = page.waitForEvent('filechooser');
       await page.getByRole('button', { name: 'Browse Files' }).click();
       const fileChooser = await fileChooserPromise;
-      await fileChooser.setFiles(fileSelected);
+      await fileChooser.setFiles(fileSelection);
 
       await expect(page.getByText('Upload Status: Complete')).toBeVisible({ timeout: 20000 });
     });
