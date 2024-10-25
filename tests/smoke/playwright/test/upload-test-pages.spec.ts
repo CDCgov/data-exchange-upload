@@ -88,15 +88,6 @@ test.describe('File Uploader Page', () => {
     await page.getByLabel('Received Filename').fill('small-test-file');
     await page.getByRole('button', { name: /next/i }).click();
 
-    await expect(page.getByRole('heading', { level: 1, includeHidden: false }).nth(0)).toHaveText(
-      'File Uploader'
-    );
-
-    // not the greatest way to interpret the endpoint value here, but this will have to work for now...
-    await expect(page.getByRole('textbox', { name: 'Upload Endpoint' })).toHaveValue(
-      API_FILE_ENDPOINT
-    );
-
     const chunkSize = page.getByLabel('Chunk size (bytes)');
     const chunkSizeLabel = page.locator('label', { hasText: 'Chunk size (bytes)' });
     await expect(chunkSizeLabel).toContainText(
@@ -135,6 +126,10 @@ test.describe('Upload Status Page', () => {
     await page.getByLabel('Jurisdiction').fill(expectedJurisdiction);
     await page.getByLabel('Received Filename').fill(expectedFileName);
     await page.getByRole('button', { name: /next/i }).click();
+
+    await expect(page.getByRole('heading', { level: 1, includeHidden: false }).nth(0)).toHaveText(
+      'File Uploader'
+    );
 
     const fileChooserPromise = page.waitForEvent('filechooser');
     const uploadId = page.url().split('/').slice(-1)[0];

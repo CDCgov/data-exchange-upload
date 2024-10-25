@@ -8,8 +8,8 @@ export const SMALL_FILEPATH = getResourceFilepath(SMALL_FILENAME);
 export const LARGE_FILEPATH = getResourceFilepath(LARGE_FILENAME);
 
 export const API_URL = process.env.SERVER_URL ?? 'http://localhost:8080';
-export const API_FILE_ENDPOINT = `${API_URL}/files/`;
-export const API_INFO_ENDPOINT = `${API_URL}/info/`;
+export const API_FILE_ENDPOINT = `${API_URL}/files`;
+export const API_INFO_ENDPOINT = `${API_URL}/info`;
 
 export type Metadata = {
   dataStream: string;
