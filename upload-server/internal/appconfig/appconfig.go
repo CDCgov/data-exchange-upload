@@ -42,25 +42,30 @@ type AppConfig struct {
 	Environment string `env:"ENVIRONMENT, default=DEV"`
 
 	// Server Configs
-	ServerProtocol        string        `env:"SERVER_PROTOCOL, default=http"`
-	ServerHostname        string        `env:"SERVER_HOSTNAME, default=localhost"`
-	ServerPort            string        `env:"SERVER_PORT, default=8080"`
-	TusdHandlerBasePath   string        `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
-	TusdHandlerInfoPath   string        `env:"TUSD_HANDLER_INFO_PATH, default=/info/"`
-	EventMaxRetryCount    int           `env:"EVENT_MAX_RETRY_COUNT, default=3"`
-	Metrics               MetricsConfig `env:", prefix=METRICS_"`
-	ServerUrl             string
-	ServerFileEndpointUrl string
-	ServerInfoEndpointUrl string
+	ServerProtocol                string `env:"SERVER_PROTOCOL, default=http"`
+	ServerHostname                string `env:"SERVER_HOSTNAME, default=localhost"`
+	ServerPort                    string `env:"SERVER_PORT, default=8080"`
+	TusdHandlerBasePath           string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
+	TusdHandlerInfoPath           string `env:"TUSD_HANDLER_INFO_PATH, default=/info/"`
+	EventMaxRetryCount            int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
+	ExternalServerUrl             string
+	InternalServerUrl             string
+	InternalServerFileEndpointUrl string
+	InternalServerInfoEndpointUrl string
+	ExternalServerFileEndpointUrl string
+	ExternalServerInfoEndpointUrl string
+	Metrics                       MetricsConfig `env:", prefix=METRICS_"`
 
 	// TUSD
 	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 
 	// User Interface Configs
 	UIPort           string `env:"UI_PORT, default=8081"`
-	UIServerProtocol string `env:"UI_SERVER_PROTOCOL, default=http"`
-	UIServerHost     string `env:"UI_SERVER_HOSTNAME, default=localhost:8080"`
-	CsrfToken        string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
+	UIServerExternalProtocol string `env:"UI_SERVER_EXTERNAL_PROTOCOL, default=http"`
+	UIServerInternalProtocol string `env:"UI_SERVER_INTERNAL_PROTOCOL, default=http"`
+	UIServerExternalHost     string `env:"UI_SERVER_EXTERNAL_HOST, default=localhost:8080"`
+	UIServerInternalHost     string `env:"UI_SERVER_INTERNAL_HOST, default=localhost:8080"`
+	CsrfToken                string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
 	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
 
 	// TUS Upload file lock
@@ -216,9 +221,11 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 		}
 	}
 
-	ac.ServerUrl = fmt.Sprintf("%s://%s", ac.UIServerProtocol, ac.UIServerHost)
-	ac.ServerFileEndpointUrl = ac.ServerUrl + ac.TusdHandlerBasePath
-	ac.ServerInfoEndpointUrl = ac.ServerUrl + ac.TusdHandlerInfoPath
+	ac.InternalServerUrl = fmt.Sprintf("%s://%s", ac.UIServerInternalProtocol, ac.UIServerInternalHost)
+	ac.ExternalServerUrl = fmt.Sprintf("%s://%s", ac.UIServerExternalProtocol, ac.UIServerExternalHost)
+	ac.ExternalServerFileEndpointUrl = ac.ExternalServerUrl + ac.TusdHandlerBasePath
+	ac.ExternalServerInfoEndpointUrl = ac.ExternalServerUrl + ac.TusdHandlerInfoPath
+	ac.InternalServerFileEndpointUrl = ac.InternalServerUrl + ac.TusdHandlerBasePath
 
 	LoadedConfig = &ac
 	return ac, nil
