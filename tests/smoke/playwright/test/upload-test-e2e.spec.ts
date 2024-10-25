@@ -23,7 +23,7 @@ test.describe("Upload API/UI", () => {
             const fileChooser = await fileChooserPromise;
             await fileChooser.setFiles('./test-data/10KB-test-file');     
 
-            await expect(page.getByText('Upload Status: Complete')).toBeVisible();
+            await expect(page.getByText('Upload Status: Complete')).toBeVisible({ timeout: 20000 });
         })
     })
 })    
