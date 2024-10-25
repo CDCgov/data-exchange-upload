@@ -1,32 +1,28 @@
 version: 1.0
 
 az-edav: &az-edav
-  endpoint: $EDAV_ENDPOINT
-  container_name: $EDAV_CHECKPOINT_CONTAINER_NAME
-  tenant_id: $EDAV_TENANT_ID
-  client_id: $EDAV_CLIENT_ID
-  client_secret: $EDAV_CLIENT_SECRET
+  endpoint: "http://azurite:10000/devstoreaccount1"
+  storage_account: "devstoreaccount1"
+  storage_key: $AZURITE_KEY
+  container_name: edav
 
 az-ehdi: &az-ehdi
-  endpoint: $EHDI_ENDPOINT
-  container_name: $EHDI_CHECKPOINT_CONTAINER_NAME
-  tenant_id: $EHDI_TENANT_ID
-  client_id: $EHDI_CLIENT_ID
-  client_secret: $EHDI_CLIENT_SECRET
+  endpoint: "http://azurite:10000/devstoreaccount1"
+  storage_account: "devstoreaccount1"
+  storage_key: $AZURITE_KEY
+  container_name: ehdi
 
 az-eicr: &az-eicr
-  endpoint: $EICR_ENDPOINT
-  container_name: $EICR_CHECKPOINT_CONTAINER_NAME
-  tenant_id: $EICR_TENANT_ID
-  client_id: $EICR_CLIENT_ID
-  client_secret: $EICR_CLIENT_SECRET
+  endpoint: "http://azurite:10000/devstoreaccount1"
+  storage_account: "devstoreaccount1"
+  storage_key: $AZURITE_KEY
+  container_name: eicr
 
 az-ncird: &az-ncird
-  endpoint: $NCIRD_ENDPOINT
-  container_name: $NCIRD_CHECKPOINT_CONTAINER_NAME
-  tenant_id: $NCIRD_TENANT_ID
-  client_id: $NCIRD_CLIENT_ID
-  client_secret: $NCIRD_CLIENT_SECRET
+  endpoint: "http://azurite:10000/devstoreaccount1"
+  storage_account: "devstoreaccount1"
+  storage_key: $AZURITE_KEY
+  container_name: ncird
 
 # if needed, properties of an anchor can be overridden
 # in a delivery target
@@ -39,68 +35,62 @@ programs:
     data_stream_route: localsequencefile
     delivery_targets:
       - name: edav
-        type: az-blob
-        <<: *az-edav
+        type: file
+        path: ./uploads/edav
   - data_stream_id: ehdi
     data_stream_route: csv
     delivery_targets:
       - name: ehdi
-        type: az-blob
-        path_template: $EHDI_PATH_TEMPLATE
-        <<: *az-ehdi
+        type: file
+        path: ./uploads/ehdi
   - data_stream_id: eicr
     data_stream_route: fhir
     delivery_targets:
       - name: eicr
-        type: az-blob
-        path_template: $EICR_PATH_TEMPLATE
-        <<: *az-eicr
-  - data_stream_id: covid-all-monthly-vaccination
+        type: file
+        path: ./uploads/eicr
+  - data_stream_id: rsp-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
+        type: file
+        path: ./uploads/ncird
   - data_stream_id: generic-immunization
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
-        path_template: generic-immunization-other/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}
-        <<: *az-ncird
+        type: file
+        path: ./uploads/ncird
   - data_stream_id: influenza-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
+        type: file
+        path: ./uploads/ncird
   - data_stream_id: routine-immunization
     data_stream_route: other
     delivery_targets:
       - name: ncird
-        type: az-blob
-        path_template: routine-immunization-zip/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}
-        <<: *az-ncird
-  - data_stream_id: rsv-prevention
+        type: file
+        path: ./uploads/ncird
+  - data_stream_id: rsp-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
+        type: file
+        path: ./uploads/ncird
   - data_stream_id: dextesting
     data_stream_route: testevent1
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
+        type: file
+        path: ./uploads/ncird
       - name: eicr
-        type: az-blob
-        path_template: $EICR_PATH_TEMPLATE
-        <<: *az-eicr
-      - name: ehdi
-        type: az-blob
-        path_template: $EHDI_PATH_TEMPLATE
-        <<: *az-ehdi
+        type: file
+        path: ./uploads/eicr
       - name: edav
-        type: az-blob
-        <<: *az-edav
+        type: file
+        path: ./uploads/edav
+      - name: ehdi
+        type: file
+        path: ./uploads/ehdi

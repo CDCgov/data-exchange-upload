@@ -4,18 +4,24 @@ global:
   evaluation_interval: 15s
 alerting:
   alertmanagers:
-  - static_configs:
-    - targets: []
-    scheme: http
-    timeout: 10s
-    api_version: v1
+    - static_configs:
+        - targets: []
+      scheme: http
+      timeout: 10s
+      api_version: v1
 scrape_configs:
-- job_name: prometheus
-  honor_timestamps: true
-  scrape_interval: 1s
-  scrape_timeout: 1s
-  metrics_path: /metrics
-  scheme: http
-  static_configs:
-  - targets:
-    - upload-server:8080
+  - job_name: upload
+    honor_timestamps: true
+    scrape_interval: 1s
+    scrape_timeout: 1s
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets:
+          - upload-server:8080
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+  - job_name: "tempo"
+    static_configs:
+      - targets: ["tempo:3200"]
