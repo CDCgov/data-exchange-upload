@@ -5,13 +5,14 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
 	"time"
+
+	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
@@ -101,21 +102,24 @@ type ManifestTemplateData struct {
 }
 
 type UploadTemplateData struct {
-	UploadUrl    string
-	UploadStatus string
-	Info         info.InfoResponse
-	Navbar       components.Navbar
-	NewUploadBtn components.NewUploadBtn
+	UploadEndpoint string
+	UploadUrl      string
+	UploadStatus   string
+	Info           info.InfoResponse
+	Navbar         components.Navbar
+	NewUploadBtn   components.NewUploadBtn
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(addr string, csrfToken string, externalUploadUrl string, internalInfoUrl string, internalUploadUrl string) *http.Server {
-	router := GetRouter(externalUploadUrl, internalInfoUrl, internalUploadUrl)
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string) *http.Server {
+	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
 	)(router)
+
+	addr := fmt.Sprintf(":%s", port)
 
 	s := &http.Server{
 		Addr:    addr,
@@ -161,6 +165,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		r.Form.Del("gorilla.csrf.Token");
 		manifest := map[string]string{"version": "2.0"}
 		for k, v := range r.Form {
 			manifest[k] = v[0]
@@ -249,18 +255,19 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		uploadUrl, err := url.JoinPath(externalUploadUrl, id)
+		uploadDestinationUrl, err := url.JoinPath(externalUploadUrl, id)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
-			UploadUrl:    uploadUrl,
-			Info:         fileInfo,
-			UploadStatus: fileInfo.UploadStatus.Status,
-			Navbar:       components.NewNavbar(true),
-			NewUploadBtn: components.NewUploadBtn{},
+			UploadEndpoint: externalUploadUrl,
+			UploadUrl:      uploadDestinationUrl,
+			Info:           fileInfo,
+			UploadStatus:   fileInfo.UploadStatus.Status,
+			Navbar:         components.NewNavbar(true),
+			NewUploadBtn:   components.NewUploadBtn{},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
