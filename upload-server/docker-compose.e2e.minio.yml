@@ -38,14 +38,16 @@ services:
     image: mcr.microsoft.com/playwright:v1.48.0-focal
     container_name: playwright-minio
     volumes:
-      - ../tests/smoke/playwright:/app
-      - /app/node_modules
-    working_dir: /app
+      - ../tests/smoke/playwright:/playwright
+      - /playwright/node_modules
+    working_dir: /playwright
     environment:
       - CI
       - SERVER_URL=http://upload-server-minio:8080
       - UI_URL=http://upload-server-minio:8081
       - TEST_REPORT_JSON=${TEST_REPORT_JSON:-minio-test-report.json}
+      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-/playwright/test-reports/aws/}
+      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-/playwright/test-results/aws/}
     command: npm run test:docker
     networks:
       - e2e-minio-network

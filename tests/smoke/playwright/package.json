@@ -7,6 +7,7 @@
     "build": "npx tsc",
     "wait": "./wait-for-it.sh ${UI_URL:-http://localhost:8081}",
     "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui",
     "test:docker": "npm install; npm run wait; npm run test",
     "prettier": "prettier --write \"**/*.{js,jsx,cjs,ts,tsx,css,md,json}\" --config \".prettierrc\""
   },
