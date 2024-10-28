@@ -7,5 +7,5 @@ data class FileDelivery(
     val name: String,
     val location: String,
     @get:JsonProperty("delivered_at") val deliveredAt: String,
-    val issues: List<String>?
+    val issues: List<HashMap<String, String>>?
 )

@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
@@ -51,10 +53,13 @@ func FormatDateTime(dateTimeString string) string {
 		return ""
 	}
 
-	date, err := time.Parse(time.RFC3339, dateTimeString)
+	date, err := time.Parse(time.RFC3339Nano, dateTimeString)
 
 	if err != nil {
-		return ""
+		date, err = time.Parse(time.RFC3339, dateTimeString)
+		if err != nil {
+			return ""
+		}
 	}
 
 	return date.UTC().Format(time.RFC850)
@@ -97,21 +102,24 @@ type ManifestTemplateData struct {
 }
 
 type UploadTemplateData struct {
-	UploadUrl    string
-	UploadStatus string
-	Info         info.InfoResponse
-	Navbar       components.Navbar
-	NewUploadBtn components.NewUploadBtn
+	UploadEndpoint string
+	UploadUrl      string
+	UploadStatus   string
+	Info           info.InfoResponse
+	Navbar         components.Navbar
+	NewUploadBtn   components.NewUploadBtn
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) *http.Server {
-	router := GetRouter(uploadUrl, infoUrl)
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string) *http.Server {
+	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
 	)(router)
+
+	addr := fmt.Sprintf(":%s", port)
 
 	s := &http.Server{
 		Addr:    addr,
@@ -120,13 +128,18 @@ func NewServer(addr string, csrfToken string, uploadUrl string, infoUrl string) 
 	return s
 }
 
-func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
+func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
 
-		config, err := metadata.Cache.GetConfig(r.Context(), fmt.Sprintf("v2/%s-%s.json", dataStream, dataStreamRoute))
+		configId := v2.ConfigIdentification{
+			DataStreamID:    dataStream,
+			DataStreamRoute: dataStreamRoute,
+		}
+
+		config, err := metadata.Cache.GetConfig(r.Context(), configId.Path())
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusNotFound)
 			return
@@ -152,6 +165,8 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
+
+		r.Form.Del("gorilla.csrf.Token");
 		manifest := map[string]string{"version": "2.0"}
 		for k, v := range r.Form {
 			manifest[k] = v[0]
@@ -162,7 +177,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			Metadata: manifest,
 		}
 
-		req, err := http.NewRequest("POST", uploadUrl, nil)
+		req, err := http.NewRequest("POST", internalUploadUrl, nil)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -198,7 +213,7 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 		id := vars["upload_id"]
 
 		// Check for upload
-		u, err := url.Parse(infoUrl)
+		u, err := url.Parse(internalInfoUrl)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -240,18 +255,19 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 			return
 		}
 
-		uploadUrl, err := url.JoinPath(uploadUrl, id)
+		uploadDestinationUrl, err := url.JoinPath(externalUploadUrl, id)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
-			UploadUrl:    uploadUrl,
-			Info:         fileInfo,
-			UploadStatus: fileInfo.UploadStatus.Status,
-			Navbar:       components.NewNavbar(true),
-			NewUploadBtn: components.NewUploadBtn{},
+			UploadEndpoint: externalUploadUrl,
+			UploadUrl:      uploadDestinationUrl,
+			Info:           fileInfo,
+			UploadStatus:   fileInfo.UploadStatus.Status,
+			Navbar:         components.NewNavbar(true),
+			NewUploadBtn:   components.NewUploadBtn{},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -273,8 +289,8 @@ func GetRouter(uploadUrl string, infoUrl string) *mux.Router {
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, uploadURL string, infoURL string) error {
-	DefaultServer = NewServer(uiPort, csrfToken, uploadURL, infoURL)
+func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string) error {
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl)
 
 	return DefaultServer.ListenAndServe()
 }

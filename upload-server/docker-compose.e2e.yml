@@ -1,0 +1,34 @@
+networks:
+  e2e-fs-network:
+
+services:
+  upload-server:
+    image: golang:alpine
+    container_name: upload-server-fs
+    volumes:
+      - .:/code
+      - ../upload-configs:/upload-configs
+    working_dir: /code
+    environment:
+      - UI_SERVER_EXTERNAL_HOST=upload-server-fs:8080
+      - UI_SERVER_INTERNAL_HOST=upload-server-fs:8080
+      - UPLOAD_CONFIG_PATH=/upload-configs
+      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/file_destinations.yml
+    command: /bin/sh -c "./run-server.sh"
+    networks:
+      - e2e-fs-network
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.48.0-focal
+    container_name: playwright-fs
+    volumes:
+      - ../tests/smoke/playwright:/app
+      - /app/node_modules
+    working_dir: /app
+    environment:
+      - CI
+      - SERVER_URL=http://upload-server-fs:8080
+      - UI_URL=http://upload-server-fs:8081
+      - TEST_REPORT_JSON=${TEST_REPORT_JSON:-fs-test-report.json}
+    command: npm run test:docker
+    networks:
+      - e2e-fs-network

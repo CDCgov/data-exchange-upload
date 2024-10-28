@@ -34,62 +34,74 @@ type RootResp struct {
 } // .rootResp
 
 type AppConfig struct {
+	// Common Configs
 
-	// App and for Logger
+	// Logging and Environment
 	LoggerDebugOn bool `env:"LOGGER_DEBUG_ON"`
-
 	//QUESTION: this is arbitrary so is it useful?
 	Environment string `env:"ENVIRONMENT, default=DEV"`
 
-	// Server
-	ServerProtocol        string `env:"SERVER_PROTOCOL, default=http"`
-	ServerHostname        string `env:"SERVER_HOSTNAME, default=localhost"`
-	ServerPort            string `env:"SERVER_PORT, default=8080"`
-	TusdHandlerBasePath   string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
-	TusdHandlerInfoPath   string `env:"TUSD_HANDLER_INFO_PATH, default=/info/"`
-	UploadConfigPath      string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
-	EventMaxRetryCount    int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
-	ServerUrl             string
-	ServerFileEndpointUrl string
-	ServerInfoEndpointUrl string
-	Metrics               MetricsConfig `env:", prefix=METRICS_"`
+	// Server Configs
+	ServerProtocol                string `env:"SERVER_PROTOCOL, default=http"`
+	ServerHostname                string `env:"SERVER_HOSTNAME, default=localhost"`
+	ServerPort                    string `env:"SERVER_PORT, default=8080"`
+	TusdHandlerBasePath           string `env:"TUSD_HANDLER_BASE_PATH, default=/files/"`
+	TusdHandlerInfoPath           string `env:"TUSD_HANDLER_INFO_PATH, default=/info/"`
+	EventMaxRetryCount            int    `env:"EVENT_MAX_RETRY_COUNT, default=3"`
+	ExternalServerUrl             string
+	InternalServerUrl             string
+	InternalServerFileEndpointUrl string
+	InternalServerInfoEndpointUrl string
+	ExternalServerFileEndpointUrl string
+	ExternalServerInfoEndpointUrl string
+	Metrics                       MetricsConfig `env:", prefix=METRICS_"`
 
 	// TUSD
 	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 
-	// UI
-	UIPort    string `env:"UI_PORT, default=:8081"`
-	CsrfToken string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
+	// User Interface Configs
+	UIPort                   string `env:"UI_PORT, default=8081"`
+	UIServerExternalProtocol string `env:"UI_SERVER_EXTERNAL_PROTOCOL, default=http"`
+	UIServerInternalProtocol string `env:"UI_SERVER_INTERNAL_PROTOCOL, default=http"`
+	UIServerExternalHost     string `env:"UI_SERVER_EXTERNAL_HOST, default=localhost:8080"`
+	UIServerInternalHost     string `env:"UI_SERVER_INTERNAL_HOST, default=localhost:8080"`
+	CsrfToken                string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
 	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
 
 	// TUS Upload file lock
 	TusRedisLockURI string `env:"REDIS_CONNECTION_STRING"`
 
-	// oauth
+	// OAuth Configs
 	OauthConfig *OauthConfig `env:", prefix=OAUTH_"`
 
 	// process status health
 	ProcessingStatusHealthURI string `env:"PROCESSING_STATUS_HEALTH_URI"`
 
-	// Local file system upload config
+	// Local File System Configs
 	LocalFolderUploadsTus string `env:"LOCAL_FOLDER_UPLOADS_TUS, default=./uploads"`
-	LocalReportsFolder    string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
-	LocalEventsFolder     string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
+	UploadConfigPath      string `env:"UPLOAD_CONFIG_PATH, default=../upload-configs"`
+	// Local File System Report Directory
+	LocalReportsFolder string `env:"LOCAL_REPORTS_FOLDER, default=./uploads/reports"`
+	LocalEventsFolder  string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
 
-	// Azure upload config
+	// Azure Storage Configs
 	AzureConnection              *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	AzureUploadContainer         string              `env:"TUS_AZURE_CONTAINER_NAME"`
 	AzureManifestConfigContainer string              `env:"DEX_MANIFEST_CONFIG_CONTAINER_NAME"`
 
-	ReporterConnection   *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
-	PublisherConnection  *AzureQueueConfig `env:", prefix=PUBLISHER_,noinit"`
+	// Azure Report Queue
+	ReporterConnection *AzureQueueConfig `env:", prefix=REPORTER_, noinit"`
+	// Azure Event Topics
+	// Azure Event Publisher Topic
+	PublisherConnection *AzureQueueConfig `env:", prefix=PUBLISHER_,noinit"`
+	// Azure Event Subscriber Subscription
 	SubscriberConnection *AzureQueueConfig `env:", prefix=SUBSCRIBER_,noinit"`
 
 	SNSReporterConnection   *SNSConfig `env:", prefix=SNS_REPORTER_,noinit"`
 	SNSPublisherConnection  *SNSConfig `env:", prefix=SNS_PUBLISHER_,noinit"`
 	SQSSubscriberConnection *SQSConfig `env:", prefix=SQS_SUBSCRIBER_,noinit"`
 
-	// S3 upload config
+	// S3 Storage Configs
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
 	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
 	S3ManifestConfigFolder string           `env:"DEX_S3_MANIFEST_CONFIG_FOLDER_NAME"`
@@ -106,7 +118,7 @@ func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		System:     "DEX",
 		DexProduct: "UPLOAD API",
 		DexApp:     "upload server",
-		ServerTime: time.Now().Format(time.RFC3339),
+		ServerTime: time.Now().Format(time.RFC3339Nano),
 	}) // .jsonResp
 	if err != nil {
 		errMsg := "error marshal json for root response"
@@ -232,9 +244,12 @@ func ParseConfig(ctx context.Context) (AppConfig, error) {
 		}
 	}
 
-	ac.ServerUrl = fmt.Sprintf("%s://%s:%s", ac.ServerProtocol, ac.ServerHostname, ac.ServerPort)
-	ac.ServerFileEndpointUrl = ac.ServerUrl + ac.TusdHandlerBasePath
-	ac.ServerInfoEndpointUrl = ac.ServerUrl + ac.TusdHandlerInfoPath
+	ac.InternalServerUrl = fmt.Sprintf("%s://%s", ac.UIServerInternalProtocol, ac.UIServerInternalHost)
+	ac.ExternalServerUrl = fmt.Sprintf("%s://%s", ac.UIServerExternalProtocol, ac.UIServerExternalHost)
+	ac.ExternalServerFileEndpointUrl = ac.ExternalServerUrl + ac.TusdHandlerBasePath
+	ac.ExternalServerInfoEndpointUrl = ac.ExternalServerUrl + ac.TusdHandlerInfoPath
+	ac.InternalServerFileEndpointUrl = ac.InternalServerUrl + ac.TusdHandlerBasePath
+	ac.InternalServerInfoEndpointUrl = ac.InternalServerUrl + ac.TusdHandlerInfoPath
 
 	LoadedConfig = &ac
 	return ac, nil

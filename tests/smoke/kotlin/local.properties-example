@@ -1,35 +1,29 @@
+#local
+environment=LOCAL
+upload.url=http://localhost:8080
+ps.api.url=http://localhost:8080
+sams.username=
+sams.password=
+
 #dev
+environment=DEV
 upload.url=https://apidev.cdc.gov
 ps.api.url=https://dex-dev-svc.cdc.gov
 sams.username=
 sams.password=
-dex.storage.connection.string=
-edav.storage.account.name=
-routing.storage.connection.string=
-azure.client.id=
-azure.client.secret=
-azure.tenant.id=
+
 
 # tst
+environment=TEST
 upload.url=https://apitst.cdc.gov
 ps.api.url=https://dex-tst-svc.cdc.gov
 sams.username=
 sams.password=
-dex.storage.connection.string=
-edav.storage.account.name=
-routing.storage.connection.string=
-azure.client.id=
-azure.client.secret=
-azure.tenant.id=
+
 
 # stg
+environment=STAGE
 upload.url=https://apistg.cdc.gov
 ps.api.url=https://dex-stg-svc.cdc.gov
 sams.username=
 sams.password=
-dex.storage.connection.string=
-edav.storage.account.name=
-routing.storage.connection.string=
-azure.client.id=
-azure.client.secret=
-azure.tenant.id=
