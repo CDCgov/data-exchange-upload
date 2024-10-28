@@ -1,0 +1,47 @@
+networks:
+  e2e-azurite-network:
+
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    hostname: azurite
+    networks:
+      - e2e-azurite-network
+  upload-server:
+    image: golang:alpine
+    container_name: upload-server-azurite
+    volumes:
+      - .:/code
+      - ../upload-configs:/upload-configs
+    working_dir: /code
+    environment:
+      - UI_SERVER_EXTERNAL_HOST=upload-server-azurite:8080
+      - UI_SERVER_INTERNAL_HOST=upload-server-azurite:8080
+      - AZURE_STORAGE_ACCOUNT=devstoreaccount1
+      # Default test storage key can be found here https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account
+      - AZURE_STORAGE_KEY=${AZURITE_STORAGE_KEY}
+      - AZURE_ENDPOINT=http://azurite:10000/devstoreaccount1
+      - TUS_AZURE_CONTAINER_NAME=test
+      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/azurite_destinations.yml
+      - AZURITE_KEY=${AZURITE_STORAGE_KEY}
+    command: /bin/sh -c "./run-server.sh"
+    networks:
+      - e2e-azurite-network
+    depends_on:
+      - azurite
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.48.0-focal
+    container_name: playwright-azurite
+    volumes:
+      - ../tests/smoke/playwright:/app
+      - /app/node_modules
+    working_dir: /app
+    environment:
+      - CI
+      - SERVER_URL=http://upload-server-azurite:8080
+      - UI_URL=http://upload-server-azurite:8081
+      - TEST_REPORT_JSON=${TEST_REPORT_JSON:-azurite-test-report.json}
+    command: npm run test:docker
+    networks:
+      - e2e-azurite-network
+   
