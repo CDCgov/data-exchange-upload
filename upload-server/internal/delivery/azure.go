@@ -63,8 +63,8 @@ func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string
 	return props, nil
 }
 
-func (ad *AzureSource) GetSignedObjectURL(_, _, objectPath string) (string, error) {
-	sourceBlob := ad.FromContainerClient.NewBlockBlobClient(objectPath)
+func (ad *AzureSource) GetSignedObjectURL(_ context.Context, _, objectPath string) (string, error) {
+	sourceBlob := ad.FromContainerClient.NewBlockBlobClient(ad.Prefix + "/" + objectPath)
 	sourceURL, er := sourceBlob.GetSASURL(sas.BlobPermissions{
 		Read:   true,
 		Add:    true,
