@@ -174,13 +174,15 @@ func (as *AzureSubscriber[T]) Listen(ctx context.Context, process func(context.C
 				var e T
 				e, err := NewEventFromServiceBusMessage[T](m)
 				if err != nil {
-					//TODO log error
-					//TODO log error from dead letter
-					as.Receiver.DeadLetterMessage(ctx, m, nil)
+					slog.Error("failed to get event from service bus", "message", m, "error", err.Error())
+					if err := as.Receiver.DeadLetterMessage(ctx, m, nil); err != nil {
+						slog.Error("failed to dead letter message", "message", m, "error", err.Error())
+					}
 				}
 				if err := process(ctx, e); err != nil {
-					//TODO log error from dead letter
-					as.Receiver.DeadLetterMessage(ctx, m, nil)
+					if err := as.Receiver.DeadLetterMessage(ctx, m, nil); err != nil {
+						slog.Error("failed to dead letter message", "message", m, "error", err.Error())
+					}
 					continue
 				}
 				if err := as.Receiver.CompleteMessage(ctx, m, nil); err != nil {

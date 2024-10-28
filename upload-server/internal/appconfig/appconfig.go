@@ -134,21 +134,10 @@ func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type SNSConfig struct {
 	EventArn string `env:"EVENT_ARN"`
-	/*
-		Region          string `env:"REGION"`
-		AccessKeyID     string `env:"ACCESS_KEY_ID"`
-		SecretAccessKey string `env:"SECRET_ACCESS_KEY"`
-	*/
 }
 
 type SQSConfig struct {
 	EventArn string `env:"EVENT_ARN"`
-	/*
-		Endpoint        string `env:"ENDPOINT"`
-		Region          string `env:"REGION"`
-		AccessKeyID     string `env:"ACCESS_KEY_ID"`
-		SecretAccessKey string `env:"SECRET_ACCESS_KEY"`
-	*/
 }
 
 type AzureStorageConfig struct {
