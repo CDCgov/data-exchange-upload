@@ -4,18 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 )
 
 var logger *slog.Logger
@@ -73,7 +74,7 @@ func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
 		return err
 	}
 
-	filename := filepath.Join(mp.Dir, event.Identifier()+TypeSeparator+event.Type())
+	filename := filepath.Join(mp.Dir, event.GetUploadID()+TypeSeparator+event.Type())
 	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
