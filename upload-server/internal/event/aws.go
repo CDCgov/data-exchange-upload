@@ -13,11 +13,26 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
+	snsTypes "github.com/aws/aws-sdk-go-v2/service/sns/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
 var ErrInvalidARN = errors.New("given arn is not an arn")
+var tags = map[string]string{
+	"auto-generated":    "true",
+	"auto-generated-by": "phdo",
+}
+
+func snsTags() (ts []snsTypes.Tag) {
+	for k, v := range tags {
+		ts = append(ts, snsTypes.Tag{
+			Key:   aws.String(k),
+			Value: aws.String(v),
+		})
+	}
+	return ts
+}
 
 // arn format arn:aws:sns:region:account-id:topicname
 func NewSNSPublisher[T Identifiable](ctx context.Context, topicARN string) (*SNSPublisher[T], error) {
@@ -40,6 +55,7 @@ func NewSNSPublisher[T Identifiable](ctx context.Context, topicARN string) (*SNS
 		}
 		rsp, e := client.CreateTopic(ctx, &sns.CreateTopicInput{
 			Name: aws.String(parsedARN.Resource),
+			Tags: snsTags(),
 		})
 		if e != nil {
 			return p, errors.Join(err, e)
@@ -120,6 +136,7 @@ func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) error {
 	if err != nil {
 		rsp, e := client.CreateQueue(ctx, &sqs.CreateQueueInput{
 			QueueName: aws.String(name),
+			Tags:      tags,
 		})
 		if e != nil {
 			return errors.Join(e, err)
