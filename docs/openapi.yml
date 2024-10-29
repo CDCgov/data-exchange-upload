@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: Swagger definition of the tusd / Data Exchange Upload API.
   description: Swagger definition of the tusd / Data Exchange Upload API.
-  version: "1.1"
+  version: "1.2"
   contact:
     email: knu1@cdc.gov
 servers:
@@ -685,7 +685,7 @@ components:
               description: Unique identifier of the uploaded file assigned by the API.
             dex_ingest_datetime:
               type: string
-              description: Timestamp of the API's first interaction with the uploaded file.
+              description: Timestamp of the API's first interaction with the uploaded file, rounded to the nearest nanosecond (0.000000001).
             version:
               type: string
               description: The version of the sender manifest utilized for the uploaded file.
@@ -719,7 +719,7 @@ components:
               description: Current size of the file in bytes.
             updated_at:
               type: string
-              description: Timestamp of the most recent time the file was changed.
+              description: Timestamp of the most recent time the file was changed, rounded to the nearest second increment as the assigned target delivery storage location rounds (e.g., rounded to the nearest second when delivered to Azure or AWS cloud storage).
         upload_status:
           type: object
           description: Information about the status of the file upload.
@@ -733,7 +733,7 @@ components:
                 - Complete
             chunk_received_at:
               type: string
-              description: Timestamp that the most recent upload chunk was received.
+              description: Timestamp that the most recent upload chunk was received, rounded to the nearest tenth of a microsecond (0.0000001).
         deliveries:
           type: array
           description: Information about the file destination delivery to target locations.
@@ -751,7 +751,7 @@ components:
                 description: Location path of the file destination delivery target.
               delivered_at:
                 type: string
-                description: Timestamp of the file delivery to the target destination location.
+                description: Timestamp of the file delivery to the target destination location, rounded to the nearest nanosecond (0.000000001).
               issues:
                 type: object
                 description: Details issues encountered with file destination delivery.
