@@ -14,10 +14,6 @@
         "jurisdiction", 
         "received_filename"
     ],
-    "optional": [
-        "custom_metadata_field_1", 
-        "custom_metadata_field_2"
-    ],
     "properties": {
         "version": {
             "type": "string",
@@ -47,14 +43,6 @@
         "received_filename": {
             "type": "string",
             "description": "The name of the file uploaded by the sender."
-        },
-        "custom_metadata_field_1": {
-            "type": "string",
-            "description": "Optional custom metadata field example for string type."
-        },
-        "custom_metadata_field_2": {
-            "type": "array",
-            "description": "Optional custom metadata field example for array type."
         }
     }
 
