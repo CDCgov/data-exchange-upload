@@ -1,27 +1,31 @@
 version: 1.0
 
 targets:
-  - name: edav
+  edav:
+    name: edav
     type: s3
     bucket_name: edav
     access_key_id: minioadmin
     secret_access_key: minioadmin
     endpoint: "http://minio:8000"
     region: us-east-1
-  - name: ehdi
+  ehdi:
+    name: ehdi
     type: s3
     bucket_name: ehdi
     access_key_id: minioadmin
     secret_access_key: minioadmin
     endpoint: "http://minio:8000"
     region: us-east-1
-  - name: eicr
+  eicr:
+    name: eicr
     type: az-blob
     endpoint: "http://azurite:10000/devstoreaccount1"
     storage_account: "devstoreaccount1"
     storage_key: $AZURITE_KEY
     container_name: eicr
-  - name: ncird
+  ncird:
+    name: ncird
     type: az-blob
     endpoint: "http://azurite:10000/devstoreaccount1"
     storage_account: "devstoreaccount1"

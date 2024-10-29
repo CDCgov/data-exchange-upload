@@ -1,25 +1,29 @@
 version: 1.0
 
 targets:
-  - name: edav
+  edav:
+    name: edav
     type: az-blob
     endpoint: "http://azurite:10000/devstoreaccount1"
     storage_account: "devstoreaccount1"
     storage_key: $AZURITE_KEY
     container_name: edav
-  - name: ehdi
+  ehdi:
+    name: ehdi
     type: az-blob
     endpoint: "http://azurite:10000/devstoreaccount1"
     storage_account: "devstoreaccount1"
     storage_key: $AZURITE_KEY
     container_name: ehdi
-  - name: eicr
+  eicr:
+    name: eicr
     type: az-blob
     endpoint: "http://azurite:10000/devstoreaccount1"
     storage_account: "devstoreaccount1"
     storage_key: $AZURITE_KEY
     container_name: eicr
-  - name: ncird
+  ncird:
+    name: ncird
     type: az-blob
     endpoint: "http://azurite:10000/devstoreaccount1"
     storage_account: "devstoreaccount1"

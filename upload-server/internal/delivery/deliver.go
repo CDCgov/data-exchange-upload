@@ -48,22 +48,6 @@ func FindGroupFromMetadata(meta handler.MetaData) (Group, bool) {
 	return g, ok
 }
 
-func getDeliveryHealthChecks(srcs []Source, dests []Destination) []any {
-	checks := make([]any, len(srcs)+len(dests))
-	i := 0
-
-	for _, s := range srcs {
-		checks[i] = s
-		i++
-	}
-	for _, d := range dests {
-		checks[i] = d
-		i++
-	}
-
-	return checks
-}
-
 var sources = map[string]Source{}
 
 func RegisterSource(name string, s Source) {
@@ -94,8 +78,8 @@ type PathInfo struct {
 }
 
 type Config struct {
-	Targets []Target `yaml:"targets"`
-	Groups  []Group  `yaml:"routing_groups"`
+	Targets map[string]Target `yaml:"targets"`
+	Groups  []Group           `yaml:"routing_groups"`
 }
 
 type Group struct {
@@ -168,9 +152,8 @@ func unmarshalDeliveryConfig(confBody string) (*Config, error) {
 // Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
 	groups = make(map[string]Group)
-	targets = make(map[string]Destination)
 	var src Source
-	var dests []Destination
+
 	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
 	fromPath := os.DirFS(fromPathStr)
 	src = &FileSource{
@@ -187,8 +170,9 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 
 	for _, t := range cfg.Targets {
-		targets[t.Name] = t.Destination
-		dests = append(dests, t.Destination)
+		if err := health.Register(t.Destination); err != nil {
+			slog.Error("failed to register destination", "destination", t)
+		}
 	}
 	slog.Info("targets", "targets", targets)
 
@@ -223,7 +207,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 	RegisterSource(UploadSrc, src)
 
-	if err := health.Register(getDeliveryHealthChecks([]Source{src}, dests)...); err != nil {
+	if err := health.Register(src); err != nil {
 		slog.Error("failed to register some health checks", "error", err)
 	}
 	return nil

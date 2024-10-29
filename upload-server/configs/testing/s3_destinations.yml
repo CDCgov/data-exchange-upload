@@ -1,31 +1,32 @@
 version: 1.0
 
 targets:
-  - name: edav
+  edav:
+    name: edav
     type: s3
     bucket_name: edav
     access_key_id: minioadmin
     secret_access_key: minioadmin
     endpoint: "http://minio:8000"
     region: us-east-1
-
-  - name: ehdi
+  ehdi:
+    name: ehdi
     type: s3
     bucket_name: ehdi
     access_key_id: minioadmin
     secret_access_key: minioadmin
     endpoint: "http://minio:8000"
     region: us-east-1
-
-  - name: eicr
+  eicr:
+    name: eicr
     type: s3
     bucket_name: eicr
     access_key_id: minioadmin
     secret_access_key: minioadmin
     endpoint: "http://minio:8000"
     region: us-east-1
-
-  - name: ncird
+  ncird:
+    name: ncird
     type: s3
     bucket_name: ncird
     access_key_id: minioadmin
