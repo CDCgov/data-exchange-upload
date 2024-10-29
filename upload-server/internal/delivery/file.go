@@ -24,13 +24,14 @@ func (fd *FileDestination) DestinationType() string {
 	return storageTypeLocalFile
 }
 
-func (fd *FileDestination) Copy(ctx context.Context, path string, source *Source, metadata map[string]string, _ int64, _ int) (string, error) {
+func (fd *FileDestination) Copy(ctx context.Context, path string, source *Source,
+	metadata map[string]string, _ int64, _ int) (string, error) {
 	s := *source
 	reader, _ := s.Reader(ctx, path)
 	return fd.Upload(ctx, path, reader, metadata)
 }
 
-func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
+func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, _ map[string]string) (string, error) {
 	if err := os.MkdirAll(fd.ToPath, 0755); err != nil {
 		return "", err
 	}
@@ -100,7 +101,6 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 		}
 		return nil, err
 	}
-	defer f.Close()
 
 	b, err := io.ReadAll(f)
 	if err != nil {

@@ -146,7 +146,7 @@ func (sd *S3Destination) DestinationType() string {
 	return storageTypeS3
 }
 
-func (sd *S3Destination) Retrieve(ctx context.Context) (aws.Credentials, error) {
+func (sd *S3Destination) Retrieve(_ context.Context) (aws.Credentials, error) {
 	return aws.Credentials{
 		AccessKeyID:     sd.AccessKeyID,
 		SecretAccessKey: sd.SecretAccessKey,
@@ -168,7 +168,8 @@ func (sd *S3Destination) Client() *s3.Client {
 	return sd.toClient
 }
 
-func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, metadata map[string]string, length int64, concurrency int) (string, error) {
+func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, metadata map[string]string,
+	length int64, concurrency int) (string, error) {
 	s := *source
 	if s.SourceType() == sd.DestinationType() {
 		// copy s3 to s3
@@ -193,7 +194,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, source *Sourc
 	sourcePath := fmt.Sprintf("%s/%s", sourceContainer, sourceFile)
 	destFile, err := getDeliveredFilename(ctx, sourceFile, sd.PathTemplate, sourceMetadata)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to determine destination object name: %v", err)
 	}
 	client := sd.Client()
 	if sourceLength < s3MaxCopySize {
