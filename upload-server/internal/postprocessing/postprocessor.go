@@ -35,7 +35,14 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		"1.0.0",
 		reports.StageFileCopy,
 		e.UploadId,
-		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
+		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC()).SetContent(reports.FileCopyContent{
+		ReportContent: reports.ReportContent{
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageFileCopy,
+		},
+		FileSourceBlobUrl: e.SrcUrl,
+		DestinationName:   e.DestinationTarget,
+	})
 
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
