@@ -64,7 +64,8 @@ func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string
 }
 
 func (ad *AzureSource) GetSignedObjectURL(_ context.Context, _, objectPath string) (string, error) {
-	sourceBlob := ad.FromContainerClient.NewBlockBlobClient(ad.Prefix + "/" + objectPath)
+	path := ad.GetSourceFilePath(objectPath)
+	sourceBlob := ad.FromContainerClient.NewBlockBlobClient(path)
 	sourceURL, er := sourceBlob.GetSASURL(sas.BlobPermissions{
 		Read:   true,
 		Add:    true,
@@ -75,6 +76,10 @@ func (ad *AzureSource) GetSignedObjectURL(_ context.Context, _, objectPath strin
 		return "", fmt.Errorf("unable to get signed url for source object: %v", er)
 	}
 	return sourceURL, nil
+}
+
+func (ad *AzureSource) GetSourceFilePath(path string) string {
+	return ad.Prefix + "/" + path
 }
 
 func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp) {

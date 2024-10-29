@@ -37,6 +37,7 @@ type Source interface {
 	Reader(context.Context, string) (io.Reader, error)
 	GetMetadata(context.Context, string) (map[string]string, error)
 	GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error)
+	GetSourceFilePath(string) string
 	SourceType() string
 	Container() string
 }

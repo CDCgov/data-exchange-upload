@@ -38,8 +38,7 @@ type S3Source struct {
 
 func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) {
 	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
-	id := strings.Split(path, "+")[0]
-	srcFileName := ss.Prefix + "/" + id
+	srcFileName := ss.GetSourceFilePath(path)
 	downloader := manager.NewDownloader(ss.FromClient, func(d *manager.Downloader) {
 		d.Concurrency = 1
 	})
@@ -69,11 +68,15 @@ func (ss *S3Source) Container() string {
 	return ss.BucketName
 }
 
-func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
-	// Get the object from S3
+func (ss *S3Source) GetSourceFilePath(tuid string) string {
 	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
 	id := strings.Split(tuid, "+")[0]
-	srcFilename := ss.Prefix + "/" + id
+	return ss.Prefix + "/" + id
+}
+
+func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
+	// Get the object from S3
+	srcFilename := ss.GetSourceFilePath(tuid)
 	output, err := ss.FromClient.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(ss.BucketName),
 		Key:    aws.String(srcFilename),
@@ -90,10 +93,11 @@ func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]st
 
 func (ss *S3Source) GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error) {
 	presignClient := s3.NewPresignClient(ss.FromClient)
+	sourceFile := ss.GetSourceFilePath(objectPath)
 	request, err := presignClient.PresignGetObject(ctx,
 		&s3.GetObjectInput{
 			Bucket: aws.String(containerName),
-			Key:    aws.String(objectPath),
+			Key:    aws.String(sourceFile),
 		},
 		func(options *s3.PresignOptions) {
 			options.Expires = time.Hour
@@ -169,7 +173,7 @@ func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, 
 	if s.SourceType() == sd.DestinationType() {
 		// copy s3 to s3
 		// going to assume we have correct IAM permissions
-		return sd.copyFromLocalStorage(ctx, s.Container(), path, metadata, length, concurrency)
+		return sd.copyFromLocalStorage(ctx, source, path, metadata, length, concurrency)
 	} else {
 		// stream
 		reader, err := s.Reader(ctx, path)
@@ -181,16 +185,20 @@ func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, 
 
 }
 
-func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContainer string, sourceFile string,
+func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, source *Source, path string,
 	sourceMetadata map[string]string, sourceLength int64, concurrency int) (string, error) {
-	source := fmt.Sprintf("%s/%s", sourceContainer, sourceFile)
+	s := *source
+	sourceFile := s.GetSourceFilePath(path)
+	sourceContainer := s.Container()
+	sourcePath := fmt.Sprintf("%s/%s", sourceContainer, sourceFile)
 	destFile, err := getDeliveredFilename(ctx, sourceFile, sd.PathTemplate, sourceMetadata)
 	if err != nil {
 		return "", err
 	}
+	client := sd.Client()
 	if sourceLength < s3MaxCopySize {
-		_, err := sd.toClient.CopyObject(ctx, &s3.CopyObjectInput{
-			CopySource: aws.String(source),
+		_, err := client.CopyObject(ctx, &s3.CopyObjectInput{
+			CopySource: aws.String(sourcePath),
 			Bucket:     aws.String(sd.BucketName),
 			Key:        aws.String(destFile),
 		})
@@ -200,7 +208,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContain
 		return fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, destFile), nil
 	} else {
 		lengthInt := int(sourceLength)
-		upload, err := sd.toClient.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		upload, err := client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
 			Bucket:   aws.String(sd.BucketName),
 			Key:      aws.String(destFile),
 			Metadata: sourceMetadata,
@@ -240,9 +248,9 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContain
 			routines++
 			go func(chunkId int, rangeHeader string) {
 				defer wg.Done()
-				uploadPartResp, err := sd.toClient.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
+				uploadPartResp, err := client.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
 					Bucket:          aws.String(sd.BucketName),
-					CopySource:      aws.String(source),
+					CopySource:      aws.String(sourcePath),
 					CopySourceRange: aws.String(rangeHeader),
 					Key:             aws.String(destFile),
 					PartNumber:      aws.Int32(int32(chunkId)),
@@ -274,7 +282,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContain
 		select {
 		case err = <-errCh:
 			// there was an error during staging
-			_, _ = sd.toClient.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
+			_, _ = client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
 				Bucket:   aws.String(sd.BucketName),
 				Key:      aws.String(destFile),
 				UploadId: aws.String(uploadId),
@@ -290,7 +298,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, sourceContain
 			completedParts[partNum-1] = part
 		}
 
-		completion, err := sd.toClient.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+		completion, err := client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
 			Bucket:   aws.String(sd.BucketName),
 			Key:      aws.String(destFile),
 			UploadId: aws.String(uploadId),

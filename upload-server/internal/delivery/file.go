@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
-
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
 type FileDestination struct {
@@ -73,7 +72,13 @@ func (fd *FileSource) SourceType() string {
 }
 
 func (fd *FileSource) Container() string {
-	return "n/a"
+	// needed for interface conformance
+	return ""
+}
+
+func (fd *FileSource) GetSourceFilePath(path string) string {
+	// needed for interface conformance
+	return path
 }
 
 func (fd *FileSource) Reader(_ context.Context, path string) (io.Reader, error) {
@@ -104,19 +109,24 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 
 	var m map[string]string
 	err = json.Unmarshal(b, &m)
-	info, e := f.Stat()
-	if e == nil {
-		m["last_modified"] = info.ModTime().Format(time.RFC3339Nano)
-		m["content_length"] = strconv.FormatInt(info.Size(), 10)
-	}
 	if err != nil {
 		return nil, err
 	}
 
+	fMain, err := fd.FS.Open(tuid)
+	if err != nil {
+		return nil, err
+	}
+	info, e := fMain.Stat()
+	if e == nil {
+		m["last_modified"] = info.ModTime().Format(time.RFC3339Nano)
+		m["content_length"] = strconv.FormatInt(info.Size(), 10)
+	}
 	return m, nil
 }
 
-func (fd *FileSource) GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error) {
+func (fd *FileSource) GetSignedObjectURL(_ context.Context, _ string, _ string) (string, error) {
+	// needed for interface conformance
 	return "", nil
 }
 
