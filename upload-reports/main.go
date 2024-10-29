@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
@@ -105,7 +106,14 @@ func generateCsvBytes(data [][]string, dataType string) *bytes.Buffer {
 
 func fetchDataForDataStream(apiURL string, datastream string, route string, startDate string, endDate string) (*SummaryRow, []AnomalousItemRow, error) {
 	ctx := context.Background()
-	client := graphql.NewClient(apiURL, http.DefaultClient)
+
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	client := graphql.NewClient(apiURL, httpClient)
 
 	resp, err := psApi.GetUploadStats(ctx, client, datastream, route, startDate, endDate)
 
