@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 )
@@ -34,10 +32,9 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
 	sourceName := body.Source
 	if sourceName == "" {
-		sourceName = "upload"
+		sourceName = delivery.UploadSrc
 	}
 	src, ok := delivery.GetSource(sourceName)
 	if !ok {
@@ -53,8 +50,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dataStreamId, dataStreamRoute := metadata.GetDataStreamID(m), metadata.GetDataStreamRoute(m)
-	if _, ok := delivery.GetDestinationTarget(dataStreamId, dataStreamRoute, body.Target); !ok {
+	if _, ok := delivery.GetTarget(body.Target); !ok {
 		http.Error(rw, "Invalid target", http.StatusBadRequest)
 		return
 	}
