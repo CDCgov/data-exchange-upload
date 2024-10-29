@@ -1,110 +1,85 @@
 version: 1.0
 
-s3-edav: &s3-edav
-  bucket_name: edav
-  access_key_id: minioadmin
-  secret_access_key: minioadmin
-  endpoint: 'http://minio:8000'
-  region: us-east-1
-
-s3-ehdi: &s3-ehdi
-  bucket_name: ehdi
-  access_key_id: minioadmin
-  secret_access_key: minioadmin
-  endpoint: 'http://minio:8000'
-  region: us-east-1
-
-az-eicr: &az-eicr
-  endpoint: 'http://azurite:10000/devstoreaccount1'
-  storage_account: 'devstoreaccount1'
-  storage_key: $AZURITE_KEY
-  container_name: eicr
-
-az-ncird: &az-ncird
-  endpoint: 'http://azurite:10000/devstoreaccount1'
-  storage_account: 'devstoreaccount1'
-  storage_key: $AZURITE_KEY
-  container_name: ncird
-
-# if needed, properties of an anchor can be overridden
-# in a delivery target
-#
-# path_template can be defined at data_stream level
-# where it is valid for all targets unless
-# a target defines its own path_template property
-programs:
+targets:
+  edav:
+    name: edav
+    type: s3
+    bucket_name: edav
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    endpoint: 'http://minio:8000'
+    region: us-east-1
+  ehdi:
+    name: ehdi
+    type: s3
+    bucket_name: ehdi
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    endpoint: 'http://minio:8000'
+    region: us-east-1
+  eicr:
+    name: eicr
+    type: az-blob
+    endpoint: 'http://azurite:10000/devstoreaccount1'
+    storage_account: 'devstoreaccount1'
+    storage_key: $AZURITE_KEY
+    container_name: eicr
+  ncird:
+    name: ncird
+    type: az-blob
+    endpoint: 'http://azurite:10000/devstoreaccount1'
+    storage_account: 'devstoreaccount1'
+    storage_key: $AZURITE_KEY
+    container_name: ncird
+routing_groups:
   - data_stream_id: pulsenet
     data_stream_route: localsequencefile
     delivery_targets:
       - name: edav
-        type: s3
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *s3-edav
   - data_stream_id: ehdi
     data_stream_route: csv
     delivery_targets:
       - name: ehdi
-        type: s3
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *s3-ehdi
   - data_stream_id: eicr
     data_stream_route: fhir
     delivery_targets:
       - name: eicr
-        type: az-blob
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *az-eicr
   - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *az-ncird
   - data_stream_id: generic-immunization
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *az-ncird
   - data_stream_id: influenza-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *az-ncird
   - data_stream_id: routine-immunization
     data_stream_route: other
     delivery_targets:
       - name: ncird
-        type: az-blob
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *az-ncird
   - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *az-ncird
   - data_stream_id: dextesting
     data_stream_route: testevent1
     delivery_targets:
       - name: ncird
-        type: az-blob
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *az-ncird
       - name: eicr
-        type: az-blob
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *az-eicr
       - name: edav
-        type: s3
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *s3-edav
       - name: ehdi
-        type: s3
         path_template: '{{.Filename}}_{{.UploadId}}'
-        <<: *s3-ehdi

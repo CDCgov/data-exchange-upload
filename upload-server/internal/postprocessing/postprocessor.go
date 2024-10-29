@@ -3,7 +3,6 @@ package postprocessing
 import (
 	"context"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"log/slog"
 	"reflect"
 	"strings"
@@ -59,9 +58,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
-	dataStreamId := metadata.GetDataStreamID(e.Metadata)
-	dataStreamRoute := metadata.GetDataStreamRoute(e.Metadata)
-	d, ok := delivery.GetDestinationTarget(dataStreamId, dataStreamRoute, e.DestinationTarget)
+	d, ok := delivery.GetTarget(e.DestinationTarget)
 	if !ok {
 		err := fmt.Errorf("failed to get destination for file delivery %+v", e)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
