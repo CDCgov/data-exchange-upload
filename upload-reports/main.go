@@ -188,8 +188,7 @@ func getCsvData(datastreams []string, cleanedStartDate string, cleanedEndDate st
 
 			rowData, anomalousData, err := fetchDataForDataStream(psApiUrl, datastream, route, cleanedStartDate, cleanedEndDate)
 			if err != nil {
-				log.Printf("Error fetching data from GraphQL API: %v", err)
-				return
+				panic(fmt.Sprintf("Failed to fetch upload stats for datastream %s, route %s: %v", datastream, route, err))
 			}
 
 			summaryChan <- rowData
