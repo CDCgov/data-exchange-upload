@@ -147,6 +147,26 @@ type SQSSubscriber[T Identifiable] struct {
 	Max      int
 }
 
+func (s *SQSSubscriber[T]) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = fmt.Sprintf("SQS - %s", s.ARN)
+	rsp.Status = models.STATUS_UP
+	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
+	client, err := s.Client(ctx)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+		return rsp
+	}
+	if _, err := client.GetQueueAttributes(ctx, &sqs.GetQueueAttributesInput{
+		QueueUrl: aws.String(s.QueueURL),
+	}); err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+		return rsp
+	}
+	return rsp
+}
+
 func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) error {
 	client, err := s.Client(ctx)
 	if err != nil {

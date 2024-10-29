@@ -28,6 +28,7 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 		if err := s.Subscribe(ctx, arn); err != nil {
 			return s, fmt.Errorf("arn: %s, %w", arn, err)
 		}
+		health.Register(s)
 		return s, nil
 
 	}
