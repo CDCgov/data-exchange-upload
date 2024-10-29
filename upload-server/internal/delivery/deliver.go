@@ -151,6 +151,7 @@ func unmarshalDeliveryConfig(confBody string) (*Config, error) {
 
 // Eventually, this can take a more generic list of deliverer configuration object
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
+	targets = make(map[string]Destination)
 	groups = make(map[string]Group)
 	var src Source
 
@@ -170,6 +171,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	}
 
 	for _, t := range cfg.Targets {
+		targets[t.Name] = t.Destination
 		if err := health.Register(t.Destination); err != nil {
 			slog.Error("failed to register destination", "destination", t)
 		}

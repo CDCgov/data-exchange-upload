@@ -1,16 +1,20 @@
 version: 1.0
 
 targets:
-  - name: edav
+  edav:
+    name: edav
     type: file
     path: ./uploads/edav
-  - name: ehdi
+  ehdi:
+    name: ehdi
     type: file
     path: ./uploads/ehdi
-  - name: eicr
+  eicr:
+    name: eicr
     type: file
     path: ./uploads/eicr
-  - name: ncird
+  ncird:
+    name: ncird
     type: file
     path: ./uploads/ncird
 
