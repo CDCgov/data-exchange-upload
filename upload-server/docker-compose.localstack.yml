@@ -7,7 +7,9 @@ services:
     environment:
       # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
       - DEBUG=${DEBUG:-0}
-      - SERVICES=sns,sqs
+      - SERVICES=sns,sqs,s3
+    volumes:
+      - ./configs/local/localstack:/etc/localstack/init/ready.d
   upload-server:
     environment:
       - SQS_SUBSCRIBER_EVENT_ARN=arn:aws:sns:us-east-1:000000000042:test-topic
