@@ -1,4 +1,4 @@
-import { readFileSync } from 'fs';
+import { readFileSync, statSync } from 'fs';
 import { resolve } from 'path';
 
 export const SMALL_FILENAME = '10KB-test-file';
@@ -11,10 +11,7 @@ export const API_URL = process.env.SERVER_URL ?? 'http://localhost:8080';
 export const API_FILE_ENDPOINT = `${API_URL}/files`;
 export const API_INFO_ENDPOINT = `${API_URL}/info`;
 
-export type Metadata = {
-  dataStream: string;
-  route: string;
-};
+export const DATE_TIME_REGEX = /[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}.*[0-9]*Z/;
 
 export type FileSelection = {
   name: string;
@@ -32,6 +29,82 @@ export type TestCase = {
   metadata: { [key: string]: string };
   expectedStatusCode: number;
   expectedErrorMessages: string[];
+};
+
+export type ManifestV1 = {
+  meta_destination_id: string;
+  meta_ext_event: string;
+  filename: string;
+};
+
+export type MetadataV1 = {
+  manifest: ManifestV1;
+};
+
+export type ManifestV2 = {
+  version: string;
+  data_stream_id: string;
+  data_stream_route: string;
+  received_filename: string;
+  sender_id: string;
+  data_producer_id: string;
+  jurisdiction: string;
+};
+
+export type MetadataV2 = {
+  manifest: ManifestV2;
+  delivery_targets: DeliveryTarget[];
+};
+
+export type ManifestResponse = ManifestV2 & {
+  dex_ingest_datetime: string;
+  upload_id: string;
+};
+
+export type UploadTarget = {
+  dataStream: string;
+  route: string;
+};
+
+export type DeliveryTarget = {
+  name: string;
+  path_template: {
+    LOCAL: string;
+    DEV: string;
+    TEST: string;
+    STAGE: string;
+  };
+};
+
+export type FileInfo = {
+  manifest: ManifestV2 & {
+    dex_ingest_datetime: string;
+    upload_id: string;
+  };
+  file_info: {
+    size_bytes: number;
+    updated_at: string;
+  };
+  upload_status: {
+    status: 'Initiated' | 'In Progress' | 'Complete';
+    chunk_received_at: string;
+  };
+  deliveries: [
+    {
+      status: string;
+      name: string;
+      location: string;
+      delivered_at: string;
+      issues:
+        | [
+            {
+              level: string;
+              message: string;
+            }
+          ]
+        | null;
+    }
+  ];
 };
 
 export function getResourceFilepath(filename: string): string {
@@ -57,8 +130,24 @@ export function getFileSelection(filename: string): FileSelection {
   };
 }
 
-export function getMetadataObjects(): Metadata[] {
-  const filepath = getResourceFilepath('metadata.json');
+export function getFileSizeBytes(filename: string): number {
+  const filepath = getResourceFilepath(filename);
+  var stats = statSync(filepath);
+  return stats.size;
+}
+
+export function getUploadTargets(): UploadTarget[] {
+  const filepath = getResourceFilepath('upload_targets.json');
+  return JSON.parse(readFileSync(filepath).toString());
+}
+
+export function getValidMetadataV1(): MetadataV1[] {
+  const filepath = getResourceFilepath('valid_metadata_v1.json');
+  return JSON.parse(readFileSync(filepath).toString());
+}
+
+export function getValidMetadataV2(): MetadataV2[] {
+  const filepath = getResourceFilepath('valid_metadata_v2.json');
   return JSON.parse(readFileSync(filepath).toString());
 }
 

@@ -99,7 +99,7 @@ var cases = map[string]map[string]string{
 		"AZURE_STORAGE_KEY":        AZURITE_KEY,
 		"AZURE_ENDPOINT":           "http://azurite:10000/devstoreaccount1",
 		"TUS_AZURE_CONTAINER_NAME": "test",
-		"DEX_DELIVERY_CONFIG_FILE": "../configs/testing/s3_destinations.yml",
+		"DEX_DELIVERY_CONFIG_FILE": "../configs/testing/minio_destinations.yml",
 	},
 	"file_to_both": {
 		"UPLOAD_CONFIG_PATH":       "../../upload-configs",

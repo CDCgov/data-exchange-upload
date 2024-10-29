@@ -4,25 +4,25 @@ s3-edav: &s3-edav
   bucket_name: edav
   access_key_id: minioadmin
   secret_access_key: minioadmin
-  endpoint: "http://minio:8000"
+  endpoint: 'http://minio:8000'
   region: us-east-1
 
 s3-ehdi: &s3-ehdi
   bucket_name: ehdi
   access_key_id: minioadmin
   secret_access_key: minioadmin
-  endpoint: "http://minio:8000"
+  endpoint: 'http://minio:8000'
   region: us-east-1
 
 az-eicr: &az-eicr
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
+  endpoint: 'http://azurite:10000/devstoreaccount1'
+  storage_account: 'devstoreaccount1'
   storage_key: $AZURITE_KEY
   container_name: eicr
 
 az-ncird: &az-ncird
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
+  endpoint: 'http://azurite:10000/devstoreaccount1'
+  storage_account: 'devstoreaccount1'
   storage_key: $AZURITE_KEY
   container_name: ncird
 
@@ -53,7 +53,7 @@ programs:
         type: az-blob
         path_template: $EICR_PATH_TEMPLATE
         <<: *az-eicr
-  - data_stream_id: rsp-prevention
+  - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
@@ -77,7 +77,7 @@ programs:
       - name: ncird
         type: az-blob
         <<: *az-ncird
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird

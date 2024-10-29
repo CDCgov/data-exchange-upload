@@ -4,28 +4,28 @@ s3-edav: &s3-edav
   bucket_name: edav
   access_key_id: minioadmin
   secret_access_key: minioadmin
-  endpoint: "http://minio:8000"
+  endpoint: 'http://minio:8000'
   region: us-east-1
 
 s3-ehdi: &s3-ehdi
   bucket_name: ehdi
   access_key_id: minioadmin
   secret_access_key: minioadmin
-  endpoint: "http://minio:8000"
+  endpoint: 'http://minio:8000'
   region: us-east-1
 
 s3-eicr: &s3-eicr
   bucket_name: eicr
   access_key_id: minioadmin
   secret_access_key: minioadmin
-  endpoint: "http://minio:8000"
+  endpoint: 'http://minio:8000'
   region: us-east-1
 
 s3-ncird: &s3-ncird
   bucket_name: ncird
   access_key_id: minioadmin
   secret_access_key: minioadmin
-  endpoint: "http://minio:8000"
+  endpoint: 'http://minio:8000'
   region: us-east-1
 
 # if needed, properties of an anchor can be overridden
@@ -55,7 +55,7 @@ programs:
         type: s3
         path_template: $EICR_PATH_TEMPLATE
         <<: *s3-eicr
-  - data_stream_id: rsp-prevention
+  - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
@@ -79,7 +79,7 @@ programs:
       - name: ncird
         type: s3
         <<: *s3-ncird
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird

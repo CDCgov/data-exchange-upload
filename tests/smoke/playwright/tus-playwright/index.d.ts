@@ -46,6 +46,7 @@ export type UploadResponse = Readonly<Response>;
 export type Response = {
   filename: string;
   uploadId?: string;
+  uploadUrlId?: string;
   uploadUrl?: string;
   uploadStatus?: UploadStatusType;
 

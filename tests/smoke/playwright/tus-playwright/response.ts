@@ -37,8 +37,9 @@ export class ResponseBuilder {
     this.response.startTime = Date.now();
   }
 
-  uploadCreated(uploadId: string, uploadUrl: string): void {
+  uploadCreated(uploadId: string, uploadUrlId: string, uploadUrl: string): void {
     this.response.uploadId = uploadId;
+    this.response.uploadUrlId = uploadUrlId;
     this.response.uploadUrl = uploadUrl;
   }
 

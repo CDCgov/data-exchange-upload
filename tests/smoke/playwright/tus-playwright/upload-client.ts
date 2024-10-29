@@ -48,11 +48,12 @@ class UploadClient {
 
   private onUploadUrlAvailable(): void {
     const uploadUrl = this.tusClient.url;
+
     if (uploadUrl) {
-      const uploadIdPattern = /files\/([a-zA-Z0-9]+)/;
-      const matches = uploadIdPattern.exec(uploadUrl);
-      const uploadId = matches?.[1] ?? undefined;
-      this.emit('created', uploadId, uploadUrl);
+      const uploadUrlId = uploadUrl.split('/').slice(-1)[0];
+      const uploadIdPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
+      const uploadId = uploadIdPattern.exec(uploadUrl)?.[0] ?? undefined;
+      this.emit('created', uploadId, uploadUrlId, uploadUrl);
 
       this.findPreviousUploadFromUploadUrl(uploadUrl).then(upload => {
         this.previousUpload = upload;
@@ -233,8 +234,8 @@ export async function uploadFile(
       }
     });
 
-    client.addListener('created', (uploadId: string, uploadUrl: string) => {
-      builder.uploadCreated(uploadId, uploadUrl);
+    client.addListener('created', (uploadId: string, uploadUrlId: string, uploadUrl: string) => {
+      builder.uploadCreated(uploadId, uploadUrlId, uploadUrl);
       if (onUploadCreated && typeof onUploadCreated == 'function') {
         onUploadCreated(builder.getResponse());
       }

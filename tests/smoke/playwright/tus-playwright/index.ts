@@ -129,6 +129,10 @@ class UploadContext {
     return this.response.uploadUrl ?? null;
   }
 
+  getUploadUrlId(): string | null {
+    return this.response.uploadUrlId ?? null;
+  }
+
   getUploadId(): string | null {
     return this.response.uploadId ?? null;
   }

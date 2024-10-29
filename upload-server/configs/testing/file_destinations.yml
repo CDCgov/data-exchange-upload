@@ -1,26 +1,26 @@
 version: 1.0
 
 az-edav: &az-edav
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
+  endpoint: 'http://azurite:10000/devstoreaccount1'
+  storage_account: 'devstoreaccount1'
   storage_key: $AZURITE_KEY
   container_name: edav
 
 az-ehdi: &az-ehdi
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
+  endpoint: 'http://azurite:10000/devstoreaccount1'
+  storage_account: 'devstoreaccount1'
   storage_key: $AZURITE_KEY
   container_name: ehdi
 
 az-eicr: &az-eicr
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
+  endpoint: 'http://azurite:10000/devstoreaccount1'
+  storage_account: 'devstoreaccount1'
   storage_key: $AZURITE_KEY
   container_name: eicr
 
 az-ncird: &az-ncird
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
+  endpoint: 'http://azurite:10000/devstoreaccount1'
+  storage_account: 'devstoreaccount1'
   storage_key: $AZURITE_KEY
   container_name: ncird
 
@@ -49,7 +49,7 @@ programs:
       - name: eicr
         type: file
         path: ./uploads/eicr
-  - data_stream_id: rsp-prevention
+  - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
@@ -73,7 +73,7 @@ programs:
       - name: ncird
         type: file
         path: ./uploads/ncird
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
