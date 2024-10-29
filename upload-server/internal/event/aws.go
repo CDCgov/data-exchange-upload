@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 	snsTypes "github.com/aws/aws-sdk-go-v2/service/sns/types"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
 var ErrInvalidARN = errors.New("given arn is not an arn")
@@ -76,6 +78,26 @@ func (s SNSPublisher[T]) Client(ctx context.Context) (*sns.Client, error) {
 		return nil, err
 	}
 	return sns.NewFromConfig(cfg), nil
+}
+
+func (s *SNSPublisher[T]) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = fmt.Sprintf("SNS - %s", s.TopicArn)
+	rsp.Status = models.STATUS_UP
+	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
+	client, err := s.Client(ctx)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+		return rsp
+	}
+	if _, err := client.GetTopicAttributes(ctx, &sns.GetTopicAttributesInput{
+		TopicArn: aws.String(s.TopicArn),
+	}); err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+		return rsp
+	}
+	return rsp
 }
 
 func (s SNSPublisher[T]) Publish(ctx context.Context, e T) error {
@@ -157,9 +179,6 @@ func (s *SQSSubscriber[T]) Subscribe(ctx context.Context, topicArn string) error
 		return err
 	}
 	client := sns.NewFromConfig(cfg)
-	if err != nil {
-		return err
-	}
 	rsp, err := client.ListSubscriptionsByTopic(ctx, &sns.ListSubscriptionsByTopicInput{
 		TopicArn: aws.String(topicArn),
 	})
