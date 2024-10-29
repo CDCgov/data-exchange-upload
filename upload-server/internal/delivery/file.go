@@ -19,11 +19,17 @@ type FileDestination struct {
 	PathTemplate string `yaml:"path_template"`
 }
 
-func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, m map[string]string) (string, error) {
-	if err := os.MkdirAll(fd.ToPath, 0755); err != nil {
+func (fd *FileDestination) Upload(ctx context.Context, id string, r io.Reader, m map[string]string) (string, error) {
+	filenameWithPrefix, err := getDeliveredFilename(ctx, id, fd.PathTemplate, m)
+	if err != nil {
+		return filenameWithPrefix, err
+	}
+	filename := filepath.Join(fd.ToPath, filenameWithPrefix)
+
+	if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
 		return "", err
 	}
-	dest, err := os.Create(filepath.Join(fd.ToPath, id))
+	dest, err := os.Create(filename)
 	if err != nil {
 		return dest.Name(), err
 	}

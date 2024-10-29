@@ -26,7 +26,7 @@ services:
       - AWS_ACCESS_KEY_ID=minioadmin
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - DEX_MANIFEST_CONFIG_FOLDER_NAME=upload-configs
-      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/minio_destinations.yml
+      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/minio_destinations.yml
       - EHDI_PATH_TEMPLATE
       - EICR_PATH_TEMPLATE
     command: /bin/sh -c "./run-server.sh"

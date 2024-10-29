@@ -191,7 +191,7 @@ test.describe('Upload Status Page', () => {
         await expect(fileDeliveryContainer.getByRole('heading', { level: 3 })).toHaveText(
           'Delivery Status: SUCCESS'
         );
-        await expect(fileDeliveryContainer).toContainText(expectedFileName);
+        await expect(fileDeliveryContainer).toContainText(uploadId);
         // TODO handle different destination types
         // await expect(fileDeliveryContainer).toContainText(`Location: uploads/${target}/${uploadId}`)
       })();

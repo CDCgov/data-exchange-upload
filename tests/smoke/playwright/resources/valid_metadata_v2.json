@@ -9,20 +9,7 @@
       "data_producer_id": "test-producer-id",
       "jurisdiction": "test-jurisdiction"
     },
-    "delivery_targets": [
-      {
-        "name": "edav"
-      },
-      {
-        "name": "ncird"
-      },
-      {
-        "name": "ehdi"
-      },
-      {
-        "name": "eicr"
-      }
-    ]
+    "delivery_targets": ["edav", "ncird", "ehdi", "eicr"]
   },
   {
     "manifest": {
@@ -38,11 +25,7 @@
       "meta_ext_sourceversion": "V2022-12-31",
       "meta_username": "test-username"
     },
-    "delivery_targets": [
-      {
-        "name": "ncird"
-      }
-    ]
+    "delivery_targets": ["ncird"]
   },
   {
     "manifest": {
@@ -58,11 +41,7 @@
       "meta_ext_sourceversion": "V2022-12-31",
       "meta_username": "test-username"
     },
-    "delivery_targets": [
-      {
-        "name": "ncird"
-      }
-    ]
+    "delivery_targets": ["ncird"]
   },
   {
     "manifest": {
@@ -78,11 +57,7 @@
       "meta_ext_sourceversion": "V2022-12-31",
       "meta_username": "test-username"
     },
-    "delivery_targets": [
-      {
-        "name": "ncird"
-      }
-    ]
+    "delivery_targets": ["ncird"]
   },
   {
     "manifest": {
@@ -98,11 +73,7 @@
       "meta_ext_sourceversion": "V2022-12-31",
       "meta_username": "test-username"
     },
-    "delivery_targets": [
-      {
-        "name": "ncird"
-      }
-    ]
+    "delivery_targets": ["ncird"]
   },
   {
     "manifest": {
@@ -116,11 +87,7 @@
       "meta_ext_objectkey": "test-obj-key",
       "meta_ext_file_timestamp": "test-file-timestamp"
     },
-    "delivery_targets": [
-      {
-        "name": "eicr"
-      }
-    ]
+    "delivery_targets": ["eicr"]
   },
   {
     "manifest": {
@@ -137,11 +104,7 @@
       "meta_ext_source": "test-src",
       "meta_ext_filestatus": "test-file-status"
     },
-    "delivery_targets": [
-      {
-        "name": "ehdi"
-      }
-    ]
+    "delivery_targets": ["ehdi"]
   },
   {
     "manifest": {
@@ -153,11 +116,7 @@
       "data_producer_id": "test-producer-id",
       "jurisdiction": "test-jurisdiction"
     },
-    "delivery_targets": [
-      {
-        "name": "edav"
-      }
-    ]
+    "delivery_targets": ["edav"]
   },
   {
     "manifest": {
@@ -174,10 +133,6 @@
       "meta_ext_sourceversion": "V2024-09-04",
       "meta_ext_submissionperiod": "test-submissionperiod"
     },
-    "delivery_targets": [
-      {
-        "name": "ncird"
-      }
-    ]
+    "delivery_targets": ["ncird"]
   }
 ]

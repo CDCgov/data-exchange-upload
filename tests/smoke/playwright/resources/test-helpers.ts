@@ -39,6 +39,7 @@ export type ManifestV1 = {
 
 export type MetadataV1 = {
   manifest: ManifestV1;
+  delivery_targets: string[];
 };
 
 export type ManifestV2 = {
@@ -53,10 +54,10 @@ export type ManifestV2 = {
 
 export type MetadataV2 = {
   manifest: ManifestV2;
-  delivery_targets: DeliveryTarget[];
+  delivery_targets: string[];
 };
 
-export type ManifestResponse = ManifestV2 & {
+export type ManifestResponse = (ManifestV1 | ManifestV2) & {
   dex_ingest_datetime: string;
   upload_id: string;
 };
@@ -66,45 +67,34 @@ export type UploadTarget = {
   route: string;
 };
 
-export type DeliveryTarget = {
-  name: string;
-  path_template: {
-    LOCAL: string;
-    DEV: string;
-    TEST: string;
-    STAGE: string;
-  };
+export type FileInfo = {
+  size_bytes: number;
+  updated_at: string;
 };
 
-export type FileInfo = {
-  manifest: ManifestV2 & {
-    dex_ingest_datetime: string;
-    upload_id: string;
-  };
-  file_info: {
-    size_bytes: number;
-    updated_at: string;
-  };
-  upload_status: {
-    status: 'Initiated' | 'In Progress' | 'Complete';
-    chunk_received_at: string;
-  };
-  deliveries: [
-    {
-      status: string;
-      name: string;
-      location: string;
-      delivered_at: string;
-      issues:
-        | [
-            {
-              level: string;
-              message: string;
-            }
-          ]
-        | null;
-    }
-  ];
+export type UploadStatus = {
+  status: 'Initiated' | 'In Progress' | 'Complete';
+  chunk_received_at: string;
+};
+
+export type Delivery = {
+  status: string;
+  name: string;
+  location: string;
+  delivered_at: string;
+  issues: DeliveryIssue[] | null;
+};
+
+export type DeliveryIssue = {
+  level: string;
+  message: string;
+};
+
+export type InfoResponse = {
+  manifest: ManifestResponse;
+  file_info: FileInfo;
+  upload_status: UploadStatus;
+  deliveries: Delivery[];
 };
 
 export function getResourceFilepath(filename: string): string {
