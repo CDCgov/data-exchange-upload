@@ -9,10 +9,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 )
 
-type key int
-
-var UploadID key
-
 func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable[T], error) {
 	var sub event.Subscribable[T]
 	c, err := event.GetChannel[T]()

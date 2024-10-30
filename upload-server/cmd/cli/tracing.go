@@ -23,6 +23,10 @@ import (
 	otrace "go.opentelemetry.io/otel/trace"
 )
 
+type key int
+
+var UploadID key
+
 // Initializes an OTLP exporter, and configures the corresponding trace provider.
 func InitTracerProvider(ctx context.Context) (func(context.Context) error, error) {
 	res, err := resource.New(ctx)
