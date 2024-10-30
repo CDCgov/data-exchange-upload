@@ -9,9 +9,6 @@ on:
       COMPOSE_FILENAME:
         type: string
         required: true
-      STORAGE_TYPE:
-        type: string
-        required: true
 
 defaults:
   run:
@@ -23,9 +20,7 @@ jobs:
     continue-on-error: true
     env:
       CI: true
-      AZURITE_STORAGE_KEY:
-        ${{ (inputs.STORAGE_TYPE == 'azure' || inputs.STORAGE_TYPE == 'all') &&
-        secrets.AZURITE_STORAGE_KEY }}
+      AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
