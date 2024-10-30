@@ -9,6 +9,7 @@ targets:
     secret_access_key: minioadmin
     endpoint: 'http://minio:8000'
     region: us-east-1
+    path_template: $EDAV_PATH_TEMPLATE
   ehdi:
     name: ehdi
     type: s3
@@ -17,6 +18,7 @@ targets:
     secret_access_key: minioadmin
     endpoint: 'http://minio:8000'
     region: us-east-1
+    path_template: $EHDI_PATH_TEMPLATE
   eicr:
     name: eicr
     type: az-blob
@@ -24,6 +26,7 @@ targets:
     storage_account: 'devstoreaccount1'
     storage_key: $AZURITE_KEY
     container_name: eicr
+    path_template: $EICR_PATH_TEMPLATE
   ncird:
     name: ncird
     type: az-blob
@@ -31,6 +34,7 @@ targets:
     storage_account: 'devstoreaccount1'
     storage_key: $AZURITE_KEY
     container_name: ncird
+    path_template: $NCIRD_PATH_TEMPLATE
 routing_groups:
   - data_stream_id: pulsenet
     data_stream_route: localsequencefile
@@ -40,12 +44,10 @@ routing_groups:
     data_stream_route: csv
     delivery_targets:
       - name: ehdi
-        path_template: $EHDI_PATH_TEMPLATE
   - data_stream_id: eicr
     data_stream_route: fhir
     delivery_targets:
       - name: eicr
-        path_template: $EICR_PATH_TEMPLATE
   - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:

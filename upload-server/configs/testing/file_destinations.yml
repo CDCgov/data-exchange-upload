@@ -5,18 +5,22 @@ targets:
     name: edav
     type: file
     path: ./uploads/edav
+    path_template: $EDAV_PATH_TEMPLATE
   ehdi:
     name: ehdi
     type: file
     path: ./uploads/ehdi
+    path_template: $EHDI_PATH_TEMPLATE
   eicr:
     name: eicr
     type: file
     path: ./uploads/eicr
+    path_template: $EICR_PATH_TEMPLATE
   ncird:
     name: ncird
     type: file
     path: ./uploads/ncird
+    path_template: $NCIRD_PATH_TEMPLATE
 
 routing_groups:
   - data_stream_id: pulsenet

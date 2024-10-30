@@ -13,7 +13,11 @@ services:
       - UI_SERVER_EXTERNAL_HOST=upload-server-fs:8080
       - UI_SERVER_INTERNAL_HOST=upload-server-fs:8080
       - UPLOAD_CONFIG_PATH=/upload-configs
-      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/file_destinations.yml
+      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/file_destinations.yml
+      - EDAV_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
+      - EHDI_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
+      - EICR_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
+      - NCIRD_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-fs-network
