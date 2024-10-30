@@ -87,10 +87,17 @@ func main() {
 		slog.Error("error subscribing to file ready", "error", err)
 		os.Exit(appMainExitCode)
 	}
-	defer subscriber.Close()
+	if sc, ok := subscriber.(interface {
+		Close() error
+	}); ok {
+		defer sc.Close()
+	}
 	go func() {
-		cli.SubscribeToEvents(ctx, subscriber, postprocessing.ProcessFileReadyEvent)
-		mainWaitGroup.Done()
+		if err := subscriber.Listen(ctx, postprocessing.ProcessFileReadyEvent); err != nil {
+			cancelFunc()
+			slog.Error("Listener failed", "error", err)
+		}
+		defer mainWaitGroup.Done()
 	}()
 
 	// start serving the app
@@ -129,7 +136,7 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ServerFileEndpointUrl, appConfig.ServerInfoEndpointUrl); err != nil {
+			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl); err != nil {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}
@@ -141,10 +148,13 @@ func main() {
 	// ------------------------------------------------------------------
 	// 	Block for Exit, server above is on goroutine
 	// ------------------------------------------------------------------
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
-	<-sigint
-	cancelFunc()
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
+		<-sigint
+		cancelFunc()
+	}()
+	<-ctx.Done()
 	// ------------------------------------------------------------------
 	// close other connections, if needed
 	// ------------------------------------------------------------------

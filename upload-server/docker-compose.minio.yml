@@ -1,9 +1,10 @@
 services:
   minio:
     image: quay.io/minio/minio
+    hostname: minio
     ports:
-      - "8000:8000"
-      - "8001:8001"
+      - 8000:8000
+      - 8001:8001
     command: server /data --console-address :8001 --address :8000
     volumes:
       - ./configs/local/minio:/data

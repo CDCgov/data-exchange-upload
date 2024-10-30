@@ -24,18 +24,6 @@
 
         <div class="form-container">
           <div class="input-container new-upload">
-            <label for="endpoint">Upload Endpoint</label>
-            <input
-              type="text"
-              id="endpoint"
-              name="endpoint"
-              value="http://localhost:8080/files/"
-            />
-            <!-- http://localhost:8080/files/ -->
-            <!-- https://tusd.tusdemo.net/files/ -->
-            <!-- https://apidev.cdc.gov/upload -->
-          </div>
-          <div class="input-container new-upload">
             <label for="chunksize">
               Chunk Size (bytes)
               <div class="input-tip">
@@ -190,6 +178,7 @@
   </body>
 
   <script>
+    const endpoint = "{{.UploadEndpoint}}"
     const uploadUrl = "{{.UploadUrl}}";
     const uploadStatus = "{{.UploadStatus}}";
   </script>

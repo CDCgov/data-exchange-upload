@@ -3,18 +3,17 @@ package delivery
 import (
 	"context"
 	"fmt"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"io"
 	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
 const size5MB = 5 * 1024 * 1024

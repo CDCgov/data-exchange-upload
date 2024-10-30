@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log/slog"
 	"os"
@@ -29,9 +30,12 @@ const storageTypeLocalFile string = "file"
 const storageTypeAzureBlob string = "az-blob"
 const storageTypeS3 string = "s3"
 
+var UploadSrc = "upload"
+
 var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
-var destinations = map[string]map[string]Destination{}
+var groups map[string]Group
+var targets map[string]Destination
 
 type Source interface {
 	Reader(context.Context, string) (io.Reader, error)
@@ -47,75 +51,19 @@ type Destination interface {
 	DestinationType() string
 }
 
-type PathInfo struct {
-	Year     string
-	Month    string
-	Day      string
-	Hour     string
-	UploadId string
-	Filename string
-}
-
-type Config struct {
-	Programs []Program `yaml:"programs"`
-}
-
-type Program struct {
-	DataStreamId    string   `yaml:"data_stream_id"`
-	DataStreamRoute string   `yaml:"data_stream_route"`
-	DeliveryTargets []Target `yaml:"delivery_targets"`
-}
-
-type Target struct {
-	Name        string      `yaml:"name"`
-	Type        string      `yaml:"type"`
-	Destination Destination `yaml:"-"`
-}
-
-func RegisterDestination(name string, targetName string, d Destination) {
-	if _, ok := destinations[name]; ok {
-		destinations[name][targetName] = d
-	} else {
-		destinations[name] = map[string]Destination{targetName: d}
-	}
-}
-
-func GetDestinationTargetNames(dataStreamId string, dataStreamRoute string) []string {
-	targets, ok := destinations[dataStreamId+"-"+dataStreamRoute]
-	if !ok {
-		return []string{}
-	}
-	targetNames := make([]string, len(targets))
-	i := 0
-	for t := range targets {
-		targetNames[i] = t
-		i++
-	}
-	return targetNames
-}
-
-func GetDestinationTarget(dataStreamId string, dataStreamRoute string, target string) (Destination, bool) {
-	d, ok := destinations[dataStreamId+"-"+dataStreamRoute][target]
+func GetTarget(target string) (Destination, bool) {
+	d, ok := targets[target]
 	return d, ok
 }
 
-func getTargetHealthChecks() []any {
-	targetSet := map[string]Destination{}
-	var dests []any
-
-	for _, destination := range destinations {
-		targetCount := 0
-		for name, t := range destination {
-			targetSet[name] = t
-			targetCount++
-		}
+func FindGroupFromMetadata(meta handler.MetaData) (Group, bool) {
+	dataStreamId, dataStreamRoute := metadataPkg.GetDataStreamID(meta), metadataPkg.GetDataStreamRoute(meta)
+	group := Group{
+		DataStreamId:    dataStreamId,
+		DataStreamRoute: dataStreamRoute,
 	}
-
-	for _, dest := range targetSet {
-		dests = append(dests, dest)
-	}
-
-	return dests
+	g, ok := groups[group.Key()]
+	return g, ok
 }
 
 var sources = map[string]Source{}
@@ -127,6 +75,50 @@ func RegisterSource(name string, s Source) {
 func GetSource(name string) (Source, bool) {
 	s, ok := sources[name]
 	return s, ok
+}
+
+type PathInfo struct {
+	Year     string
+	Month    string
+	Day      string
+	Hour     string
+	UploadId string
+	Filename string
+}
+
+type Config struct {
+	Targets map[string]Target `yaml:"targets"`
+	Groups  []Group           `yaml:"routing_groups"`
+}
+
+type Group struct {
+	DataStreamId    string              `yaml:"data_stream_id"`
+	DataStreamRoute string              `yaml:"data_stream_route"`
+	DeliveryTargets []TargetDesignation `yaml:"delivery_targets"`
+}
+
+func (g *Group) Key() string {
+	return g.DataStreamId + "_" + g.DataStreamRoute
+}
+
+func (g *Group) TargetNames() []string {
+	names := make([]string, len(g.DeliveryTargets))
+	for i, t := range g.DeliveryTargets {
+		names[i] = t.Name
+	}
+
+	return names
+}
+
+type TargetDesignation struct {
+	Name         string `yaml:"name"`
+	PathTemplate string `yaml:"path_template"`
+}
+
+type Target struct {
+	Name        string      `yaml:"name"`
+	Type        string      `yaml:"type"`
+	Destination Destination `yaml:"-"`
 }
 
 var DestinationTypes = map[string]func() Destination{
@@ -167,7 +159,10 @@ func unmarshalDeliveryConfig(confBody string) (*Config, error) {
 }
 
 func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
+	targets = make(map[string]Destination)
+	groups = make(map[string]Group)
 	var src Source
+
 	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
 	fromPath := os.DirFS(fromPathStr)
 	src = &FileSource{
@@ -182,18 +177,21 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	if err != nil {
 		return err
 	}
-	for _, p := range cfg.Programs {
-		name := p.DataStreamId + "-" + p.DataStreamRoute
 
-		if p.DeliveryTargets == nil {
-			slog.Warn(fmt.Sprintf("no targets configured for program %s", name))
-		}
-		for _, t := range p.DeliveryTargets {
-			RegisterDestination(name, t.Name, t.Destination)
+	for _, t := range cfg.Targets {
+		targets[t.Name] = t.Destination
+		if err := health.Register(t.Destination); err != nil {
+			slog.Error("failed to register destination", "destination", t)
 		}
 	}
+	slog.Info("targets", "targets", targets)
 
-	targets := getTargetHealthChecks()
+	for _, g := range cfg.Groups {
+		groups[g.Key()] = g
+		if g.DeliveryTargets == nil {
+			slog.Warn(fmt.Sprintf("no targets configured for group %s", g.Key()))
+		}
+	}
 
 	if appConfig.AzureConnection != nil {
 		// TODO Can the tus container client be singleton?
@@ -218,10 +216,9 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 			Prefix:     appConfig.TusUploadPrefix,
 		}
 	}
-	RegisterSource("upload", src)
+	RegisterSource(UploadSrc, src)
 
-	targets = append(targets, src)
-	if err := health.Register(targets...); err != nil {
+	if err := health.Register(src); err != nil {
 		slog.Error("failed to register some health checks", "error", err)
 	}
 	return nil
@@ -242,14 +239,6 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 		concurrency = int(length) / (size5MB / 5)
 	}
 	return d.Copy(ctx, path, &s, manifest, length, concurrency)
-	//r, err := s.Reader(ctx, path)
-	//if err != nil {
-	//	return "", err
-	//}
-	//if rc, ok := r.(io.Closer); ok {
-	//	defer rc.Close()
-	//}
-	//return d.Upload(ctx, path, r, manifest)
 }
 
 func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string, manifest map[string]string) (string, error) {

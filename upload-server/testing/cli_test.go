@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"io"
 	"log"
 	"net/http"
@@ -44,7 +45,6 @@ var (
 )
 
 const TestFolderUploadsTus = "uploads"
-const TestDEXFolder = "uploads/dex"
 const TestEDAVFolder = "uploads/edav"
 const TestEhdiFolder = "uploads/ehdi"
 const TestEicrFolder = "uploads/eicr"
@@ -206,12 +206,12 @@ func TestTus(t *testing.T) {
 }
 
 func TestRouteEndpoint(t *testing.T) {
-	c := Cases["good"]
+	c := Cases["v2 good"]
 	tuid, err := RunTusTestCase(ts.URL, "test.txt", c)
 	time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
 
 	if err != nil {
-		t.Error("edav", err)
+		t.Error("error", err)
 	} else {
 		if tuid == "" {
 			t.Error("could not create tuid")
@@ -606,15 +606,17 @@ func TestMain(m *testing.M) {
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
+
+	err := delivery.RegisterAllSourcesAndDestinations(testContext, appConfig)
 	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
-	err := cli.InitReporters(testContext, appConfig)
+	err = cli.InitReporters(testContext, appConfig)
 	defer reports.CloseAll()
 	err = event.InitFileReadyPublisher(testContext, appConfig)
 	defer event.FileReadyPublisher.Close()
 	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
-		cli.SubscribeToEvents(testContext, testListener, postprocessing.ProcessFileReadyEvent)
+		testListener.Listen(testContext, postprocessing.ProcessFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 
@@ -626,7 +628,7 @@ func TestMain(m *testing.M) {
 	ts = httptest.NewServer(serveHandler)
 
 	// Start ui server
-	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath)
+	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()
@@ -673,56 +675,6 @@ func readReportFiles(tuid string, stages []string) (ReportFileSummary, error) {
 			}
 
 			appendReport(summary, r)
-		}
-	}
-
-	return summary, nil
-}
-
-func readReportFile(tuid string) (ReportFileSummary, error) {
-	summary := ReportFileSummary{
-		Tuid:      tuid,
-		Summaries: map[string]ReportSummary{},
-	}
-
-	// Steps for categorized report files
-	// 1. get list of report types we want to track
-	// 2. for each type, read file for that type and upload id
-	// 3. for each line, unmarshal and count
-
-	trackedStages := []string{
-		reports.StageMetadataVerify,
-		reports.StageMetadataTransform,
-		reports.StageUploadCompleted,
-		reports.StageUploadStarted,
-		reports.StageUploadStatus,
-		reports.StageFileCopy,
-	}
-
-	f, err := os.Open(TestReportsFolder + "/" + tuid)
-	if err != nil {
-		return summary, fmt.Errorf("failed to open report file for %s; inner error %w", tuid, err)
-	}
-
-	b, err := io.ReadAll(f)
-	if err != nil {
-		return summary, fmt.Errorf("failed to read report file %s; inner error %w", f.Name(), err)
-	}
-
-	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
-	for rScanner.Scan() {
-		rLine := rScanner.Text()
-		rLineBytes := []byte(rLine)
-
-		r, err := unmarshalReport(rLineBytes)
-		if err != nil {
-			return summary, err
-		}
-
-		for _, s := range trackedStages {
-			if strings.Contains(rLine, s) {
-				appendReport(summary, r)
-			}
 		}
 	}
 
