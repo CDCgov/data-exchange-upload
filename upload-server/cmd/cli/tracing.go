@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
@@ -119,4 +120,14 @@ func AddUploadIDContext(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(rw, r)
 	})
+}
+
+func TracingProcessor[T event.Identifiable](next func(context.Context, T) error) func(context.Context, T) error {
+	tracer := otel.Tracer("event-handling")
+	return func(ctx context.Context, e T) error {
+		c := context.WithValue(ctx, UploadID, otrace.TraceID(md5.Sum([]byte(e.GetUploadID()))))
+		_, span := tracer.Start(ctx, fmt.Sprintf("Handling-%s", e.Identifier()))
+		defer span.End()
+		return next(c, e)
+	}
 }
