@@ -1,4 +1,11 @@
-import { DetailedError, HttpRequest, HttpResponse, Response, UploadResponse } from './index.d';
+import {
+  DetailedError,
+  HttpRequest,
+  HttpResponse,
+  Response,
+  UploadResponse,
+  UploadStatusType
+} from './index.d';
 
 export class ResponseBuilder {
   private response: Response;
@@ -17,7 +24,6 @@ export class ResponseBuilder {
 
   addResponse(res: HttpResponse): void {
     this.response.httpResponses.push(res);
-    this.response.uploadStatus = 'In Progress';
     this.response.lastProgressTime = Date.now();
   }
 
@@ -32,15 +38,19 @@ export class ResponseBuilder {
     this.response.bytesTotal = bytesTotal;
   }
 
-  uploadStarted(): void {
-    this.response.uploadStatus = 'Initiated';
-    this.response.startTime = Date.now();
-  }
-
-  uploadCreated(uploadId: string, uploadUrlId: string, uploadUrl: string): void {
+  setUploadId(uploadId: string, uploadUrlId: string, uploadUrl: string): void {
     this.response.uploadId = uploadId;
     this.response.uploadUrlId = uploadUrlId;
     this.response.uploadUrl = uploadUrl;
+  }
+
+  setUploadStatus(status: UploadStatusType): void {
+    this.response.uploadStatus = status;
+  }
+
+  uploadCreated(): void {
+    this.response.uploadStatus = 'Initiated';
+    this.response.startTime = Date.now();
   }
 
   uploadSuccessful(): void {
@@ -48,7 +58,7 @@ export class ResponseBuilder {
     this.response.endTime = Date.now();
   }
 
-  uploadFailure(error: Error | DetailedError) {
+  uploadFailure(error: Error | DetailedError | string) {
     this.response.errorMessage = `${error}`;
     this.response.uploadStatus = 'Failed';
     this.response.endTime = Date.now();

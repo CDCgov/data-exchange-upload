@@ -1,30 +1,19 @@
 import { expect } from '@playwright/test';
-import * as http from 'http';
 import {
-  UploadOptions as ClientOptions,
   HttpRequest,
   HttpResponse,
+  RawHttpRequest,
+  RawHttpResponse,
+  ResponseContext as ResponseContextInterface,
+  UploadOptions,
   UploadResponse,
   UploadStatusType
 } from './index.d';
 import { MemoryStorage } from './memory-storage';
-import * as client from './upload-client';
+import { UploadClient } from './upload-client';
 
-export type ContextOptions = Pick<ClientOptions, 'headers' | 'retryDelays' | 'chunkSize'>;
-export type UploadHooks = Pick<
-  ClientOptions,
-  | 'onBeforeRequest'
-  | 'onAfterResponse'
-  | 'onProgress'
-  | 'onChunkComplete'
-  | 'onUploadStarted'
-  | 'onUploadCreated'
-  | 'onUploadPaused'
-  | 'onUploadResumed'
->;
-
-type RawHttpRequest = http.ClientRequest;
-type RawHttpResponse = http.IncomingMessage;
+export { ResponseContextInterface as ResponseContext };
+export type ContextOptions = Pick<UploadOptions, 'headers' | 'retryDelays'>;
 
 function newContext(baseUrl: string, options: ContextOptions = {}): ClientContext {
   return new ClientContext(baseUrl, options);
@@ -56,27 +45,65 @@ class ClientContext {
     this.options.retryDelays = retryDelays;
   }
 
-  setChunkSize(chunkSize: number) {
-    this.options.chunkSize = chunkSize;
+  async upload(filename: string, metadata: { [key: string]: string }): Promise<ResponseContext> {
+    return new Promise(resolve => {
+      const uploader = new UploadClient(filename, {
+        ...this.options,
+        metadata,
+        endpoint: this.baseURL,
+        urlStorage: this.storage,
+        onComplete: (response: UploadResponse) => {
+          resolve(new ResponseContext(response));
+        }
+      });
+      uploader.upload();
+    });
   }
 
-  async upload(
+  async uploadInitiated(
     filename: string,
-    metadata: { [key: string]: string },
-    hooks: UploadHooks = {}
-  ): Promise<UploadContext> {
-    const response = await client.uploadFile(filename, {
-      ...this.options,
-      metadata,
-      endpoint: this.baseURL,
-      urlStorage: this.storage,
-      ...hooks
+    metadata: { [key: string]: string }
+  ): Promise<ResponseContext> {
+    return new Promise(resolve => {
+      const uploader = new UploadClient(filename, {
+        ...this.options,
+        metadata,
+        endpoint: this.baseURL,
+        urlStorage: this.storage,
+        onInitiated: (response: UploadResponse) => {
+          resolve(new ResponseContext(response));
+        },
+        onComplete: (_: UploadResponse) => {}
+      });
+      return uploader.upload();
     });
-    return new UploadContext(response);
+  }
+
+  async uploadInProgress(
+    filename: string,
+    metadata: { [key: string]: string }
+  ): Promise<ResponseContext> {
+    return new Promise(resolve => {
+      const uploader = new UploadClient(filename, {
+        ...this.options,
+        metadata,
+        endpoint: this.baseURL,
+        urlStorage: this.storage,
+        onInProgress: (response: UploadResponse) => {
+          resolve(new ResponseContext(response));
+        },
+        onComplete: (_: UploadResponse) => {}
+      });
+      return uploader.upload();
+    });
+  }
+
+  async removeUpload(uploadUrl: string): Promise<void> {
+    return UploadClient.terminate(uploadUrl);
   }
 }
 
-class UploadContext {
+class ResponseContext implements ResponseContextInterface {
   private response: UploadResponse;
   private lastRequest: HttpRequest | null;
   private lastRawRequest: RawHttpRequest | null;

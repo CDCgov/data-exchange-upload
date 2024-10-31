@@ -73,6 +73,13 @@ jobs:
       TEST_TITLE: E2E Mix Tests
       COMPOSE_FILENAME: ./docker-compose.e2e.all.yml
     secrets: inherit
+  e2e-tests-aws-azure:
+    name: E2E Tests - AWS S3 Storage to Azure Blob Destinations
+    uses: ./.github/workflows/e2e-test-template.yml
+    with:
+      TEST_TITLE: E2E AWS to Azure Tests
+      COMPOSE_FILENAME: ./docker-compose.e2e.minio-azurite.yml
+    secrets: inherit
   run-fortify-scan:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
