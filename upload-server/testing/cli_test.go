@@ -192,8 +192,8 @@ func TestTus(t *testing.T) {
 				for target, path := range AllTargets {
 					if slices.Contains(config.Copy.Targets, target) {
 						// Check that the file exists in the target checkpoint folder
-						if _, err := os.Stat(path + "/" + tuid); errors.Is(err, os.ErrNotExist) {
-							t.Error("file was not copied to "+target+" checkpoint for file", tuid)
+						if _, err := os.Stat(path + "/" + tuid + ".txt"); errors.Is(err, os.ErrNotExist) {
+							t.Error("file was not copied to "+target+" checkpoint for file", tuid, name)
 						}
 					}
 				}
@@ -217,12 +217,12 @@ func TestRouteEndpoint(t *testing.T) {
 			t.Error("could not create tuid")
 		} else {
 			// Check that the file exists in the target checkpoint folder
-			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid + ".txt"); errors.Is(err, os.ErrNotExist) {
 				t.Error("file was not copied to edav checkpoint for file", tuid)
 			}
 
 			// Remove and re-route the file
-			err = os.Remove(TestEDAVFolder + "/" + tuid)
+			err = os.Remove(TestEDAVFolder + "/" + tuid + ".txt")
 			if err != nil {
 				t.Error("failed to remove edav file for "+tuid, err.Error())
 			}
@@ -238,7 +238,7 @@ func TestRouteEndpoint(t *testing.T) {
 				t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
 			}
 			time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
-			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid + ".txt"); errors.Is(err, os.ErrNotExist) {
 				t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
 			}
 		}

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"slices"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -55,11 +56,24 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	routeGroup, ok := delivery.FindGroupFromMetadata(m)
+	if !ok {
+		http.Error(rw, "Invalid target for metadata", http.StatusBadRequest)
+		return
+	}
+	gIndex := slices.IndexFunc(routeGroup.DeliveryTargets, func(t delivery.TargetDesignation) bool { return t.Name == body.Target })
+	path, err := delivery.GetDeliveredFilename(r.Context(), id, routeGroup.DeliveryTargets[gIndex].PathTemplate, m)
+	if err != nil {
+		http.Error(rw, "Invalid target for metadata", http.StatusBadRequest)
+		return
+	}
+
 	e := &event.FileReady{
 		Event: event.Event{
 			Type: event.FileReadyEventType,
 		},
 		UploadId:          id,
+		Path:              path,
 		DestinationTarget: body.Target,
 		Metadata:          m,
 		SrcUrl:            id,

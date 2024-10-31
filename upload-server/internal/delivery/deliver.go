@@ -220,14 +220,14 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 }
 
 // target may end up being a type
-func Deliver(ctx context.Context, path string, s Source, d Destination) (string, error) {
+func Deliver(ctx context.Context, id string, path string, s Source, d Destination) (string, error) {
 
-	manifest, err := s.GetMetadata(ctx, path)
+	manifest, err := s.GetMetadata(ctx, id)
 	if err != nil {
 		return "", err
 	}
 
-	r, err := s.Reader(ctx, path)
+	r, err := s.Reader(ctx, id)
 	if err != nil {
 		return "", err
 	}
@@ -239,7 +239,7 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 
 var ErrBadIngestTimestamp = errors.New("bad ingest timestamp")
 
-func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string, manifest map[string]string) (string, error) {
+func GetDeliveredFilename(ctx context.Context, tuid string, pathTemplate string, manifest map[string]string) (string, error) {
 	if pathTemplate == "" {
 		pathTemplate = "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}"
 	}

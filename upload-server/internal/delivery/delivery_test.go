@@ -1,10 +1,12 @@
-package delivery
+package delivery_test
 
 import (
 	"context"
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 )
 
 func TestGetDeliveredFilename(t *testing.T) {
@@ -45,7 +47,7 @@ func TestGetDeliveredFilename(t *testing.T) {
 				"dex_ingest_datetime": "bogus time",
 				"filename":            "test.txt",
 			},
-			ErrBadIngestTimestamp,
+			delivery.ErrBadIngestTimestamp,
 			"",
 		},
 		{
@@ -58,13 +60,13 @@ func TestGetDeliveredFilename(t *testing.T) {
 				"data_stream_route": "testevent1",
 				"filename":          "test.txt",
 			},
-			ErrBadIngestTimestamp,
+			delivery.ErrBadIngestTimestamp,
 			"",
 		},
 	}
 
 	for i, c := range testCases {
-		res, err := getDeliveredFilename(c.ctx, c.tuid, c.pathTemplate, c.manifest)
+		res, err := delivery.GetDeliveredFilename(c.ctx, c.tuid, c.pathTemplate, c.manifest)
 		if res != c.result {
 			t.Errorf("missmatched results for test case %d: got %s expected %s", i, res, c.result)
 		}

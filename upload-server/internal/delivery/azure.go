@@ -98,16 +98,11 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 }
 
 func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
-	blobName, err := getDeliveredFilename(ctx, path, ad.PathTemplate, m)
-	if err != nil {
-		return blobName, err
-	}
-
 	c, err := ad.Client()
 	if err != nil {
-		return blobName, err
+		return path, err
 	}
-	client := c.NewBlockBlobClient(blobName)
+	client := c.NewBlockBlobClient(path)
 
 	_, err = client.UploadStream(ctx, r, &azblob.UploadStreamOptions{
 		Metadata: storeaz.PointerizeMetadata(m),
