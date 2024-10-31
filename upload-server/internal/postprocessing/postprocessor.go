@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
@@ -71,7 +69,14 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		"1.0.0",
 		reports.StageFileCopy,
 		e.UploadId,
-		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
+		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC()).SetContent(reports.FileCopyContent{
+		ReportContent: reports.ReportContent{
+			ContentSchemaVersion: "1.0.0",
+			ContentSchemaName:    reports.StageFileCopy,
+		},
+		FileSourceBlobUrl: e.SrcUrl,
+		DestinationName:   e.DestinationTarget,
+	})
 
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
@@ -88,9 +93,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
-	dataStreamId := metadata.GetDataStreamID(e.Metadata)
-	dataStreamRoute := metadata.GetDataStreamRoute(e.Metadata)
-	d, ok := delivery.GetDestinationTarget(dataStreamId, dataStreamRoute, e.DestinationTarget)
+	d, ok := delivery.GetTarget(e.DestinationTarget)
 	if !ok {
 		err := fmt.Errorf("failed to get destination for file delivery %+v", e)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{

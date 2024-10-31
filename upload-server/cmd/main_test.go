@@ -139,6 +139,13 @@ func setUp(name string, c map[string]string) {
 	os.Setenv("SERVER_PORT", fmt.Sprintf("%d", port))
 	os.Setenv("UI_PORT", "")
 	os.Setenv("REDIS_CONNECTION_STRING", "redis://redispw@cache:6379")
+	os.Setenv("SQS_SUBSCRIBER_EVENT_ARN", "arn:aws:sns:us-east-1:000000000042:test-topic")
+	os.Setenv("SNS_PUBLISHER_EVENT_ARN", "arn:aws:sns:us-east-1:000000000042:test-topic")
+	os.Setenv("SNS_REPORTER_EVENT_ARN", "arn:aws:sns:us-east-1:000000000042:report-topic")
+	os.Setenv("AWS_DEFAULT_REGION", "us-east-1")
+	os.Setenv("AWS_ACCESS_KEY_ID", "LSIAQAAAAAAVNCBMPNSG")
+	os.Setenv("AWS_SECRET_ACCESS_KEY", "bogus")
+	os.Setenv("AWS_ENDPOINT_URL", "http://localstack:4566")
 	for key, val := range c {
 		os.Setenv(key, val)
 	}
@@ -147,11 +154,8 @@ func setUp(name string, c map[string]string) {
 var cases = map[string]map[string]string{
 	"s3_to_azure": {
 		"UPLOAD_CONFIG_PATH":       "../../upload-configs",
-		"S3_ENDPOINT":              "http://minio:8000",
+		"S3_ENDPOINT":              "http://localstack:4566",
 		"S3_BUCKET_NAME":           "test-bucket",
-		"AWS_REGION":               "us-east-1",
-		"AWS_ACCESS_KEY_ID":        "minioadmin",
-		"AWS_SECRET_ACCESS_KEY":    "minioadmin",
 		"AZURITE_KEY":              AZURITE_KEY,
 		"DEX_DELIVERY_CONFIG_FILE": "../configs/testing/azurite_destinations.yml",
 	},

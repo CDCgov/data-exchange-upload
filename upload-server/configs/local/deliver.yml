@@ -1,89 +1,81 @@
 version: 1.0
+targets:
+  edav:
+    name: edav
+    type: az-blob
+    endpoint: $EDAV_ENDPOINT
+    container_name: $EDAV_CHECKPOINT_CONTAINER_NAME
+    tenant_id: $EDAV_TENANT_ID
+    client_id: $EDAV_CLIENT_ID
+    client_secret: $EDAV_CLIENT_SECRET
+  ehdi:
+    name: ehdi
+    type: az-blob
+    endpoint: $EHDI_ENDPOINT
+    container_name: $EHDI_CHECKPOINT_CONTAINER_NAME
+    tenant_id: $EHDI_TENANT_ID
+    client_id: $EHDI_CLIENT_ID
+    client_secret: $EHDI_CLIENT_SECRET
+  eicr:
+    name: eicr
+    type: az-blob
+    endpoint: $EICR_ENDPOINT
+    container_name: $EICR_CHECKPOINT_CONTAINER_NAME
+    tenant_id: $EICR_TENANT_ID
+    client_id: $EICR_CLIENT_ID
+    client_secret: $EICR_CLIENT_SECRET
+  ncird:
+    name: ncird
+    type: az-blob
+    endpoint: $NCIRD_ENDPOINT
+    container_name: $NCIRD_CHECKPOINT_CONTAINER_NAME
+    tenant_id: $NCIRD_TENANT_ID
+    client_id: $NCIRD_CLIENT_ID
+    client_secret: $NCIRD_CLIENT_SECRET
 
-az-edav: &az-edav
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
-  storage_key: $AZURITE_KEY
-  container_name: edav
-
-az-ehdi: &az-ehdi
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
-  storage_key: $AZURITE_KEY
-  container_name: ehdi
-
-az-eicr: &az-eicr
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
-  storage_key: $AZURITE_KEY
-  container_name: eicr
-
-az-ncird: &az-ncird
-  endpoint: "http://azurite:10000/devstoreaccount1"
-  storage_account: "devstoreaccount1"
-  storage_key: $AZURITE_KEY
-  container_name: ncird
-
-# if needed, properties of an anchor can be overridden
-# in a delivery target
-#
-# path_template can be defined at data_stream level
-# where it is valid for all targets unless
-# a target defines its own path_template property
-programs:
+routing_groups:
   - data_stream_id: pulsenet
     data_stream_route: localsequencefile
     delivery_targets:
       - name: edav
-        type: az-blob
-        <<: *az-edav
   - data_stream_id: ehdi
     data_stream_route: csv
     delivery_targets:
       - name: ehdi
-        type: az-blob
         path_template: $EHDI_PATH_TEMPLATE
-        <<: *az-ehdi
   - data_stream_id: eicr
     data_stream_route: fhir
     delivery_targets:
       - name: eicr
-        type: az-blob
         path_template: $EICR_PATH_TEMPLATE
-        <<: *az-eicr
-  - data_stream_id: rsp-prevention
+  - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
   - data_stream_id: generic-immunization
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
+        path_template: generic-immunization-other/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}
   - data_stream_id: influenza-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
   - data_stream_id: routine-immunization
     data_stream_route: other
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
-  - data_stream_id: rsp-prevention
+        path_template: routine-immunization-zip/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
   - data_stream_id: dextesting
     data_stream_route: testevent1
     delivery_targets:
       - name: ncird
-        type: az-blob
-        <<: *az-ncird
+      - name: eicr
+        path_template: $EICR_PATH_TEMPLATE
+      - name: ehdi
+        path_template: $EHDI_PATH_TEMPLATE
+      - name: edav

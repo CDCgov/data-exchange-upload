@@ -2,7 +2,7 @@ package cli
 
 import (
 	"context"
-	"sync"
+	"fmt"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -13,6 +13,20 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	var sub event.Subscribable[T]
 	sub = &event.MemoryBus[T]{
 		Chan: make(chan T),
+	}
+
+	if appConfig.SQSSubscriberConnection != nil {
+		arn := appConfig.SQSSubscriberConnection.EventArn
+		s, err := event.NewSQSSubscriber[T](ctx, arn, 1)
+		if err != nil {
+			return s, err
+		}
+		if err := s.Subscribe(ctx, arn); err != nil {
+			return s, fmt.Errorf("arn: %s, %w", arn, err)
+		}
+		health.Register(s)
+		return s, nil
+
 	}
 
 	if appConfig.SubscriberConnection != nil {
@@ -26,47 +40,4 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	}
 
 	return sub, nil
-}
-
-func SubscribeToEvents[T event.Identifiable](ctx context.Context, sub event.Subscribable[T], process func(context.Context, T) error) {
-	for {
-		var wg sync.WaitGroup
-		events, err := sub.GetBatch(ctx, 5)
-		if err != nil {
-			logger.Error("failed to get event batch", "error", err)
-			continue
-		}
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			for _, e := range events {
-				wg.Add(1)
-				go func(e T) {
-					defer wg.Done()
-					err := process(ctx, e)
-
-					if err != nil {
-						logger.Error("failed to process event", "event", e, "error", err)
-						err = sub.HandleError(ctx, e, err)
-						if err != nil {
-							logger.Error("failed to handle event error", "event", e, "error", err)
-						}
-						return
-					}
-					err = sub.HandleSuccess(ctx, e)
-					if err != nil {
-						logger.Error("failed to acknowledge event", "event", e, "error", err)
-						err = sub.HandleError(ctx, e, err)
-						if err != nil {
-							logger.Error("failed to handle event error", "event", e, "error", err)
-						}
-						return
-					}
-
-				}(e)
-			}
-			wg.Wait()
-		}
-	}
 }

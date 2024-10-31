@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -72,28 +73,37 @@ func main() {
 	}
 	defer reports.CloseAll()
 
-	if err := event.InitFileReadyPublisher(ctx, appConfig); err != nil {
-		slog.Error("error creating file ready publisher", "error", err)
+	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
+	if err != nil {
+		slog.Error("error subscribing to file ready", "error", err)
 		os.Exit(appMainExitCode)
 	}
-	defer event.FileReadyPublisher.Close()
+	if sub, ok := subscriber.(io.Closer); ok {
+		defer sub.Close()
+	}
 
-	var subscriber event.Subscribable[*event.FileReady]
-	if sub, ok := event.FileReadyPublisher.(event.Subscribable[*event.FileReady]); ok {
-		subscriber = sub
+	if pub, ok := subscriber.(*event.MemoryBus[*event.FileReady]); ok {
+		event.FileReadyPublisher = event.Publishers[*event.FileReady]{
+			pub,
+			&event.FilePublisher[*event.FileReady]{
+				Dir: appConfig.LocalEventsFolder,
+			},
+		}
 	} else {
-		var err error
-		subscriber, err = cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
-		if err != nil {
-			slog.Error("error subscribing to file ready", "error", err)
+		if err := event.InitFileReadyPublisher(ctx, appConfig); err != nil {
+			slog.Error("error creating file ready publisher", "error", err)
 			os.Exit(appMainExitCode)
 		}
 	}
-	defer subscriber.Close()
+	defer event.FileReadyPublisher.Close()
+
 	mainWaitGroup.Add(1)
 	go func() {
-		cli.SubscribeToEvents(ctx, subscriber, postprocessing.ProcessFileReadyEvent)
-		mainWaitGroup.Done()
+		if err := subscriber.Listen(ctx, postprocessing.ProcessFileReadyEvent); err != nil {
+			cancelFunc()
+			slog.Error("Listener failed", "error", err)
+		}
+		defer mainWaitGroup.Done()
 	}()
 
 	// start serving the app
@@ -132,7 +142,7 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ServerFileEndpointUrl, appConfig.ServerInfoEndpointUrl); err != nil {
+			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl); err != nil {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}
@@ -144,10 +154,13 @@ func main() {
 	// ------------------------------------------------------------------
 	// 	Block for Exit, server above is on goroutine
 	// ------------------------------------------------------------------
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
-	<-sigint
-	cancelFunc()
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
+		<-sigint
+		cancelFunc()
+	}()
+	<-ctx.Done()
 	// ------------------------------------------------------------------
 	// close other connections, if needed
 	// ------------------------------------------------------------------

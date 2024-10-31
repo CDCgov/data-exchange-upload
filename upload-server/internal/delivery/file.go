@@ -79,6 +79,7 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 		}
 		return nil, err
 	}
+	defer f.Close()
 
 	b, err := io.ReadAll(f)
 	if err != nil {

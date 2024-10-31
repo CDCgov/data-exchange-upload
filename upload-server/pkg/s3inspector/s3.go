@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
@@ -73,7 +74,7 @@ func (sui *S3UploadInspector) InspectUploadedFile(c context.Context, id string) 
 	}
 
 	return map[string]any{
-		"updated_at": output.LastModified,
+		"updated_at": output.LastModified.Format(time.RFC3339Nano),
 		"size_bytes": output.ObjectSize,
 	}, nil
 }

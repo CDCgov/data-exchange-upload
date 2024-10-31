@@ -1,14 +1,10 @@
 package event
 
-import (
-	"encoding/json"
-
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
-)
-
 const FileReadyEventType = "FileReady"
 
-var MaxRetries int
+var FileReadyPublisher Publishers[*FileReady]
+
+var MaxRetries = 5
 
 type Retryable interface {
 	RetryCount() int
@@ -20,10 +16,8 @@ type Identifiable interface {
 	Retryable
 	Identifier() string
 	Type() string
-	OrigMessage() *azservicebus.ReceivedMessage
 	SetIdentifier(id string)
 	SetType(t string)
-	SetOrigMessage(m *azservicebus.ReceivedMessage)
 }
 
 type Event struct {
@@ -38,7 +32,6 @@ type FileReady struct {
 	SrcUrl            string `json:"src_url"`
 	DestinationTarget string `json:"deliver_target"`
 	Metadata          map[string]string
-	OriginalMessage   *azservicebus.ReceivedMessage `json:"-"`
 }
 
 func (fr *FileReady) RetryCount() int {
@@ -53,20 +46,12 @@ func (fr *FileReady) Type() string {
 	return fr.Event.Type
 }
 
-func (fr *FileReady) OrigMessage() *azservicebus.ReceivedMessage {
-	return fr.OriginalMessage
-}
-
 func (fr *FileReady) SetIdentifier(id string) {
 	fr.ID = id
 }
 
 func (fr *FileReady) SetType(t string) {
 	fr.Event.Type = t
-}
-
-func (fr *FileReady) SetOrigMessage(m *azservicebus.ReceivedMessage) {
-	fr.OriginalMessage = m
 }
 
 func (fr *FileReady) Identifier() string {
@@ -82,17 +67,4 @@ func NewFileReadyEvent(uploadId string, metadata map[string]string, target strin
 		Metadata:          metadata,
 		DestinationTarget: target,
 	}
-}
-
-func NewEventFromServiceBusMessage[T Identifiable](m *azservicebus.ReceivedMessage) (T, error) {
-	var e T
-	err := json.Unmarshal(m.Body, &e)
-	if err != nil {
-		return e, err
-	}
-
-	e.SetIdentifier(m.MessageID)
-	e.SetOrigMessage(m)
-
-	return e, nil
 }

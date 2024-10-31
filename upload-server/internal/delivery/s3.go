@@ -124,7 +124,7 @@ type S3Destination struct {
 	Region          string `yaml:"region"`
 }
 
-func (sd *S3Destination) Retrieve(ctx context.Context) (aws.Credentials, error) {
+func (sd *S3Destination) Retrieve(_ context.Context) (aws.Credentials, error) {
 	return aws.Credentials{
 		AccessKeyID:     sd.AccessKeyID,
 		SecretAccessKey: sd.SecretAccessKey,

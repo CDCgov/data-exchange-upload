@@ -19,6 +19,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -44,7 +46,6 @@ var (
 )
 
 const TestFolderUploadsTus = "uploads"
-const TestDEXFolder = "uploads/dex"
 const TestEDAVFolder = "uploads/edav"
 const TestEhdiFolder = "uploads/ehdi"
 const TestEicrFolder = "uploads/eicr"
@@ -206,12 +207,12 @@ func TestTus(t *testing.T) {
 }
 
 func TestRouteEndpoint(t *testing.T) {
-	c := Cases["good"]
+	c := Cases["v2 good"]
 	tuid, err := RunTusTestCase(ts.URL, "test.txt", c)
 	time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
 
 	if err != nil {
-		t.Error("edav", err)
+		t.Error("error", err)
 	} else {
 		if tuid == "" {
 			t.Error("could not create tuid")
@@ -286,10 +287,10 @@ func TestGetFileDeliveryPrefixDate(t *testing.T) {
 	ctx := context.TODO()
 	m := map[string]string{
 		"version":           "2.0",
-		"data_stream_id":    "test_stream",
-		"data_stream_route": "test_route",
+		"data_stream_id":    "test-stream",
+		"data_stream_route": "test-route",
 	}
-	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test-stream_test-route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FolderStructure: metadata.FolderStructureDate,
 		},
@@ -313,10 +314,10 @@ func TestGetFileDeliveryPrefixRoot(t *testing.T) {
 	ctx := context.TODO()
 	m := map[string]string{
 		"version":           "2.0",
-		"data_stream_id":    "test_stream",
-		"data_stream_route": "test_route",
+		"data_stream_id":    "test-stream",
+		"data_stream_route": "test-route",
 	}
-	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test-stream_test-route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FolderStructure: metadata.FolderStructureRoot,
 		},
@@ -337,11 +338,11 @@ func TestDeliveryFilenameSuffixUploadId(t *testing.T) {
 	ctx := context.TODO()
 	m := map[string]string{
 		"version":           "2.0",
-		"data_stream_id":    "test_stream",
-		"data_stream_route": "test_route",
+		"data_stream_id":    "test-stream",
+		"data_stream_route": "test-route",
 	}
 	tuid := "1234"
-	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test-stream_test-route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FilenameSuffix: metadata.FilenameSuffixUploadId,
 		},
@@ -360,11 +361,11 @@ func TestDeliveryFilenameSuffixNone(t *testing.T) {
 	ctx := context.TODO()
 	m := map[string]string{
 		"version":           "2.0",
-		"data_stream_id":    "test_stream",
-		"data_stream_route": "test_route",
+		"data_stream_id":    "test-stream",
+		"data_stream_route": "test-route",
 	}
 	tuid := "1234"
-	metadata.Cache.SetConfig("v2/test_stream-test_route.json", &validation.ManifestConfig{
+	metadata.Cache.SetConfig("v2/test-stream_test-route.json", &validation.ManifestConfig{
 		Copy: validation.CopyConfig{
 			FilenameSuffix: "",
 		},
@@ -606,13 +607,29 @@ func TestMain(m *testing.M) {
 	testContext = context.Background()
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
+
+	if err := delivery.RegisterAllSourcesAndDestinations(testContext, appConfig); err != nil {
+		log.Fatal(err)
+	}
 	testWaitGroup.Add(1)
-	err := cli.InitReporters(testContext, appConfig)
+	if err := cli.InitReporters(testContext, appConfig); err != nil {
+		log.Fatal(err)
+	}
 	defer reports.CloseAll()
-	err = event.InitFileReadyPublisher(testContext, appConfig)
+	memBus := &event.MemoryBus[*event.FileReady]{
+		Chan: make(chan *event.FileReady),
+	}
+	event.FileReadyPublisher = event.Publishers[*event.FileReady]{
+		memBus,
+		&event.FilePublisher[*event.FileReady]{
+			Dir: appConfig.LocalEventsFolder,
+		},
+	}
 	defer event.FileReadyPublisher.Close()
 	go func() {
-		cli.SubscribeToEvents(testContext, event.FileReadyPublisher.(event.Subscribable[*event.FileReady]), postprocessing.ProcessFileReadyEvent)
+		if err := memBus.Listen(testContext, postprocessing.ProcessFileReadyEvent); err != nil {
+			log.Fatal(err)
+		}
 		testWaitGroup.Done()
 	}()
 
@@ -624,7 +641,7 @@ func TestMain(m *testing.M) {
 	ts = httptest.NewServer(serveHandler)
 
 	// Start ui server
-	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath)
+	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()
@@ -670,56 +687,6 @@ func readReportFiles(tuid string, stages []string) (ReportFileSummary, error) {
 			}
 
 			appendReport(summary, r)
-		}
-	}
-
-	return summary, nil
-}
-
-func readReportFile(tuid string) (ReportFileSummary, error) {
-	summary := ReportFileSummary{
-		Tuid:      tuid,
-		Summaries: map[string]ReportSummary{},
-	}
-
-	// Steps for categorized report files
-	// 1. get list of report types we want to track
-	// 2. for each type, read file for that type and upload id
-	// 3. for each line, unmarshal and count
-
-	trackedStages := []string{
-		reports.StageMetadataVerify,
-		reports.StageMetadataTransform,
-		reports.StageUploadCompleted,
-		reports.StageUploadStarted,
-		reports.StageUploadStatus,
-		reports.StageFileCopy,
-	}
-
-	f, err := os.Open(TestReportsFolder + "/" + tuid)
-	if err != nil {
-		return summary, fmt.Errorf("failed to open report file for %s; inner error %w", tuid, err)
-	}
-
-	b, err := io.ReadAll(f)
-	if err != nil {
-		return summary, fmt.Errorf("failed to read report file %s; inner error %w", f.Name(), err)
-	}
-
-	rScanner := bufio.NewScanner(strings.NewReader(string(b)))
-	for rScanner.Scan() {
-		rLine := rScanner.Text()
-		rLineBytes := []byte(rLine)
-
-		r, err := unmarshalReport(rLineBytes)
-		if err != nil {
-			return summary, err
-		}
-
-		for _, s := range trackedStages {
-			if strings.Contains(rLine, s) {
-				appendReport(summary, r)
-			}
 		}
 	}
 
