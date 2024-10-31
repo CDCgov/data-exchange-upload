@@ -34,6 +34,7 @@ routing_groups:
     data_stream_route: localsequencefile
     delivery_targets:
       - name: edav
+        path_template: "{{.Filename}}"
   - data_stream_id: ehdi
     data_stream_route: csv
     delivery_targets:
