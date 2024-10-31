@@ -234,6 +234,8 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 	return d.Upload(ctx, path, r, manifest)
 }
 
+var ErrBadIngestTimestamp = errors.New("bad ingest timestamp")
+
 func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string, manifest map[string]string) (string, error) {
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadataPkg.GetFilename(manifest)
@@ -245,11 +247,11 @@ func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string,
 		// Use path template to form the full name.
 		rawTime, ok := manifest["dex_ingest_datetime"]
 		if !ok {
-			return "", errors.New("bad ingest timestamp")
+			return "", ErrBadIngestTimestamp
 		}
 		t, err := time.Parse(time.RFC3339Nano, rawTime)
 		if err != nil {
-			return "", err
+			return "", errors.Join(err, ErrBadIngestTimestamp)
 		}
 		m := fmt.Sprintf("%02d", t.Month())
 		d := fmt.Sprintf("%02d", t.Day())

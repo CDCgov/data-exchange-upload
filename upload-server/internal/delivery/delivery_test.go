@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
@@ -30,6 +31,27 @@ func TestGetDeliveredFilename(t *testing.T) {
 			nil,
 			"routine-immunization-zip/2020/04/11/test.txt",
 		},
+		{
+			ctx,
+			"bogus-id",
+			"routine-immunization-zip/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}",
+			map[string]string{
+				"dex_ingest_datetime": "bogus time",
+				"filename":            "test.txt",
+			},
+			ErrBadIngestTimestamp,
+			"",
+		},
+		{
+			ctx,
+			"bogus-id",
+			"routine-immunization-zip/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}",
+			map[string]string{
+				"filename": "test.txt",
+			},
+			ErrBadIngestTimestamp,
+			"",
+		},
 	}
 
 	for i, c := range testCases {
@@ -37,7 +59,7 @@ func TestGetDeliveredFilename(t *testing.T) {
 		if res != c.result {
 			t.Errorf("missmatched results for test case %d: got %s expected %s", i, res, c.result)
 		}
-		if err != c.err {
+		if !errors.Is(err, c.err) || (c.err == nil && err != nil) {
 			t.Errorf("missmatched errors for test case %d: got %+v expected %+v", i, err, c.err)
 		}
 	}
