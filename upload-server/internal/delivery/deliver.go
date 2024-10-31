@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log/slog"
 	"os"
@@ -14,6 +13,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/tus/tusd/v2/pkg/handler"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"gopkg.in/yaml.v3"
@@ -242,7 +243,14 @@ func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string,
 	// TODO eventually everything will come from path template
 	if pathTemplate != "" {
 		// Use path template to form the full name.
-		t := time.Now().UTC()
+		rawTime, ok := manifest["dex_ingest_datetime"]
+		if !ok {
+			return "", errors.New("bad ingest timestamp")
+		}
+		t, err := time.Parse(time.RFC3339Nano, rawTime)
+		if err != nil {
+			return "", err
+		}
 		m := fmt.Sprintf("%02d", t.Month())
 		d := fmt.Sprintf("%02d", t.Day())
 		h := fmt.Sprintf("%02d", t.Hour())
