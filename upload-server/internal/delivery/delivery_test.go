@@ -25,6 +25,9 @@ func TestGetDeliveredFilename(t *testing.T) {
 			"bogus-id",
 			"routine-immunization-zip/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}",
 			map[string]string{
+				"version":             "2.0",
+				"data_stream_id":      "dextesting",
+				"data_stream_route":   "testevent1",
 				"dex_ingest_datetime": testTime.Format(time.RFC3339Nano),
 				"filename":            "test.txt",
 			},
@@ -36,6 +39,9 @@ func TestGetDeliveredFilename(t *testing.T) {
 			"bogus-id",
 			"routine-immunization-zip/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}",
 			map[string]string{
+				"version":             "2.0",
+				"data_stream_id":      "dextesting",
+				"data_stream_route":   "testevent1",
 				"dex_ingest_datetime": "bogus time",
 				"filename":            "test.txt",
 			},
@@ -47,7 +53,10 @@ func TestGetDeliveredFilename(t *testing.T) {
 			"bogus-id",
 			"routine-immunization-zip/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}",
 			map[string]string{
-				"filename": "test.txt",
+				"version":           "2.0",
+				"data_stream_id":    "dextesting",
+				"data_stream_route": "testevent1",
+				"filename":          "test.txt",
 			},
 			ErrBadIngestTimestamp,
 			"",
