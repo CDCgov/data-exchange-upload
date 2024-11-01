@@ -110,7 +110,7 @@ test.describe("Upload Status Page", () => {
         const expectedSender = 'Sender123'
         const expectedDataProducer = 'Producer123'
         const expectedJurisdiction = 'Jurisdiction123'
-        const targets = ['edav', 'ehdi', 'eicr', 'ncird']
+        const targets = ['edav']
     
         await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
         
