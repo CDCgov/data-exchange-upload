@@ -8,8 +8,7 @@
 				"allowed_values": [
 					"IZGW"
 				],
-				"description": "This field is the identifier for the sender of the data.",
-				"compat_field_name": "meta_ext_source"
+				"description": "This field is the identifier for the sender of the data."
 			},
 			{
 				"field_name": "data_producer_id",
@@ -216,14 +215,12 @@
 					"XXA"
 				],
 				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
-				"compat_field_name": "meta_ext_entity"
 			},
 			{
 				"field_name": "received_filename",
 				"required": true,
 				"allowed_values": null,
-				"description": "This field is the name of the file when uploaded.",
-				"compat_field_name": "meta_ext_filename"
+				"description": "This field is the name of the file when uploaded."
 			},
 			{
 				"field_name": "data_stream_id",
@@ -231,8 +228,7 @@
 				"allowed_values": [
 					"influenza-vaccination"
 				],
-				"description": "This field is the identifier for the data stream.",
-				"compat_field_name": "meta_destination_id"
+				"description": "This field is the identifier for the data stream."
 			},
 			{
 				"field_name": "data_stream_route",
@@ -240,8 +236,7 @@
 				"allowed_values": [
 					"csv"
 				],
-				"description": "This recieved is the route of the data stream.",
-				"compat_field_name": "meta_ext_event"
+				"description": "This recieved is the route of the data stream."
 			},
 			{
 				"field_name": "meta_ext_objectkey",

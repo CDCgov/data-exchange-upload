@@ -22,59 +22,6 @@ type testCase struct {
 var Cases = map[string]testCase{
 	"good": {
 		tus.Metadata{
-			"meta_destination_id": "dextesting",
-			"meta_ext_event":      "testevent1",
-		},
-		nil,
-		[]info.FileDeliveryStatus{
-			{},
-			{},
-			{},
-			{},
-		},
-	},
-	"missing meta_destination_id": {
-		tus.Metadata{
-			"bad_key":        "dextesting",
-			"meta_ext_event": "testevent1",
-		},
-		tus.ClientError{
-			Code: 400,
-			Body: []byte("meta_destination_id not found in manifest"),
-		},
-		[]info.FileDeliveryStatus{
-			{},
-		},
-	},
-	"missing meta_ext_event": {
-		tus.Metadata{
-			"meta_destination_id": "dextesting",
-			"bad_key":             "testevent1",
-		},
-		tus.ClientError{
-			Code: 400,
-			Body: []byte("meta_ext_event not found in manifest"),
-		},
-		[]info.FileDeliveryStatus{
-			{},
-		},
-	},
-	"unkown meta_ext_event": {
-		tus.Metadata{
-			"meta_destination_id": "dextesting",
-			"meta_ext_event":      "nonsense",
-		},
-		tus.ClientError{
-			Code: 400,
-			Body: []byte("configuration not found"),
-		},
-		[]info.FileDeliveryStatus{
-			{},
-		},
-	},
-	"v2 good": {
-		tus.Metadata{
-			"version":           "2.0",
 			"data_stream_id":    "dextesting",
 			"data_stream_route": "testevent1",
 			"sender_id":         "test",
@@ -90,9 +37,38 @@ var Cases = map[string]testCase{
 			{},
 		},
 	},
-	"eicr v2 bad (missing things)": {
+	"bad missing data_stream_id": {
 		tus.Metadata{
-			"version":           "2.0",
+			"data_stream_route": "testevent1",
+			"sender_id":         "test",
+			"data_producer_id":  "test",
+			"jurisdiction":      "test",
+			"received_filename": "test",
+		},
+		tus.ClientError{
+			Code: 400,
+		},
+		[]info.FileDeliveryStatus{
+			{},
+		},
+	},
+	"bad missing data_stream_route": {
+		tus.Metadata{
+			"data_stream_id":    "dextesting",
+			"sender_id":         "test",
+			"data_producer_id":  "test",
+			"jurisdiction":      "test",
+			"received_filename": "test",
+		},
+		tus.ClientError{
+			Code: 400,
+		},
+		[]info.FileDeliveryStatus{
+			{},
+		},
+	},
+	"eicr bad (missing things)": {
+		tus.Metadata{
 			"data_stream_id":    "eicr",
 			"data_stream_route": "fhir",
 			"sender_id":         "APHL",
@@ -106,9 +82,8 @@ var Cases = map[string]testCase{
 			{},
 		},
 	},
-	"eicr v2 good": {
+	"eicr good": {
 		tus.Metadata{
-			"version":                 "2.0",
 			"data_stream_id":          "eicr",
 			"data_stream_route":       "fhir",
 			"data_producer_id":        "test",

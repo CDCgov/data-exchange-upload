@@ -39,7 +39,7 @@ func GetTarget(target string) (Destination, bool) {
 }
 
 func FindGroupFromMetadata(meta handler.MetaData) (Group, bool) {
-	dataStreamId, dataStreamRoute := metadataPkg.GetDataStreamID(meta), metadataPkg.GetDataStreamRoute(meta)
+	dataStreamId, dataStreamRoute := meta["data_stream_id"], meta["data_stream_route"]
 	group := Group{
 		DataStreamId:    dataStreamId,
 		DataStreamRoute: dataStreamRoute,
