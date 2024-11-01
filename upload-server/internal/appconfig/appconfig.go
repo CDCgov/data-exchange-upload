@@ -60,7 +60,7 @@ type AppConfig struct {
 	TusUploadPrefix string `env:"TUS_UPLOAD_PREFIX, default=tus-prefix"`
 
 	// User Interface Configs
-	UIPort           string `env:"UI_PORT, default=8081"`
+	UIPort                   string `env:"UI_PORT, default=8081"`
 	UIServerExternalProtocol string `env:"UI_SERVER_EXTERNAL_PROTOCOL, default=http"`
 	UIServerInternalProtocol string `env:"UI_SERVER_INTERNAL_PROTOCOL, default=http"`
 	UIServerExternalHost     string `env:"UI_SERVER_EXTERNAL_HOST, default=localhost:8080"`
@@ -97,6 +97,10 @@ type AppConfig struct {
 	// Azure Event Subscriber Subscription
 	SubscriberConnection *AzureQueueConfig `env:", prefix=SUBSCRIBER_,noinit"`
 
+	SNSReporterConnection   *SNSConfig `env:", prefix=SNS_REPORTER_,noinit"`
+	SNSPublisherConnection  *SNSConfig `env:", prefix=SNS_PUBLISHER_,noinit"`
+	SQSSubscriberConnection *SQSConfig `env:", prefix=SQS_SUBSCRIBER_,noinit"`
+
 	// S3 Storage Configs
 	S3Connection           *S3StorageConfig `env:", prefix=S3_, noinit"`
 	S3ManifestConfigBucket string           `env:"DEX_MANIFEST_CONFIG_BUCKET_NAME"`
@@ -126,6 +130,14 @@ func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(jsonResp)
+}
+
+type SNSConfig struct {
+	EventArn string `env:"EVENT_ARN"`
+}
+
+type SQSConfig struct {
+	EventArn string `env:"EVENT_ARN"`
 }
 
 type AzureStorageConfig struct {
