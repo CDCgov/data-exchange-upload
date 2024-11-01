@@ -214,7 +214,7 @@
 					"FD3",
 					"XXA"
 				],
-				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
+				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
 			},
 			{
 				"field_name": "received_filename",

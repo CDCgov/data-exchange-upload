@@ -63,7 +63,7 @@ test.describe("Upload Manifest Page", () => {
             const errorPageResponse = await errorPagePromise
     
             await expect(errorPageResponse.status()).toBe(404)
-            await expect(page.locator('body')).toContainText(`open v2/${dataStream}_${route}.json: `)
+            await expect(page.locator('body')).toContainText(`open ${dataStream}_${route}.json: `)
             await expect(page.locator('body')).toContainText('validation failure')
             await expect(page.locator('body')).toContainText('manifest validation config file not found')
         })
