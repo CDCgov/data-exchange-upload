@@ -36,12 +36,6 @@ func (p Publishers[T]) Close() {
 	}
 }
 
-func InitFileReadyPublisher(ctx context.Context, appConfig appconfig.AppConfig) error {
-	p, err := NewEventPublisher[*FileReady](ctx, appConfig)
-	FileReadyPublisher = p
-	return err
-}
-
 type Publisher[T Identifiable] interface {
 	Publish(ctx context.Context, event T) error
 }
@@ -65,15 +59,6 @@ func NewEventPublisher[T Identifiable](ctx context.Context, appConfig appconfig.
 		}
 		health.Register(ap)
 		p = append(p, ap)
-		return p, err
-	}
-
-	if len(p) < 1 {
-		p = append(p, &MemoryBus[T]{
-			Chan: make(chan T),
-		}, &FilePublisher[T]{
-			Dir: appConfig.LocalEventsFolder,
-		})
 	}
 
 	return p, nil

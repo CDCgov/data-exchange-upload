@@ -619,13 +619,13 @@ func TestMain(m *testing.M) {
 	memBus := &event.MemoryBus[*event.FileReady]{
 		Chan: make(chan *event.FileReady),
 	}
-	event.FileReadyPublisher = event.Publishers[*event.FileReady]{
+	publisher := event.Publishers[*event.FileReady]{
 		memBus,
 		&event.FilePublisher[*event.FileReady]{
 			Dir: appConfig.LocalEventsFolder,
 		},
 	}
-	defer event.FileReadyPublisher.Close()
+	defer publisher.Close()
 	go func() {
 		if err := memBus.Listen(testContext, postprocessing.ProcessFileReadyEvent); err != nil {
 			log.Fatal(err)
@@ -633,7 +633,7 @@ func TestMain(m *testing.M) {
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig)
+	serveHandler, err := cli.Serve(testContext, appConfig, publisher)
 	if err != nil {
 		log.Fatal(err)
 	}

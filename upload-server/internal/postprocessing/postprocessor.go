@@ -107,7 +107,9 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		deliveryErr = method(ctx, e.UploadId, src, d)
 		if deliveryErr != nil {
 			slog.Warn("Delivery Method failed", "method", method, "id", e.UploadId, "err", deliveryErr)
+			continue
 		}
+		break
 	}
 	if deliveryErr != nil {
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{

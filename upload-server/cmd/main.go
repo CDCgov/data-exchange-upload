@@ -73,29 +73,38 @@ func main() {
 	}
 	defer reports.CloseAll()
 
-	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
+	// Spin up eventing
+	var subscriber event.Subscribable[*event.FileReady]
+	var publisher event.Publishers[*event.FileReady]
+
+	publisher, err = event.NewEventPublisher[*event.FileReady](ctx, appConfig)
+	if err != nil {
+		slog.Error("error creating file ready publisher", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	subscriber, err = cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
 	if err != nil {
 		slog.Error("error subscribing to file ready", "error", err)
 		os.Exit(appMainExitCode)
 	}
-	if sub, ok := subscriber.(io.Closer); ok {
-		defer sub.Close()
-	}
 
-	if pub, ok := subscriber.(*event.MemoryBus[*event.FileReady]); ok {
-		event.FileReadyPublisher = event.Publishers[*event.FileReady]{
-			pub,
+	if subscriber == nil && len(publisher) < 1 {
+		memBus := &event.MemoryBus[*event.FileReady]{
+			Chan: make(chan *event.FileReady),
+		}
+		subscriber = memBus
+		publisher = event.Publishers[*event.FileReady]{
+			memBus,
 			&event.FilePublisher[*event.FileReady]{
 				Dir: appConfig.LocalEventsFolder,
 			},
 		}
-	} else {
-		if err := event.InitFileReadyPublisher(ctx, appConfig); err != nil {
-			slog.Error("error creating file ready publisher", "error", err)
-			os.Exit(appMainExitCode)
-		}
 	}
-	defer event.FileReadyPublisher.Close()
+
+	if sub, ok := subscriber.(io.Closer); ok {
+		defer sub.Close()
+	}
+	defer publisher.Close()
 
 	mainWaitGroup.Add(1)
 	go func() {
@@ -107,7 +116,7 @@ func main() {
 	}()
 
 	// start serving the app
-	handler, err := cli.Serve(ctx, appConfig)
+	handler, err := cli.Serve(ctx, appConfig, publisher)
 	if err != nil {
 		slog.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
