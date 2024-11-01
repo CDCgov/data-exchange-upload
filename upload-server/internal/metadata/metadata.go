@@ -106,12 +106,13 @@ func InitConfigCache(ctx context.Context, appConfig appconfig.AppConfig) error {
 }
 
 func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.ManifestConfig, error) {
-	conf, ok := c.Load(key)
+	lowercaseKey := strings.ToLower(key)
+	conf, ok := c.Load(lowercaseKey)
 	if !ok {
 		if c.Loader == nil {
 			return nil, errors.New("misconfigured config cache, set a loader")
 		}
-		b, err := c.Loader.LoadConfig(ctx, key)
+		b, err := c.Loader.LoadConfig(ctx, lowercaseKey)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +123,7 @@ func (c *ConfigCache) GetConfig(ctx context.Context, key string) (*validation.Ma
 		if err := json.Unmarshal([]byte(expandedConf), mc); err != nil {
 			return nil, err
 		}
-		c.SetConfig(key, mc)
+		c.SetConfig(lowercaseKey, mc)
 		return mc, nil
 	}
 	config, ok := conf.(*validation.ManifestConfig)

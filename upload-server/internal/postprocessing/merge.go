@@ -25,6 +25,15 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 			return resp, fmt.Errorf("no routing group found for metadata %+v", meta)
 		}
 
+		if config.CompatConfigFilename != "" {
+			config, err = metadata.Cache.GetConfig(ctx, "v2/"+config.CompatConfigFilename)
+			if err != nil {
+				return resp, err
+			}
+		}
+
+		targets = append(targets, config.Copy.Targets...)
+
 		for _, target := range routeGroup.TargetNames() {
 			e := evt.NewFileReadyEvent(id, meta, target)
 			err := evt.FileReadyPublisher.Publish(ctx, e)
