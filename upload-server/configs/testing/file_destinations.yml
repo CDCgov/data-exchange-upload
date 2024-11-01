@@ -5,22 +5,18 @@ targets:
     name: edav
     type: file
     path: ./uploads/edav
-    path_template: $EDAV_PATH_TEMPLATE
   ehdi:
     name: ehdi
     type: file
     path: ./uploads/ehdi
-    path_template: $EHDI_PATH_TEMPLATE
   eicr:
     name: eicr
     type: file
     path: ./uploads/eicr
-    path_template: $EICR_PATH_TEMPLATE
   ncird:
     name: ncird
     type: file
     path: ./uploads/ncird
-    path_template: $NCIRD_PATH_TEMPLATE
 
 routing_groups:
   - data_stream_id: pulsenet
@@ -35,7 +31,7 @@ routing_groups:
     data_stream_route: fhir
     delivery_targets:
       - name: eicr
-  - data_stream_id: covid-all-monthly-vaccination
+  - data_stream_id: rsp-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
@@ -51,7 +47,7 @@ routing_groups:
     data_stream_route: other
     delivery_targets:
       - name: ncird
-  - data_stream_id: rsv-prevention
+  - data_stream_id: rsp-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird

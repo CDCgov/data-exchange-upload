@@ -3,36 +3,25 @@ version: 1.0
 targets:
   edav:
     name: edav
-    type: s3
-    bucket_name: edav
-    access_key_id: minioadmin
-    secret_access_key: minioadmin
-    endpoint: 'http://minio:8000'
-    region: us-east-1
+    type: file
+    path: ./uploads/edav
+    path_template: $EDAV_PATH_TEMPLATE
   ehdi:
     name: ehdi
-    type: s3
-    bucket_name: ehdi
-    access_key_id: minioadmin
-    secret_access_key: minioadmin
-    endpoint: 'http://minio:8000'
-    region: us-east-1
+    type: file
+    path: ./uploads/ehdi
+    path_template: $EHDI_PATH_TEMPLATE
   eicr:
     name: eicr
-    type: s3
-    bucket_name: eicr
-    access_key_id: minioadmin
-    secret_access_key: minioadmin
-    endpoint: 'http://minio:8000'
-    region: us-east-1
+    type: file
+    path: ./uploads/eicr
+    path_template: $EICR_PATH_TEMPLATE
   ncird:
     name: ncird
-    type: s3
-    bucket_name: ncird
-    access_key_id: minioadmin
-    secret_access_key: minioadmin
-    endpoint: 'http://minio:8000'
-    region: us-east-1
+    type: file
+    path: ./uploads/ncird
+    path_template: $NCIRD_PATH_TEMPLATE
+
 routing_groups:
   - data_stream_id: pulsenet
     data_stream_route: localsequencefile
@@ -42,13 +31,11 @@ routing_groups:
     data_stream_route: csv
     delivery_targets:
       - name: ehdi
-        path_template: $EHDI_PATH_TEMPLATE
   - data_stream_id: eicr
     data_stream_route: fhir
     delivery_targets:
       - name: eicr
-        path_template: $EICR_PATH_TEMPLATE
-  - data_stream_id: rsp-prevention
+  - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
@@ -64,7 +51,7 @@ routing_groups:
     data_stream_route: other
     delivery_targets:
       - name: ncird
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird

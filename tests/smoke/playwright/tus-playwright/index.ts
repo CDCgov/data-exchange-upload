@@ -4,7 +4,6 @@ import {
   HttpResponse,
   RawHttpRequest,
   RawHttpResponse,
-  ResponseContext as ResponseContextInterface,
   UploadOptions,
   UploadResponse,
   UploadStatusType
@@ -12,7 +11,6 @@ import {
 import { MemoryStorage } from './memory-storage';
 import { UploadClient } from './upload-client';
 
-export { ResponseContextInterface as ResponseContext };
 export type ContextOptions = Pick<UploadOptions, 'headers' | 'retryDelays'>;
 
 function newContext(baseUrl: string, options: ContextOptions = {}): ClientContext {
@@ -72,8 +70,7 @@ class ClientContext {
         urlStorage: this.storage,
         onInitiated: (response: UploadResponse) => {
           resolve(new ResponseContext(response));
-        },
-        onComplete: (_: UploadResponse) => {}
+        }
       });
       return uploader.upload();
     });
@@ -91,8 +88,7 @@ class ClientContext {
         urlStorage: this.storage,
         onInProgress: (response: UploadResponse) => {
           resolve(new ResponseContext(response));
-        },
-        onComplete: (_: UploadResponse) => {}
+        }
       });
       return uploader.upload();
     });
@@ -103,7 +99,7 @@ class ClientContext {
   }
 }
 
-class ResponseContext implements ResponseContextInterface {
+class ResponseContext {
   private response: UploadResponse;
   private lastRequest: HttpRequest | null;
   private lastRawRequest: RawHttpRequest | null;

@@ -4,7 +4,7 @@ import {
   UploadTarget,
   getFileSelection,
   getUploadTargets
-} from '../resources/test-helpers';
+} from '../resources/test-utils';
 
 test.describe.configure({ mode: 'parallel' });
 

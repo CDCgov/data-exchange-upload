@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { UploadTarget, getUploadTargets } from '../resources/test-helpers';
+import { UploadTarget, getUploadTargets } from '../resources/test-utils';
 
 test.describe.configure({ mode: 'parallel' });
 

@@ -27,11 +27,24 @@ export type PreviousUpload = TusPreviousUpload & {
 export type UploadOptions = Required<
   Pick<TusUploadOptions, 'metadata' | 'endpoint' | 'urlStorage'>
 > &
-  Pick<TusUploadOptions, 'headers' | 'retryDelays'> & {
-    onInitiated?: (response: UploadResponse) => void;
-    onInProgress?: (response: UploadResponse) => void;
-    onComplete: (response: UploadResponse) => void;
-  };
+  Pick<TusUploadOptions, 'headers' | 'retryDelays'> &
+  (
+    | {
+        onInitiated: (response: UploadResponse) => void;
+        onInProgress?: never;
+        onComplete?: never;
+      }
+    | {
+        onInitiated?: never;
+        onInProgress: (response: UploadResponse) => void;
+        onComplete?: never;
+      }
+    | {
+        onInitiated?: never;
+        onInProgress?: never;
+        onComplete: (response: UploadResponse) => void;
+      }
+  );
 
 export type EventType = 'created' | 'started' | 'completed' | 'paused' | 'terminated' | 'resumed';
 export type UploadStatusType = 'Initiated' | 'In Progress' | 'Complete' | 'Failed';
@@ -58,24 +71,3 @@ export type Response = {
   httpRequests: HttpRequest[];
   httpResponses: HttpResponse[];
 };
-
-export interface ResponseContext {
-  getLastRequest(): HttpRequest | null;
-  getLastRawRequest(): RawHttpRequest | null;
-  getLastResponse(): HttpResponse | null;
-  getLastRawResponse(): RawHttpResponse | null;
-  getResponseStatusCode(): number | null;
-  getResponseBodyString(): string | null;
-  getResponseBodyJson(): { [key: string]: string } | null;
-  getUploadUrl(): string | null;
-  getUploadUrlId(): string | null;
-  getUploadId(): string | null;
-  getUploadStatus(): string | null;
-  assertUploadStatus(expectedStatus: UploadStatusType): void;
-  assertResponseStatusCode(expectedStatusCode: number): void;
-  assertNotResponseStatusCode(expectedStatusCodeNot: number): void;
-  assertResponseBody(expectedBodySubstring: string): void;
-  assertResponse(expectedStatusCode: number, expectedBodySubstring: string): void;
-  assertSuccess(): void;
-  assertError(expectedStatusCode: number): void;
-}
