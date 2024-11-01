@@ -105,7 +105,7 @@ func TestTus(t *testing.T) {
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, reports.StageMetadataTransform, 2)
+				err = checkReportSummary(reportSummary, reports.StageMetadataTransform, 1)
 				if err != nil {
 					t.Error(err.Error())
 				}
@@ -121,7 +121,7 @@ func TestTus(t *testing.T) {
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, reports.StageFileCopy, 3)
+				err = checkReportSummary(reportSummary, reports.StageFileCopy, 1)
 				if err != nil {
 					t.Error(err.Error())
 				}
@@ -678,7 +678,7 @@ func checkReportSummary(fileSummary ReportFileSummary, stageName string, expecte
 
 	if !ok {
 		return fmt.Errorf("expected %d %s report but got none", expectedCount, stageName)
-	} else if summary.Count != 1 {
+	} else if summary.Count != expectedCount {
 		return fmt.Errorf("expected %d %s report but got %d", expectedCount, stageName, summary.Count)
 	}
 

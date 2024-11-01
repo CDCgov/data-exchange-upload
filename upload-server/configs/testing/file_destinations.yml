@@ -54,7 +54,4 @@ routing_groups:
   - data_stream_id: dextesting
     data_stream_route: testevent1
     delivery_targets:
-      - name: ncird
-      - name: eicr
       - name: edav
-      - name: ehdi

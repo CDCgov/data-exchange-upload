@@ -32,9 +32,6 @@ var Cases = map[string]testCase{
 		nil,
 		[]info.FileDeliveryStatus{
 			{},
-			{},
-			{},
-			{},
 		},
 	},
 	"bad missing data_stream_id": {
