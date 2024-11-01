@@ -236,7 +236,7 @@ func init() {
 			Chunk:                   chunk,
 			Size:                    size,
 			Manifest:                manifest,
-			TimeLimit:               Duration(10 * time.Second),
+			TimeLimit:               Duration(60 * time.Minute),
 			ExpectedDeliveryTargets: manifestTargets,
 		}
 		if templatePath != "" {

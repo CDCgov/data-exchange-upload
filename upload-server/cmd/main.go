@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -72,26 +73,40 @@ func main() {
 	}
 	defer reports.CloseAll()
 
-	event.InitFileReadyChannel()
-	defer event.CloseFileReadyChannel()
+	// Spin up eventing
+	var subscriber event.Subscribable[*event.FileReady]
+	var publisher event.Publishers[*event.FileReady]
 
-	if err := event.InitFileReadyPublisher(ctx, appConfig); err != nil {
+	publisher, err = event.NewEventPublisher[*event.FileReady](ctx, appConfig)
+	if err != nil {
 		slog.Error("error creating file ready publisher", "error", err)
 		os.Exit(appMainExitCode)
 	}
-	defer event.FileReadyPublisher.Close()
-
-	mainWaitGroup.Add(1)
-	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
+	subscriber, err = cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
 	if err != nil {
 		slog.Error("error subscribing to file ready", "error", err)
 		os.Exit(appMainExitCode)
 	}
-	if sc, ok := subscriber.(interface {
-		Close() error
-	}); ok {
-		defer sc.Close()
+
+	if subscriber == nil && len(publisher) < 1 {
+		memBus := &event.MemoryBus[*event.FileReady]{
+			Chan: make(chan *event.FileReady),
+		}
+		subscriber = memBus
+		publisher = event.Publishers[*event.FileReady]{
+			memBus,
+			&event.FilePublisher[*event.FileReady]{
+				Dir: appConfig.LocalEventsFolder,
+			},
+		}
 	}
+
+	if sub, ok := subscriber.(io.Closer); ok {
+		defer sub.Close()
+	}
+	defer publisher.Close()
+
+	mainWaitGroup.Add(1)
 	go func() {
 		if err := subscriber.Listen(ctx, postprocessing.ProcessFileReadyEvent); err != nil {
 			cancelFunc()
@@ -101,7 +116,7 @@ func main() {
 	}()
 
 	// start serving the app
-	handler, err := cli.Serve(ctx, appConfig)
+	handler, err := cli.Serve(ctx, appConfig, publisher)
 	if err != nil {
 		slog.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)

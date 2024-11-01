@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"io"
 	"log"
 	"net/http"
@@ -19,6 +18,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -607,20 +608,32 @@ func TestMain(m *testing.M) {
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
 
-	err := delivery.RegisterAllSourcesAndDestinations(testContext, appConfig)
-	event.InitFileReadyChannel()
+	if err := delivery.RegisterAllSourcesAndDestinations(testContext, appConfig); err != nil {
+		log.Fatal(err)
+	}
 	testWaitGroup.Add(1)
-	err = cli.InitReporters(testContext, appConfig)
+	if err := cli.InitReporters(testContext, appConfig); err != nil {
+		log.Fatal(err)
+	}
 	defer reports.CloseAll()
-	err = event.InitFileReadyPublisher(testContext, appConfig)
-	defer event.FileReadyPublisher.Close()
-	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
+	memBus := &event.MemoryBus[*event.FileReady]{
+		Chan: make(chan *event.FileReady),
+	}
+	publisher := event.Publishers[*event.FileReady]{
+		memBus,
+		&event.FilePublisher[*event.FileReady]{
+			Dir: appConfig.LocalEventsFolder,
+		},
+	}
+	defer publisher.Close()
 	go func() {
-		testListener.Listen(testContext, postprocessing.ProcessFileReadyEvent)
+		if err := memBus.Listen(testContext, postprocessing.ProcessFileReadyEvent); err != nil {
+			log.Fatal(err)
+		}
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig)
+	serveHandler, err := cli.Serve(testContext, appConfig, publisher)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -634,7 +647,6 @@ func TestMain(m *testing.M) {
 	testRes := m.Run()
 
 	ts.Close()
-	event.CloseFileReadyChannel()
 	os.Exit(testRes)
 }
 

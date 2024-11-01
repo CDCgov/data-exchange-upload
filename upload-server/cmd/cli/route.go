@@ -9,7 +9,9 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 )
 
-type Router struct{}
+type Router struct {
+	publisher event.Publisher[*event.FileReady]
+}
 type RequestBody struct {
 	Target string `json:"target"`
 	Source string `json:"source"`
@@ -64,7 +66,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		Metadata:          m,
 		SrcUrl:            id,
 	}
-	err = event.FileReadyPublisher.Publish(r.Context(), e)
+	err = router.publisher.Publish(r.Context(), e)
 	if err != nil {
 		// Unhandled error occurred
 		rw.WriteHeader(http.StatusInternalServerError)

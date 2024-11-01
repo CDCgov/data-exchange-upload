@@ -10,14 +10,6 @@ import (
 )
 
 func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable[T], error) {
-	var sub event.Subscribable[T]
-	c, err := event.GetChannel[T]()
-	if err != nil {
-		return nil, err
-	}
-	sub = &event.MemorySubscriber[T]{
-		Chan: c,
-	}
 
 	if appConfig.SQSSubscriberConnection != nil {
 		arn := appConfig.SQSSubscriberConnection.EventArn
@@ -25,7 +17,7 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 		if err != nil {
 			return s, err
 		}
-		if err := s.Subscribe(ctx, arn); err != nil {
+		if err := s.Subscribe(ctx, appConfig.SNSPublisherConnection.EventArn); err != nil {
 			return s, fmt.Errorf("arn: %s, %w", arn, err)
 		}
 		health.Register(s)
@@ -43,5 +35,5 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 		return sub, nil
 	}
 
-	return sub, nil
+	return nil, nil
 }

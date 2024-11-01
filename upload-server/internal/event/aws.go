@@ -211,13 +211,15 @@ func (s *SQSSubscriber[T]) Subscribe(ctx context.Context, topicArn string) error
 			return nil
 		}
 	}
-	if _, err := client.Subscribe(ctx, &sns.SubscribeInput{
+	resp, err := client.Subscribe(ctx, &sns.SubscribeInput{
 		Protocol: aws.String("sqs"),
 		TopicArn: aws.String(topicArn),
 		Endpoint: aws.String(s.ARN),
-	}); err != nil {
+	})
+	if err != nil {
 		return err
 	}
+	slog.Info("Created subscription", "resp", resp, "arn", s.ARN)
 	return nil
 }
 
@@ -241,6 +243,7 @@ func (s *SQSSubscriber[T]) Listen(ctx context.Context, process func(context.Cont
 				return err
 			}
 			for _, message := range messages {
+				slog.Info("handling message", "message", message)
 				e, err := s.decodeEvent(&message)
 				if err != nil {
 					slog.Error("failed to decode message", "err", err.Error(), "message", message)
@@ -280,7 +283,7 @@ func (s *SQSSubscriber[T]) getBatch(ctx context.Context, max int) ([]types.Messa
 		WaitTimeSeconds:     1,
 		VisibilityTimeout:   int32(DefaultMessageVisibility),
 	})
-	slog.Info("Got response", "rsp", rsp)
+	slog.Debug("Got response", "rsp", rsp)
 	if err != nil {
 		return nil, err
 	}

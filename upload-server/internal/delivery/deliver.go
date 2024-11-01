@@ -19,7 +19,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -65,7 +64,8 @@ type Source interface {
 }
 
 type Destination interface {
-	Upload(context.Context, string, io.Reader, map[string]string) (string, error)
+	Upload(context.Context, string, io.Reader, map[string]string) error
+	URI(context.Context, string, map[string]string) (string, error)
 }
 
 type PathInfo struct {
@@ -197,12 +197,8 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		}
 	}
 	if appConfig.S3Connection != nil {
-		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
-		if err != nil {
-			return err
-		}
 		src = &S3Source{
-			FromClient: s3Client,
+			Connection: appConfig.S3Connection,
 			BucketName: appConfig.S3Connection.BucketName,
 			Prefix:     appConfig.TusUploadPrefix,
 		}
@@ -216,16 +212,16 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 }
 
 // target may end up being a type
-func Deliver(ctx context.Context, path string, s Source, d Destination) (string, error) {
+func Deliver(ctx context.Context, path string, s Source, d Destination) error {
 
 	manifest, err := s.GetMetadata(ctx, path)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	r, err := s.Reader(ctx, path)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if rc, ok := r.(io.Closer); ok {
 		defer rc.Close()

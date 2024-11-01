@@ -10,7 +10,6 @@ import (
 )
 
 func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
-
 	reports.Register(&event.FilePublisher[*reports.Report]{
 		Dir: appConfig.LocalReportsFolder,
 	})

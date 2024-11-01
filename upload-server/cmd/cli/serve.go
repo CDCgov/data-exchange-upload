@@ -7,6 +7,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
@@ -19,7 +20,8 @@ import (
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
+// TODO: refactor - pull hook handler construction up
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, eventPublisher event.Publisher[*event.FileReady]) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -68,7 +70,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	}
 
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(appConfig)
+	hookHandler, err := GetHookHandler(appConfig, eventPublisher)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
@@ -111,7 +113,9 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 
 	mux.Handle("/info/{UploadID}", authMiddleware.VerifyOAuthTokenMiddleware(uploadInfoHandler))
 	mux.Handle("/version", &VersionHandler{})
-	mux.Handle("/route/{UploadID}", &Router{})
+	mux.Handle("/route/{UploadID}", &Router{
+		publisher: eventPublisher,
+	})
 
 	mux.Handle("/{$}", appconfig.Handler())
 

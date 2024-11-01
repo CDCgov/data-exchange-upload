@@ -6,12 +6,13 @@ import (
 	"fmt"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	evt "github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
+func RouteAndDeliverHook(publisher event.Publisher[*event.FileReady]) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
 	return func(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 		ctx := context.TODO()
 		id := event.Upload.ID
@@ -27,7 +28,7 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 
 		for _, target := range routeGroup.TargetNames() {
 			e := evt.NewFileReadyEvent(id, meta, target)
-			err := evt.FileReadyPublisher.Publish(ctx, e)
+			err := publisher.Publish(ctx, e)
 			if err != nil {
 				return resp, err
 			}

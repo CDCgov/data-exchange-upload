@@ -2,6 +2,7 @@ package cli
 
 import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
@@ -15,7 +16,7 @@ type RegisterableHookHandler interface {
 	Register(t tusHooks.HookType, hookFuncs ...prebuilthooks.HookHandlerFunc)
 }
 
-func GetHookHandler(appConfig appconfig.AppConfig) (RegisterableHookHandler, error) {
+func GetHookHandler(appConfig appconfig.AppConfig, eventPublisher event.Publisher[*event.FileReady]) (RegisterableHookHandler, error) {
 
 	manifestValidator := metadata.SenderManifestVerification{
 		Configs: metadata.Cache,
@@ -37,10 +38,10 @@ func GetHookHandler(appConfig appconfig.AppConfig) (RegisterableHookHandler, err
 		}
 	}
 
-	return PrebuiltHooks(manifestValidator, metadataAppender)
+	return PrebuiltHooks(manifestValidator, metadataAppender, eventPublisher)
 }
 
-func PrebuiltHooks(validator metadata.SenderManifestVerification, appender metadata.Appender) (RegisterableHookHandler, error) {
+func PrebuiltHooks(validator metadata.SenderManifestVerification, appender metadata.Appender, eventPublisher event.Publisher[*event.FileReady]) (RegisterableHookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, validator.Verify)
@@ -50,7 +51,7 @@ func PrebuiltHooks(validator metadata.SenderManifestVerification, appender metad
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
 
-	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook())
+	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook(eventPublisher))
 
 	return handler, nil
 }
