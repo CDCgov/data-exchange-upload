@@ -44,7 +44,7 @@ routing_groups:
     delivery_targets:
       - name: eicr
         path_template: $EICR_PATH_TEMPLATE
-  - data_stream_id: rsp-prevention
+  - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
@@ -60,7 +60,7 @@ routing_groups:
     data_stream_route: other
     delivery_targets:
       - name: ncird
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
