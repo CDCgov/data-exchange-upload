@@ -24,11 +24,17 @@
          {
             "field_name": "data_stream_id",
             "required": true,
+            "allowed_values": [
+               "dextesting"
+            ],
             "description": "This field is the identifier for the data stream."
          },
          {
             "field_name": "data_stream_route",
             "required": true,
+            "allowed_values": [
+               "testevent1"
+            ],
             "description": "This recieved is the route of the data stream."
          }
       ]
@@ -37,10 +43,7 @@
       "filename_suffix": "upload_id",
       "folder_structure": "date_YYYY_MM_DD",
       "targets": [
-         "edav",
-         "ehdi",
-         "eicr",
-         "ncird"
+         "edav"
       ]
    }
 }
