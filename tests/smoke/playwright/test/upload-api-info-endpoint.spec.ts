@@ -44,6 +44,7 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
         const uploadUrlId = uploadResponse.getUploadUrlId();
         expect(uploadUrlId).not.toBeNull();
 
+        // wait 10 seconds for deliveries to complete
         await page.waitForTimeout(10000);
         const response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
         expect(response.ok()).toBeTruthy();
@@ -77,6 +78,7 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
         const uploadUrlId = uploadResponse.getUploadUrlId();
         expect(uploadUrlId).not.toBeNull();
 
+        // wait 10 seconds for deliveries to complete
         await page.waitForTimeout(10000);
         const response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
         expect(response.ok()).toBeTruthy();
@@ -97,8 +99,12 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
   });
 
   test.describe('Upload Status', () => {
-    test('should display Initiated when the upload is initiated', async ({ request }) => {
-      const uploadResponse = await context.uploadInitiated(filepath, testConfig?.manifest);
+    test('should display Initiated when the upload is initiated', async ({ page, request }) => {
+      const uploader = context.newUploadContext(filepath, testConfig?.manifest, {
+        shouldPauseInitialized: true
+      });
+
+      let uploadResponse = await uploader.upload();
       expect(uploadResponse.getUploadStatus()).toEqual('Initiated');
 
       const uploadId = uploadResponse.getUploadId();
@@ -106,16 +112,40 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
       const uploadUrlId = uploadResponse.getUploadUrlId();
       expect(uploadUrlId).not.toBeNull();
 
-      const response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
+      let response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
       expect(response.ok()).toBeTruthy();
 
-      const infoResponse: InfoResponse = await response.json();
+      let infoResponse: InfoResponse = await response.json();
       expect(infoResponse).not.toBeNull();
       validateUploadStatus(infoResponse.upload_status, 'Initiated');
+
+      uploadResponse = await uploader.upload();
+
+      // wait 10 seconds for deliveries to complete
+      await page.waitForTimeout(10000);
+      response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
+      expect(response.ok()).toBeTruthy();
+
+      infoResponse = await response.json();
+      expect(infoResponse).not.toBeNull();
+
+      validateFileInfo(infoResponse.file_info, fileSize);
+      validateManifest(infoResponse.manifest, uploadId);
+      validateUploadStatus(infoResponse.upload_status, 'Complete');
+      validateDeliveries(
+        infoResponse.deliveries,
+        testConfig.delivery_targets,
+        `${testConfig?.manifest?.received_filename}_${uploadUrlId}`
+      );
     });
 
-    test('should display In Progress when the upload is in progress', async ({ request }) => {
-      const uploadResponse = await context.uploadInProgress(filepath, testConfig?.manifest);
+    test('should display In Progress when the upload is in progress', async ({ page, request }) => {
+      const uploader = context.newUploadContext(filepath, testConfig?.manifest, {
+        chunkSize: 100,
+        shouldPauseInProgress: true
+      });
+
+      let uploadResponse = await uploader.upload();
       expect(uploadResponse.getUploadStatus()).toEqual('In Progress');
 
       const uploadId = uploadResponse.getUploadId();
@@ -123,12 +153,31 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
       const uploadUrlId = uploadResponse.getUploadUrlId();
       expect(uploadUrlId).not.toBeNull();
 
-      const response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
+      let response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
       expect(response.ok()).toBeTruthy();
 
-      const initiatedInfoResponse: InfoResponse = await response.json();
-      expect(initiatedInfoResponse).not.toBeNull();
-      validateUploadStatus(initiatedInfoResponse.upload_status, 'In Progress');
+      let infoResponse: InfoResponse = await response.json();
+      expect(infoResponse).not.toBeNull();
+      validateUploadStatus(infoResponse.upload_status, 'In Progress');
+
+      uploadResponse = await uploader.upload();
+
+      // wait 10 seconds for deliveries to complete
+      await page.waitForTimeout(10000);
+      response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
+      expect(response.ok()).toBeTruthy();
+
+      infoResponse = await response.json();
+      expect(infoResponse).not.toBeNull();
+
+      validateFileInfo(infoResponse.file_info, fileSize);
+      validateManifest(infoResponse.manifest, uploadId);
+      validateUploadStatus(infoResponse.upload_status, 'Complete');
+      validateDeliveries(
+        infoResponse.deliveries,
+        testConfig.delivery_targets,
+        `${testConfig?.manifest?.received_filename}_${uploadUrlId}`
+      );
     });
   });
 });

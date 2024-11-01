@@ -14,7 +14,8 @@ export class ResponseBuilder {
     this.response = {
       filename,
       httpRequests: [],
-      httpResponses: []
+      httpResponses: [],
+      errorMessage: null
     };
   }
 
@@ -46,6 +47,10 @@ export class ResponseBuilder {
 
   setUploadStatus(status: UploadStatusType): void {
     this.response.uploadStatus = status;
+  }
+
+  setErrorMessage(error: Error | DetailedError | string) {
+    this.response.errorMessage = `${error}`;
   }
 
   uploadCreated(): void {

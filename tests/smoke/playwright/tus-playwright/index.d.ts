@@ -24,30 +24,21 @@ export type PreviousUpload = TusPreviousUpload & {
   parallelUploadUrls: string[] | null;
 };
 
+export type UploadContextOptions = {
+  chunkSize?: number;
+  shouldPauseInitialized?: boolean;
+  shouldPauseInProgress?: boolean;
+};
+
 export type UploadOptions = Required<
   Pick<TusUploadOptions, 'metadata' | 'endpoint' | 'urlStorage'>
 > &
-  Pick<TusUploadOptions, 'headers' | 'retryDelays'> &
-  (
-    | {
-        onInitiated: (response: UploadResponse) => void;
-        onInProgress?: never;
-        onComplete?: never;
-      }
-    | {
-        onInitiated?: never;
-        onInProgress: (response: UploadResponse) => void;
-        onComplete?: never;
-      }
-    | {
-        onInitiated?: never;
-        onInProgress?: never;
-        onComplete: (response: UploadResponse) => void;
-      }
-  );
+  Pick<TusUploadOptions, 'headers' | 'retryDelays' | 'chunkSize'>;
 
 export type EventType = 'created' | 'started' | 'completed' | 'paused' | 'terminated' | 'resumed';
 export type UploadStatusType = 'Initiated' | 'In Progress' | 'Complete' | 'Failed';
+export type UploadStatusPauseable = 'Initiated' | 'In Progress' | 'Complete';
+
 export type UploadResponse = Readonly<Response>;
 
 export type Response = {
@@ -66,7 +57,7 @@ export type Response = {
   bytesAccepted?: number;
   bytesTotal?: number;
 
-  errorMessage?: string;
+  errorMessage: string | null;
 
   httpRequests: HttpRequest[];
   httpResponses: HttpResponse[];

@@ -1,48 +1,62 @@
-import fs from 'fs';
+import { ReadStream, createReadStream, statSync } from 'fs';
 import * as tus from 'tus-js-client';
 import {
   DetailedError,
   HttpRequest,
   HttpResponse,
+  PreviousUpload,
   TusUploadOptions,
-  UploadOptions
+  UploadOptions,
+  UploadResponse,
+  UploadStatusType
 } from './index.d';
 import { ResponseBuilder } from './response';
 
 export class UploadClient {
-  private file: fs.ReadStream;
   private options: TusUploadOptions;
   private tusClient: tus.Upload;
   private builder: ResponseBuilder;
+  private previousUpload: PreviousUpload | null = null;
+  private status: UploadStatusType | null = null;
+  private _isUploading: boolean = false;
+  private _initiatedPromise: Promise<UploadResponse>;
+  private _inProgressPromise: Promise<UploadResponse>;
+  private _completedPromise: Promise<UploadResponse>;
 
   constructor(filename: string, options: UploadOptions) {
-    this.file = fs.createReadStream(filename);
     this.builder = new ResponseBuilder(filename);
 
-    const fileSize = fs.statSync(filename).size;
+    let _resolveInitiated: (value: UploadResponse) => void;
+    this._initiatedPromise = new Promise(resolve => {
+      _resolveInitiated = resolve;
+    });
 
-    const { onInitiated, onInProgress, onComplete } = options;
-    // TODO create a custom FileReader
-    // the way we are opening files does not allow for chunking, we need to implement our
-    // own FileReader so that we can upload the file in chunks
-    // this chunk setting is here so that we can test out uploads that are in progress,
-    // otherwise they immediately goes from Initiated to Complete
-    const chunkSize =
-      onInProgress && typeof onInProgress == 'function' ? Math.floor(fileSize / 2) : Infinity;
+    let _resolveInProgress: (value: UploadResponse) => void;
+    this._inProgressPromise = new Promise(resolve => {
+      _resolveInProgress = resolve;
+    });
+
+    let _resolveCompleted: (value: UploadResponse) => void;
+    this._completedPromise = new Promise(resolve => {
+      _resolveCompleted = resolve;
+    });
+
+    const file: ReadStream = createReadStream(filename);
+    const fileSize = statSync(filename)?.size;
+    // the default chunkSize is half of the file size so that
+    // we can support waiting for an In Progress status
+    const defaultChunk: number = fileSize / 2;
 
     this.options = {
-      uploadLengthDeferred: true,
       storeFingerprintForResuming: true,
       removeFingerprintOnSuccess: true,
-      chunkSize,
       metadata: options.metadata,
       endpoint: options.endpoint,
       urlStorage: options.urlStorage,
       retryDelays: options.retryDelays ?? [0, 1000, 3000, 5000],
+      chunkSize: options.chunkSize ?? defaultChunk,
       headers: {
         'Tus-Resumable': '1.0.0',
-        'Content-Length': '0',
-        'Upload-Defer-Length': '1',
         ...options.headers
       },
       onBeforeRequest: (req: HttpRequest): void => {
@@ -55,76 +69,144 @@ export class UploadClient {
         this.builder.setProgress(bytesSent, bytesTotal);
       },
       onChunkComplete: (chunkSize: number, bytesAccepted: number, bytesTotal: number): void => {
-        // if the chunkSize and bytesAccepted match, that means the first chunk has been sent
-        // and the status should have switched to In Progress
+        // only need to report In Progress the first time
         if (chunkSize == bytesAccepted) {
           this.builder.setUploadStatus('In Progress');
-          // if the onInProgress callback has been set
-          // pause the upload, wait a second for the file
-          // system to catch up and then call the callback
-          // we must pause so that the upload doesn't complete
-          // while we are testing the status
-          if (onInProgress && typeof onInProgress == 'function') {
-            this.pause().then(() => {
-              setTimeout(() => {
-                onInProgress(this.builder.getResponse());
-              }, 1000);
-            });
-          }
+          this.status = 'In Progress';
         }
+
+        // resolve the promise waiting for the In Progress status
+        _resolveInProgress(this.builder.getResponse());
         this.builder.setChunkComplete(chunkSize, bytesAccepted, bytesTotal);
       },
       onUploadUrlAvailable: (): void => {
-        this.builder.uploadCreated();
-
         const uploadUrl = this.tusClient?.url ?? '';
         const uploadUrlId = uploadUrl?.split('/')?.slice(-1)[0] ?? '';
         const uploadIdPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
         const uploadId = uploadIdPattern.exec(uploadUrl)?.[0] ?? '';
-        this.builder.setUploadId(uploadId, uploadUrlId, uploadUrl);
 
-        // if the onInitiated callback has been set
-        // pause the upload and then call the callback
-        // we must pause so that the upload doesn't complete
-        // while we are testing the status
-        if (onInitiated && typeof onInitiated == 'function') {
-          this.pause().then(() => {
-            onInitiated(this.builder.getResponse());
-          });
-        }
+        this.builder.uploadCreated();
+        this.builder.setUploadId(uploadId, uploadUrlId, uploadUrl);
+        this.status = 'Initiated';
+
+        // resolve the promise waiting for the Initiated status
+        _resolveInitiated(this.builder.getResponse());
+
+        this.findPreviousUploadFromUploadUrl(uploadUrl).then(upload => {
+          this.previousUpload = upload;
+        });
       },
       onSuccess: () => {
         this.builder.uploadSuccessful();
+        this._isUploading = false;
+        this.status = 'Complete';
 
-        // if the onComplete callback has been set,
-        // then call the callback when the upload is complete
-        if (onComplete && typeof onComplete == 'function') {
-          onComplete(this.builder.getResponse());
-        }
+        // resolve the promise waiting for the Complete status
+        _resolveCompleted(this.builder.getResponse());
       },
       onError: (error: Error | DetailedError) => {
         this.builder.uploadFailure(error);
+        this._isUploading = false;
+        this.status = 'Failed';
 
-        // if the onComplete callback has been set,
-        // then call the callback when the upload has an error
-        if (onComplete && typeof onComplete == 'function') {
-          onComplete(this.builder.getResponse());
-        }
+        // resolve the promise waiting for the Complete status
+        _resolveCompleted(this.builder.getResponse());
       }
     };
 
-    this.tusClient = new tus.Upload(this.file, this.options);
+    this.tusClient = new tus.Upload(file, this.options);
   }
 
-  upload(): void {
-    this.tusClient.start();
+  async uploadComplete(): Promise<UploadResponse> {
+    if (this.status == 'Complete') {
+      return this.builder.getResponse();
+    }
+    this.start();
+    return this._completedPromise;
   }
 
-  private async pause(): Promise<void> {
-    this.tusClient.abort(false);
+  async uploadInitiated(): Promise<UploadResponse> {
+    if (this.status != null) {
+      this.builder.setErrorMessage(
+        'Cannot pause at Initiated because the upload was already initiated'
+      );
+      return this.builder.getResponse();
+    }
+    this.start();
+    return new Promise(resolve => {
+      this._initiatedPromise.then(response => {
+        // once the upload is initiated pause the upload so that tests can be performed on this status
+        this.pause().then(() => {
+          resolve(response);
+        });
+      });
+    });
   }
 
-  static async terminate(url: string, options: tus.UploadOptions = {}): Promise<void> {
-    return tus.Upload.terminate(url, options);
+  async uploadInProgress(): Promise<UploadResponse> {
+    if (this.status == 'Complete') {
+      this.builder.setErrorMessage('Cannot pause at In Progress because the upload is complete');
+      return this.builder.getResponse();
+    }
+    this.start();
+    return new Promise(resolve => {
+      this._inProgressPromise.then(response => {
+        // once the upload is in progress pause the upload
+        // so that tests can be performed on this status
+        this.pause().then(() => {
+          // waiting for 1 second for the file system to update
+          setTimeout(() => resolve(response), 1000);
+        });
+      });
+    });
+  }
+
+  async start(): Promise<void> {
+    if (!this._isUploading) {
+      if (this.previousUpload) {
+        this.tusClient.resumeFromPreviousUpload(this.previousUpload);
+      } else if (this.tusClient.url) {
+        const upload: PreviousUpload | null = await this.findPreviousUploadFromUploadUrl(
+          this.tusClient.url
+        );
+        if (upload) {
+          this.tusClient.resumeFromPreviousUpload(upload);
+        }
+      }
+
+      this.tusClient.start();
+      this._isUploading = true;
+    }
+  }
+
+  async pause(): Promise<void> {
+    if (this._isUploading) {
+      this.tusClient.abort(false);
+      this._isUploading = false;
+    }
+  }
+
+  async resume(): Promise<void> {
+    return this.start();
+  }
+
+  async terminate(): Promise<void> {
+    this.tusClient.abort(true);
+  }
+
+  private async findPreviousUploads(): Promise<PreviousUpload[]> {
+    const tusUploads = await this.tusClient.findPreviousUploads();
+    return tusUploads.map(upload => upload as PreviousUpload);
+  }
+
+  private async findPreviousUploadFromUploadUrl(uploadUrl: string): Promise<PreviousUpload | null> {
+    const uploads: PreviousUpload[] = await this.findPreviousUploads();
+    const upload = uploads.find(value => value.uploadUrl == uploadUrl);
+
+    return upload ?? null;
+  }
+
+  static async removeUpload(url: string): Promise<void> {
+    return tus.Upload.terminate(url, {});
   }
 }
