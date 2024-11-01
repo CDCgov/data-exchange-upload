@@ -1,6 +1,5 @@
 [
   {
-    "version": "2.0",
     "data_stream_id": "covid-all-monthly-vaccination",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -14,7 +13,6 @@
     "meta_ext_filestatus": "test-file-status"
   },
   {
-    "version": "2.0",
     "data_stream_id": "covid-all-monthly-vaccination",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -28,7 +26,6 @@
     "meta_ext_filestatus": "test-file-status"
   },
   {
-    "version": "2.0",
     "data_stream_id": "ehdi",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -37,7 +34,6 @@
     "sender_id": "blah"
   },
   {
-    "version": "2.0",
     "data_stream_id": "ehdi",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -46,7 +42,6 @@
     "sender_id": "RI-PHA"
   },
   {
-    "version": "2.0",
     "data_stream_id": "ehdi",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -55,7 +50,6 @@
     "sender_id": "RI-PHA"
   },
   {
-    "version": "2.0",
     "data_stream_id": "eicr",
     "data_stream_route": "fhir",
     "sender_id": "blah",
@@ -66,7 +60,6 @@
     "meta_ext_file_timestamp": "test-file-timestamp"
   },
   {
-    "version": "2.0",
     "data_stream_id": "influenza-vaccination",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -79,7 +72,6 @@
     "meta_username": "test-username"
   },
   {
-    "version": "2.0",
     "data_stream_id": "routine-immunization",
     "data_stream_route": "other",
     "received_filename": "dex-smoke-test",
@@ -92,7 +84,6 @@
     "meta_username": "test-username"
   },
   {
-    "version": "2.0",
     "data_stream_id": "rsv-prevention",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -105,7 +96,6 @@
     "meta_username": "test-username"
   },
   {
-    "version": "2.0",
     "data_stream_id": "pulsenet",
     "data_stream_route": "localsequencefile",
     "received_filename": "dex-smoke-test",
@@ -114,7 +104,6 @@
     "jurisdiction": "test-jurisdiction"
   },
   {
-    "version": "2.0",
     "data_stream_id": "pulsenet",
     "data_stream_route": "localsequencefile",
     "received_filename": "dex-smoke-test",
@@ -123,7 +112,6 @@
     "jurisdiction": "test-jurisdiction"
   },
   {
-    "version": "2.0",
     "data_stream_id": "generic-immunization",
     "data_stream_route": "csv",
     "sender_id": "blah",
