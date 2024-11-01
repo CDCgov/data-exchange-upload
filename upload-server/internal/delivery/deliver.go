@@ -236,6 +236,7 @@ func Deliver(ctx context.Context, path string, s Source, d Destination) (string,
 	}
 	concurrency := 5
 	if length > size5MB {
+		// app level configuration for this
 		concurrency = int(length) / (size5MB / 5)
 	}
 	return d.Copy(ctx, path, &s, manifest, length, concurrency)

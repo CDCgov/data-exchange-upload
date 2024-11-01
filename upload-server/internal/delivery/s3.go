@@ -226,57 +226,37 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, source *Sourc
 		var chunkNum int
 		var start = 0
 		var end = 0
-		chunkIdMap := make(map[int]string)
+		// create all the jobs that need to be done - one job per chunk
+		jobsCh := make(chan s3.UploadPartCopyInput, numChunks)
 		for chunkNum = 1; chunkNum <= numChunks; chunkNum++ {
 			end = start + partSize - 1
 			if chunkNum == numChunks {
 				end = lengthInt - 1
 			}
-			chunkIdMap[chunkNum] = fmt.Sprintf("bytes=%d-%d", start, end)
+			jobsCh <- s3.UploadPartCopyInput{
+				Bucket:          aws.String(sd.BucketName),
+				CopySource:      aws.String(sourcePath),
+				CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", start, end)),
+				Key:             aws.String(destFile),
+				PartNumber:      aws.Int32(int32(chunkNum)),
+				UploadId:        aws.String(uploadId),
+			}
 			start = end + 1
 		}
-		wg := sync.WaitGroup{}
+		close(jobsCh)
+
+		// make a worker pool where number of workers = concurrency
+		var wg sync.WaitGroup
+		wg.Add(concurrency)
 		errCh := make(chan error, 1)
 		responseCh := make(chan types.CompletedPart, numChunks)
 		completedParts := make([]types.CompletedPart, numChunks)
 
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-		routines := 0
-		for chunkId, rangeHeader := range chunkIdMap {
-			wg.Add(1)
-			routines++
-			go func(chunkId int, rangeHeader string) {
-				defer wg.Done()
-				uploadPartResp, err := client.UploadPartCopy(ctx, &s3.UploadPartCopyInput{
-					Bucket:          aws.String(sd.BucketName),
-					CopySource:      aws.String(sourcePath),
-					CopySourceRange: aws.String(rangeHeader),
-					Key:             aws.String(destFile),
-					PartNumber:      aws.Int32(int32(chunkId)),
-					UploadId:        aws.String(uploadId),
-				})
-				if err != nil {
-					select {
-					case errCh <- err:
-						// error was set
-					default:
-						// some other error is already set
-					}
-					cancel()
-				} else {
-					responseCh <- types.CompletedPart{
-						ETag:       uploadPartResp.CopyPartResult.ETag,
-						PartNumber: aws.Int32(int32(chunkId)),
-					}
-				}
-
-			}(chunkId, rangeHeader)
-			if routines >= concurrency {
-				wg.Wait()
-				routines = 0
-			}
+		// send jobs to the workers
+		for worker := 0; worker < concurrency; worker++ {
+			go sd.copyPartWorker(ctx, jobsCh, responseCh, errCh, &wg)
 		}
+		// wait for all workers to finish
 		wg.Wait()
 		close(responseCh)
 		select {
@@ -312,6 +292,27 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, source *Sourc
 		return *completion.Location, nil
 	}
 
+}
+
+func (sd *S3Destination) copyPartWorker(ctx context.Context, jobsCh <-chan s3.UploadPartCopyInput,
+	responseCh chan<- types.CompletedPart, errCh chan<- error, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for job := range jobsCh {
+		uploadPartResp, err := sd.toClient.UploadPartCopy(ctx, &job)
+		if err != nil {
+			select {
+			case errCh <- err:
+				// error was set
+			default:
+				// some other error is already set
+			}
+		} else {
+			responseCh <- types.CompletedPart{
+				ETag:       uploadPartResp.CopyPartResult.ETag,
+				PartNumber: job.PartNumber,
+			}
+		}
+	}
 }
 
 func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
