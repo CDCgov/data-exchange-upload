@@ -97,35 +97,6 @@ func TestTus(t *testing.T) {
 					t.Error("appended upload ID did not match upload ID", appendedUid, tuid)
 				}
 
-				//translationFields := map[string]string{
-				//	"meta_destination_id": "data_stream_id",
-				//	"meta_ext_event":      "data_stream_route",
-				//}
-				//v, ok := c.metadata["version"]
-				//
-				//if !ok || v == "1.0" {
-				//	for v1Key, v2Key := range translationFields {
-				//		v1Val, ok := processedMeta[v1Key]
-				//		if !ok {
-				//			t.Error("malformed metadata; missing required field", v1Key, processedMeta)
-				//		}
-				//		v2Val, ok := processedMeta[v2Key]
-				//		if !ok {
-				//			t.Error("v1 metadata not hydrated; missing v2 field", v2Key)
-				//		}
-				//		if v1Val != v2Val {
-				//			t.Error("v1 to v2 fields not properly translated", v1Val, v2Val)
-				//		}
-				//	}
-				//}
-				// .Check v2 hydration
-
-				// Check that all of the report files were created
-				expectedMetadataTransformReportCount := 2
-				//if v, ok := c.metadata["version"]; !ok || v == "1.0" {
-				//	expectedMetadataTransformReportCount = 3
-				//}
-
 				reportSummary, err := readReportFiles(tuid, trackedStages)
 				if err != nil {
 					t.Error("failed to read report file for", "tuid", tuid, err.Error())
@@ -134,7 +105,7 @@ func TestTus(t *testing.T) {
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, reports.StageMetadataTransform, expectedMetadataTransformReportCount)
+				err = checkReportSummary(reportSummary, reports.StageMetadataTransform, 2)
 				if err != nil {
 					t.Error(err.Error())
 				}

@@ -237,7 +237,7 @@ func (b *ReportBuilder[T]) Build() *Report {
 			},
 			ReportSchemaVersion: b.Version,
 			UploadID:            b.UploadId,
-			SenderID:            metadata.GetSenderId(b.Manifest),
+			SenderID:            b.Manifest["sender_id"],
 			DataStreamID:        b.Manifest["data_stream_id"],
 			DataStreamRoute:     b.Manifest["data_stream_route"],
 			Jurisdiction:        metadata.GetJurisdiction(b.Manifest),
