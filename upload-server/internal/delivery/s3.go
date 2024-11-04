@@ -16,9 +16,10 @@ import (
 	"time"
 )
 
-const size5MB = 5 * 1024 * 1024
-const s3MaxCopySize = size5MB * 1024
-const s3MaxParts = 10000
+const size5MB = 5 * 1024 * 1024      // minimum block size in s3
+const size8MB = 8 * 1024 * 1024      // recommended block size for transfers
+const s3MaxCopySize = size5MB * 1024 // maximum single operation copy in s3
+const s3MaxParts = 10000             // maximum number of blocks per object in s3
 
 type writeAtWrapper struct {
 	writer io.Writer
@@ -215,7 +216,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, id string, so
 			return "", fmt.Errorf("unable to create multipart upload: %v", err)
 		}
 		uploadId := *upload.UploadId
-		var partSize = size5MB
+		var partSize = size8MB
 		if lengthInt > partSize*s3MaxParts {
 			// we need to increase the Part size
 			partSize = lengthInt / s3MaxParts

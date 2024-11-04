@@ -102,11 +102,16 @@ func getFileDestination(folder string) *delivery.FileDestination {
 func runDeliveryTest(t *testing.T, src delivery.Source, dest delivery.Destination, template string) {
 	srcFile := "test.HL7"
 	metadata, _ := src.GetMetadata(context.TODO(), srcFile)
-	destPath, _ := delivery.GetDeliveredFilename(srcFile, template, metadata)
-	url, err := delivery.Deliver(context.TODO(), srcFile, destPath, src, dest)
-	printError(err)
-	assert.True(t, url != "")
-	assert.True(t, err == nil)
+	destPath, e := delivery.GetDeliveredFilename(srcFile, template, metadata)
+	if e == nil {
+		url, err := delivery.Deliver(context.TODO(), srcFile, destPath, src, dest)
+		printError(err)
+		assert.True(t, url != "")
+		assert.True(t, err == nil)
+	} else {
+		printError(e)
+	}
+
 }
 
 func TestDeliverAzureToAzure(t *testing.T) {

@@ -244,13 +244,12 @@ func Deliver(ctx context.Context, id string, path string, s Source, d Destinatio
 	if e != nil {
 		length = 1
 	}
-
-	concurrency := 5
-	if length > size5MB {
-		// app level configuration for this
-		concurrency = int(length) / (size5MB / 5)
+	maxConcurrency := appconfig.LoadedConfig.MaxConcurrency
+	if maxConcurrency <= 0 {
+		maxConcurrency = 5
 	}
-	return d.Copy(ctx, id, path, &s, manifest, length, concurrency)
+
+	return d.Copy(ctx, id, path, &s, manifest, length, maxConcurrency)
 }
 
 var ErrBadIngestTimestamp = errors.New("bad ingest timestamp")
