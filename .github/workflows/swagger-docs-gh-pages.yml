@@ -35,8 +35,10 @@ jobs:
         with:
           name: swagger-docs
           path: docs/
-      - uses: ./.github/workflows/deploy-to-ghpages.yml
-        with:
-          ARTIFACT_ID: swagger-docs
-          DEPLOY_TO: .
-          COMMIT_MSG: "Updating Swagger Docs"
+  publish:
+    needs: [build]
+    uses: ./.github/workflows/deploy-to-ghpages.yml
+    with:
+      ARTIFACT_ID: swagger-docs
+      DEPLOY_TO: .
+      COMMIT_MSG: "Updating Swagger Docs"
