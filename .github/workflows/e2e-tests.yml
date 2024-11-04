@@ -1,0 +1,50 @@
+name: 'Playwright Tests'
+
+on:
+  workflow_call:
+
+defaults:
+  run:
+    working-directory: upload-server/
+
+jobs:
+  e2e-tests-fs:
+    name: E2E Tests - File System Storage to File System Destinations
+    uses: ./.github/workflows/e2e-test-run-template.yml
+    with:
+      TEST_NAME: fs-to-fs
+      TEST_TITLE: E2E FS Tests
+      COMPOSE_FILENAME: ./docker-compose.e2e.yml
+    secrets: inherit
+  e2e-tests-azure:
+    name: E2E Tests - Azure Blob Storage to Azure Blob Destinations
+    uses: ./.github/workflows/e2e-test-run-template.yml
+    with:
+      TEST_NAME: azure-to-azure
+      TEST_TITLE: E2E Azure Tests
+      COMPOSE_FILENAME: ./docker-compose.e2e.azurite.yml
+    secrets: inherit
+  e2e-tests-aws:
+    name: E2E Tests - AWS S3 Storage to AWS S3 Destinations
+    uses: ./.github/workflows/e2e-test-run-template.yml
+    with:
+      TEST_NAME: aws-to-aws
+      TEST_TITLE: E2E AWS Tests
+      COMPOSE_FILENAME: ./docker-compose.e2e.minio.yml
+    secrets: inherit
+  e2e-tests-mix:
+    name: E2E Tests - File System Storage to Azure Blob and AWS S3 Destinations
+    uses: ./.github/workflows/e2e-test-run-template.yml
+    with:
+      TEST_NAME: fs-to-azure-and-aws
+      TEST_TITLE: E2E FS to Azure and AWS Tests
+      COMPOSE_FILENAME: ./docker-compose.e2e.all.yml
+    secrets: inherit
+  e2e-tests-aws-azure:
+    name: E2E Tests - AWS S3 Storage to Azure Blob Destinations
+    uses: ./.github/workflows/e2e-test-run-template.yml
+    with:
+      TEST_NAME: aws-to-azure
+      TEST_TITLE: E2E AWS to Azure Tests
+      COMPOSE_FILENAME: ./docker-compose.e2e.minio-azurite.yml
+    secrets: inherit

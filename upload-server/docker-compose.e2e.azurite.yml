@@ -24,10 +24,6 @@ services:
       - TUS_AZURE_CONTAINER_NAME=test
       - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/azurite_destinations.yml
       - AZURITE_KEY=${AZURITE_STORAGE_KEY}
-      - EDAV_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
-      - EHDI_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
-      - EICR_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
-      - NCIRD_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-azurite-network
@@ -44,9 +40,8 @@ services:
       - CI
       - SERVER_URL=http://upload-server-azurite:8080
       - UI_URL=http://upload-server-azurite:8081
-      - TEST_REPORT_JSON=${TEST_REPORT_JSON:-azurite-test-report.json}
-      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-/playwright/test-reports/azure/}
-      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-/playwright/test-results/azure/}
+      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-/playwright/test-reports/azure-to-azure/}
+      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-/playwright/test-results/azure-to-azure/}
     command: npm run test:docker
     networks:
       - e2e-azurite-network

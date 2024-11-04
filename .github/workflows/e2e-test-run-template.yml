@@ -3,13 +3,13 @@ name: Template - Run E2E Tests Using Docker-Compose File
 on:
   workflow_call:
     inputs:
+      TEST_NAME:
+        type: string
+        required: true
       TEST_TITLE:
         type: string
         required: true
       COMPOSE_FILENAME:
-        type: string
-        required: true
-      STORAGE_TYPE:
         type: string
         required: true
 
@@ -18,13 +18,14 @@ defaults:
     working-directory: upload-server/
 
 jobs:
-  e2e-tests:
+  run-tests:
     runs-on: ubuntu-latest
     continue-on-error: true
     env:
       CI: true
       AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
-      TEST_REPORTS_DIR: ../tests/smoke/playwright/test-reports/${{ inputs.STORAGE_TYPE }}/
+      # The compose file sends this variable into the Playwright configs
+      TEST_REPORTS_DIR: /playwright/test-reports/${{ inputs.TEST_NAME }}/
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
@@ -46,8 +47,8 @@ jobs:
         uses: actions/upload-artifact@v2
         if: always()
         with:
-          name: playwright-report-${{ inputs.STORAGE_TYPE }}
-          path: ${{ env.TEST_REPORTS_DIR }}
+          name: playwright-report-${{ inputs.TEST_NAME }}
+          path: ${{ env.TEST_REPORTS_DIR }}/html
           retention-days: 30
     outputs:
       actualResult: ${{ steps.test.conclusion }}

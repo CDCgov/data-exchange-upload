@@ -3,7 +3,6 @@ import { PlaywrightTestConfig, devices } from '@playwright/test';
 const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
 const testReportsDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
 const testResultsDir = process.env.TEST_RESULTS_DIR ?? './test-results';
-const jsonReportFilename = process.env.TEST_REPORT_JSON ?? 'test-report.json';
 
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
@@ -31,7 +30,7 @@ const config: PlaywrightTestConfig = {
         [
           'html',
           {
-            outputFolder: ``,
+            outputFolder: `${testReportsDir}/html`,
             open: 'never'
           }
         ]
@@ -48,7 +47,7 @@ const config: PlaywrightTestConfig = {
         [
           'json',
           {
-            outputFile: `${testReportsDir}/${jsonReportFilename}`
+            outputFile: `${testReportsDir}/test-report.json`
           }
         ]
       ],
