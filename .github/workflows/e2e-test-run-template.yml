@@ -42,6 +42,13 @@ jobs:
         run:
           podman-compose -f ${{ inputs.COMPOSE_FILENAME }} logs -f playwright | perl -pe
           's/::(debug|notice|warning|error) title=/$&\[${{ inputs.TEST_TITLE }}\] /g'
+      - name: Upload Playwright Reports
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: playwright-report-${{ inputs.TEST_NAME }}
+          path: tests/smoke/playwright/test-reports/${{ inputs.TEST_NAME }}
+          retention-days: 10
       - name: Tear Down Containers
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} down
     outputs:
