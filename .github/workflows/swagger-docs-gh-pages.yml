@@ -41,6 +41,8 @@ jobs:
     steps:
       - name: Checkout GitHub Pages Branch
         uses: actions/checkout@v4
+        with:
+          ref: gh-pages
       - name: Download Docs
         uses: actions/download-artifact@v4
         with:
