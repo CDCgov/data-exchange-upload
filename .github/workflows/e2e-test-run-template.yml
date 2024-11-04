@@ -19,6 +19,7 @@ defaults:
 
 jobs:
   run-tests:
+    name: ${{ inputs.TEST_TITLE }}
     runs-on: ubuntu-latest
     continue-on-error: true
     env:
