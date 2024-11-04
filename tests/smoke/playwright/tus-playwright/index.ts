@@ -1,30 +1,18 @@
 import { expect } from '@playwright/test';
-import * as http from 'http';
 import {
-  UploadOptions as ClientOptions,
   HttpRequest,
   HttpResponse,
+  RawHttpRequest,
+  RawHttpResponse,
+  UploadContextOptions,
+  UploadOptions,
   UploadResponse,
   UploadStatusType
 } from './index.d';
 import { MemoryStorage } from './memory-storage';
-import * as client from './upload-client';
+import { UploadClient } from './upload-client';
 
-export type ContextOptions = Pick<ClientOptions, 'headers' | 'retryDelays' | 'chunkSize'>;
-export type UploadHooks = Pick<
-  ClientOptions,
-  | 'onBeforeRequest'
-  | 'onAfterResponse'
-  | 'onProgress'
-  | 'onChunkComplete'
-  | 'onUploadStarted'
-  | 'onUploadCreated'
-  | 'onUploadPaused'
-  | 'onUploadResumed'
->;
-
-type RawHttpRequest = http.ClientRequest;
-type RawHttpResponse = http.IncomingMessage;
+export type ContextOptions = Pick<UploadOptions, 'headers' | 'retryDelays'>;
 
 function newContext(baseUrl: string, options: ContextOptions = {}): ClientContext {
   return new ClientContext(baseUrl, options);
@@ -56,27 +44,84 @@ class ClientContext {
     this.options.retryDelays = retryDelays;
   }
 
-  setChunkSize(chunkSize: number) {
-    this.options.chunkSize = chunkSize;
+  private getUploadContext(
+    filename: string,
+    metadata: { [key: string]: string },
+    options: UploadContextOptions = {}
+  ): UploadContext {
+    const { chunkSize, ...contextOptions } = options;
+
+    const uploadOptions: UploadOptions = {
+      metadata,
+      headers: this.options.headers,
+      endpoint: this.baseURL,
+      urlStorage: this.storage
+    };
+    if (options.chunkSize) uploadOptions.chunkSize = options.chunkSize;
+
+    return new UploadContext(filename, uploadOptions, contextOptions);
   }
 
   async upload(
     filename: string,
     metadata: { [key: string]: string },
-    hooks: UploadHooks = {}
-  ): Promise<UploadContext> {
-    const response = await client.uploadFile(filename, {
-      ...this.options,
-      metadata,
-      endpoint: this.baseURL,
-      urlStorage: this.storage,
-      ...hooks
-    });
-    return new UploadContext(response);
+    chunkSize?: number
+  ): Promise<ResponseContext> {
+    const client = this.getUploadContext(filename, metadata, { chunkSize });
+    return client.upload();
+  }
+
+  newUploadContext(
+    filename: string,
+    metadata: { [key: string]: string },
+    options: UploadContextOptions = {}
+  ): UploadContext {
+    return this.getUploadContext(filename, metadata, options);
   }
 }
 
 class UploadContext {
+  private client: UploadClient;
+  private shouldPauseInitialized: boolean;
+  private shouldPauseInProgress: boolean;
+  private lastResponse: UploadResponse | null;
+
+  constructor(
+    filename: string,
+    uploadOptions: UploadOptions,
+    contextOptions: UploadContextOptions = {}
+  ) {
+    this.client = new UploadClient(filename, uploadOptions);
+    this.lastResponse = null;
+    this.shouldPauseInitialized = contextOptions?.shouldPauseInitialized ?? false;
+    this.shouldPauseInProgress = contextOptions?.shouldPauseInProgress ?? false;
+  }
+
+  async upload(): Promise<ResponseContext> {
+    if (this.lastResponse == null && this.shouldPauseInitialized) {
+      this.lastResponse = await this.client.uploadInitiated();
+    } else if (
+      (this.lastResponse == null || this.lastResponse.uploadStatus == 'Initiated') &&
+      this.shouldPauseInProgress
+    ) {
+      this.lastResponse = await this.client.uploadInProgress();
+    } else {
+      this.lastResponse = await this.client.uploadComplete();
+    }
+
+    return new ResponseContext(this.lastResponse);
+  }
+
+  isComplete(): boolean {
+    return this.lastResponse?.uploadStatus == 'Complete' || false;
+  }
+
+  async cleanup(): Promise<void> {
+    this.client.terminate();
+  }
+}
+
+class ResponseContext {
   private response: UploadResponse;
   private lastRequest: HttpRequest | null;
   private lastRawRequest: RawHttpRequest | null;
@@ -129,6 +174,10 @@ class UploadContext {
     return this.response.uploadUrl ?? null;
   }
 
+  getUploadUrlId(): string | null {
+    return this.response.uploadUrlId ?? null;
+  }
+
   getUploadId(): string | null {
     return this.response.uploadId ?? null;
   }
@@ -158,9 +207,22 @@ class UploadContext {
     expect(this.getResponseBodyString()).toContain(expectedBodySubstring);
   }
 
+  assertInitiatedSuccess() {
+    this.assertUploadStatus('Initiated');
+    this.assertResponseStatusCode(200);
+    expect(this.response.errorMessage).toBeNull();
+  }
+
+  assertInProgressSuccess() {
+    this.assertUploadStatus('In Progress');
+    this.assertNotResponseStatusCode(201);
+    expect(this.response.errorMessage).toBeNull();
+  }
+
   assertSuccess() {
     this.assertUploadStatus('Complete');
     this.assertResponseStatusCode(204);
+    expect(this.response.errorMessage).toBeNull();
   }
 
   assertError(expectedStatusCode: number) {

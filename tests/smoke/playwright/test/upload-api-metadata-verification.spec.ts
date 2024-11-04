@@ -5,7 +5,7 @@ import {
   TestCase,
   getTestCases,
   normalizeValidationErrors
-} from '../resources/test-helpers';
+} from '../resources/test-utils';
 import tusClient from '../tus-playwright';
 
 export type TestSuite = {

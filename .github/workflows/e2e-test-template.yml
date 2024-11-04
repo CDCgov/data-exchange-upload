@@ -23,7 +23,7 @@ jobs:
     continue-on-error: true
     env:
       CI: true
-      AZURITE_STORAGE_KEY: ${{ (inputs.STORAGE_TYPE == 'azure') && secrets.AZURITE_STORAGE_KEY }}
+      AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
       TEST_REPORTS_DIR: ../tests/smoke/playwright/test-reports/${{ inputs.STORAGE_TYPE }}/
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
         run:
           podman-compose -f ${{ inputs.COMPOSE_FILENAME }} up --build --exit-code-from playwright
           --abort-on-container-exit
-      - name: Print Test Report
+      - name: Test Report
         # Piping the logs through perl so that we can append the TEST_TITLE to make where they are coming from clearer
         # The only annotation types produced by the `github` report are 'debug', 'notice', 'warning', and 'error' so this should cover them all
         run:

@@ -1,6 +1,6 @@
 [
   {
-    "name": "Invalid character in filename - config v1",
+    "name": "should error because of invalid character in filename - config v1",
     "metadata": {
       "meta_destination_id": "dextesting",
       "meta_ext_event": "testevent1",
@@ -10,7 +10,7 @@
     "expectedErrorMessages": ["invalid character found in test/-file validation failure"]
   },
   {
-    "name": "Invalid destination and event combination - config v1",
+    "name": "should error because of invalid upload target - config v1",
     "metadata": {
       "meta_destination_id": "dextesting",
       "meta_ext_event": "testevent100",
@@ -23,7 +23,7 @@
     ]
   },
   {
-    "name": "Invalid character in filename",
+    "name": "should error because of invalid character in filename",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "dextesting",
@@ -37,7 +37,7 @@
     "expectedErrorMessages": ["invalid character found in test/-file validation failure"]
   },
   {
-    "name": "Invalid data stream combination",
+    "name": "should error because of invalid upload target",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "dextesting",
@@ -54,7 +54,7 @@
     ]
   },
   {
-    "name": "Invalid jurisdiction for covid-all-monthly-vaccination_csv",
+    "name": "should error because of invalid jurisdiction for covid-all-monthly-vaccination_csv",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "covid-all-monthly-vaccination",
@@ -72,7 +72,7 @@
     "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
   },
   {
-    "name": "Invalid sender_id for covid-all-monthly-vaccination_csv",
+    "name": "should error because of invalid sender_id for covid-all-monthly-vaccination_csv",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "covid-all-monthly-vaccination",
@@ -90,7 +90,7 @@
     "expectedErrorMessages": ["sender_id had disallowed value blah"]
   },
   {
-    "name": "Invalid sender_id for ehdi_csv",
+    "name": "should error because of invalid sender_id for ehdi_csv",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "ehdi",
@@ -104,7 +104,7 @@
     "expectedErrorMessages": ["sender_id had disallowed value blah"]
   },
   {
-    "name": "Invalid data_producer_id for ehdi_csv",
+    "name": "should error because of invalid data_producer_id for ehdi_csv",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "ehdi",
@@ -118,7 +118,7 @@
     "expectedErrorMessages": ["data_producer_id had disallowed value blah"]
   },
   {
-    "name": "Invalid jurisdiction for ehdi_csv",
+    "name": "should error because of invalid jurisdiction for ehdi_csv",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "ehdi",
@@ -132,7 +132,7 @@
     "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
   },
   {
-    "name": "Invalid sender_id for eicr_fhir",
+    "name": "should error because of invalid sender_id for eicr_fhir",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "eicr",
@@ -148,7 +148,7 @@
     "expectedErrorMessages": ["sender_id had disallowed value blah"]
   },
   {
-    "name": "Invalid jurisdiction for influenza-vaccination_csv",
+    "name": "should error because of invalid jurisdiction for influenza-vaccination_csv",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "influenza-vaccination",
@@ -166,7 +166,7 @@
     "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
   },
   {
-    "name": "Invalid sender_id for routine-immunization_other",
+    "name": "should error because of invalid sender_id for routine-immunization_other",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "routine-immunization",
@@ -184,7 +184,7 @@
     "expectedErrorMessages": ["sender_id had disallowed value blah"]
   },
   {
-    "name": "Invalid jurisdiction for rsv-prevention_csv",
+    "name": "should error because of invalid jurisdiction for rsv-prevention_csv",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "rsv-prevention",
@@ -202,7 +202,7 @@
     "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
   },
   {
-    "name": "Invalid sender_id for pulsenet_localsequencefile",
+    "name": "should error because of invalid sender_id for pulsenet_localsequencefile",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "pulsenet",
@@ -216,7 +216,7 @@
     "expectedErrorMessages": ["sender_id had disallowed value blah"]
   },
   {
-    "name": "Invalid jurisdiction for generic-immunization_csv",
+    "name": "should error because of invalid jurisdiction for generic-immunization_csv",
     "metadata": {
       "version": "2.0",
       "data_stream_id": "generic-immunization",

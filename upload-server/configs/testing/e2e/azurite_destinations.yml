@@ -34,45 +34,50 @@ routing_groups:
     data_stream_route: localsequencefile
     delivery_targets:
       - name: edav
-        path_template: "{{.DataStreamID}}/{{.DataStreamRoute}}/{{.Filename}}"
+        path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: ehdi
     data_stream_route: csv
     delivery_targets:
       - name: ehdi
-        path_template: $EHDI_PATH_TEMPLATE
+        path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: eicr
     data_stream_route: fhir
     delivery_targets:
       - name: eicr
-        path_template: $EICR_PATH_TEMPLATE
+        path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
+        path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: generic-immunization
     data_stream_route: csv
     delivery_targets:
       - name: ncird
+        path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: influenza-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
+        path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: routine-immunization
     data_stream_route: other
     delivery_targets:
       - name: ncird
+        path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
+        path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: dextesting
     data_stream_route: testevent1
     delivery_targets:
       - name: ncird
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
+        path_template: '{{.Filename}}_{{.UploadId}}'
       - name: eicr
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
+        path_template: '{{.Filename}}_{{.UploadId}}'
       - name: edav
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
+        path_template: '{{.Filename}}_{{.UploadId}}'
       - name: ehdi
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
+        path_template: '{{.Filename}}_{{.UploadId}}'

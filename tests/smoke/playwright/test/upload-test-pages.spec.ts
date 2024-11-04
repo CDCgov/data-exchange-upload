@@ -2,13 +2,14 @@ import { expect, test } from '@playwright/test';
 import {
   API_FILE_ENDPOINT,
   SMALL_FILENAME,
+  UploadTarget,
   getFileSelection,
-  getMetadataObjects
-} from '../resources/test-helpers';
+  getUploadTargets
+} from '../resources/test-utils';
 
 test.describe.configure({ mode: 'parallel' });
 
-const metadata = getMetadataObjects();
+const targets: UploadTarget[] = getUploadTargets();
 const fileSelection = getFileSelection(SMALL_FILENAME);
 
 test.describe('Upload Landing Page', () => {
@@ -32,7 +33,7 @@ test.describe('Upload Landing Page', () => {
 });
 
 test.describe('Upload Manifest Page', () => {
-  metadata.forEach(({ dataStream, route }) => {
+  targets.forEach(({ dataStream, route }) => {
     test(`has the expected metadata elements for Data stream: ${dataStream} / Route: ${route}`, async ({
       page
     }) => {
@@ -156,8 +157,11 @@ test.describe('Upload Status Page', () => {
     await expect((await uploadPatchResponsePromise).ok()).toBeTruthy();
     await expect((await uploadHeadResponsePromise).ok()).toBeTruthy();
 
-    await page.waitForTimeout(10000); // wait for 10 seconds for all of the deliveries to complete
-    await page.reload();
+    do {
+      await page.waitForTimeout(100);
+      await page.reload();
+    } while ((await page.locator('.file-delivery-container')?.count()) < targets.length);
+
     await expect(await page.locator('.file-delivery-container').count()).toEqual(targets.length);
 
     const fileHeaderContainer = page.locator('.file-header-container');

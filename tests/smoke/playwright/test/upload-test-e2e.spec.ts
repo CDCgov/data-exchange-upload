@@ -1,18 +1,18 @@
 import { expect, test } from '@playwright/test';
 import {
-  Metadata,
   SMALL_FILENAME,
+  UploadTarget,
   getFileSelection,
-  getMetadataObjects
-} from '../resources/test-helpers';
+  getUploadTargets
+} from '../resources/test-utils';
 
 test.describe.configure({ mode: 'parallel' });
 
-const metadata: Metadata[] = getMetadataObjects();
+const targets: UploadTarget[] = getUploadTargets();
 const fileSelection = getFileSelection(SMALL_FILENAME);
 
 test.describe('Upload API/UI', () => {
-  metadata.forEach(({ dataStream, route }) => {
+  targets.forEach(({ dataStream, route }) => {
     test(`can use the UI to upload a file for Data stream: ${dataStream} / Route: ${route}`, async ({
       page
     }) => {

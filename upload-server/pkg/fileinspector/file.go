@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 )
 
 type FileSystemUploadInspector struct {
@@ -49,7 +50,7 @@ func (fsui *FileSystemUploadInspector) InspectUploadedFile(c context.Context, id
 		return nil, errors.Join(err, info.ErrNotFound)
 	}
 	uploadedFileInfo := map[string]any{
-		"updated_at": fi.ModTime().Format(time.RFC3339Nano),
+		"updated_at": fi.ModTime().UTC().Format(time.RFC3339Nano),
 		"size_bytes": fi.Size(),
 	}
 	return uploadedFileInfo, nil

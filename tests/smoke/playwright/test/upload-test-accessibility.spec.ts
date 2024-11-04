@@ -1,10 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { getMetadataObjects, Metadata } from '../resources/test-helpers';
+import { UploadTarget, getUploadTargets } from '../resources/test-utils';
 
 test.describe.configure({ mode: 'parallel' });
 
-const metadata: Metadata[] = getMetadataObjects();
+const targets: UploadTarget[] = getUploadTargets();
 const axeRuleTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 
 test.describe('Upload Landing Page', () => {
@@ -17,7 +17,7 @@ test.describe('Upload Landing Page', () => {
 });
 
 test.describe('Upload Manifest Page', () => {
-  metadata.forEach(({ dataStream, route }) => {
+  targets.forEach(({ dataStream, route }) => {
     test(`Checks accessibility for individual metadata page: ${dataStream} / ${route}`, async ({
       page
     }) => {

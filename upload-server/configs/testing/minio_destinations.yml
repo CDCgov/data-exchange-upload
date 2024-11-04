@@ -3,35 +3,49 @@ version: 1.0
 targets:
   edav:
     name: edav
-    type: file
-    path: ./uploads/edav
+    type: s3
+    bucket_name: edav
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    endpoint: 'http://minio:8000'
+    region: us-east-1
   ehdi:
     name: ehdi
-    type: file
-    path: ./uploads/ehdi
+    type: s3
+    bucket_name: ehdi
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    endpoint: 'http://minio:8000'
+    region: us-east-1
   eicr:
     name: eicr
-    type: file
-    path: ./uploads/eicr
+    type: az-blob
+    endpoint: 'http://azurite:10000/devstoreaccount1'
+    storage_account: 'devstoreaccount1'
+    storage_key: $AZURITE_KEY
+    container_name: eicr
   ncird:
     name: ncird
-    type: file
-    path: ./uploads/ncird
-
+    type: az-blob
+    endpoint: 'http://azurite:10000/devstoreaccount1'
+    storage_account: 'devstoreaccount1'
+    storage_key: $AZURITE_KEY
+    container_name: ncird
 routing_groups:
   - data_stream_id: pulsenet
     data_stream_route: localsequencefile
     delivery_targets:
       - name: edav
-        path_template: '{{.DataStreamID}}/{{.DataStreamRoute}}/{{.Filename}}'
   - data_stream_id: ehdi
     data_stream_route: csv
     delivery_targets:
       - name: ehdi
+        path_template: $EHDI_PATH_TEMPLATE
   - data_stream_id: eicr
     data_stream_route: fhir
     delivery_targets:
       - name: eicr
+        path_template: $EICR_PATH_TEMPLATE
   - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
@@ -56,10 +70,6 @@ routing_groups:
     data_stream_route: testevent1
     delivery_targets:
       - name: ncird
-        path_template: '{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}'
       - name: eicr
-        path_template: '{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}'
       - name: edav
-        path_template: '{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}'
       - name: ehdi
-        path_template: '{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}'
