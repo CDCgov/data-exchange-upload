@@ -43,7 +43,7 @@ jobs:
           podman-compose -f ${{ inputs.COMPOSE_FILENAME }} logs -f playwright | perl -pe
           's/::(debug|notice|warning|error) title=/$&\[${{ inputs.TEST_TITLE }}\] /g'
       - name: Upload Playwright Reports
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report-${{ inputs.TEST_NAME }}
