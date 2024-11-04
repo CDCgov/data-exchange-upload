@@ -67,7 +67,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
-	uri, err := delivery.Deliver(ctx, e.UploadId, src, d)
+	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
 
 	if err != nil {
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
