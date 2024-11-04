@@ -12,10 +12,10 @@ on:
 
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: write
-  pages: write
-  id-token: write
+# permissions:
+#   contents: write
+#   pages: write
+#   id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 # However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
@@ -35,10 +35,8 @@ jobs:
         with:
           name: swagger-docs
           path: docs/
-  deploy:
-    needs: [build]
-    uses: ./.github/workflows/deploy-to-ghpages.yml
-    with:
-      ARTIFACT_ID: swagger-docs
-      DEPLOY_TO: .
-      COMMIT_MSG: "Updating Swagger Docs"
+      - uses: ./.github/workflows/deploy-to-ghpages.yml
+        with:
+          ARTIFACT_ID: swagger-docs
+          DEPLOY_TO: .
+          COMMIT_MSG: "Updating Swagger Docs"
