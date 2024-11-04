@@ -2,7 +2,8 @@ name: Deploy Swagger docs with GitHub Pages dependencies preinstalled
 
 on:
   push:
-    branches: ['main']
+    # branches: ['main']
+    branches: ['UPLOAD-1825/playwright-ghpages']
 
   workflow_dispatch:
 
@@ -26,11 +27,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          path: './docs'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          folder: docs/
+          clean: true
+          clean-exclude: playwright-reports
+          force: true
