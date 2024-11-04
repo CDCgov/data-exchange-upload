@@ -1,4 +1,4 @@
-name: Deploy Swagger docs with GitHub Pages dependencies preinstalled
+name: Deploy Swagger docs with GitHub Pages
 
 on:
   workflow_dispatch:
