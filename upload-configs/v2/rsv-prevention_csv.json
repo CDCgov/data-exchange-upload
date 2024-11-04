@@ -110,7 +110,8 @@
 					"HR2",
 					"DV3",
 					"FD3",
-					"XXA"
+					"XXA",
+					"NIH"
 				],
 				"description": "This field is the identifier for the data producer."
 			},
@@ -213,7 +214,8 @@
 					"HR2",
 					"DV3",
 					"FD3",
-					"XXA"
+					"XXA",
+					"NIH"
 				],
 				"description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null.",
 				"compat_field_name": "meta_ext_entity"
