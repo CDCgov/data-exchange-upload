@@ -136,31 +136,6 @@ func (c *ConfigCache) SetConfig(key any, config *validation.ManifestConfig) {
 	c.Store(key, config)
 }
 
-func GetConfigFromManifest(ctx context.Context, manifest handler.MetaData) (*validation.ManifestConfig, error) {
-	path, err := GetConfigIdentifierByVersion(manifest)
-	if err != nil {
-		return nil, err
-	}
-	config, err := Cache.GetConfig(ctx, path)
-	if err != nil {
-		if errors.Is(err, validation.ErrNotFound) && GetVersion(manifest) == "2.0" {
-			// Fall back to v1 config
-			locBuilder, _ := registeredVersions["1.0"]
-			loc, err := locBuilder(manifest)
-			if err != nil {
-				return nil, err
-			}
-			config, err = Cache.GetConfig(ctx, loc.Path())
-			if err != nil {
-				return nil, err
-			}
-			return config, nil
-		}
-		return nil, err
-	}
-	return config, nil
-}
-
 func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
 	version := GetVersion(manifest)
 	configLocationBuilder, ok := registeredVersions[version]
