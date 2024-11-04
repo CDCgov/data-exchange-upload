@@ -39,7 +39,7 @@ jobs:
           git pull --rebase
           git push
       - run: |
-          if [[ ${{ inputs.DEPLOY_TO }} == '.' ]]; then
+          if [[ ${{ inputs.DEPLOY_TO }} == . ]]; then
             echo "Deployed to https://cdcgov.github.io/data-exchange-upload/" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "Deployed to https://cdcgov.github.io/data-exchange-upload/${{ inputs.DEPLOY_TO }}" >> "$GITHUB_STEP_SUMMARY"
