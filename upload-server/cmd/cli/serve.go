@@ -6,10 +6,8 @@ import (
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
@@ -57,12 +55,12 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	setupMetrics(manifestMetrics.Counter)
 
 	// Must be called before hook handler
-	err = metadata.InitConfigCache(ctx, appConfig)
+	err = InitConfigCache(ctx, appConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	err = delivery.RegisterAllSourcesAndDestinations(ctx, appConfig)
+	err = RegisterAllSourcesAndDestinations(ctx, appConfig)
 	if err != nil {
 		return nil, err
 	}

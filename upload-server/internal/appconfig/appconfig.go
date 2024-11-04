@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/sethvargo/go-envconfig"
 ) // .import
@@ -148,6 +149,17 @@ type AzureStorageConfig struct {
 	ClientSecret      string `env:"CLIENT_SECRET"`
 	ContainerEndpoint string `env:"ENDPOINT"`
 } // .AzureStorageConfig
+
+func (ac *AzureStorageConfig) Credentials() storeaz.Credentials {
+	return storeaz.Credentials{
+		StorageName:       ac.StorageName,
+		StorageKey:        ac.StorageKey,
+		TenantId:          ac.TenantId,
+		ClientId:          ac.ClientId,
+		ClientSecret:      ac.ClientSecret,
+		ContainerEndpoint: ac.ContainerEndpoint,
+	}
+}
 
 type S3StorageConfig struct {
 	Endpoint   string `env:"ENDPOINT"`
