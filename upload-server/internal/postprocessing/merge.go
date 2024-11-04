@@ -25,10 +25,13 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 			return resp, fmt.Errorf("no routing group found for metadata %+v", meta)
 		}
 
-		for _, target := range routeGroup.TargetNames() {
-			e := evt.NewFileReadyEvent(id, meta, target)
-			err := evt.FileReadyPublisher.Publish(ctx, e)
+		for _, target := range routeGroup.DeliveryTargets {
+			path, err := delivery.GetDeliveredFilename(ctx, id, target.PathTemplate, meta)
 			if err != nil {
+				return resp, err
+			}
+			e := evt.NewFileReadyEvent(id, meta, path, target.Name)
+			if err := evt.FileReadyPublisher.Publish(ctx, e); err != nil {
 				return resp, err
 			}
 			logger.Info("published event", "event", e)

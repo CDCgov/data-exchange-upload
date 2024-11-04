@@ -182,40 +182,6 @@ func GetVersion(manifest handler.MetaData) string {
 	return version
 }
 
-func GetFilenamePrefix(ctx context.Context, manifest handler.MetaData) (string, error) {
-	config, err := GetConfigFromManifest(ctx, manifest)
-	if err != nil {
-		return "", err
-	}
-
-	ds := metadata.GetDataStreamID(manifest)
-	r := metadata.GetDataStreamRoute(manifest)
-
-	p := ds + "-" + r
-
-	if config.Copy.FolderStructure == FolderStructureDate {
-		// Get UTC year, month, and day
-		t := time.Now().UTC()
-		datePrefix := fmt.Sprintf("%d/%02d/%02d", t.Year(), t.Month(), t.Day())
-		p = p + "/" + datePrefix
-	}
-
-	return p, nil
-}
-
-func GetFilenameSuffix(ctx context.Context, manifest handler.MetaData, tuid string) (string, error) {
-	s := ""
-	c, err := GetConfigFromManifest(ctx, manifest)
-	if err != nil {
-		return s, err
-	}
-	if c.Copy.FilenameSuffix == FilenameSuffixUploadId {
-		s = "_" + tuid
-	}
-
-	return s, nil
-}
-
 func Uid() string {
 	return uuid.NewString()
 }
