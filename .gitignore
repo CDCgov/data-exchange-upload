@@ -1,5 +1,7 @@
 *
 
 !.gitignore
-!/docs
+!index.html
+!openapi*
+!Release Notes
 !/playwright-reports
