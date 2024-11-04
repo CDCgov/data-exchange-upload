@@ -37,7 +37,7 @@ jobs:
           path: docs/
   publish:
     needs: [build]
-    uses: ./.github/workflows/deploy-to-ghpages.yml
+    uses: ./.github/workflows/push-to-gh-pages.yml
     with:
       ARTIFACT_ID: swagger-docs
       DEPLOY_TO: .
