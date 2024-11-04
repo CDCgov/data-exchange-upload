@@ -17,6 +17,9 @@ type LoadTestResult struct {
 	SuccessfulDeliveries int32
 	SuccessfulEventSets  int32
 	TotalDuration        time.Duration
+	TotalDeliveryTime    int64
+	DeliveryTimes        []int64
+	DeliveryCount        int32
 }
 
 var testResult LoadTestResult
@@ -109,6 +112,7 @@ func InitiateTests(e Executor) <-chan TestCase {
 type config struct {
 	url         string
 	tokenSource *SAMSTokenSource
+	fileSize    float64
 }
 
 func PrintFinalReport(validationErrors error) {
@@ -123,6 +127,18 @@ Files delivered: %d/%d
 		load,
 		testResult.SuccessfulDeliveries,
 		testResult.SuccessfulUploads)
+	fmt.Printf("File size: %.2f MB\n", conf.fileSize/(1024*1024)) // Convert size from bytes to MB
+	fmt.Printf("Upload URL: %s\n", conf.url)
+
+	if testResult.DeliveryCount > 0 {
+		// Calculate statistics
+		averageTime := testResult.TotalDeliveryTime / int64(testResult.SuccessfulDeliveries)
+		maxTime, minTime := findMaxMin(testResult.DeliveryTimes)
+
+		fmt.Printf("Average delivery time: %d ms\n", averageTime)
+		fmt.Printf("Max delivery time: %d ms\n", maxTime)
+		fmt.Printf("Min delivery time: %d ms\n", minTime)
+	}
 
 	if reportsURL != "" {
 		fmt.Printf("Successful event sets generated: %d/%d\r\n", testResult.SuccessfulEventSets, testResult.SuccessfulUploads)
@@ -132,6 +148,19 @@ Files delivered: %d/%d
 
 	fmt.Printf("Duration: %f seconds\r\n", testResult.TotalDuration.Seconds())
 	fmt.Println("**********************************")
+}
+
+func findMaxMin(times []int64) (max, min int64) {
+	max, min = times[0], times[0]
+	for _, t := range times[1:] {
+		if t > max {
+			max = t
+		}
+		if t < min {
+			min = t
+		}
+	}
+	return
 }
 
 func worker(c <-chan TestCase, o chan<- *Result, conf *config) {

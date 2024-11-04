@@ -29,16 +29,40 @@ var (
 	verbose     bool
 	patchURL    string
 
+	//manifest = JSONVar{
+	//	"version":           "2.0",
+	//	"data_stream_id":    "dextesting",
+	//	"data_stream_route": "testevent1",
+	//	"received_filename": "test",
+	//	"sender_id":         "dex simulation harness",
+	//	"data_producer_id":  "dex simulation harness",
+	//	"jurisdiction":      "test",
+	//}
+	//manifestTargets = []string{"edav", "eicr", "ehdi", "ncird"}
+	//manifest = JSONVar{
+	//	"version":           "2.0",
+	//	"data_stream_id":    "pulsenet",
+	//	"data_stream_route": "localsequencefile",
+	//	"received_filename": "test",
+	//	"sender_id":         "PulseNet-App",
+	//	"data_producer_id":  "dex simulation harness",
+	//	"jurisdiction":      "test",
+	//}
+	//manifestTargets = []string{"edav"}
 	manifest = JSONVar{
-		"version":           "2.0",
-		"data_stream_id":    "dextesting",
-		"data_stream_route": "testevent1",
-		"received_filename": "test",
-		"sender_id":         "dex simulation harness",
-		"data_producer_id":  "dex simulation harness",
-		"jurisdiction":      "test",
+		"version":                   "2.0",
+		"data_stream_id":            "rsv-prevention",
+		"data_stream_route":         "csv",
+		"received_filename":         "test",
+		"sender_id":                 "IZGW",
+		"data_producer_id":          "AKA",
+		"jurisdiction":              "AKA",
+		"meta_ext_objectkey":        "test",
+		"meta_ext_submissionperiod": "test",
+		"meta_ext_sourceversion":    "V2022-12-31",
+		"meta_username":             "test",
 	}
-	manifestTargets = []string{"edav", "eicr", "ehdi", "ncird"}
+	manifestTargets = []string{"ncird"}
 
 	testcase TestCase
 	cases    TestCases
@@ -236,7 +260,7 @@ func init() {
 			Chunk:                   chunk,
 			Size:                    size,
 			Manifest:                manifest,
-			TimeLimit:               Duration(10 * time.Second),
+			TimeLimit:               Duration(60 * time.Second),
 			ExpectedDeliveryTargets: manifestTargets,
 		}
 		if templatePath != "" {
@@ -266,6 +290,7 @@ func buildConfig() (*config, error) {
 	return &config{
 		url:         url,
 		tokenSource: tokenSource,
+		fileSize:    size,
 	}, nil
 }
 

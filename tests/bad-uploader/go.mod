@@ -12,7 +12,9 @@ require (
 
 require (
 	github.com/golang/protobuf v1.3.2 // indirect
+	github.com/golang/snappy v0.0.0-20180518054509-2e65f85255db // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/syndtr/goleveldb v1.0.0 // indirect
 	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c // indirect
 	google.golang.org/appengine v1.5.0 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect
