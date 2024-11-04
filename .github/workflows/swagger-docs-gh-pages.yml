@@ -24,12 +24,42 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Main Branch
         uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Upload Docs
+        uses: actions/upload-artifact@v2
         with:
-          folder: docs/
-          clean: true
-          clean-exclude: playwright-reports
-          force: true
+          name: swagger-docs
+          path: docs/
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitHub Pages Branch
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+      - name: Download Docs
+        uses: actions/download-artifact@v2
+        with:
+          name: swagger-docs
+          path: .
+      - name: Push Swagger Docs
+        timeout-minutes: 3
+        run: |
+          git add .
+          git commit -m "workflow: updating swagger documents"
+
+          while true; do
+            git pull --rebase
+            if [ $? -ne 0 ]; then
+              echo "Failed to rebase. Please review manually."
+              exit 1
+            fi
+
+            git push
+            if [ $? -eq 0 ]; then
+              echo "Successfully published new swagger documents to repo."
+              exit 0
+            fi
+          done
+
