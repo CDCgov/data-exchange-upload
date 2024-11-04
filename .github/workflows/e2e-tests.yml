@@ -48,3 +48,11 @@ jobs:
       TEST_TITLE: E2E AWS to Azure Tests
       COMPOSE_FILENAME: ./docker-compose.e2e.minio-azurite.yml
     secrets: inherit
+  publish:
+    name: Publish Reports
+    needs: [e2e-tests-fs, e2e-tests-azure, e2e-tests-aws, e2e-tests-mix, e2e-tests-aws-azure]
+    runs-on: ubuntu-latests
+    steps:
+      - name: output
+        working-directory: tests/smoke/playwright/test-reports
+        run: ls -la

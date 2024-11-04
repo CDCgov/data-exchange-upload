@@ -43,12 +43,5 @@ jobs:
           's/::(debug|notice|warning|error) title=/$&\[${{ inputs.TEST_TITLE }}\] /g'
       - name: Tear Down Containers
         run: podman-compose -f ${{ inputs.COMPOSE_FILENAME }} down
-      - name: Upload Report
-        uses: actions/upload-artifact@v2
-        if: always()
-        with:
-          name: playwright-report-${{ inputs.TEST_NAME }}
-          path: ${{ env.TEST_REPORTS_DIR }}/html
-          retention-days: 30
     outputs:
       actualResult: ${{ steps.test.conclusion }}

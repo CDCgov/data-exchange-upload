@@ -45,9 +45,9 @@ jobs:
           --exit-code-from upload-server
       - name: Show coverage
         run: go tool cover -func=c.out
-  # e2e-tests:
-  #   name: Playwright Tests
-  #   uses: ./.github/workflows/e2e-tests.yml
+  e2e-tests:
+    name: Playwright Tests
+    uses: ./.github/workflows/e2e-tests.yml
   run-fortify-scan:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
     with:
