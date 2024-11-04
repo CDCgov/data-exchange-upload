@@ -47,20 +47,9 @@ jobs:
       - name: Push Swagger Docs
         timeout-minutes: 3
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "workflow: updating swagger documents"
-
-          while true; do
-            git pull --rebase
-            if [ $? -ne 0 ]; then
-              echo "Failed to rebase. Please review manually."
-              exit 1
-            fi
-
-            git push
-            if [ $? -eq 0 ]; then
-              echo "Successfully published new swagger documents to repo."
-              exit 0
-            fi
-          done
+          git push
 
