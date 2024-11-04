@@ -27,19 +27,20 @@ jobs:
       - name: Checkout Main Branch
         uses: actions/checkout@v4
       - name: Upload Docs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: swagger-docs
           path: docs/
   deploy:
     runs-on: ubuntu-latest
+    needs: [build]
     steps:
       - name: Checkout GitHub Pages Branch
         uses: actions/checkout@v4
         with:
           ref: gh-pages
       - name: Download Docs
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: swagger-docs
           path: .
