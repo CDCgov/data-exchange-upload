@@ -170,10 +170,11 @@ func (sd *S3Destination) Client() *s3.Client {
 func (sd *S3Destination) Copy(ctx context.Context, id string, path string, source *Source, metadata map[string]string,
 	length int64, concurrency int) (string, error) {
 	s := *source
-	if s.SourceType() == sd.DestinationType() {
+	cSource, ok := s.(CloudSource)
+	if ok && cSource.SourceType() == sd.DestinationType() {
 		// copy s3 to s3
 		// going to assume we have correct IAM permissions
-		return sd.copyFromLocalStorage(ctx, id, source, path, metadata, length, concurrency)
+		return sd.copyFromLocalStorage(ctx, id, &cSource, path, metadata, length, concurrency)
 	} else {
 		// stream
 		reader, err := s.Reader(ctx, id)
@@ -185,7 +186,7 @@ func (sd *S3Destination) Copy(ctx context.Context, id string, path string, sourc
 
 }
 
-func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, id string, source *Source, path string,
+func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, id string, source *CloudSource, path string,
 	sourceMetadata map[string]string, sourceLength int64, concurrency int) (string, error) {
 	s := *source
 	sourceFile := s.GetSourceFilePath(id)

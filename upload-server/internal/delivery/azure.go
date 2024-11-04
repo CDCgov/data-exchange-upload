@@ -140,9 +140,9 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 
 func (ad *AzureDestination) Copy(ctx context.Context, id string, path string, source *Source, metadata map[string]string, length int64, concurrency int) (string, error) {
 	s := *source
-
-	if s.SourceType() != storageTypeLocalFile {
-		sourceUrl, err := s.GetSignedObjectURL(ctx, s.Container(), id)
+	cSource, ok := s.(CloudSource)
+	if ok {
+		sourceUrl, err := cSource.GetSignedObjectURL(ctx, cSource.Container(), id)
 		if err != nil {
 			return "", fmt.Errorf("unable to obtain signed url: %v", err)
 		}

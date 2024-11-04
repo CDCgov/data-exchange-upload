@@ -31,7 +31,7 @@ func (fd *FileDestination) Copy(ctx context.Context, id string, path string, sou
 	return fd.Upload(ctx, path, reader, metadata)
 }
 
-func (fd *FileDestination) Upload(_ context.Context, path string, r io.Reader, m map[string]string) (string, error) {
+func (fd *FileDestination) Upload(_ context.Context, path string, r io.Reader, _ map[string]string) (string, error) {
 	loc := filepath.Join(fd.ToPath, path)
 	if err := os.MkdirAll(filepath.Dir(loc), 0755); err != nil {
 		return "", err
@@ -71,11 +71,6 @@ type FileSource struct {
 
 func (fd *FileSource) SourceType() string {
 	return storageTypeLocalFile
-}
-
-func (fd *FileSource) Container() string {
-	// needed for interface conformance
-	return ""
 }
 
 func (fd *FileSource) GetSourceFilePath(path string) string {
@@ -124,11 +119,6 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 		m["content_length"] = strconv.FormatInt(info.Size(), 10)
 	}
 	return m, nil
-}
-
-func (fd *FileSource) GetSignedObjectURL(_ context.Context, _ string, _ string) (string, error) {
-	// needed for interface conformance
-	return "", nil
 }
 
 func (fd *FileSource) Health(_ context.Context) (rsp models.ServiceHealthResp) {

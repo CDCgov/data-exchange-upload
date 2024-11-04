@@ -37,13 +37,17 @@ var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 var groups map[string]Group
 var targets map[string]Destination
 
+type CloudSource interface {
+	GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error)
+	Container() string
+	Source
+}
+
 type Source interface {
 	Reader(context.Context, string) (io.Reader, error)
 	GetMetadata(context.Context, string) (map[string]string, error)
-	GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error)
 	GetSourceFilePath(string) string
 	SourceType() string
-	Container() string
 }
 
 type Destination interface {
