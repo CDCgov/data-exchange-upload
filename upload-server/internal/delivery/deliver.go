@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/tus/tusd/v2/pkg/handler"
 	"io"
 	"log/slog"
 	"os"
@@ -15,10 +14,11 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/tus/tusd/v2/pkg/handler"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"gopkg.in/yaml.v3"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 
@@ -47,7 +47,8 @@ type Source interface {
 }
 
 type Destination interface {
-	Copy(ctx context.Context, path string, source *Source, metadata map[string]string, length int64, concurrency int) (string, error)
+	Copy(ctx context.Context, id string, path string, source *Source, metadata map[string]string, length int64,
+		concurrency int) (string, error)
 	DestinationType() string
 }
 
@@ -78,12 +79,16 @@ func GetSource(name string) (Source, bool) {
 }
 
 type PathInfo struct {
-	Year     string
-	Month    string
-	Day      string
-	Hour     string
-	UploadId string
-	Filename string
+	Year            string
+	Month           string
+	Day             string
+	Hour            string
+	UploadId        string
+	Filename        string
+	Suffix          string
+	Prefix          string
+	DataStreamID    string
+	DataStreamRoute string
 }
 
 type Config struct {
@@ -224,76 +229,73 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 	return nil
 }
 
-func Deliver(ctx context.Context, path string, s Source, d Destination) (string, error) {
-
-	manifest, err := s.GetMetadata(ctx, path)
+// target may end up being a type
+func Deliver(ctx context.Context, id string, path string, s Source, d Destination) (string, error) {
+	manifest, err := s.GetMetadata(ctx, id)
 	if err != nil {
 		return "", err
 	}
+
 	length, e := strconv.ParseInt(manifest["content_length"], 10, 64)
 	if e != nil {
 		length = 1
 	}
+
 	concurrency := 5
 	if length > size5MB {
 		// app level configuration for this
 		concurrency = int(length) / (size5MB / 5)
 	}
-	return d.Copy(ctx, path, &s, manifest, length, concurrency)
+	return d.Copy(ctx, id, path, &s, manifest, length, concurrency)
 }
 
-func getDeliveredFilename(ctx context.Context, tuid string, pathTemplate string, manifest map[string]string) (string, error) {
+var ErrBadIngestTimestamp = errors.New("bad ingest timestamp")
+
+func GetDeliveredFilename(tuid string, pathTemplate string, manifest map[string]string) (string, error) {
+	if pathTemplate == "" {
+		pathTemplate = "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}"
+	}
 	// First, build the filename from the manifest and config.  This will be the default.
 	filename := metadataPkg.GetFilename(manifest)
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := strings.TrimSuffix(filename, extension)
 
-	// TODO eventually everything will come from path template
-	if pathTemplate != "" {
-		// Use path template to form the full name.
-		t := time.Now().UTC()
-		m := fmt.Sprintf("%02d", t.Month())
-		d := fmt.Sprintf("%02d", t.Day())
-		h := fmt.Sprintf("%02d", t.Hour())
-		pathInfo := &PathInfo{
-			Year:     strconv.Itoa(t.Year()),
-			Month:    m,
-			Day:      d,
-			Hour:     h,
-			Filename: filenameWithoutExtension,
-			UploadId: tuid,
-		}
-		tmpl, err := template.New("path").Parse(pathTemplate)
-		if err != nil {
-			return "", err
-		}
-		b := new(bytes.Buffer)
-		err = tmpl.Execute(b, pathInfo)
-		if err != nil {
-			return "", err
-		}
-
-		if extension != "" {
-			return b.String() + extension, nil
-		}
-
-		return b.String(), nil
+	// Use path template to form the full name.
+	rawTime, ok := manifest["dex_ingest_datetime"]
+	if !ok {
+		return "", ErrBadIngestTimestamp
 	}
-
-	// Otherwise, use the suffix and folder structure values
-	suffix, err := metadata.GetFilenameSuffix(ctx, manifest, tuid)
+	t, err := time.Parse(time.RFC3339Nano, rawTime)
+	if err != nil {
+		return "", errors.Join(err, ErrBadIngestTimestamp)
+	}
+	m := fmt.Sprintf("%02d", t.Month())
+	d := fmt.Sprintf("%02d", t.Day())
+	h := fmt.Sprintf("%02d", t.Hour())
+	pathInfo := &PathInfo{
+		Year:            strconv.Itoa(t.Year()),
+		Month:           m,
+		Day:             d,
+		Hour:            h,
+		Filename:        filenameWithoutExtension,
+		UploadId:        tuid,
+		DataStreamID:    metadataPkg.GetDataStreamID(manifest),
+		DataStreamRoute: metadataPkg.GetDataStreamID(manifest),
+	}
+	tmpl, err := template.New("path").Parse(pathTemplate)
 	if err != nil {
 		return "", err
 	}
-	blobName := filenameWithoutExtension + suffix + extension
-
-	// Next, need to set the filename prefix based on config and target.
-	prefix := ""
-
-	prefix, err = metadata.GetFilenamePrefix(ctx, manifest)
+	b := new(bytes.Buffer)
+	err = tmpl.Execute(b, pathInfo)
 	if err != nil {
 		return "", err
 	}
 
-	return prefix + "/" + blobName, nil
+	if extension != "" {
+		return b.String() + extension, nil
+	}
+
+	return b.String(), nil
+
 }

@@ -167,16 +167,16 @@ func (sd *S3Destination) Client() *s3.Client {
 	return sd.toClient
 }
 
-func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, metadata map[string]string,
+func (sd *S3Destination) Copy(ctx context.Context, id string, path string, source *Source, metadata map[string]string,
 	length int64, concurrency int) (string, error) {
 	s := *source
 	if s.SourceType() == sd.DestinationType() {
 		// copy s3 to s3
 		// going to assume we have correct IAM permissions
-		return sd.copyFromLocalStorage(ctx, source, path, metadata, length, concurrency)
+		return sd.copyFromLocalStorage(ctx, id, source, path, metadata, length, concurrency)
 	} else {
 		// stream
-		reader, err := s.Reader(ctx, path)
+		reader, err := s.Reader(ctx, id)
 		if err != nil {
 			return "", fmt.Errorf("unable to get source stream reader: %v", err)
 		}
@@ -185,32 +185,29 @@ func (sd *S3Destination) Copy(ctx context.Context, path string, source *Source, 
 
 }
 
-func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, source *Source, path string,
+func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, id string, source *Source, path string,
 	sourceMetadata map[string]string, sourceLength int64, concurrency int) (string, error) {
 	s := *source
-	sourceFile := s.GetSourceFilePath(path)
+	sourceFile := s.GetSourceFilePath(id)
 	sourceContainer := s.Container()
 	sourcePath := fmt.Sprintf("%s/%s", sourceContainer, sourceFile)
-	destFile, err := getDeliveredFilename(ctx, sourceFile, sd.PathTemplate, sourceMetadata)
-	if err != nil {
-		return "", fmt.Errorf("unable to determine destination object name: %v", err)
-	}
+
 	client := sd.Client()
 	if sourceLength < s3MaxCopySize {
 		_, err := client.CopyObject(ctx, &s3.CopyObjectInput{
 			CopySource: aws.String(sourcePath),
 			Bucket:     aws.String(sd.BucketName),
-			Key:        aws.String(destFile),
+			Key:        aws.String(path),
 		})
 		if err != nil {
 			return "", fmt.Errorf("unable to copy object to S3 bucket: %v", err)
 		}
-		return fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, destFile), nil
+		return fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, path), nil
 	} else {
 		lengthInt := int(sourceLength)
 		upload, err := client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
 			Bucket:   aws.String(sd.BucketName),
-			Key:      aws.String(destFile),
+			Key:      aws.String(path),
 			Metadata: sourceMetadata,
 		})
 		if err != nil {
@@ -237,7 +234,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, source *Sourc
 				Bucket:          aws.String(sd.BucketName),
 				CopySource:      aws.String(sourcePath),
 				CopySourceRange: aws.String(fmt.Sprintf("bytes=%d-%d", start, end)),
-				Key:             aws.String(destFile),
+				Key:             aws.String(path),
 				PartNumber:      aws.Int32(int32(chunkNum)),
 				UploadId:        aws.String(uploadId),
 			}
@@ -264,7 +261,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, source *Sourc
 			// there was an error during staging
 			_, _ = client.AbortMultipartUpload(ctx, &s3.AbortMultipartUploadInput{
 				Bucket:   aws.String(sd.BucketName),
-				Key:      aws.String(destFile),
+				Key:      aws.String(path),
 				UploadId: aws.String(uploadId),
 			})
 			return "", fmt.Errorf("error staging blocks; copy aborted: %v", err)
@@ -280,7 +277,7 @@ func (sd *S3Destination) copyFromLocalStorage(ctx context.Context, source *Sourc
 
 		completion, err := client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
 			Bucket:   aws.String(sd.BucketName),
-			Key:      aws.String(destFile),
+			Key:      aws.String(path),
 			UploadId: aws.String(uploadId),
 			MultipartUpload: &types.CompletedMultipartUpload{
 				Parts: completedParts,
@@ -316,23 +313,18 @@ func (sd *S3Destination) copyPartWorker(ctx context.Context, jobsCh <-chan s3.Up
 }
 
 func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
-	destFileName, err := getDeliveredFilename(ctx, path, sd.PathTemplate, m)
-	if err != nil {
-		return "", err
-	}
 
 	uploader := manager.NewUploader(sd.Client())
-	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
+	if _, err := uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket:   &sd.BucketName,
-		Key:      &destFileName,
+		Key:      &path,
 		Body:     r,
 		Metadata: m,
-	})
-	if err != nil {
+	}); err != nil {
 		return "", fmt.Errorf("failed to upload file to %s %s: %w", sd.BucketName, path, err)
 	}
 
-	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, destFileName)
+	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, path)
 	return s3URL, nil
 }
 

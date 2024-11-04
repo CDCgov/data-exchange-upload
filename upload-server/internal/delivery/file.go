@@ -24,20 +24,21 @@ func (fd *FileDestination) DestinationType() string {
 	return storageTypeLocalFile
 }
 
-func (fd *FileDestination) Copy(ctx context.Context, path string, source *Source,
+func (fd *FileDestination) Copy(ctx context.Context, id string, path string, source *Source,
 	metadata map[string]string, _ int64, _ int) (string, error) {
 	s := *source
-	reader, _ := s.Reader(ctx, path)
+	reader, _ := s.Reader(ctx, id)
 	return fd.Upload(ctx, path, reader, metadata)
 }
 
-func (fd *FileDestination) Upload(_ context.Context, id string, r io.Reader, _ map[string]string) (string, error) {
-	if err := os.MkdirAll(fd.ToPath, 0755); err != nil {
+func (fd *FileDestination) Upload(_ context.Context, path string, r io.Reader, m map[string]string) (string, error) {
+	loc := filepath.Join(fd.ToPath, path)
+	if err := os.MkdirAll(filepath.Dir(loc), 0755); err != nil {
 		return "", err
 	}
-	dest, err := os.Create(filepath.Join(fd.ToPath, id))
+	dest, err := os.Create(loc)
 	if err != nil {
-		return dest.Name(), err
+		return path, err
 	}
 	defer dest.Close()
 	if _, err := io.Copy(dest, r); err != nil {

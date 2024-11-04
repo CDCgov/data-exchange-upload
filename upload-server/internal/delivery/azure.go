@@ -137,27 +137,25 @@ func (ad *AzureDestination) Client() (*container.Client, error) {
 	}
 	return ad.toClient, nil
 }
-func (ad *AzureDestination) Copy(ctx context.Context, path string, source *Source, metadata map[string]string, length int64, concurrency int) (string, error) {
+
+func (ad *AzureDestination) Copy(ctx context.Context, id string, path string, source *Source, metadata map[string]string, length int64, concurrency int) (string, error) {
 	s := *source
-	blobName, err := getDeliveredFilename(ctx, path, ad.PathTemplate, metadata)
-	if err != nil {
-		return "", fmt.Errorf("unable to determine destination blob name: %v", err)
-	}
+
 	if s.SourceType() != storageTypeLocalFile {
-		sourceUrl, err := s.GetSignedObjectURL(ctx, s.Container(), path)
+		sourceUrl, err := s.GetSignedObjectURL(ctx, s.Container(), id)
 		if err != nil {
 			return "", fmt.Errorf("unable to obtain signed url: %v", err)
 		}
 		if length < sizeLargeObject {
-			return ad.copyWholeFromSignedURL(ctx, sourceUrl, blobName, metadata)
+			return ad.copyWholeFromSignedURL(ctx, sourceUrl, path, metadata)
 		}
-		return ad.copyBlocksFromSignedURL(ctx, sourceUrl, blobName, length, concurrency, metadata)
+		return ad.copyBlocksFromSignedURL(ctx, sourceUrl, path, length, concurrency, metadata)
 	}
-	r, err := s.Reader(ctx, path)
+	r, err := s.Reader(ctx, id)
 	if err != nil {
 		return "", fmt.Errorf("unable to obtain source reader: %v", err)
 	}
-	return ad.Upload(ctx, r, blobName, metadata)
+	return ad.Upload(ctx, r, path, metadata)
 }
 
 func (ad *AzureDestination) copyWholeFromSignedURL(ctx context.Context, sourceSignedURL string, destPath string,
@@ -257,13 +255,14 @@ func (ad *AzureDestination) copyBlocksFromSignedURL(ctx context.Context, sourceS
 	return blockBlobClient.URL(), nil
 }
 
-func (ad *AzureDestination) Upload(ctx context.Context, r io.Reader, blobName string,
+func (ad *AzureDestination) Upload(ctx context.Context, r io.Reader, path string,
 	metadata map[string]string) (string, error) {
 	c, err := ad.Client()
 	if err != nil {
 		return "", fmt.Errorf("unable to obtain Azure container client: %v", err)
+
 	}
-	client := c.NewBlockBlobClient(blobName)
+	client := c.NewBlockBlobClient(path)
 
 	_, err = client.UploadStream(ctx, r, &azblob.UploadStreamOptions{
 		Metadata: storeaz.PointerizeMetadata(metadata),
