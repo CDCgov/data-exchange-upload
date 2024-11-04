@@ -19,18 +19,20 @@ targets:
     region: us-east-1
   eicr:
     name: eicr
-    type: az-blob
-    endpoint: 'http://azurite:10000/devstoreaccount1'
-    storage_account: 'devstoreaccount1'
-    storage_key: $AZURITE_KEY
-    container_name: eicr
+    type: s3
+    bucket_name: eicr
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    endpoint: 'http://minio:8000'
+    region: us-east-1
   ncird:
     name: ncird
-    type: az-blob
-    endpoint: 'http://azurite:10000/devstoreaccount1'
-    storage_account: 'devstoreaccount1'
-    storage_key: $AZURITE_KEY
-    container_name: ncird
+    type: s3
+    bucket_name: ncird
+    access_key_id: minioadmin
+    secret_access_key: minioadmin
+    endpoint: 'http://minio:8000'
+    region: us-east-1
 routing_groups:
   - data_stream_id: pulsenet
     data_stream_route: localsequencefile
