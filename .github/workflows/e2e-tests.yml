@@ -5,11 +5,9 @@ on:
     inputs:
       BRANCH_NAME:
         type: string
-        description: 'Git tag or branch being tested'
         required: true
       RUN_ID:
         type: number
-        description: 'The number of the worflow run'
         required: true
 
 defaults:
