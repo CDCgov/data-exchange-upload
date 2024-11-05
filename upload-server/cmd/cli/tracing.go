@@ -130,7 +130,7 @@ func TracingProcessor[T event.Identifiable](next func(context.Context, T) error)
 	tracer := otel.Tracer("event-handling")
 	return func(ctx context.Context, e T) error {
 		c := context.WithValue(ctx, UploadID, otrace.TraceID(md5.Sum([]byte(e.GetUploadID()))))
-		_, span := tracer.Start(ctx, fmt.Sprintf("Handling-%s", e.Identifier()))
+		_, span := tracer.Start(c, fmt.Sprintf("Handling-%s", e.Identifier()))
 		defer span.End()
 		return next(c, e)
 	}
