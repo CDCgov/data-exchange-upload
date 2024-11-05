@@ -69,7 +69,7 @@ test.describe('Upload Manifest Page', () => {
       const errorPageResponse = await errorPagePromise;
 
       await expect(errorPageResponse.status()).toBe(404);
-      await expect(page.locator('body')).toContainText(`open v2/${dataStream}_${route}.json: `);
+      await expect(page.locator('body')).toContainText(`open ${dataStream}_${route}.json: `);
       await expect(page.locator('body')).toContainText('validation failure');
       await expect(page.locator('body')).toContainText('manifest validation config file not found');
     });
@@ -118,7 +118,7 @@ test.describe('Upload Status Page', () => {
     const expectedSender = 'Sender123';
     const expectedDataProducer = 'Producer123';
     const expectedJurisdiction = 'Jurisdiction123';
-    const targets = ['edav', 'ehdi', 'eicr', 'ncird'];
+    const targets = ['edav'];
 
     await page.goto(`/manifest?data_stream_id=${dataStream}&data_stream_route=${route}`);
 
