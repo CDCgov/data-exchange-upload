@@ -1,7 +1,6 @@
 [
   {
     "manifest": {
-      "version": "2.0",
       "data_stream_id": "dextesting",
       "data_stream_route": "testevent1",
       "received_filename": "dex-smoke-test",
@@ -9,11 +8,10 @@
       "data_producer_id": "test-producer-id",
       "jurisdiction": "test-jurisdiction"
     },
-    "delivery_targets": ["edav", "ncird", "ehdi", "eicr"]
+    "delivery_targets": ["edav"]
   },
   {
     "manifest": {
-      "version": "2.0",
       "data_stream_id": "covid-all-monthly-vaccination",
       "data_stream_route": "csv",
       "received_filename": "dex-smoke-test",
@@ -29,7 +27,6 @@
   },
   {
     "manifest": {
-      "version": "2.0",
       "data_stream_id": "influenza-vaccination",
       "data_stream_route": "csv",
       "received_filename": "dex-smoke-test",
@@ -45,7 +42,6 @@
   },
   {
     "manifest": {
-      "version": "2.0",
       "data_stream_id": "routine-immunization",
       "data_stream_route": "other",
       "received_filename": "dex-smoke-test",
@@ -61,7 +57,6 @@
   },
   {
     "manifest": {
-      "version": "2.0",
       "data_stream_id": "rsv-prevention",
       "data_stream_route": "csv",
       "received_filename": "dex-smoke-test",
@@ -77,7 +72,6 @@
   },
   {
     "manifest": {
-      "version": "2.0",
       "data_stream_id": "eicr",
       "data_stream_route": "fhir",
       "sender_id": "APHL",
@@ -91,7 +85,6 @@
   },
   {
     "manifest": {
-      "version": "2.0",
       "data_stream_id": "ehdi",
       "data_stream_route": "csv",
       "received_filename": "dex-smoke-test",
@@ -108,7 +101,6 @@
   },
   {
     "manifest": {
-      "version": "2.0",
       "data_stream_id": "pulsenet",
       "data_stream_route": "localsequencefile",
       "received_filename": "dex-smoke-test",
@@ -120,7 +112,6 @@
   },
   {
     "manifest": {
-      "version": "2.0",
       "data_stream_id": "generic-immunization",
       "data_stream_route": "csv",
       "sender_id": "IZGW",
