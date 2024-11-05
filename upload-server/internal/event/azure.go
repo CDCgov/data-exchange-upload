@@ -14,6 +14,8 @@ import (
 	"nhooyr.io/websocket"
 )
 
+const DEFAULT_MAX_MESSAGES = 3
+
 func NewAMQPServiceBusClient(connString string) (*azservicebus.Client, error) {
 	newWebSocketConnFn := func(ctx context.Context, args azservicebus.NewWebSocketConnArgs) (net.Conn, error) {
 		opts := &websocket.DialOptions{Subprotocols: []string{"amqp"}}
@@ -128,11 +130,18 @@ func NewAzureSubscriber[T Identifiable](ctx context.Context, subConn appconfig.A
 		slog.Error("failed to connect to service bus admin client", "error", err)
 		return nil, err
 	}
+
+	maxMessages := subConn.MaxMessages
+	if maxMessages == 0 {
+		maxMessages = DEFAULT_MAX_MESSAGES
+	}
+
 	return &AzureSubscriber[T]{
 		Context:     ctx,
 		Receiver:    receiver,
 		Config:      subConn,
 		AdminClient: adminClient,
+		Max:         maxMessages,
 	}, nil
 }
 

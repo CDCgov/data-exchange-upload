@@ -164,6 +164,7 @@ type AzureQueueConfig struct {
 	Topic            string `env:"TOPIC"`
 	Queue            string `env:"QUEUE"`
 	Subscription     string `env:"SUBSCRIPTION"`
+	MaxMessages      int    `env:"MAX_MESSAGES"`
 }
 
 type LocalStorageConfig struct {
