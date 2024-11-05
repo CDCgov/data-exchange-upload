@@ -35,12 +35,12 @@ func getAzureSource() *delivery.AzureSource {
 		TenantId:          os.Getenv("AZURE_TENANT_ID"),
 		ContainerEndpoint: os.Getenv("AZURE_ENDPOINT"),
 	}
-	tusContainerClient, err := storeaz.NewContainerClient(*azConfig, "container2")
+	tusContainerClient, err := storeaz.NewContainerClient(*azConfig, "container1")
 	printError(err)
 	src := &delivery.AzureSource{
 		FromContainerClient: tusContainerClient,
-		StorageContainer:    "container2",
-		Prefix:              "test-deliver-s3/2024/11/04/",
+		StorageContainer:    "container1",
+		Prefix:              "upload",
 	}
 	return src
 }
@@ -65,7 +65,7 @@ func getAzureDestination(folder string) *delivery.AzureDestination {
 		StorageAccount:    os.Getenv("AZURE_STORAGE_ACCOUNT"),
 		StorageKey:        os.Getenv("AZURE_STORAGE_KEY"),
 		TenantId:          os.Getenv("AZURE_TENANT_ID"),
-		ContainerName:     "container1",
+		ContainerName:     "container2",
 		ContainerEndpoint: os.Getenv("AZURE_ENDPOINT"),
 		PathTemplate:      folder + "/{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}",
 	}
@@ -100,16 +100,16 @@ func getFileDestination(folder string) *delivery.FileDestination {
 }
 
 func runDeliveryTest(t *testing.T, src delivery.Source, dest delivery.Destination, template string) {
-	srcFile := "10gb.txt"
+	srcFile := "test.HL7"
 	metadata, _ := src.GetMetadata(context.TODO(), srcFile)
 	destPath, e := delivery.GetDeliveredFilename(srcFile, template, metadata)
+	printError(e)
+	assert.True(t, e == nil)
 	if e == nil {
 		url, err := delivery.Deliver(context.TODO(), srcFile, destPath, src, dest)
 		printError(err)
 		assert.True(t, url != "")
 		assert.True(t, err == nil)
-	} else {
-		printError(e)
 	}
 
 }
