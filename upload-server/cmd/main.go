@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"log/slog"
 	"net/http"
 	"os"
@@ -75,12 +76,6 @@ func main() {
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
 
-	if err := event.InitFileReadyPublisher(ctx, appConfig); err != nil {
-		slog.Error("error creating file ready publisher", "error", err)
-		os.Exit(appMainExitCode)
-	}
-	defer event.FileReadyPublisher.Close()
-
 	mainWaitGroup.Add(1)
 	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
 	if err != nil {
@@ -92,6 +87,7 @@ func main() {
 	}); ok {
 		defer sc.Close()
 	}
+
 	go func() {
 		if err := subscriber.Listen(ctx, postprocessing.ProcessFileReadyEvent); err != nil {
 			cancelFunc()
@@ -99,6 +95,22 @@ func main() {
 		}
 		defer mainWaitGroup.Done()
 	}()
+
+	// will trigger standalone mode if subscriber is not MemorySubscriber
+	if _, ok := subscriber.(*event.MemorySubscriber[*event.FileReady]); !ok {
+		err = delivery.RegisterAllSourcesAndDestinations(ctx, appConfig)
+		if err != nil {
+			slog.Error("error subscribing to file ready", "error", err)
+			os.Exit(appMainExitCode)
+		}
+		mainWaitGroup.Wait()
+	}
+
+	if err := event.InitFileReadyPublisher(ctx, appConfig); err != nil {
+		slog.Error("error creating file ready publisher", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	defer event.FileReadyPublisher.Close()
 
 	// start serving the app
 	handler, err := cli.Serve(ctx, appConfig)
