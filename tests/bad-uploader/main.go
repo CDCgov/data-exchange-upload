@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -118,17 +120,18 @@ type config struct {
 func PrintFinalReport(validationErrors error) {
 	fmt.Println("**********************************")
 	printValidationErrors(validationErrors)
-	fmt.Printf(`
-RESULTS:
+	fmt.Printf(`RESULTS:
+Upload URL: %s
 Files uploaded: %d/%d
 Files delivered: %d/%d
+File size: %.2f MB
 `,
+		conf.url,
 		testResult.SuccessfulUploads,
 		load,
 		testResult.SuccessfulDeliveries,
-		testResult.SuccessfulUploads)
-	fmt.Printf("File size: %.2f MB\n", conf.fileSize/(1024*1024)) // Convert size from bytes to MB
-	fmt.Printf("Upload URL: %s\n", conf.url)
+		testResult.SuccessfulUploads,
+		conf.fileSize/(1024*1024))
 
 	if testResult.DeliveryCount > 0 {
 		// Calculate statistics
@@ -190,17 +193,35 @@ func printValidationErrors(errs error) {
 	}
 }
 
+// ErrorDetails struct to structure the error information in JSON format.
+type ErrorDetails struct {
+	UploadID string `json:"uploadId"`
+	Message  string `json:"message"`
+}
+
 func logErrors(err error, uploadId string) {
 	if err == nil {
 		return
 	}
-	filename := "output/" + uploadId + "_failures"
-	f, e := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0644)
-	if e != nil {
-		panic(e)
+	filename := "output/failures/" + uploadId + ".json"
+	dir := filepath.Dir(filename)
+	if mkErr := os.MkdirAll(dir, 0755); mkErr != nil {
+		panic(mkErr)
+	}
+	errorDetails := ErrorDetails{
+		UploadID: uploadId,
+		Message:  err.Error(),
+	}
+	jsonData, jsonErr := json.MarshalIndent(errorDetails, "", "  ")
+	if jsonErr != nil {
+		panic(jsonErr)
+	}
+	f, fileErr := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if fileErr != nil {
+		panic(fileErr)
 	}
 	defer f.Close()
-	if _, e = f.WriteString(err.Error()); e != nil {
-		panic(e)
+	if _, writeErr := f.Write(jsonData); writeErr != nil {
+		panic(writeErr)
 	}
 }
