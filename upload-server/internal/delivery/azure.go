@@ -21,6 +21,7 @@ import (
 )
 
 const maxPartsAzure = 50000 // maximum number of parts per block blob in Azure Storage
+const sizeLargeObject = 50 * 1024 * 1024
 
 type AzureSource struct {
 	FromContainerClient *container.Client
@@ -111,7 +112,6 @@ type AzureDestination struct {
 	ClientId          string `yaml:"client_id"`
 	ClientSecret      string `yaml:"client_secret"`
 	ContainerName     string `yaml:"container_name"`
-	LargeObjectSize   int    `env:"AZURE_LARGE_OBJECT_SIZE, default=52428800"`
 }
 
 type azureBlobChunk struct {
@@ -151,7 +151,7 @@ func (ad *AzureDestination) Copy(ctx context.Context, id string, path string, so
 		if err != nil {
 			return "", fmt.Errorf("unable to obtain signed url: %v", err)
 		}
-		if int(length) < ad.LargeObjectSize {
+		if int(length) < sizeLargeObject {
 			return ad.copyWholeFromSignedURL(ctx, sourceUrl, path, metadata)
 		}
 		return ad.copyBlocksFromSignedURL(ctx, sourceUrl, path, length, concurrency, metadata)
