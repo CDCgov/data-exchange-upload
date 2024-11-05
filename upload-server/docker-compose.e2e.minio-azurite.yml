@@ -51,7 +51,6 @@ services:
       - SERVER_URL=http://upload-server-minio-azurite:8080
       - UI_URL=http://upload-server-minio-azurite:8081
       - TEST_REPORTS_DIR=/playwright/test-reports
-      - BLOB_REPORT_FILE=${BLOB_REPORT_FILE:-blob-reports/aws-to-azure-report.zip}
       - HTML_REPORT_DIR=${HTML_REPORT_DIR:-aws-to-azure-html}
       - JSON_REPORT_FILE=${JSON_REPORT_FILE:-aws-to-azure-report.json}
     command: npm run test:docker

@@ -2,7 +2,6 @@ import { PlaywrightTestConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
 const testReportDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
-const blobReportFilename = `${testReportDir}/${process.env.BLOB_REPORT_FILE ?? 'blob-reports/test-report.zip'}`;
 const jsonReportFilename = `${testReportDir}/${process.env.JSON_REPORT_FILE ?? 'test-report.json'}`;
 const htmlReportDir = `${testReportDir}/${process.env.HTML_REPORT_DIR ?? 'html'}`;
 
@@ -30,7 +29,7 @@ const config: PlaywrightTestConfig = {
 
   // Reporter to use
   reporter: process.env.CI
-    ? [['github'], ['blob', { outputFile: blobReportFilename }]]
+    ? [['github'], ['html', { outputFolder: htmlReportDir, open: 'never' }]]
     : [
         ['list', { printSteps: true }],
         ['json', { outputFile: jsonReportFilename }],
