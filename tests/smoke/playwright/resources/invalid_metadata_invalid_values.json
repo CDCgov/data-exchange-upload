@@ -1,28 +1,5 @@
 [
   {
-    "name": "should error because of invalid character in filename - config v1",
-    "metadata": {
-      "meta_destination_id": "dextesting",
-      "meta_ext_event": "testevent1",
-      "filename": "test/-file"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": ["invalid character found in test/-file validation failure"]
-  },
-  {
-    "name": "should error because of invalid upload target - config v1",
-    "metadata": {
-      "meta_destination_id": "dextesting",
-      "meta_ext_event": "testevent100",
-      "filename": "dex-smoke-test"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": [
-      "open v1/dextesting-testevent100.json: no such file or directory",
-      "manifest validation config file not found"
-    ]
-  },
-  {
     "name": "should error because of invalid character in filename",
     "metadata": {
       "version": "2.0",
@@ -49,7 +26,7 @@
     },
     "expectedStatusCode": 400,
     "expectedErrorMessages": [
-      "open v2/dextesting_testevent100.json: no such file or directory",
+      "open dextesting_testevent100.json: no such file or directory",
       "manifest validation config file not found"
     ]
   },

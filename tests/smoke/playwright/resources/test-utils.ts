@@ -34,19 +34,7 @@ export type TestCase = {
   expectedErrorMessages: string[];
 };
 
-export type ManifestV1 = {
-  meta_destination_id: string;
-  meta_ext_event: string;
-  filename: string;
-};
-
-export type MetadataV1 = {
-  manifest: ManifestV1;
-  delivery_targets: string[];
-};
-
-export type ManifestV2 = {
-  version: string;
+export type Manifest = {
   data_stream_id: string;
   data_stream_route: string;
   received_filename: string;
@@ -55,12 +43,12 @@ export type ManifestV2 = {
   jurisdiction: string;
 };
 
-export type MetadataV2 = {
-  manifest: ManifestV2;
+export type Metadata = {
+  manifest: Manifest;
   delivery_targets: string[];
 };
 
-export type ManifestResponse = (ManifestV1 | ManifestV2) & {
+export type ManifestResponse = Manifest & {
   dex_ingest_datetime: string;
   upload_id: string;
 };
@@ -134,40 +122,14 @@ export function getUploadTargets(): UploadTarget[] {
   return JSON.parse(readFileSync(filepath).toString());
 }
 
-export function getValidMetadataV1(): MetadataV1[] {
-  const filepath = getResourceFilepath('valid_metadata_v1.json');
+export function getValidMetadata(): Metadata[] {
+  const filepath = getResourceFilepath('valid_metadata.json');
   return JSON.parse(readFileSync(filepath).toString());
 }
 
-export function getValidMetadataV2(): MetadataV2[] {
-  const filepath = getResourceFilepath('valid_metadata_v2.json');
-  return JSON.parse(readFileSync(filepath).toString());
-}
-
-export function getTestConfigV1(metadata: MetadataV1[] | null): MetadataV1 {
+export function getTestConfigV2(metadata: Metadata[] | null): Metadata {
   if (metadata == null) {
-    metadata = getValidMetadataV1();
-  }
-
-  return (
-    metadata.find(
-      config =>
-        config.manifest.meta_destination_id == TEST_DATA_STREAM_ID &&
-        config.manifest.meta_ext_event == TEST_DATA_STREAM_ROUTE
-    ) ?? {
-      manifest: {
-        meta_destination_id: TEST_DATA_STREAM_ID,
-        meta_ext_event: TEST_DATA_STREAM_ROUTE,
-        filename: 'dex-smoke-test'
-      },
-      delivery_targets: ['edav', 'ncird', 'ehdi', 'eicr']
-    }
-  );
-}
-
-export function getTestConfigV2(metadata: MetadataV2[] | null): MetadataV2 {
-  if (metadata == null) {
-    metadata = getValidMetadataV2();
+    metadata = getValidMetadata();
   }
 
   return (
@@ -177,7 +139,6 @@ export function getTestConfigV2(metadata: MetadataV2[] | null): MetadataV2 {
         config.manifest.data_stream_route == TEST_DATA_STREAM_ROUTE
     ) ?? {
       manifest: {
-        version: '2.0',
         data_stream_id: TEST_DATA_STREAM_ID,
         data_stream_route: TEST_DATA_STREAM_ROUTE,
         received_filename: 'dex-smoke-test',

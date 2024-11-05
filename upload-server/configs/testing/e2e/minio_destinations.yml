@@ -78,4 +78,4 @@ routing_groups:
     data_stream_route: testevent1
     delivery_targets:
       - name: edav
-        path_template: '{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}'
+        path_template: '{{.Filename}}_{{.UploadId}}'
