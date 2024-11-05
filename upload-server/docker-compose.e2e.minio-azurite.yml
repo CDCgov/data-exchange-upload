@@ -43,9 +43,9 @@ services:
     image: mcr.microsoft.com/playwright:v1.48.0-focal
     container_name: playwright-minio-azurite
     volumes:
-      - ../tests/smoke/playwright:/app
-      - /app/node_modules
-    working_dir: /app
+      - ../tests/smoke/playwright:/playwright
+      - /playwright/node_modules
+    working_dir: /playwright
     environment:
       - CI
       - SERVER_URL=http://upload-server-minio-azurite:8080

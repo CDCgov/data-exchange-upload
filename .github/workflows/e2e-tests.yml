@@ -8,53 +8,64 @@ defaults:
     working-directory: upload-server/
 
 jobs:
-  e2e-tests-fs:
-    name: E2E Tests - File System Storage to File System Destinations
-    uses: ./.github/workflows/e2e-test-run-template.yml
-    with:
-      TEST_NAME: fs-to-fs
-      TEST_TITLE: E2E FS Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.yml
-    secrets: inherit
-  e2e-tests-azure:
-    name: E2E Tests - Azure Blob Storage to Azure Blob Destinations
-    uses: ./.github/workflows/e2e-test-run-template.yml
-    with:
-      TEST_NAME: azure-to-azure
-      TEST_TITLE: E2E Azure Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.azurite.yml
-    secrets: inherit
-  e2e-tests-aws:
-    name: E2E Tests - AWS S3 Storage to AWS S3 Destinations
-    uses: ./.github/workflows/e2e-test-run-template.yml
-    with:
-      TEST_NAME: aws-to-aws
-      TEST_TITLE: E2E AWS Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.minio.yml
-    secrets: inherit
-  e2e-tests-mix:
-    name: E2E Tests - File System Storage to Azure Blob and AWS S3 Destinations
-    uses: ./.github/workflows/e2e-test-run-template.yml
-    with:
-      TEST_NAME: fs-to-azure-and-aws
-      TEST_TITLE: E2E FS to Azure and AWS Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.all.yml
-    secrets: inherit
-  e2e-tests-aws-azure:
-    name: E2E Tests - AWS S3 Storage to Azure Blob Destinations
-    uses: ./.github/workflows/e2e-test-run-template.yml
-    with:
-      TEST_NAME: aws-to-azure
-      TEST_TITLE: E2E AWS to Azure Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.minio-azurite.yml
-    secrets: inherit
-  merge-reports:
-    name: Merge Reports
-    needs: [e2e-tests-fs, e2e-tests-azure, e2e-tests-aws, e2e-tests-mix, e2e-tests-aws-azure]
-    runs-on: ubuntu-latests
+  run-tests:
+    strategy:
+      max-parallel: 2
+      matrix:
+        include:
+          - title: "E2E FS Tests"
+            name: "fs-to-fs"
+            compose: "./docker-compose.e2e.yml"
+          - title: "E2E Azure Tests"
+            name: "azure-to-azure"
+            compose: "./docker-compose.e2e.azurite.yml"
+          - title: "E2E AWS Tests"
+            name: "aws-to-aws"
+            compose: "./docker-compose.e2e.minio.yml"
+          - title: "E2E FS -> Azure & AWS Tests"
+            name: "fs-to-azure-and-aws"
+            compose: "./docker-compose.e2e.all.yml"
+          - title: "E2E AWS -> Azure Tests"
+            name: "aws-to-azure"
+            compose: "./docker-compose.e2e.minio-azurite.yml"
+    name: ${{ matrix.title }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      CI: true
+      AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
+      # The compose file sends this variable into the Playwright configs
+      TEST_REPORTS_DIR: /playwright/test-reports/${{ matrix.name }}/
     steps:
-      - name: Merge Report Artifacts
-        uses: actions/upload-artifact/merge@v4
+      - uses: actions/checkout@v4
+      - name: Install podman compose
+        run: pip3 install podman-compose
+      - name: Run E2E Tests
+        id: test
+        run:
+          podman-compose -f ${{ matrix.compose }} up --build --exit-code-from playwright --abort-on-container-exit
+      - name: Test Report
+        # Piping the logs through perl so that we can append the test title to make where they are coming from clearer
+        # The only annotation types produced by the `github` report are 'debug', 'notice', 'warning', and 'error' so this should cover them all
+        run:
+          podman-compose -f ${{ matrix.compose }} logs -f playwright | perl -pe 's/::(debug|notice|warning|error) title=/$&\[${{ matrix.title }}\] /g'
+      - name: Upload Playwright Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.name }}
+          path: tests/smoke/playwright/test-reports/${{ matrix.name }}
+          retention-days: 10
+      - name: Tear Down Containers
+        run: podman-compose -f ${{ matrix.compose }} down
+    outputs:
+      actualResult: ${{ steps.test.conclusion }}
+  merge-reports:
+    name: Merge Report Artifacts
+    needs: [run-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/upload-artifact/merge@v4
         with:
           name: playwright-report
           pattern: playwright-report-*
