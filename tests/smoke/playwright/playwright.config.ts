@@ -1,12 +1,17 @@
 import { PlaywrightTestConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
-const testReportsDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
-const testResultsDir = process.env.TEST_RESULTS_DIR ?? './test-results';
+const testReportDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
+const blobReportFilename = `${testReportDir}/${process.env.BLOB_REPORT_FILE ?? 'blob-reports/test-report.zip'}`;
+const jsonReportFilename = `${testReportDir}/${process.env.JSON_REPORT_FILE ?? 'test-report.json'}`;
+const htmlReportDir = `${testReportDir}/${process.env.HTML_REPORT_DIR ?? 'html'}`;
 
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
   testDir: './test',
+
+  // Artifacts folder where screenshots, videos, and traces are stored.
+  outputDir: './test-output',
 
   // Use this to change the number of browsers/contexts to run in parallel
   // Setting this to 1 will run tests serially which can help if you're seeing issues with parallel execution
@@ -25,35 +30,12 @@ const config: PlaywrightTestConfig = {
 
   // Reporter to use
   reporter: process.env.CI
-    ? [
-        ['github'],
-        [
-          'html',
-          {
-            outputFolder: `${testReportsDir}/html`,
-            open: 'never'
-          }
-        ]
-      ]
+    ? [['github'], ['blob', { outputFile: blobReportFilename }]]
     : [
-        ['list'],
-        [
-          'html',
-          {
-            outputFolder: `${testReportsDir}/html`,
-            open: 'never'
-          }
-        ],
-        [
-          'json',
-          {
-            outputFile: `${testReportsDir}/test-report.json`
-          }
-        ]
+        ['list', { printSteps: true }],
+        ['json', { outputFile: jsonReportFilename }],
+        ['html', { outputFolder: htmlReportDir, open: 'never' }]
       ],
-
-  // Artifacts folder where screenshots, videos, and traces are stored.
-  outputDir: testResultsDir,
 
   // Specify browser to use
   use: {

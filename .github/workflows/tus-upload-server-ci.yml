@@ -48,6 +48,9 @@ jobs:
   e2e-tests:
     name: Playwright Tests
     uses: ./.github/workflows/e2e-tests.yml
+    with:
+      BRANCH_NAME: ${{ github.ref_name }}
+      RUN_ID: ${{ github.run_id }}
     secrets: inherit
   run-fortify-scan:
     uses: ./.github/workflows/remote-cd-trigger-template.yml

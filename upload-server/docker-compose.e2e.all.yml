@@ -45,8 +45,10 @@ services:
       - CI
       - SERVER_URL=http://upload-server-all:8080
       - UI_URL=http://upload-server-all:8081
-      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-/playwright/test-reports/fs-to-azure-and-aws/}
-      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-/playwright/test-results/fs-to-azure-and-aws/}
+      - TEST_REPORTS_DIR=/playwright/test-reports
+      - BLOB_REPORT_FILE=${BLOB_REPORT_FILE:-blob-reports/fs-to-azure-aws-report.zip}
+      - HTML_REPORT_DIR=${HTML_REPORT_DIR:-fs-to-azure-aws-html}
+      - JSON_REPORT_FILE=${JSON_REPORT_FILE:-fs-to-azure-aws-report.json}
     command: npm run test:docker
     networks:
       - e2e-all-network

@@ -50,8 +50,10 @@ services:
       - CI
       - SERVER_URL=http://upload-server-minio-azurite:8080
       - UI_URL=http://upload-server-minio-azurite:8081
-      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-/playwright/test-reports/aws-to-azure/}
-      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-/playwright/test-results/aws-to-azure/}
+      - TEST_REPORTS_DIR=/playwright/test-reports
+      - BLOB_REPORT_FILE=${BLOB_REPORT_FILE:-blob-reports/aws-to-azure-report.zip}
+      - HTML_REPORT_DIR=${HTML_REPORT_DIR:-aws-to-azure-html}
+      - JSON_REPORT_FILE=${JSON_REPORT_FILE:-aws-to-azure-report.json}
     command: npm run test:docker
     networks:
       - e2e-minio-azurite-network

@@ -2,6 +2,15 @@ name: 'Playwright Tests'
 
 on:
   workflow_call:
+    inputs:
+      BRANCH_NAME:
+        type: string
+        description: 'Git tag or branch being tested'
+        required: true
+      RUN_ID:
+        type: number
+        description: 'The number of the worflow run'
+        required: true
 
 defaults:
   run:
@@ -13,21 +22,21 @@ jobs:
       max-parallel: 3
       matrix:
         include:
-          - title: "E2E FS Tests"
-            name: "fs-to-fs"
-            compose: "./docker-compose.e2e.yml"
-          - title: "E2E Azure Tests"
-            name: "azure-to-azure"
-            compose: "./docker-compose.e2e.azurite.yml"
-          - title: "E2E AWS Tests"
-            name: "aws-to-aws"
-            compose: "./docker-compose.e2e.minio.yml"
-          - title: "E2E FS -> Azure & AWS Tests"
-            name: "fs-to-azure-and-aws"
-            compose: "./docker-compose.e2e.all.yml"
-          - title: "E2E AWS -> Azure Tests"
-            name: "aws-to-azure"
-            compose: "./docker-compose.e2e.minio-azurite.yml"
+          - title: 'E2E FS Tests'
+            name: 'fs-to-fs'
+            compose: './docker-compose.e2e.yml'
+          - title: 'E2E Azure Tests'
+            name: 'azure-to-azure'
+            compose: './docker-compose.e2e.azurite.yml'
+          - title: 'E2E AWS Tests'
+            name: 'aws-to-aws'
+            compose: './docker-compose.e2e.minio.yml'
+          - title: 'E2E FS -> Azure & AWS Tests'
+            name: 'fs-to-azure-and-aws'
+            compose: './docker-compose.e2e.all.yml'
+          - title: 'E2E AWS -> Azure Tests'
+            name: 'aws-to-azure'
+            compose: './docker-compose.e2e.minio-azurite.yml'
     name: ${{ matrix.title }}
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -35,7 +44,7 @@ jobs:
       CI: true
       AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
       # The compose file sends this variable into the Playwright configs
-      TEST_REPORTS_DIR: /playwright/test-reports/${{ matrix.name }}/
+      BLOB_REPORT_FILE: ${{ matrix.name }}-report.zip
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
@@ -43,38 +52,65 @@ jobs:
       - name: Run E2E Tests
         id: test
         run:
-          podman-compose -f ${{ matrix.compose }} up --build --exit-code-from playwright --abort-on-container-exit
-      - name: Test Report
+          podman-compose -f ${{ matrix.compose }} up --build --exit-code-from playwright
+          --abort-on-container-exit
+      - name: Print Test Report
         # Piping the logs through perl so that we can append the test title to make where they are coming from clearer
         # The only annotation types produced by the `github` report are 'debug', 'notice', 'warning', and 'error' so this should cover them all
         run:
-          podman-compose -f ${{ matrix.compose }} logs -f playwright | perl -pe 's/::(debug|notice|warning|error) title=/$&\[${{ matrix.title }}\] /g'
+          podman-compose -f ${{ matrix.compose }} logs -f playwright | perl -pe
+          's/::(debug|notice|warning|error) title=/$&\[${{ matrix.title }}\] /g'
       - name: Upload Playwright Reports
         uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ !cancelled() }}
         with:
           name: playwright-report-${{ matrix.name }}
-          path: tests/smoke/playwright/test-reports/${{ matrix.name }}
-          retention-days: 10
+          path: tests/smoke/playwright/test-reports/${{ env.BLOB_REPORT_FILE }}
+          retention-days: 1
       - name: Tear Down Containers
         run: podman-compose -f ${{ matrix.compose }} down
     outputs:
       actualResult: ${{ steps.test.conclusion }}
-  merge-reports:
-    name: Merge Report Artifacts
+
+  generate-report:
+    name: Generate HTML Report from Blob Reports
     needs: [run-tests]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/upload-artifact/merge@v4
+      - name: Checkout Playwright Files
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tests/smoke/playwright/package.json
+            tests/smoke/playwright/merge.config.ts
+          path: .
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Download Blob Reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-*
+          path: blob-reports
+          merge-multiple: true
+      - name: Install Playwright
+        run: npm ci
+      - name: Merge Blobs Reports into HTML Report
+        env:
+          HTML_REPORT_DIR: ./html-report
+        run: npx playwright merge-reports --config=merge.config.ts ./blob-reports
+      - name: Upload HTML Reprot
+        uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          pattern: playwright-report-*
-          separate-directories: true
-          delete-merged: true
+          path: html-report
+          retention-days: 1
   publish:
-    needs: [merge-reports]
+    needs: [generate-report]
     uses: ./.github/workflows/push-to-gh-pages.yml
     with:
       ARTIFACT_ID: playwright-report
-      DEPLOY_TO: playwright-reports/${{ github.ref_name }}/${{ github.run_id }}/
-      COMMIT_MSG: "add HTML report for run-id ${{ github.run_id }}"
+      DEPLOY_TO: playwright-reports/${{ inputs.BRANCH_NAME }}/${{ inputs.RUN_ID }}/
+      COMMIT_MSG:
+        'add HTML report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}'

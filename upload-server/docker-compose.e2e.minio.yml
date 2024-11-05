@@ -43,8 +43,13 @@ services:
       - CI
       - SERVER_URL=http://upload-server-minio:8080
       - UI_URL=http://upload-server-minio:8081
-      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-/playwright/test-reports/aws-to-aws/}
-      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-/playwright/test-results/aws-to-aws/}
+      - TEST_REPORTS_DIR=/playwright/test-reports
+      - HTML_OUTPUT_DIR=${HTML_OUTPUT_DIR:-aws-to-aws-html}
+      - TEST_REPORT_FILE=${TEST_REPORT_FILE:-aws-to-aws-report}
+
+      - BLOB_REPORT_FILE=${BLOB_REPORT_FILE:-blob-reports/aws-report.zip}
+      - HTML_REPORT_DIR=${HTML_REPORT_DIR:-aws-html}
+      - JSON_REPORT_FILE=${JSON_REPORT_FILE:-aws-report.json}
     command: npm run test:docker
     networks:
       - e2e-minio-network

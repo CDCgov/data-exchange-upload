@@ -28,8 +28,10 @@ services:
       - CI
       - SERVER_URL=http://upload-server-fs:8080
       - UI_URL=http://upload-server-fs:8081
-      - TEST_REPORTS_DIR=${TEST_REPORTS_DIR:-/playwright/test-reports/fs-to-fs/}
-      - TEST_RESULTS_DIR=${TEST_RESULTS_DIR:-/playwright/test-results/fs-to-fs/}
+      - TEST_REPORTS_DIR=/playwright/test-reports
+      - BLOB_REPORT_FILE=${BLOB_REPORT_FILE:-blob-reports/fs-report.zip}
+      - HTML_REPORT_DIR=${HTML_REPORT_DIR:-fs-html}
+      - JSON_REPORT_FILE=${JSON_REPORT_FILE:-fs-report.json}
     command: npm run test:docker
     networks:
       - e2e-fs-network
