@@ -246,7 +246,7 @@ func Deliver(ctx context.Context, id string, path string, s Source, d Destinatio
 	}
 	maxConcurrency := appconfig.LoadedConfig.MaxConcurrency
 	if maxConcurrency <= 0 {
-		maxConcurrency = 5
+		maxConcurrency = 500
 	}
 
 	return d.Copy(ctx, id, path, &s, manifest, length, maxConcurrency)

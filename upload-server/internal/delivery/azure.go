@@ -114,6 +114,11 @@ type AzureDestination struct {
 	LargeObjectSize   int    `env:"AZURE_LARGE_OBJECT_SIZE, default=52,428,800"`
 }
 
+type azureBlobChunk struct {
+	BlockId string
+	Range   azblob.HTTPRange
+}
+
 func (ad *AzureDestination) Client() (*container.Client, error) {
 	if ad.toClient == nil {
 		containerClient, err := storeaz.NewContainerClient(appconfig.AzureStorageConfig{
@@ -191,52 +196,40 @@ func (ad *AzureDestination) copyBlocksFromSignedURL(ctx context.Context, sourceS
 	numChunks := length / partSize
 	blockBlobClient := client.NewBlockBlobClient(destPath)
 	blockBase := uuid.New()
+	// channel of block jobs to do
+	jobsCh := make(chan azureBlobChunk, numChunks)
+	// ordered list of block IDs, needed for commit at the end
 	blockIDs := make([]string, numChunks)
+
 	var chunkNum int64
 	var start int64 = 0
 	var count = partSize
-	chunkIdMap := make(map[string]azblob.HTTPRange)
+
+	// fill the jobs channel
 	for chunkNum = 0; chunkNum < numChunks; chunkNum++ {
 		end := start + count
 		if chunkNum == numChunks-1 {
 			count = 0
 		}
 		chunkId := base64.StdEncoding.EncodeToString([]byte(blockBase.String() + fmt.Sprintf("%05d", chunkNum)))
-		blockIDs[chunkNum] = chunkId
-		chunkIdMap[chunkId] = azblob.HTTPRange{
-			Offset: start,
-			Count:  count,
+		jobsCh <- azureBlobChunk{
+			BlockId: chunkId,
+			Range: azblob.HTTPRange{
+				Offset: start,
+				Count:  count,
+			},
 		}
+		blockIDs[chunkNum] = chunkId
 		start = end
 	}
-	wg := sync.WaitGroup{}
+	close(jobsCh)
+	// use worker pool to pull jobs from jobsCh
+	var wg sync.WaitGroup
+	wg.Add(concurrency)
 	errCh := make(chan error, 1)
-	ctx, cancel := context.WithCancel(ctx)
-	routines := 0
-	defer cancel()
-	for id := range chunkIdMap {
-		wg.Add(1)
-		routines++
-		go func(chunkId string) {
-			defer wg.Done()
-			_, err := blockBlobClient.StageBlockFromURL(ctx, chunkId, sourceSignedURL, &blockblob.StageBlockFromURLOptions{
-				Range: chunkIdMap[chunkId],
-			})
-
-			if err != nil {
-				select {
-				case errCh <- err:
-					// error was set
-				default:
-					// some other error is already set
-				}
-				cancel()
-			}
-		}(id)
-		if routines >= concurrency {
-			wg.Wait()
-			routines = 0
-		}
+	// send jobs to the workers
+	for worker := 0; worker < concurrency; worker++ {
+		go ad.copyPartWorker(ctx, blockBlobClient, sourceSignedURL, jobsCh, errCh, &wg)
 	}
 	wg.Wait()
 	select {
@@ -253,6 +246,26 @@ func (ad *AzureDestination) copyBlocksFromSignedURL(ctx context.Context, sourceS
 	}
 
 	return blockBlobClient.URL(), nil
+}
+
+func (ad *AzureDestination) copyPartWorker(ctx context.Context, blockBlobClient *blockblob.Client, sourceSignedURL string,
+	jobsCh <-chan azureBlobChunk, errCh chan<- error, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for job := range jobsCh {
+		_, err := blockBlobClient.StageBlockFromURL(ctx, job.BlockId, sourceSignedURL,
+			&blockblob.StageBlockFromURLOptions{
+				Range: job.Range,
+			})
+
+		if err != nil {
+			select {
+			case errCh <- err:
+				// error was set
+			default:
+				// some other error is already set
+			}
+		}
+	}
 }
 
 func (ad *AzureDestination) Upload(ctx context.Context, r io.Reader, path string,
