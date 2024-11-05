@@ -62,7 +62,7 @@ func GetTarget(target string) (Destination, bool) {
 }
 
 func FindGroupFromMetadata(meta handler.MetaData) (Group, bool) {
-	dataStreamId, dataStreamRoute := metadataPkg.GetDataStreamID(meta), metadataPkg.GetDataStreamRoute(meta)
+	dataStreamId, dataStreamRoute := meta["data_stream_id"], meta["data_stream_route"]
 	group := Group{
 		DataStreamId:    dataStreamId,
 		DataStreamRoute: dataStreamRoute,
@@ -282,8 +282,8 @@ func GetDeliveredFilename(tuid string, pathTemplate string, manifest map[string]
 		Hour:            h,
 		Filename:        filenameWithoutExtension,
 		UploadId:        tuid,
-		DataStreamID:    metadataPkg.GetDataStreamID(manifest),
-		DataStreamRoute: metadataPkg.GetDataStreamID(manifest),
+		DataStreamID:    manifest["data_stream_id"],
+		DataStreamRoute: manifest["data_stream_route"],
 	}
 	tmpl, err := template.New("path").Parse(pathTemplate)
 	if err != nil {
