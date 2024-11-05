@@ -1,18 +1,5 @@
 [
   {
-    "meta_ext_event": "testevent1",
-    "filename": "dex-smoke-test"
-  },
-  {
-    "meta_destination_id": "dextesting",
-    "filename": "dex-smoke-test"
-  },
-  {
-    "meta_destination_id": "dextesting",
-    "meta_ext_event": "testevent1"
-  },
-  {
-    "version": "2.0",
     "data_stream_id": "covid-all-monthly-vaccination",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -24,7 +11,6 @@
     "meta_username": "test-username"
   },
   {
-    "version": "2.0",
     "data_stream_id": "influenza-vaccination",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -36,7 +22,6 @@
     "meta_username": "test-username"
   },
   {
-    "version": "2.0",
     "data_stream_id": "routine-immunization",
     "data_stream_route": "other",
     "received_filename": "dex-smoke-test",
@@ -48,7 +33,6 @@
     "meta_username": "test-username"
   },
   {
-    "version": "2.0",
     "data_stream_id": "rsv-prevention",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -60,7 +44,6 @@
     "meta_username": "test-username"
   },
   {
-    "version": "2.0",
     "data_stream_id": "ehdi",
     "data_stream_route": "csv",
     "received_filename": "dex-smoke-test",
@@ -73,7 +56,6 @@
     "meta_ext_filestatus": "test-file-status"
   },
   {
-    "version": "2.0",
     "data_stream_id": "eicr",
     "data_stream_route": "fhir",
     "data_producer_id": "test-producer-id",
@@ -83,7 +65,6 @@
     "meta_ext_file_timestamp": "test-file-timestamp"
   },
   {
-    "version": "2.0",
     "data_stream_id": "pulsenet",
     "data_stream_route": "localsequencefile",
     "received_filename": "dex-smoke-test",
@@ -91,7 +72,6 @@
     "jurisdiction": "test-jurisdiction"
   },
   {
-    "version": "2.0",
     "data_stream_id": "dextesting",
     "data_stream_route": "testevent1",
     "received_filename": "dex-smoke-test",
@@ -99,7 +79,6 @@
     "jurisdiction": "test-jurisdiction"
   },
   {
-    "version": "2.0",
     "data_stream_id": "generic-immunization",
     "data_stream_route": "csv",
     "data_producer_id": "XXA",

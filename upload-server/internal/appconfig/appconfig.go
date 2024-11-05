@@ -106,6 +106,7 @@ type AppConfig struct {
 	S3ManifestConfigFolder string           `env:"DEX_S3_MANIFEST_CONFIG_FOLDER_NAME"`
 
 	DeliveryConfigFile string `env:"DEX_DELIVERY_CONFIG_FILE, default=./configs/local/deliver.yml"`
+	ListenerWorkers    int    `env:"LISTENER_WORKERS, default=5"`
 } // .AppConfig
 
 type MetricsConfig struct {
@@ -136,7 +137,8 @@ type SNSConfig struct {
 }
 
 type SQSConfig struct {
-	EventArn string `env:"EVENT_ARN"`
+	EventArn    string `env:"EVENT_ARN"`
+	MaxMessages int    `env:"MAX_MESSAGES"`
 }
 
 type AzureStorageConfig struct {
@@ -163,6 +165,7 @@ type AzureQueueConfig struct {
 	Topic            string `env:"TOPIC"`
 	Queue            string `env:"QUEUE"`
 	Subscription     string `env:"SUBSCRIPTION"`
+	MaxMessages      int    `env:"MAX_MESSAGES"`
 }
 
 type LocalStorageConfig struct {

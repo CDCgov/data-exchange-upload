@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -25,8 +24,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/google/uuid"
 
-	v1 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v1"
-	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -45,11 +42,6 @@ func init() {
 	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
 	// add package name to app logger
 	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
-}
-
-var registeredVersions = map[string]func(handler.MetaData) (validation.ConfigLocation, error){
-	"1.0": v1.NewFromManifest,
-	"2.0": v2.NewFromManifest,
 }
 
 type PreCreateResponse struct {
@@ -136,27 +128,6 @@ func (c *ConfigCache) SetConfig(key any, config *validation.ManifestConfig) {
 	c.Store(key, config)
 }
 
-func GetConfigIdentifierByVersion(manifest handler.MetaData) (string, error) {
-	version := GetVersion(manifest)
-	configLocationBuilder, ok := registeredVersions[version]
-	if !ok {
-		return "", fmt.Errorf("unsupported version %s %w", version, validation.ErrFailure)
-	}
-	configLoc, err := configLocationBuilder(manifest)
-	if err != nil {
-		return "", err
-	}
-	return configLoc.Path(), nil
-}
-
-func GetVersion(manifest handler.MetaData) string {
-	version := manifest["version"]
-	if version == "" {
-		return "1.0"
-	}
-	return version
-}
-
 func Uid() string {
 	return uuid.NewString()
 }
@@ -165,12 +136,12 @@ type SenderManifestVerification struct {
 	Configs *ConfigCache
 }
 
-func (v *SenderManifestVerification) verify(ctx context.Context, manifest map[string]string) error {
-	path, err := GetConfigIdentifierByVersion(manifest)
+func (v *SenderManifestVerification) verify(ctx context.Context, manifest handler.MetaData) error {
+	path, err := NewFromManifest(manifest) //GetConfigIdentifierByVersion(manifest)
 	if err != nil {
 		return err
 	}
-	c, err := v.Configs.GetConfig(ctx, strings.ToLower(path))
+	c, err := v.Configs.GetConfig(ctx, strings.ToLower(path.Path()))
 	if err != nil {
 		return err
 	}
@@ -244,69 +215,6 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		}
 		return resp, err
 	}
-
-	rb.SetStatus(reports.StatusSuccess)
-	return resp, nil
-}
-
-func (v *SenderManifestVerification) getHydrationConfig(ctx context.Context, manifest map[string]string) (*validation.ManifestConfig, error) {
-	path, err := GetConfigIdentifierByVersion(manifest)
-	if err != nil {
-		return nil, err
-	}
-	c, err := v.Configs.GetConfig(ctx, strings.ToLower(path))
-	if err != nil {
-		return nil, err
-	}
-	if c.CompatConfigFilename != "" {
-		return v.Configs.GetConfig(ctx, "v2/"+c.CompatConfigFilename)
-	}
-
-	return c, nil
-}
-
-func (v *SenderManifestVerification) Hydrate(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	// TODO: this could be the event context...but honestly we don't want this to stop
-	// we do need graceful shutdown, so maybe we need a custom context here somehow
-	ctx := context.TODO()
-
-	manifest := event.Upload.MetaData
-	if v, ok := manifest["version"]; ok && v == "2.0" {
-		return resp, nil
-	}
-
-	rb := reports.NewBuilderWithManifest[reports.BulkMetadataTransformReportContent](
-		"1.0.0",
-		reports.StageMetadataTransform,
-		event.Upload.ID,
-		manifest,
-		reports.DispositionTypeAdd).SetStartTime(time.Now().UTC())
-
-	defer func() {
-		rb.SetEndTime(time.Now().UTC())
-		report := rb.Build()
-		logger.Info("Metadata Hydration Report", "report", report)
-		reports.Publish(ctx, report)
-	}()
-
-	c, err := v.getHydrationConfig(ctx, manifest)
-	if err != nil {
-		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
-			Level:   reports.IssueLevelError,
-			Message: err.Error(),
-		}).SetEndTime(time.Now().UTC())
-		return resp, err
-	}
-
-	v2Manifest, transforms := v1.Hydrate(manifest, c)
-	rb.SetContent(reports.BulkMetadataTransformReportContent{
-		ReportContent: reports.ReportContent{
-			ContentSchemaVersion: "1.0.0",
-			ContentSchemaName:    reports.StageMetadataTransform,
-		},
-		Transforms: transforms,
-	})
-	resp.ChangeFileInfo.MetaData = v2Manifest
 
 	rb.SetStatus(reports.StatusSuccess)
 	return resp, nil
