@@ -147,11 +147,11 @@ func TestTus(t *testing.T) {
 
 				// Post-processing
 				// Use the processedMeta data because the post-processing happens after hydration
-				path, err := metadata.GetConfigIdentifierByVersion(processedMeta)
+				path, err := metadata.NewFromManifest(processedMeta)
 				if err != nil {
 					t.Fatal(err)
 				}
-				config, err := metadata.Cache.GetConfig(testContext, strings.ToLower(path))
+				config, err := metadata.Cache.GetConfig(testContext, path.Path())
 				if err != nil {
 					t.Fatal(err)
 				}
