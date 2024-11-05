@@ -111,7 +111,7 @@ type AzureDestination struct {
 	ClientId          string `yaml:"client_id"`
 	ClientSecret      string `yaml:"client_secret"`
 	ContainerName     string `yaml:"container_name"`
-	LargeObjectSize   int    `env:"AZURE_LARGE_OBJECT_SIZE, default=52,428,800"`
+	LargeObjectSize   int    `env:"AZURE_LARGE_OBJECT_SIZE, default=52428800"`
 }
 
 type azureBlobChunk struct {
