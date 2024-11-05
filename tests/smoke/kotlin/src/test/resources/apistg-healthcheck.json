@@ -1,0 +1,55 @@
+{
+    "status": "DEGRADED",
+    "services": [
+        {
+            "service": "Event Publishing processing-status-cosmos-db-report-sink-topics",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Event Publishing ocio-ede-stg-upload-file-ready-topic",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Tus storage",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "ocio-ede-stg-upload-file-ready-subscription Event Subscriber",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Redis Locker",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Azure deliver target edav",
+            "status": "UP",
+            "health_issue": ""
+        },
+        {
+            "service": "Azure deliver target routing",
+            "status": "DOWN",
+            "health_issue": "Get \"https://ocioederoutingdatasastg.blob.core.windows.net/routeingress?restype=container\": dial tcp: lookup ocioederoutingdatasastg.blob.core.windows.net on 127.0.0.11:53: no such host"
+        },
+        {
+            "service": "Azure deliver target ehdi",
+            "status": "UP",
+            "health_issue": ""
+        },
+        {
+            "service": "Azure deliver target eicr",
+            "status": "UP",
+            "health_issue": ""
+        },
+        {
+            "service": "Azure deliver target ncird",
+            "status": "UP",
+            "health_issue": ""
+        }
+    ]
+}

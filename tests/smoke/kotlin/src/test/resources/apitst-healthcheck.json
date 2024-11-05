@@ -1,0 +1,55 @@
+{
+    "status": "DEGRADED",
+    "services": [
+        {
+            "service": "Event Publishing processing-status-cosmos-db-report-sink-topics",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Event Publishing ocio-ede-tst-upload-file-ready-topic",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "ocio-ede-tst-upload-file-ready-subscription Event Subscriber",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Tus storage",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Redis Locker",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Azure deliver target ehdi",
+            "status": "DOWN",
+            "health_issue": "GET https://davsynapseanalyticsdev.blob.core.windows.net/ddnid-ncbddd\n--------------------------------------------------------------------------------\nRESPONSE 403: 403 This request is not authorized to perform this operation using this permission.\nERROR CODE: AuthorizationPermissionMismatch\n--------------------------------------------------------------------------------\n﻿<?xml version=\"1.0\" encoding=\"utf-8\"?><Error><Code>AuthorizationPermissionMismatch</Code><Message>This request is not authorized to perform this operation using this permission.\nRequestId:22639e2a-401e-0061-66f0-2eb3b8000000\nTime:2024-11-04T19:35:50.7141600Z</Message></Error>\n--------------------------------------------------------------------------------\n"
+        },
+        {
+            "service": "Azure deliver target edav",
+            "status": "UP",
+            "health_issue": ""
+        },
+        {
+            "service": "Azure deliver target ncird",
+            "status": "UP",
+            "health_issue": ""
+        },
+        {
+            "service": "Azure deliver target eicr",
+            "status": "DOWN",
+            "health_issue": "GET https://davsynapseanalyticsdev.blob.core.windows.net/ddphss-csels\n--------------------------------------------------------------------------------\nRESPONSE 403: 403 This request is not authorized to perform this operation using this permission.\nERROR CODE: AuthorizationPermissionMismatch\n--------------------------------------------------------------------------------\n﻿<?xml version=\"1.0\" encoding=\"utf-8\"?><Error><Code>AuthorizationPermissionMismatch</Code><Message>This request is not authorized to perform this operation using this permission.\nRequestId:22639e60-401e-0061-19f0-2eb3b8000000\nTime:2024-11-04T19:35:50.7437858Z</Message></Error>\n--------------------------------------------------------------------------------\n"
+        },
+        {
+            "service": "Azure source",
+            "status": "UP",
+            "health_issue": ""
+        }
+    ]
+}

@@ -2,6 +2,7 @@ package dex
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import model.AuthResponse
 import model.HealthResponse
 import model.InfoResponse
@@ -12,9 +13,14 @@ import okhttp3.Request
 import okio.IOException
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.TimeUnit
 
 class DexUploadClient(private val url: String) {
-    private val httpClient = OkHttpClient()
+    private val httpClient = OkHttpClient().newBuilder()
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS)
+        .build()
+
     private val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
 
     fun getToken(username: String, password: String): String {
@@ -62,10 +68,9 @@ class DexUploadClient(private val url: String) {
         return respBody
     }
 
-    fun getHealth(authToken: String): HealthResponse {
+    fun getHealth(): HealthResponse {
         val req = Request.Builder()
             .url("$url/upload/health")
-            .header("Authorization", "Bearer $authToken")
             .build()
 
         val resp = httpClient
