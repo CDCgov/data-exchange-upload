@@ -38,7 +38,7 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	}
 
 	if appConfig.SubscriberConnection != nil {
-		sub, err := event.NewAzureSubscriber[T](ctx, appConfig.SubscriberConnection.ConnectionString, appConfig.SubscriberConnection.Topic, appConfig.SubscriberConnection.Subscription)
+		sub, err := event.NewAzureSubscriber[T](ctx, appConfig.SubscriberConnection.ConnectionString, appConfig.SubscriberConnection.Topic, appConfig.SubscriberConnection.Subscription, appConfig.SubscriberConnection.MaxMessages)
 		if err != nil {
 			return nil, err
 		}

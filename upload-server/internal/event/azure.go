@@ -91,7 +91,7 @@ func (ap *AzurePublisher[T]) Health(ctx context.Context) (rsp models.ServiceHeal
 	return rsp
 }
 
-func NewAzureSubscriber[T Identifiable](ctx context.Context, connectionString, topic, subscription string) (*AzureSubscriber[T], error) {
+func NewAzureSubscriber[T Identifiable](ctx context.Context, connectionString, topic, subscription string, maxMessages int) (*AzureSubscriber[T], error) {
 	client, err := NewAMQPServiceBusClient(connectionString)
 	if err != nil {
 		slog.Error("failed to connect to event service bus", "error", err)
@@ -108,7 +108,6 @@ func NewAzureSubscriber[T Identifiable](ctx context.Context, connectionString, t
 		return nil, err
 	}
 
-	maxMessages := subConn.MaxMessages
 	if maxMessages == 0 {
 		maxMessages = MaxMessages
 	}
@@ -119,7 +118,7 @@ func NewAzureSubscriber[T Identifiable](ctx context.Context, connectionString, t
 		AdminClient:  adminClient,
 		Topic:        topic,
 		Subscription: subscription,
-		Max:         maxMessages,
+		Max:          maxMessages,
 	}, nil
 }
 
