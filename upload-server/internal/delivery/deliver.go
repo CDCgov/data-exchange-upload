@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -16,25 +15,20 @@ import (
 
 	"github.com/tus/tusd/v2/pkg/handler"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"gopkg.in/yaml.v3"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
-
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
 
 var UploadSrc = "upload"
 
 var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
-var groups map[string]Group
-var targets map[string]Destination
+var Groups map[string]Group
+var Targets map[string]Destination
 
 func GetTarget(target string) (Destination, bool) {
-	d, ok := targets[target]
+	d, ok := Targets[target]
 	return d, ok
 }
 
@@ -44,7 +38,7 @@ func FindGroupFromMetadata(meta handler.MetaData) (Group, bool) {
 		DataStreamId:    dataStreamId,
 		DataStreamRoute: dataStreamRoute,
 	}
-	g, ok := groups[group.Key()]
+	g, ok := Groups[group.Key()]
 	return g, ok
 }
 
@@ -141,7 +135,7 @@ func (t *Target) UnmarshalYAML(n *yaml.Node) error {
 	return nil
 }
 
-func unmarshalDeliveryConfig(confBody string) (*Config, error) {
+func UnmarshalDeliveryConfig(confBody string) (*Config, error) {
 	confStr := os.ExpandEnv(confBody)
 	c := &Config{}
 
@@ -151,72 +145,6 @@ func unmarshalDeliveryConfig(confBody string) (*Config, error) {
 	}
 
 	return c, nil
-}
-
-// Eventually, this can take a more generic list of deliverer configuration object
-func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.AppConfig) (err error) {
-	targets = make(map[string]Destination)
-	groups = make(map[string]Group)
-	var src Source
-
-	fromPathStr := filepath.Join(appConfig.LocalFolderUploadsTus, appConfig.TusUploadPrefix)
-	fromPath := os.DirFS(fromPathStr)
-	src = &FileSource{
-		FS: fromPath,
-	}
-
-	dat, err := os.ReadFile(appConfig.DeliveryConfigFile)
-	if err != nil {
-		return err
-	}
-	cfg, err := unmarshalDeliveryConfig(string(dat))
-	if err != nil {
-		return err
-	}
-
-	for _, t := range cfg.Targets {
-		targets[t.Name] = t.Destination
-		if err := health.Register(t.Destination); err != nil {
-			slog.Error("failed to register destination", "destination", t)
-		}
-	}
-	slog.Info("targets", "targets", targets)
-
-	for _, g := range cfg.Groups {
-		groups[g.Key()] = g
-		if g.DeliveryTargets == nil {
-			slog.Warn(fmt.Sprintf("no targets configured for group %s", g.Key()))
-		}
-	}
-
-	if appConfig.AzureConnection != nil {
-		// TODO Can the tus container client be singleton?
-		tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
-		if err != nil {
-			return err
-		}
-		src = &AzureSource{
-			FromContainerClient: tusContainerClient,
-			Prefix:              appConfig.TusUploadPrefix,
-		}
-	}
-	if appConfig.S3Connection != nil {
-		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
-		if err != nil {
-			return err
-		}
-		src = &S3Source{
-			FromClient: s3Client,
-			BucketName: appConfig.S3Connection.BucketName,
-			Prefix:     appConfig.TusUploadPrefix,
-		}
-	}
-	RegisterSource(UploadSrc, src)
-
-	if err := health.Register(src); err != nil {
-		slog.Error("failed to register some health checks", "error", err)
-	}
-	return nil
 }
 
 // target may end up being a type

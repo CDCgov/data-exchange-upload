@@ -75,7 +75,7 @@ func main() {
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
 
-	if err := event.InitFileReadyPublisher(ctx, appConfig); err != nil {
+	if err := cli.InitFileReadyPublisher(ctx, appConfig); err != nil {
 		slog.Error("error creating file ready publisher", "error", err)
 		os.Exit(appMainExitCode)
 	}
