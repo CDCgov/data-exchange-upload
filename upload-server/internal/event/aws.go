@@ -206,7 +206,7 @@ func (s *SQSSubscriber[T]) Subscribe(ctx context.Context, topicArn string) error
 		return err
 	}
 	for _, sub := range rsp.Subscriptions {
-		if *sub.Endpoint == s.QueueURL {
+		if *sub.TopicArn == s.ARN {
 			slog.Info("Found subscription", "sub", sub, "url", s.QueueURL)
 			return nil
 		}
