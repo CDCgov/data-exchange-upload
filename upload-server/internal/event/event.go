@@ -31,6 +31,7 @@ type FileReady struct {
 	Event
 	UploadId          string `json:"upload_id"`
 	SrcUrl            string `json:"src_url"`
+	Path              string `json:"path"`
 	DestinationTarget string `json:"deliver_target"`
 	Metadata          map[string]string
 }
@@ -63,11 +64,12 @@ func (fr *FileReady) GetUploadID() string {
 	return fr.UploadId
 }
 
-func NewFileReadyEvent(uploadId string, metadata map[string]string, target string) *FileReady {
+func NewFileReadyEvent(uploadId string, metadata map[string]string, path, target string) *FileReady {
 	return &FileReady{
 		Event: Event{
 			Type: FileReadyEventType,
 		},
+		Path:              path,
 		UploadId:          uploadId,
 		Metadata:          metadata,
 		DestinationTarget: target,
