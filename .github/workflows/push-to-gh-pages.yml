@@ -31,12 +31,12 @@ jobs:
           name: ${{ inputs.ARTIFACT_ID }}
           path: ${{ inputs.DEPLOY_TO }}
       - name: Push to GitHub Pages Branch
+        working-directory: ${{ inputs.DEPLOY_TO }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ${{ inputs.DEPLOY_TO }}
+          git add .
           git commit -m "${{ inputs.COMMIT_MSG }}"
-          git pull --rebase
           git push
       - run: |
           if [[ ${{ inputs.DEPLOY_TO }} == . ]]; then

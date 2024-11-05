@@ -102,5 +102,5 @@ jobs:
     uses: ./.github/workflows/push-to-gh-pages.yml
     with:
       ARTIFACT_ID: playwright-report
-      DEPLOY_TO: playwright-reports/${{ github.ref_name }}/${{ github.run_id }}/
-      COMMIT_MSG: 'add HTML report for branch ${{ github.ref_name }}, run-id ${{ github.run_id }}'
+      DEPLOY_TO: playwright-reports/${{ github.head_ref }}/${{ github.run_id }}/
+      COMMIT_MSG: 'add HTML report for branch ${{ github.head_ref }}, run-id ${{ github.run_id }}'
