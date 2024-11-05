@@ -4,4 +4,4 @@
 !index.html
 !openapi*
 !Release Notes
-!/playwright-reports
+!/playwright-reports/**
