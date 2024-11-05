@@ -140,7 +140,7 @@ func TestDeliverS3toAzure(t *testing.T) {
 
 func TestDeliverFileToAzure(t *testing.T) {
 	src := getFileSource()
-	dest := getAzureDestination("test-deliver_file")
+	dest := getAzureDestination("test-deliver-file")
 	runDeliveryTest(t, src, dest, dest.PathTemplate)
 }
 
