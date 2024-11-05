@@ -32,7 +32,7 @@ class Info {
 
     @Test(
         groups = [Constants.Groups.FILE_INFO],
-        dataProvider = "validManifestAllProvider",
+        dataProvider = "validManifestProvider",
         dataProviderClass = DataProvider::class
     )
     fun shouldGetFileInfo(manifest: HashMap<String, String>) {
