@@ -12,7 +12,6 @@ func NewWithEndpoint(ctx context.Context, endpoint string) (*s3.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		// For non-AWS S3 backends or custom endpoints
 		if endpoint != "" {
@@ -20,6 +19,5 @@ func NewWithEndpoint(ctx context.Context, endpoint string) (*s3.Client, error) {
 			o.BaseEndpoint = &endpoint
 		}
 	})
-
 	return client, nil
 }

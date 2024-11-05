@@ -82,18 +82,6 @@ func (c *ConfigCache) SetConfig(key any, config *validation.ManifestConfig) {
 	c.Store(key, config)
 }
 
-func GetConfigFromManifest(ctx context.Context, manifest handler.MetaData) (*validation.ManifestConfig, error) {
-	path, err := NewFromManifest(manifest)
-	if err != nil {
-		return nil, err
-	}
-	config, err := Cache.GetConfig(ctx, path.Path())
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
-}
-
 func Uid() string {
 	return uuid.NewString()
 }

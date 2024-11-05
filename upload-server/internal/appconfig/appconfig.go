@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -208,15 +207,6 @@ func (azc *AzureStorageConfig) Check() error {
 		})
 	}
 	return errors.Join(errs...)
-}
-
-func LocalUploadStoreConfig(appConfig *AppConfig) *LocalStorageConfig {
-	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
-	fromPath := os.DirFS(fromPathStr)
-	return &LocalStorageConfig{
-		FromPathStr: fromPathStr,
-		FromPath:    fromPath,
-	}
 }
 
 var LoadedConfig = &AppConfig{}
