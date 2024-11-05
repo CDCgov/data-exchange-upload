@@ -35,7 +35,7 @@ class FileCopy {
 
     @Test(
         groups = [Constants.Groups.FILE_COPY],
-        dataProvider = "validManifestAllProvider",
+        dataProvider = "validManifestProvider",
         dataProviderClass = DataProvider::class
     )
     fun shouldUploadFile(case: TestCase) {
@@ -76,25 +76,5 @@ class FileCopy {
             Assert.assertTrue(actualLocation.endsWith(expectedLocation.toString()), "Actual location ($actualLocation) does not end with the expected path: $expectedLocation")
             Assert.assertEquals(delivery.issues, null)
         }
-    }
-
-    @Test(
-        groups = [Constants.Groups.FILE_COPY],
-        dataProvider = "validManifestV1Provider",
-        dataProviderClass = DataProvider::class
-    )
-    fun shouldTranslateMetadataGivenV1SenderManifest(case: TestCase) {
-        val uid = uploadClient.uploadFile(testFile, case.manifest)
-            ?: throw TestNGException("Error uploading file ${testFile.name}")
-        testContext.setAttribute("uploadId", uid)
-        Thread.sleep(3000)
-
-        val uploadInfo = dexUploadClient.getFileInfo(uid, authToken)
-        //Assert.assertTrue(uploadInfo.deliveries?.all { it.status == "SUCCESS" }?:false, "Not all deliveries are 'SUCCESS' - Deliveries: ${uploadInfo.deliveries}")
-        case.manifest.forEach{(manifestKey, manifestValue) -> 
-            Assert.assertEquals(uploadInfo.manifest[manifestKey], manifestValue.toString(), "Actual manifest value does not equal the expected manifest value")
-       }
-        Assert.assertNotNull(uploadInfo.manifest["dex_ingest_datetime"])
-        Assert.assertEquals(uploadInfo.manifest["upload_id"], uid, "Upload ID on the manifest is not the expected upload ID")
     }
 }

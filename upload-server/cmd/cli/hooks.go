@@ -46,7 +46,7 @@ func PrebuiltHooks(validator metadata.SenderManifestVerification, appender metad
 	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, validator.Verify)
 	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
 	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
-	handler.Register(tusHooks.HookPreFinish, validator.Hydrate, appender.Append)
+	handler.Register(tusHooks.HookPreFinish, appender.Append)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
 

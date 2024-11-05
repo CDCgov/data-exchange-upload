@@ -72,11 +72,5 @@ routing_groups:
   - data_stream_id: dextesting
     data_stream_route: testevent1
     delivery_targets:
-      - name: ncird
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
-      - name: eicr
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
       - name: edav
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
-      - name: ehdi
         path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"

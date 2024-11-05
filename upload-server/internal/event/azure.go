@@ -107,12 +107,19 @@ func NewAzureSubscriber[T Identifiable](ctx context.Context, connectionString, t
 		slog.Error("failed to connect to service bus admin client", "error", err)
 		return nil, err
 	}
+
+	maxMessages := subConn.MaxMessages
+	if maxMessages == 0 {
+		maxMessages = MaxMessages
+	}
+
 	return &AzureSubscriber[T]{
 		Context:      ctx,
 		Receiver:     receiver,
 		AdminClient:  adminClient,
 		Topic:        topic,
 		Subscription: subscription,
+		Max:         maxMessages,
 	}, nil
 }
 
