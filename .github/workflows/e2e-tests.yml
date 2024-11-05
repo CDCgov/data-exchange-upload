@@ -14,7 +14,6 @@ defaults:
 jobs:
   e2e-tests:
     strategy:
-      max-parallel: 2
       matrix:
         include:
           - title: 'E2E FS Tests'
@@ -74,11 +73,6 @@ jobs:
     steps:
       - name: Checkout Playwright Files
         uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            tests/smoke/playwright/package.json
-            tests/smoke/playwright/merge.config.ts
-          path: .
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -87,11 +81,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: playwright-report-*
-          path: blob-reports
+          path: tests/smoke/playwright/blob-reports
           merge-multiple: true
       - name: Install Playwright
+        working-directory: tests/smoke/playwright
         run: npm ci
       - name: Merge Blobs Reports into HTML Report
+        working-directory: tests/smoke/playwright
         env:
           HTML_REPORT_DIR: ./html-report
         run: npx playwright merge-reports --config=merge.config.ts ./blob-reports
@@ -99,7 +95,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: html-report
+          path: tests/smoke/playwright/html-report
           retention-days: 1
   publish:
     needs: [generate-report]
