@@ -38,7 +38,7 @@ jobs:
       CI: true
       AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
       # The compose file sends this variable into the Playwright configs
-      HTML_REPORT_DIR: ${{ matrix.name }}-html
+      HTML_REPORT_DIR: ${{ matrix.name }}-html-report
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
@@ -54,17 +54,12 @@ jobs:
         run:
           podman-compose -f ${{ matrix.compose }} logs -f playwright | perl -pe
           's/::(debug|notice|warning|error) title=/$&\[${{ matrix.title }}\] /g'
-      - name: Rename Report
-        working-directory: tests/smoke/playwright/test-reports
-        run: |
-          mv ${{ env.HTML_REPORT_DIR }}/index.html ${{ matrix.name }}.html
-          rm -rf ${{ env.HTML_REPORT_DIR }}
       - name: Upload Playwright Reports
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: playwright-report-${{ matrix.name }}
-          path: tests/smoke/playwright/test-reports/${{ matrix.name }}.html
+          path: tests/smoke/playwright/test-reports
           retention-days: 1
       - name: Tear Down Containers
         run: podman-compose -f ${{ matrix.compose }} down

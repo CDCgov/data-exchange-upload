@@ -3,7 +3,10 @@ import { PlaywrightTestConfig, devices } from '@playwright/test';
 const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
 const testReportDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
 const jsonReportFilename = `${testReportDir}/${process.env.JSON_REPORT_FILE ?? 'test-report.json'}`;
-const htmlReportDir = `${testReportDir}/${process.env.HTML_REPORT_DIR ?? 'html'}`;
+const htmlReportLink = process.env.HTML_REPORT_DIR ?? 'html';
+const htmlReportDir = `${testReportDir}/${htmlReportLink}`;
+const divSummaryFilename = `${testReportDir}/${process.env.DIV_SUMMARY_FILE ?? 'div-summary.html'}`;
+const testTitle = process.env.TEST_TITLE ?? 'Playwright Test Report';
 
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
@@ -29,7 +32,18 @@ const config: PlaywrightTestConfig = {
 
   // Reporter to use
   reporter: process.env.CI
-    ? [['github'], ['html', { outputFolder: htmlReportDir, open: 'never' }]]
+    ? [
+        ['github'],
+        ['html', { outputFolder: htmlReportDir, open: 'never' }],
+        [
+          './custom-reporter/index.ts',
+          {
+            title: testTitle,
+            htmlReportLink: `./${htmlReportLink}`,
+            outputFilename: divSummaryFilename
+          }
+        ]
+      ]
     : [
         ['list', { printSteps: true }],
         ['json', { outputFile: jsonReportFilename }],
