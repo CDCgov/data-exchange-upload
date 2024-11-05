@@ -138,7 +138,8 @@ type SNSConfig struct {
 }
 
 type SQSConfig struct {
-	EventArn string `env:"EVENT_ARN"`
+	EventArn    string `env:"EVENT_ARN"`
+	MaxMessages int    `env:"MAX_MESSAGES"`
 }
 
 type AzureStorageConfig struct {
