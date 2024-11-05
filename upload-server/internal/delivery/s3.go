@@ -124,23 +124,18 @@ func (sd *S3Destination) Client() *s3.Client {
 }
 
 func (sd *S3Destination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
-	destFileName, err := getDeliveredFilename(ctx, path, sd.PathTemplate, m)
-	if err != nil {
-		return "", err
-	}
 
 	uploader := manager.NewUploader(sd.Client())
-	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
+	if _, err := uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket:   &sd.BucketName,
-		Key:      &destFileName,
+		Key:      &path,
 		Body:     r,
 		Metadata: m,
-	})
-	if err != nil {
+	}); err != nil {
 		return "", fmt.Errorf("failed to upload file to %s %s: %w", sd.BucketName, path, err)
 	}
 
-	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, destFileName)
+	s3URL := fmt.Sprintf("https://%s.s3.us-east-1.amazonaws.com/%s", sd.BucketName, path)
 	return s3URL, nil
 }
 

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"io"
 	"log"
 	"net/http"
@@ -20,11 +19,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
@@ -163,8 +163,8 @@ func TestTus(t *testing.T) {
 				for target, path := range AllTargets {
 					if slices.Contains(config.Copy.Targets, target) {
 						// Check that the file exists in the target checkpoint folder
-						if _, err := os.Stat(path + "/" + tuid); errors.Is(err, os.ErrNotExist) {
-							t.Error("file was not copied to "+target+" checkpoint for file", tuid)
+						if _, err := os.Stat(path + "/" + tuid + ".txt"); errors.Is(err, os.ErrNotExist) {
+							t.Error("file was not copied to "+target+" checkpoint for file", tuid, name)
 						}
 					}
 				}
@@ -192,12 +192,12 @@ func TestRouteEndpoint(t *testing.T) {
 			t.Error("could not create tuid")
 		} else {
 			// Check that the file exists in the target checkpoint folder
-			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid + ".txt"); errors.Is(err, os.ErrNotExist) {
 				t.Error("file was not copied to edav checkpoint for file", tuid)
 			}
 
 			// Remove and re-route the file
-			err = os.Remove(TestEDAVFolder + "/" + tuid)
+			err = os.Remove(TestEDAVFolder + "/" + tuid + ".txt")
 			if err != nil {
 				t.Error("failed to remove edav file for "+tuid, err.Error())
 			}
@@ -213,7 +213,7 @@ func TestRouteEndpoint(t *testing.T) {
 				t.Error("expected 200 when retrying route but got", resp.StatusCode, string(b))
 			}
 			time.Sleep(100 * time.Millisecond) // Wait for new file ready event to be processed.
-			if _, err := os.Stat(TestEDAVFolder + "/" + tuid); errors.Is(err, os.ErrNotExist) {
+			if _, err := os.Stat(TestEDAVFolder + "/" + tuid + ".txt"); errors.Is(err, os.ErrNotExist) {
 				t.Error("file was not copied to edav checkpoint when retry attempted for file", tuid)
 			}
 		}
@@ -254,99 +254,6 @@ func TestRequiredUploadIdEndpoints(t *testing.T) {
 		if resp.StatusCode != 404 {
 			t.Error("bad response for ", endpoint, resp.StatusCode)
 		}
-	}
-}
-
-func TestGetFileDeliveryPrefixDate(t *testing.T) {
-	ctx := context.TODO()
-	m := map[string]string{
-		"data_stream_id":    "test-stream",
-		"data_stream_route": "test-route",
-	}
-	metadata.Cache.SetConfig("test-stream_test-route.json", &validation.ManifestConfig{
-		Copy: validation.CopyConfig{
-			FolderStructure: metadata.FolderStructureDate,
-		},
-	})
-
-	p, err := metadata.GetFilenamePrefix(ctx, m)
-	if err != nil {
-		t.Fatal(err)
-	}
-	prefixTokens := strings.Split(p, "/")
-	if len(prefixTokens) != 4 {
-		t.Error("prefix not properly formatted", p)
-	}
-	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
-	if prefixTokens[0] != expectedFolderPrefix {
-		t.Error("prefix folder not properly formatted")
-	}
-}
-
-func TestGetFileDeliveryPrefixRoot(t *testing.T) {
-	ctx := context.TODO()
-	m := map[string]string{
-		"data_stream_id":    "test-stream",
-		"data_stream_route": "test-route",
-	}
-	metadata.Cache.SetConfig("test-stream_test-route.json", &validation.ManifestConfig{
-		Copy: validation.CopyConfig{
-			FolderStructure: metadata.FolderStructureRoot,
-		},
-	})
-
-	p, err := metadata.GetFilenamePrefix(ctx, m)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expectedFolderPrefix := m["data_stream_id"] + "-" + m["data_stream_route"]
-
-	if p != expectedFolderPrefix {
-		t.Error("expected file delivery prefix to be folder prefix but was", p)
-	}
-}
-
-func TestDeliveryFilenameSuffixUploadId(t *testing.T) {
-	ctx := context.TODO()
-	m := map[string]string{
-		"data_stream_id":    "test-stream",
-		"data_stream_route": "test-route",
-	}
-	tuid := "1234"
-	metadata.Cache.SetConfig("test-stream_test-route.json", &validation.ManifestConfig{
-		Copy: validation.CopyConfig{
-			FilenameSuffix: metadata.FilenameSuffixUploadId,
-		},
-	})
-
-	s, err := metadata.GetFilenameSuffix(ctx, m, tuid)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if s != "_"+tuid {
-		t.Error("expected upload ID suffix but get", s)
-	}
-}
-
-func TestDeliveryFilenameSuffixNone(t *testing.T) {
-	ctx := context.TODO()
-	m := map[string]string{
-		"data_stream_id":    "test-stream",
-		"data_stream_route": "test-route",
-	}
-	tuid := "1234"
-	metadata.Cache.SetConfig("test-stream_test-route.json", &validation.ManifestConfig{
-		Copy: validation.CopyConfig{
-			FilenameSuffix: "",
-		},
-	})
-
-	s, err := metadata.GetFilenameSuffix(ctx, m, tuid)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if s != "" {
-		t.Error("expected empty suffix but get", s)
 	}
 }
 
