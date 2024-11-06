@@ -5,7 +5,7 @@ const testReportDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
 const jsonReportFilename = `${testReportDir}/${process.env.JSON_REPORT_FILE ?? 'test-report.json'}`;
 const htmlReportLink = process.env.HTML_REPORT_DIR ?? 'html';
 const htmlReportDir = `${testReportDir}/${htmlReportLink}`;
-const divSummaryFilename = `${testReportDir}/${process.env.DIV_SUMMARY_FILE ?? 'div-summary.html'}`;
+const summaryJsonReportFilename = `${testReportDir}/${process.env.SUMMARY_JSON_REPORT_FILE ?? 'summary-report.json'}`;
 const testTitle = process.env.TEST_TITLE ?? 'Playwright Test Report';
 
 const config: PlaywrightTestConfig = {
@@ -40,7 +40,7 @@ const config: PlaywrightTestConfig = {
           {
             title: testTitle,
             htmlReportLink: `./${htmlReportLink}`,
-            outputFilename: divSummaryFilename
+            outputFilename: summaryJsonReportFilename
           }
         ]
       ]

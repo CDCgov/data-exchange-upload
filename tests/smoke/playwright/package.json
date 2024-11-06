@@ -9,7 +9,7 @@
     "test": "npx playwright test",
     "test:ui": "npx playwright test --ui",
     "test:docker": "npm install; npm run wait; npm run test",
-    "merge-reports": "node merge-html-reports",
+    "merge-reports": "npx ts-node merge-html-reports",
     "prettier": "prettier --write \"**/*.{js,jsx,cjs,ts,tsx,css,md,json}\" --config \".prettierrc\""
   },
   "dependencies": {

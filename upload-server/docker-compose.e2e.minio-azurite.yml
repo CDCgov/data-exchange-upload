@@ -53,7 +53,7 @@ services:
       - TEST_REPORTS_DIR=/playwright/test-reports
       - HTML_REPORT_DIR=${HTML_REPORT_DIR:-aws-to-azure-html}
       - JSON_REPORT_FILE=${JSON_REPORT_FILE:-aws-to-azure-report.json}
-      - DIV_SUMMARY_FILE=${DIV_SUMMARY_FILE:-aws-to-azure-summary.txt}
+      - SUMMARY_JSON_REPORT_FILE=${SUMMARY_JSON_REPORT_FILE:-aws-to-azure-summary.json}
       - TEST_TITLE=${TEST_TITLE:-E2E AWS -> Azure Tests}
     command: npm run test:docker
     networks:
