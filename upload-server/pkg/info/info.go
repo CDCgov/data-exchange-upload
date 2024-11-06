@@ -10,7 +10,7 @@ var (
 	ErrNotFound = errors.New("expected file not found")
 )
 
-// Values also set in the tusclient.js
+// Values also set in the tusclient.js in pkg/ui
 // these values must match
 const (
 	UploadInitiated  string = "Initiated"

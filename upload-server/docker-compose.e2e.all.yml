@@ -1,0 +1,55 @@
+networks:
+  e2e-all-network:
+
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    hostname: azurite
+    networks:
+      - e2e-all-network
+  minio:
+    image: quay.io/minio/minio
+    hostname: minio
+    volumes:
+      - ./configs/local/minio:/data
+    command: server /data --console-address :8001 --address :8000
+    networks:
+      - e2e-all-network
+  upload-server:
+    image: golang:alpine
+    container_name: upload-server-all
+    volumes:
+      - .:/code
+      - ../upload-configs:/upload-configs
+    working_dir: /code
+    environment:
+      - UI_SERVER_EXTERNAL_HOST=upload-server-all:8080
+      - UI_SERVER_INTERNAL_HOST=upload-server-all:8080
+      - UPLOAD_CONFIG_PATH=/upload-configs
+      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/mix_destinations.yml
+      - AZURITE_KEY=${AZURITE_STORAGE_KEY}
+      - EDAV_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
+      - EHDI_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
+      - EICR_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
+      - NCIRD_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
+    command: /bin/sh -c "./run-server.sh"
+    networks:
+      - e2e-all-network
+    depends_on:
+      - azurite
+      - minio
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.48.0-focal
+    container_name: playwright-all
+    volumes:
+      - ../tests/smoke/playwright:/app
+      - /app/node_modules
+    working_dir: /app
+    environment:
+      - CI
+      - SERVER_URL=http://upload-server-all:8080
+      - UI_URL=http://upload-server-all:8081
+      - TEST_REPORT_JSON=${TEST_REPORT_JSON:-all-test-report.json}
+    command: npm run test:docker
+    networks:
+      - e2e-all-network
