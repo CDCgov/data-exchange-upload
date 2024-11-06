@@ -58,7 +58,8 @@ main {
   border: 1px solid #d0d7de;
   border-bottom-left-radius: 6px;
   border-bottom-right-radius: 6px;
-  line-height: 2rem;
+  line-height: 1.5rem;
+  font-size: smaller;
   padding: 0.5rem 6rem 0.5rem 4rem;
   overflow: hidden;
   text-overflow: ellipsis;

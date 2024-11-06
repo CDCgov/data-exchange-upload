@@ -1,11 +1,14 @@
 name: 'Playwright Tests'
 
 on:
-  workflow_dispatch:
-  pull_request:
-    paths:
-      - upload-server/**
-      - tests/**
+  workflow_call:
+    inputs:
+      BRANCH_NAME:
+        type: string
+        required: true
+      RUN_ID:
+        type: string
+        required: true
 
 defaults:
   run:
@@ -97,5 +100,6 @@ jobs:
     uses: ./.github/workflows/push-to-gh-pages.yml
     with:
       ARTIFACT_ID: playwright-report
-      DEPLOY_TO: playwright-reports/${{ github.head_ref }}/${{ github.run_id }}/
-      COMMIT_MSG: 'add HTML report for branch ${{ github.head_ref }}, run-id ${{ github.run_id }}'
+      DEPLOY_TO: playwright-reports/${{ inputs.BRANCH_NAME }}/${{ inputs.RUN_ID }}/
+      COMMIT_MSG:
+        'add HTML report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}'
