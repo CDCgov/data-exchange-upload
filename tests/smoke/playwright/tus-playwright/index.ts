@@ -58,6 +58,7 @@ class ClientContext {
       urlStorage: this.storage
     };
     if (options.chunkSize) uploadOptions.chunkSize = options.chunkSize;
+    if (this.options.retryDelays) uploadOptions.retryDelays = this.options.retryDelays;
 
     return new UploadContext(filename, uploadOptions, contextOptions);
   }

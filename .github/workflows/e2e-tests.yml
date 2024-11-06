@@ -85,7 +85,7 @@ jobs:
           merge-multiple: true
       - name: Merge Blobs Reports into HTML Report
         working-directory: tests/smoke/playwright
-        run: npm run merge-reports ./test-reports
+        run: npm ci && npm run merge-reports ./test-reports
       - name: Upload HTML Reprot
         uses: actions/upload-artifact@v4
         with:
