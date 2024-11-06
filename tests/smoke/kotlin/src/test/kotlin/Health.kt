@@ -1,6 +1,5 @@
 import dex.DexUploadClient
 import org.testng.Assert
-import org.testng.annotations.BeforeTest
 import org.testng.annotations.Test
 import util.Constants
 import util.EnvConfig
@@ -12,7 +11,6 @@ import model.HealthResponse
 @Test
 class Health {
     private val dexUploadClient = DexUploadClient(EnvConfig.UPLOAD_URL)
-    private lateinit var authToken: String
 
     @Test(groups = [Constants.Groups.HEALTH_CHECK])
     fun shouldGetHealthCheck() {
