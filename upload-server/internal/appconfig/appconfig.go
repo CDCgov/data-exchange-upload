@@ -8,11 +8,11 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/sethvargo/go-envconfig"
 ) // .import
@@ -151,6 +151,17 @@ type AzureStorageConfig struct {
 	ContainerEndpoint string `env:"ENDPOINT"`
 } // .AzureStorageConfig
 
+func (ac *AzureStorageConfig) Credentials() storeaz.Credentials {
+	return storeaz.Credentials{
+		StorageName:       ac.StorageName,
+		StorageKey:        ac.StorageKey,
+		TenantId:          ac.TenantId,
+		ClientId:          ac.ClientId,
+		ClientSecret:      ac.ClientSecret,
+		ContainerEndpoint: ac.ContainerEndpoint,
+	}
+}
+
 type S3StorageConfig struct {
 	Endpoint   string `env:"ENDPOINT"`
 	BucketName string `env:"BUCKET_NAME"`
@@ -196,15 +207,6 @@ func (azc *AzureStorageConfig) Check() error {
 		})
 	}
 	return errors.Join(errs...)
-}
-
-func LocalUploadStoreConfig(appConfig *AppConfig) *LocalStorageConfig {
-	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
-	fromPath := os.DirFS(fromPathStr)
-	return &LocalStorageConfig{
-		FromPathStr: fromPathStr,
-		FromPath:    fromPath,
-	}
 }
 
 var LoadedConfig = &AppConfig{}

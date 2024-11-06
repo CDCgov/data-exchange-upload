@@ -1,93 +1,111 @@
 [
   {
-    "data_stream_id": "covid-all-monthly-vaccination",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "XXA",
-    "data_producer_id": "XXA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
+    "manifest": {
+      "data_stream_id": "covid-all-monthly-vaccination",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    }
   },
   {
-    "data_stream_id": "influenza-vaccination",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "XXA",
-    "data_producer_id": "XXA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
+    "manifest": {
+      "data_stream_id": "influenza-vaccination",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    }
   },
   {
-    "data_stream_id": "routine-immunization",
-    "data_stream_route": "other",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "XXA",
-    "data_producer_id": "XXA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
+    "manifest": {
+      "data_stream_id": "routine-immunization",
+      "data_stream_route": "other",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    }
   },
   {
-    "data_stream_id": "rsv-prevention",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "XXA",
-    "data_producer_id": "XXA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
+    "manifest": {
+      "data_stream_id": "rsv-prevention",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    }
   },
   {
-    "data_stream_id": "ehdi",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "RI",
-    "data_producer_id": "RI-PHA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_file_timestamp": "test-timestamp",
-    "meta_ext_uploadid": "test-upload-id",
-    "meta_ext_source": "test-src",
-    "meta_ext_filestatus": "test-file-status"
+    "manifest": {
+      "data_stream_id": "ehdi",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "RI",
+      "data_producer_id": "RI-PHA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_file_timestamp": "test-timestamp",
+      "meta_ext_uploadid": "test-upload-id",
+      "meta_ext_source": "test-src",
+      "meta_ext_filestatus": "test-file-status"
+    }
   },
   {
-    "data_stream_id": "eicr",
-    "data_stream_route": "fhir",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction",
-    "received_filename": "dex-smoke-test",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_file_timestamp": "test-file-timestamp"
+    "manifest": {
+      "data_stream_id": "eicr",
+      "data_stream_route": "fhir",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction",
+      "received_filename": "dex-smoke-test",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_file_timestamp": "test-file-timestamp"
+    }
   },
   {
-    "data_stream_id": "pulsenet",
-    "data_stream_route": "localsequencefile",
-    "received_filename": "dex-smoke-test",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction"
+    "manifest": {
+      "data_stream_id": "pulsenet",
+      "data_stream_route": "localsequencefile",
+      "received_filename": "dex-smoke-test",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction"
+    }
   },
   {
-    "data_stream_id": "dextesting",
-    "data_stream_route": "testevent1",
-    "received_filename": "dex-smoke-test",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction"
+    "manifest": {
+      "data_stream_id": "dextesting",
+      "data_stream_route": "testevent1",
+      "received_filename": "dex-smoke-test",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction"
+    }
   },
   {
-    "data_stream_id": "generic-immunization",
-    "data_stream_route": "csv",
-    "data_producer_id": "XXA",
-    "jurisdiction": "XXA",
-    "received_filename": "dex-smoke-test",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_file_timestamp": "test-file-timestamp",
-    "meta_username": "test-user",
-    "meta_ext_sourceversion": "V2024-09-04",
-    "meta_ext_submissionperiod":"test-submissionperiod"
+    "manifest": {
+      "data_stream_id": "generic-immunization",
+      "data_stream_route": "csv",
+      "data_producer_id": "XXA",
+      "jurisdiction": "XXA",
+      "received_filename": "dex-smoke-test",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_file_timestamp": "test-file-timestamp",
+      "meta_username": "test-user",
+      "meta_ext_sourceversion": "V2024-09-04",
+      "meta_ext_submissionperiod": "test-submissionperiod"
+    }
   }
 ]

@@ -14,5 +14,6 @@ class EnvConfig {
         val PROC_STAT_URL: String = properties?.getProperty("ps.api.url") ?: System.getenv("PS_API_URL")
         val SAMS_USERNAME: String = properties?.getProperty("sams.username") ?: System.getenv("SAMS_USERNAME")
         val SAMS_PASSWORD: String = properties?.getProperty("sams.password") ?: System.getenv("SAMS_PASSWORD")
+        val HEALTHCHECK_CASE: String = properties?.getProperty("healthcheck.case") ?: System.getenv("HEALTHCHECK_CASE")
     }
 }

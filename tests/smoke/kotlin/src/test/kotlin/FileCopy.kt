@@ -5,16 +5,14 @@ import org.testng.TestNGException
 import org.testng.annotations.*
 import tus.UploadClient
 import util.*
-import util.ConfigLoader.Companion.loadUploadConfig
 import util.DataProvider
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import java.util.TimeZone
-import kotlin.collections.HashMap
 
 @Listeners(UploadIdTestListener::class)
-@Test()
+@Test
 class FileCopy {
     private val testFile = TestFile.getResourceFile("10KB-test-file")
     private val dexUploadClient = DexUploadClient(EnvConfig.UPLOAD_URL)

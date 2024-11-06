@@ -56,7 +56,7 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 		return store, hc, nil
 	} // .if
 	if appConfig.S3Connection != nil {
-		client, err := stores3.New(ctx, appConfig.S3Connection)
+		client, err := stores3.NewWithEndpoint(ctx, appConfig.S3Connection.Endpoint)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -36,8 +36,8 @@ class MetadataVerify {
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*field .* was missing.*"
     )
-    fun shouldReturnErrorWhenMissingRequiredField(manifest: Map<String, String>) {
-        uploadClient.uploadFile(testFile, manifest)
+    fun shouldReturnErrorWhenMissingRequiredField(case: TestCase) {
+        uploadClient.uploadFile(testFile, case.manifest)
     }
 
     @Test(
@@ -47,8 +47,8 @@ class MetadataVerify {
         expectedExceptions = [ProtocolException::class],
         expectedExceptionsMessageRegExp = "unexpected status code \\(400\\).*had disallowed value.*"
     )
-    fun shouldReturnErrorWhenManifestValueInvalid(manifest: Map<String, String>) {
-        uploadClient.uploadFile(testFile, manifest)
+    fun shouldReturnErrorWhenManifestValueInvalid(case: TestCase) {
+        uploadClient.uploadFile(testFile, case.manifest)
     }
 
     @Test(
@@ -58,9 +58,14 @@ class MetadataVerify {
     )
     fun shouldReturnErrorWhenFilenameContainsInvalidChars() {
         val manifest = hashMapOf(
+            "data_stream_id" to "dextesting",
+            "data_stream_route" to "testevent1",
+            "sender_id" to "sender123",
+            "data_producer_id" to "producer123",
+            "jurisdiction" to "jurisdiction123",
             "meta_destination_id" to TEST_DESTINATION,
             "meta_ext_event" to TEST_EVENT,
-            "filename" to "test/-file"
+            "received_filename" to "test/-file"
         )
         uploadClient.uploadFile(testFile, manifest)
     }

@@ -19,8 +19,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -147,7 +145,11 @@ func TestTus(t *testing.T) {
 
 				// Post-processing
 				// Use the processedMeta data because the post-processing happens after hydration
-				config, err := metadata.GetConfigFromManifest(testContext, processedMeta)
+				path, err := metadata.NewFromManifest(processedMeta)
+				if err != nil {
+					t.Fatal(err)
+				}
+				config, err := metadata.Cache.GetConfig(testContext, path.Path())
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -485,12 +487,12 @@ func TestMain(m *testing.M) {
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
 
-	err := delivery.RegisterAllSourcesAndDestinations(testContext, appConfig)
+	err := cli.RegisterAllSourcesAndDestinations(testContext, appConfig)
 	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
 	err = cli.InitReporters(testContext, appConfig)
 	defer reports.CloseAll()
-	err = event.InitFileReadyPublisher(testContext, appConfig)
+	err = cli.InitFileReadyPublisher(testContext, appConfig)
 	defer event.FileReadyPublisher.Close()
 	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
