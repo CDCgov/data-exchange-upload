@@ -2,18 +2,15 @@ package dex
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import model.AuthResponse
 import model.HealthResponse
 import model.InfoResponse
 import okhttp3.FormBody
-import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.IOException
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
-import java.util.concurrent.TimeUnit
 
 class DexUploadClient(private val url: String) {
     private val httpClient = OkHttpClient()
