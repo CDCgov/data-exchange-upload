@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	v2 "github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/v2"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
@@ -134,7 +132,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
 
-		configId := v2.ConfigIdentification{
+		configId := metadata.ConfigIdentification{
 			DataStreamID:    dataStream,
 			DataStreamRoute: dataStreamRoute,
 		}
@@ -166,7 +164,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		r.Form.Del("gorilla.csrf.Token");
+		r.Form.Del("gorilla.csrf.Token")
 		manifest := map[string]string{"version": "2.0"}
 		for k, v := range r.Form {
 			manifest[k] = v[0]

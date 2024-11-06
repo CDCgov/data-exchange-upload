@@ -90,7 +90,7 @@ func getStatusFromError(err error) int {
 func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (UploadInspector, error) {
 	if appConfig.AzureConnection != nil {
 		// Create tus container client.
-		containerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
+		containerClient, err := storeaz.NewContainerClient(appConfig.AzureConnection.Credentials(), appConfig.AzureUploadContainer)
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +98,7 @@ func createInspector(ctx context.Context, appConfig *appconfig.AppConfig) (Uploa
 		return azureinspector.NewAzureUploadInspector(containerClient, appConfig.TusUploadPrefix), nil
 	}
 	if appConfig.S3Connection != nil {
-		s3Client, err := stores3.New(ctx, appConfig.S3Connection)
+		s3Client, err := stores3.NewWithEndpoint(ctx, appConfig.S3Connection.Endpoint)
 		if err != nil {
 			return nil, err
 		}

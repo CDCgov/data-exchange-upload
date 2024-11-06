@@ -8,7 +8,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 )
@@ -75,7 +74,7 @@ type AzureDestination struct {
 
 func (ad *AzureDestination) Client() (*container.Client, error) {
 	if ad.toClient == nil {
-		containerClient, err := storeaz.NewContainerClient(appconfig.AzureStorageConfig{
+		containerClient, err := storeaz.NewContainerClient(storeaz.Credentials{
 			StorageName:       ad.StorageAccount,
 			StorageKey:        ad.StorageKey,
 			ContainerEndpoint: ad.ContainerEndpoint,

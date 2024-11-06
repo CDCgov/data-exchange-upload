@@ -1,4 +1,4 @@
-package v2
+package metadata
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ type ConfigIdentification struct {
 }
 
 func (c *ConfigIdentification) Path() string {
-	path := fmt.Sprintf("%s/%s_%s.json", "v2", c.DataStreamID, c.DataStreamRoute)
+	path := fmt.Sprintf("%s_%s.json", c.DataStreamID, c.DataStreamRoute)
 	return path
 }
 

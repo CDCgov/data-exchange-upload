@@ -19,8 +19,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -97,35 +95,6 @@ func TestTus(t *testing.T) {
 					t.Error("appended upload ID did not match upload ID", appendedUid, tuid)
 				}
 
-				translationFields := map[string]string{
-					"meta_destination_id": "data_stream_id",
-					"meta_ext_event":      "data_stream_route",
-				}
-				v, ok := c.metadata["version"]
-
-				if !ok || v == "1.0" {
-					for v1Key, v2Key := range translationFields {
-						v1Val, ok := processedMeta[v1Key]
-						if !ok {
-							t.Error("malformed metadata; missing required field", v1Key, processedMeta)
-						}
-						v2Val, ok := processedMeta[v2Key]
-						if !ok {
-							t.Error("v1 metadata not hydrated; missing v2 field", v2Key)
-						}
-						if v1Val != v2Val {
-							t.Error("v1 to v2 fields not properly translated", v1Val, v2Val)
-						}
-					}
-				}
-				// .Check v2 hydration
-
-				// Check that all of the report files were created
-				expectedMetadataTransformReportCount := 2
-				if v, ok := c.metadata["version"]; !ok || v == "1.0" {
-					expectedMetadataTransformReportCount = 3
-				}
-
 				reportSummary, err := readReportFiles(tuid, trackedStages)
 				if err != nil {
 					t.Error("failed to read report file for", "tuid", tuid, err.Error())
@@ -134,7 +103,7 @@ func TestTus(t *testing.T) {
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, reports.StageMetadataTransform, expectedMetadataTransformReportCount)
+				err = checkReportSummary(reportSummary, reports.StageMetadataTransform, 1)
 				if err != nil {
 					t.Error(err.Error())
 				}
@@ -150,7 +119,7 @@ func TestTus(t *testing.T) {
 				if err != nil {
 					t.Error(err.Error())
 				}
-				err = checkReportSummary(reportSummary, reports.StageFileCopy, 3)
+				err = checkReportSummary(reportSummary, reports.StageFileCopy, 1)
 				if err != nil {
 					t.Error(err.Error())
 				}
@@ -176,7 +145,11 @@ func TestTus(t *testing.T) {
 
 				// Post-processing
 				// Use the processedMeta data because the post-processing happens after hydration
-				config, err := metadata.GetConfigFromManifest(testContext, processedMeta)
+				path, err := metadata.NewFromManifest(processedMeta)
+				if err != nil {
+					t.Fatal(err)
+				}
+				config, err := metadata.Cache.GetConfig(testContext, path.Path())
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -206,7 +179,11 @@ func TestTus(t *testing.T) {
 }
 
 func TestRouteEndpoint(t *testing.T) {
-	c := Cases["v2 good"]
+	goodCase := "good"
+	c, ok := Cases[goodCase]
+	if !ok {
+		t.Error("test case not found", "case", goodCase)
+	}
 	tuid, err := RunTusTestCase(ts.URL, "test.txt", c)
 	time.Sleep(2 * time.Second) // Hard delay to wait for all non-blocking hooks to finish.
 
@@ -510,12 +487,12 @@ func TestMain(m *testing.M) {
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
 
-	err := delivery.RegisterAllSourcesAndDestinations(testContext, appConfig)
+	err := cli.RegisterAllSourcesAndDestinations(testContext, appConfig)
 	event.InitFileReadyChannel()
 	testWaitGroup.Add(1)
 	err = cli.InitReporters(testContext, appConfig)
 	defer reports.CloseAll()
-	err = event.InitFileReadyPublisher(testContext, appConfig)
+	err = cli.InitFileReadyPublisher(testContext, appConfig)
 	defer event.FileReadyPublisher.Close()
 	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
 	go func() {
@@ -610,7 +587,7 @@ func checkReportSummary(fileSummary ReportFileSummary, stageName string, expecte
 
 	if !ok {
 		return fmt.Errorf("expected %d %s report but got none", expectedCount, stageName)
-	} else if summary.Count != 1 {
+	} else if summary.Count != expectedCount {
 		return fmt.Errorf("expected %d %s report but got %d", expectedCount, stageName, summary.Count)
 	}
 

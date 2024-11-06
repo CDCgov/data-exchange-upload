@@ -1,6 +1,5 @@
 {
   "metadata_config": {
-    "version": "2.0",
     "fields": [
       {
         "field_name": "data_stream_id",
