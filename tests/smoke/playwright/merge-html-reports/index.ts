@@ -35,8 +35,25 @@ function getStatusIcon(status: string): string {
       </svg>`;
 }
 
-function millisecondsToMinutesAndSeconds(msec: number): string {
-  return (msec / 60000).toFixed(1) + 'm';
+// copied from Playwright https://github.com/microsoft/playwright/blob/main/packages/html-reporter/src/utils.ts
+function msToString(ms: number): string {
+  if (!isFinite(ms)) return '-';
+
+  if (ms === 0) return '0ms';
+
+  if (ms < 1000) return ms.toFixed(0) + 'ms';
+
+  const seconds = ms / 1000;
+  if (seconds < 60) return seconds.toFixed(1) + 's';
+
+  const minutes = seconds / 60;
+  if (minutes < 60) return minutes.toFixed(1) + 'm';
+
+  const hours = minutes / 60;
+  if (hours < 24) return hours.toFixed(1) + 'h';
+
+  const days = hours / 24;
+  return days.toFixed(1) + 'd';
 }
 
 function getReportSummary(reportDir: string, file: string): string {
@@ -76,8 +93,8 @@ function getReportSummary(reportDir: string, file: string): string {
                 </div>
               </div>
               <div class="report-time">
-                ${startTime.toLocaleString('en-US')}
-                Total time: ${millisecondsToMinutesAndSeconds(results.stats.duration)}
+                <span>${startTime.toLocaleString('en-US')}</span>
+                <span>Total time: ${msToString(results.stats.duration)}</span>
               </div>
             </div>
           </div>
