@@ -1,5 +1,5 @@
 {
-    "status": "DEGRADED",
+    "status": "UP",
     "services": [
         {
             "service": "Tus storage S3 Bucket ede-dataexchange-dev",
@@ -13,8 +13,8 @@
         },
         {
             "service": "Azure deliver target eicr",
-            "status": "DOWN",
-            "health_issue": "GET https://davsynapseanalyticsdev.blob.core.windows.net/ddphss-csels\n--------------------------------------------------------------------------------\nRESPONSE 403: 403 This request is not authorized to perform this operation using this permission.\nERROR CODE: AuthorizationPermissionMismatch\n--------------------------------------------------------------------------------\n﻿\u003c?xml version=\"1.0\" encoding=\"utf-8\"?\u003e\u003cError\u003e\u003cCode\u003eAuthorizationPermissionMismatch\u003c/Code\u003e\u003cMessage\u003eThis request is not authorized to perform this operation using this permission.\nRequestId:011bfbd1-b01e-004a-798a-2f3374000000\nTime:2024-11-05T13:58:54.9123520Z\u003c/Message\u003e\u003c/Error\u003e\n--------------------------------------------------------------------------------\n"
+            "status": "UP",
+            "health_issue": ""
         },
         {
             "service": "Azure deliver target ncird",
@@ -28,8 +28,8 @@
         },
         {
             "service": "Azure deliver target ehdi",
-            "status": "DOWN",
-            "health_issue": "GET https://davsynapseanalyticsdev.blob.core.windows.net/ddnid-ncbddd\n--------------------------------------------------------------------------------\nRESPONSE 403: 403 This request is not authorized to perform this operation using this permission.\nERROR CODE: AuthorizationPermissionMismatch\n--------------------------------------------------------------------------------\n﻿\u003c?xml version=\"1.0\" encoding=\"utf-8\"?\u003e\u003cError\u003e\u003cCode\u003eAuthorizationPermissionMismatch\u003c/Code\u003e\u003cMessage\u003eThis request is not authorized to perform this operation using this permission.\nRequestId:011bfcea-b01e-004a-7b8a-2f3374000000\nTime:2024-11-05T13:58:55.0562649Z\u003c/Message\u003e\u003c/Error\u003e\n--------------------------------------------------------------------------------\n"
+            "status": "UP",
+            "health_issue": ""
         },
         {
             "service": "S3 source ede-dataexchange-dev",
