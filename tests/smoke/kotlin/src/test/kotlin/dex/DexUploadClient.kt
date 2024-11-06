@@ -16,10 +16,7 @@ import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
 class DexUploadClient(private val url: String) {
-    private val httpClient = OkHttpClient().newBuilder()
-        .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(20, TimeUnit.SECONDS)
-        .build()
+    private val httpClient = OkHttpClient()
 
     private val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
 
