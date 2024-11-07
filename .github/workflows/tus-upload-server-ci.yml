@@ -1,11 +1,11 @@
-name: 'CI - Upload Server'
+name: "CI - Upload Server"
 
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - upload-server/**
-      - tests/**
+  push:
+    branches:
+      - main
 
 defaults:
   run:
