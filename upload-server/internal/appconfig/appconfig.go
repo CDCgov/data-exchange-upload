@@ -85,7 +85,7 @@ type AppConfig struct {
 	LocalEventsFolder  string `env:"LOCAL_EVENTS_FOLDER, default=./uploads/events"`
 
 	// Cloud Transfer Configs
-	MaxConcurrency int `env:"MAX_CONCURRENCY, default=500"`
+	MaxConcurrency int `env:"MAX_DELIVERY_CONCURRENCY, default=500"`
 	// Azure Storage Configs
 	AzureConnection              *AzureStorageConfig `env:", prefix=AZURE_, noinit"`
 	AzureUploadContainer         string              `env:"TUS_AZURE_CONTAINER_NAME"`
