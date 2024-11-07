@@ -57,3 +57,4 @@ jobs:
       WORKFLOW: fortify.yml
       REF: ${{ github.head_ref }}
     secrets: inherit
+    if: github.event_name == 'pull_request'
