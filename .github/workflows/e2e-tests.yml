@@ -108,10 +108,10 @@ jobs:
         id: variables
         run: |
           if [[ ${{ inputs.EVENT_TYPE }} == 'push' ]]; then
-            echo "deploy_to='${{ env.ARTIFACT_ID }}/main/'" >> "$GITHUB_OUTPUT"
+            echo "deploy_to=${{ env.ARTIFACT_ID }}/main/" >> "$GITHUB_OUTPUT"
             echo "commit_msg='update Playwright report for main'" >> "$GITHUB_OUTPUT"
           else
-            echo "deploy_to='${{ env.ARTIFACT_ID }}/${{ inputs.BRANCH_NAME }}/${{ inputs.RUN_ID }}/'" >> "$GITHUB_OUTPUT"
+            echo "deploy_to=${{ env.ARTIFACT_ID }}/${{ inputs.BRANCH_NAME }}/${{ inputs.RUN_ID }}/" >> "$GITHUB_OUTPUT"
             echo "commit_msg='add Playwright report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}'" >> "$GITHUB_OUTPUT"
           fi
 

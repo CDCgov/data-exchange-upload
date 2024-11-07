@@ -1,5 +1,5 @@
 # Copied from https://dev.to/ysfaran/how-to-use-playwright-with-github-actions-and-github-pages-4gdl
-name: Delete
+name: Delete Playwright Report for Branch
 
 on:
   delete:
