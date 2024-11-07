@@ -24,10 +24,6 @@ services:
       - TUS_AZURE_CONTAINER_NAME=test
       - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/azurite_destinations.yml
       - AZURITE_KEY=${AZURITE_STORAGE_KEY}
-      - EDAV_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
-      - EHDI_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
-      - EICR_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
-      - NCIRD_PATH_TEMPLATE='{{.Filename}}_{{.UploadId}}'
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-azurite-network
@@ -37,14 +33,18 @@ services:
     image: mcr.microsoft.com/playwright:v1.48.0-focal
     container_name: playwright-azurite
     volumes:
-      - ../tests/smoke/playwright:/app
-      - /app/node_modules
-    working_dir: /app
+      - ../tests/smoke/playwright:/playwright
+      - /playwright/node_modules
+    working_dir: /playwright
     environment:
       - CI
       - SERVER_URL=http://upload-server-azurite:8080
       - UI_URL=http://upload-server-azurite:8081
-      - TEST_REPORT_JSON=${TEST_REPORT_JSON:-azurite-test-report.json}
+      - TEST_REPORTS_DIR=/playwright/test-reports
+      - HTML_REPORT_DIR=${HTML_REPORT_DIR:-azure-html}
+      - JSON_REPORT_FILE=${JSON_REPORT_FILE:-azure-report.json}
+      - SUMMARY_JSON_REPORT_FILE=${SUMMARY_JSON_REPORT_FILE:-azure-summary.json}
+      - TEST_TITLE=${TEST_TITLE:-E2E Azure Tests}
     command: npm run test:docker
     networks:
       - e2e-azurite-network

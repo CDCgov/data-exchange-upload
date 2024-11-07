@@ -1,0 +1,28 @@
+name: Deploy Swagger docs with GitHub Pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: 
+      - main
+    paths:
+      - docs/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Main Branch
+        uses: actions/checkout@v4
+      - name: Upload Docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: swagger-docs
+          path: docs/
+  publish:
+    needs: [build]
+    uses: ./.github/workflows/push-to-gh-pages.yml
+    with:
+      ARTIFACT_ID: swagger-docs
+      DEPLOY_TO: .
+      COMMIT_MSG: "Updating Swagger Docs"

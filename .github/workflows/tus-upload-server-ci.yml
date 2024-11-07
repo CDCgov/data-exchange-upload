@@ -45,40 +45,11 @@ jobs:
           --exit-code-from upload-server
       - name: Show coverage
         run: go tool cover -func=c.out
-  e2e-tests-fs:
-    name: E2E Tests - File System Storage to File System Destinations
-    uses: ./.github/workflows/e2e-test-template.yml
+  e2e-tests:
+    uses: ./.github/workflows/e2e-tests.yml
     with:
-      TEST_TITLE: E2E FS Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.yml
-    secrets: inherit
-  e2e-tests-azure:
-    name: E2E Tests - Azure Blob Storage to Azure Blob Destinations
-    uses: ./.github/workflows/e2e-test-template.yml
-    with:
-      TEST_TITLE: E2E Azure Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.azurite.yml
-    secrets: inherit
-  e2e-tests-aws:
-    name: E2E Tests - AWS S3 Storage to AWS S3 Destinations
-    uses: ./.github/workflows/e2e-test-template.yml
-    with:
-      TEST_TITLE: E2E AWS Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.minio.yml
-    secrets: inherit
-  e2e-tests-mix:
-    name: E2E Tests - File System Storage to Azure Blob and AWS S3 Destinations
-    uses: ./.github/workflows/e2e-test-template.yml
-    with:
-      TEST_TITLE: E2E Mix Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.all.yml
-    secrets: inherit
-  e2e-tests-aws-azure:
-    name: E2E Tests - AWS S3 Storage to Azure Blob Destinations
-    uses: ./.github/workflows/e2e-test-template.yml
-    with:
-      TEST_TITLE: E2E AWS to Azure Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.minio-azurite.yml
+      BRANCH_NAME: ${{ github.head_ref }}
+      RUN_ID: ${{ github.run_id }}
     secrets: inherit
   run-fortify-scan:
     uses: ./.github/workflows/remote-cd-trigger-template.yml
