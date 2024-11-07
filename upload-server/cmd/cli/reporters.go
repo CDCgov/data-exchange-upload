@@ -25,7 +25,11 @@ func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
 	}
 
 	if appConfig.ReporterConnection != nil && appConfig.ReporterConnection.ConnectionString != "" {
-		r, err := event.NewAzurePublisher[*reports.Report](ctx, *appConfig.ReporterConnection)
+		channel := appConfig.ReporterConnection.Queue
+		if channel == "" {
+			channel = appConfig.ReporterConnection.Topic
+		}
+		r, err := event.NewAzurePublisher[*reports.Report](ctx, appConfig.ReporterConnection.ConnectionString, channel)
 		if err != nil {
 			return err
 		}

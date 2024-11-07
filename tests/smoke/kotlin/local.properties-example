@@ -11,6 +11,7 @@ upload.url=https://apidev.cdc.gov
 ps.api.url=https://dex-dev-svc.cdc.gov
 sams.username=
 sams.password=
+# healthcheck.case=apidev-healthcheck.json
 
 
 # tst
@@ -19,6 +20,7 @@ upload.url=https://apitst.cdc.gov
 ps.api.url=https://dex-tst-svc.cdc.gov
 sams.username=
 sams.password=
+# healthcheck.case=apitst-healthcheck.json
 
 
 # stg
@@ -27,3 +29,4 @@ upload.url=https://apistg.cdc.gov
 ps.api.url=https://dex-stg-svc.cdc.gov
 sams.username=
 sams.password=
+# healthcheck.case=apistg-healthcheck.json

@@ -85,10 +85,6 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 	})
 }
 
-func (a AuthMiddleware) VerifyOAuthTokenHandler(handlerFunc http.HandlerFunc) http.HandlerFunc {
-	return a.VerifyOAuthTokenMiddleware(handlerFunc).ServeHTTP
-}
-
 func validateJWT(ctx context.Context, token string, issuer string, requiredScopes []string) error {
 	provider, err := oidc.NewProvider(ctx, issuer)
 	if err != nil {

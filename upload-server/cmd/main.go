@@ -80,30 +80,32 @@ func main() {
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
 
-	if err := event.InitFileReadyPublisher(ctx, appConfig); err != nil {
+	if err := cli.InitFileReadyPublisher(ctx, appConfig); err != nil {
 		slog.Error("error creating file ready publisher", "error", err)
 		os.Exit(appMainExitCode)
 	}
 	defer event.FileReadyPublisher.Close()
 
-	mainWaitGroup.Add(1)
-	subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
-	if err != nil {
-		slog.Error("error subscribing to file ready", "error", err)
-		os.Exit(appMainExitCode)
-	}
-	if sc, ok := subscriber.(interface {
-		Close() error
-	}); ok {
-		defer sc.Close()
-	}
-	go func() {
-		if err := subscriber.Listen(ctx, cli.TracingProcessor(postprocessing.ProcessFileReadyEvent)); err != nil {
-			cancelFunc()
-			slog.Error("Listener failed", "error", err)
+	mainWaitGroup.Add(appConfig.ListenerWorkers)
+	for range appConfig.ListenerWorkers {
+		subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
+		if err != nil {
+			slog.Error("error subscribing to file ready", "error", err)
+			os.Exit(appMainExitCode)
 		}
-		defer mainWaitGroup.Done()
-	}()
+		if sc, ok := subscriber.(interface {
+			Close() error
+		}); ok {
+			defer sc.Close()
+		}
+		go func() {
+			defer mainWaitGroup.Done()
+			if err := subscriber.Listen(ctx, cli.TracingProcessor(postprocessing.ProcessFileReadyEvent)); err != nil {
+				cancelFunc()
+				slog.Error("Listener failed", "error", err)
+			}
+		}()
+	}
 
 	// start serving the app
 	handler, err := cli.Serve(ctx, appConfig)

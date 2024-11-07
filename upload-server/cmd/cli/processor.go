@@ -21,6 +21,10 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 
 	if appConfig.SQSSubscriberConnection != nil {
 		arn := appConfig.SQSSubscriberConnection.EventArn
+		batchMax := appConfig.SQSSubscriberConnection.MaxMessages
+		if batchMax == 0 {
+			batchMax = event.MaxMessages
+		}
 		s, err := event.NewSQSSubscriber[T](ctx, arn, 1)
 		if err != nil {
 			return s, err
@@ -34,7 +38,7 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 	}
 
 	if appConfig.SubscriberConnection != nil {
-		sub, err := event.NewAzureSubscriber[T](ctx, *appConfig.SubscriberConnection)
+		sub, err := event.NewAzureSubscriber[T](ctx, appConfig.SubscriberConnection.ConnectionString, appConfig.SubscriberConnection.Topic, appConfig.SubscriberConnection.Subscription, appConfig.SubscriberConnection.MaxMessages)
 		if err != nil {
 			return nil, err
 		}

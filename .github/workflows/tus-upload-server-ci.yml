@@ -3,8 +3,9 @@ name: "CI - Upload Server"
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - upload-server/**
+  push:
+    branches:
+      - main
 
 defaults:
   run:
@@ -38,32 +39,17 @@ jobs:
       - name: Install podman compose
         run: pip3 install podman-compose
       - name: Run Tests
-        run: podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.localstack.yml -f docker-compose.testing.yml up --exit-code-from upload-server
+        run:
+          podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f
+          docker-compose.minio.yml -f docker-compose.localstack.yml -f docker-compose.testing.yml up
+          --exit-code-from upload-server
       - name: Show coverage
         run: go tool cover -func=c.out
-  e2e-tests-fs:
-    name: E2E Tests - File System Storage
-    uses: ./.github/workflows/e2e-test-template.yml
+  e2e-tests:
+    uses: ./.github/workflows/e2e-tests.yml
     with:
-      TEST_TITLE: E2E FS Tests
-      STORAGE_TYPE: fs
-      COMPOSE_FILENAME: ./docker-compose.e2e.yml
-    secrets: inherit
-  e2e-tests-azure:
-    name: E2E Tests - Azure Blob Storage
-    uses: ./.github/workflows/e2e-test-template.yml
-    with:
-      TEST_TITLE: E2E Azure Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.azurite.yml
-      STORAGE_TYPE: azure
-    secrets: inherit
-  e2e-tests-aws:
-    name: E2E Tests - AWS S3 Storage
-    uses: ./.github/workflows/e2e-test-template.yml
-    with:
-      TEST_TITLE: E2E AWS Tests
-      COMPOSE_FILENAME: ./docker-compose.e2e.minio.yml
-      STORAGE_TYPE: aws
+      BRANCH_NAME: ${{ github.head_ref }}
+      RUN_ID: ${{ github.run_id }}
     secrets: inherit
   run-fortify-scan:
     uses: ./.github/workflows/remote-cd-trigger-template.yml

@@ -8,11 +8,11 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/sethvargo/go-envconfig"
 ) // .import
@@ -107,6 +107,7 @@ type AppConfig struct {
 	S3ManifestConfigFolder string           `env:"DEX_S3_MANIFEST_CONFIG_FOLDER_NAME"`
 
 	DeliveryConfigFile string `env:"DEX_DELIVERY_CONFIG_FILE, default=./configs/local/deliver.yml"`
+	ListenerWorkers    int    `env:"LISTENER_WORKERS, default=5"`
 } // .AppConfig
 
 type MetricsConfig struct {
@@ -137,7 +138,8 @@ type SNSConfig struct {
 }
 
 type SQSConfig struct {
-	EventArn string `env:"EVENT_ARN"`
+	EventArn    string `env:"EVENT_ARN"`
+	MaxMessages int    `env:"MAX_MESSAGES"`
 }
 
 type AzureStorageConfig struct {
@@ -148,6 +150,17 @@ type AzureStorageConfig struct {
 	ClientSecret      string `env:"CLIENT_SECRET"`
 	ContainerEndpoint string `env:"ENDPOINT"`
 } // .AzureStorageConfig
+
+func (ac *AzureStorageConfig) Credentials() storeaz.Credentials {
+	return storeaz.Credentials{
+		StorageName:       ac.StorageName,
+		StorageKey:        ac.StorageKey,
+		TenantId:          ac.TenantId,
+		ClientId:          ac.ClientId,
+		ClientSecret:      ac.ClientSecret,
+		ContainerEndpoint: ac.ContainerEndpoint,
+	}
+}
 
 type S3StorageConfig struct {
 	Endpoint   string `env:"ENDPOINT"`
@@ -164,6 +177,7 @@ type AzureQueueConfig struct {
 	Topic            string `env:"TOPIC"`
 	Queue            string `env:"QUEUE"`
 	Subscription     string `env:"SUBSCRIPTION"`
+	MaxMessages      int    `env:"MAX_MESSAGES"`
 }
 
 type LocalStorageConfig struct {
@@ -193,15 +207,6 @@ func (azc *AzureStorageConfig) Check() error {
 		})
 	}
 	return errors.Join(errs...)
-}
-
-func LocalUploadStoreConfig(appConfig *AppConfig) *LocalStorageConfig {
-	fromPathStr := appConfig.LocalFolderUploadsTus + "/" + appConfig.TusUploadPrefix
-	fromPath := os.DirFS(fromPathStr)
-	return &LocalStorageConfig{
-		FromPathStr: fromPathStr,
-		FromPath:    fromPath,
-	}
 }
 
 var LoadedConfig = &AppConfig{}

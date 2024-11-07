@@ -10,30 +10,12 @@ class DataProvider {
         private val objectMapper = ObjectMapper()
 
         @JvmStatic
-        @DataProvider(name = "versionProvider")
-        fun versionProvider(): Array<Array<String>> {
-            return arrayOf(
-                arrayOf("v1"),
-                arrayOf("v2")
-            )
-        }
-
-        @JvmStatic
-        @DataProvider(name = "validManifestAllProvider")
+        @DataProvider(name = "validManifestProvider")
         fun validManifestAllProvider(): Array<Array<TestCase>> {
-            val validManifests = arrayOf("valid_manifests_v2.json")
+            var validManifests = arrayOf("valid_manifests.json")
             val cases = loadTestCases(validManifests)
             logger<util.DataProvider>().info("Filtering all valid manifests")
             return filterCases(cases)
-        }
-
-        @JvmStatic
-        @DataProvider(name = "validManifestV1Provider")
-        fun validManifestV1Provider(): Array<Array<TestCase>> {
-            val validManifests = arrayOf("valid_manifests_v1.json")
-            val manifests = loadTestCases(validManifests)
-            logger<util.DataProvider>().info("Filtering V1 valid manifests")
-            return filterCases(manifests)
         }
 
         @JvmStatic

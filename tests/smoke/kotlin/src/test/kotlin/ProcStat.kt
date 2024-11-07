@@ -16,7 +16,6 @@ import util.DataProvider
 class ProcStat {
     private val testFile = TestFile.getResourceFile("10KB-test-file")
     private val authClient = DexUploadClient(EnvConfig.UPLOAD_URL)
-    //private val dexBlobClient = Azure.getBlobServiceClient(EnvConfig.DEX_STORAGE_CONNECTION_STRING)
     private val procStatReqSpec = given().relaxedHTTPSValidation()
         .apply {
             baseUri(EnvConfig.PROC_STAT_URL)
@@ -39,11 +38,10 @@ class ProcStat {
 
     @Test(
         groups = [Constants.Groups.PROC_STAT],
-        dataProvider = "validManifestAllProvider",
+        dataProvider = "validManifestProvider",
         dataProviderClass = DataProvider::class
     )
     fun shouldHaveReportsForSuccessfulFileUpload(case: TestCase, testContext: ITestContext) {
-        //val config = ConfigLoader.loadUploadConfig(dexBlobClient, case.manifest)
         val uid = uploadClient.uploadFile(testFile, case.manifest)
             ?: throw TestNGException("Error uploading file ${testFile.name}")
         testContext.setAttribute("uploadId", uid)

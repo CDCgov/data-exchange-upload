@@ -32,12 +32,12 @@ class Info {
 
     @Test(
         groups = [Constants.Groups.FILE_INFO],
-        dataProvider = "validManifestAllProvider",
+        dataProvider = "validManifestProvider",
         dataProviderClass = DataProvider::class
     )
-    fun shouldGetFileInfo(manifest: HashMap<String, String>) {
-        val uid: String = uploadClient.uploadFile(testFile, manifest)
-            ?: throw TestNGException("Error uploading file given manifest $manifest")
+    fun shouldGetFileInfo(case: TestCase) {
+        val uid: String = uploadClient.uploadFile(testFile, case.manifest)
+            ?: throw TestNGException("Error uploading file given manifest ${case.manifest}")
         testContext.setAttribute("uploadId", uid)
 
         val fileInfo = dexUploadClient.getFileInfo(uid, authToken)
@@ -47,8 +47,8 @@ class Info {
 
         Assert.assertNotNull(fileInfo.manifest, "Manifest should not be null")
         fileInfo.manifest.forEach {
-            if (manifest.containsKey(it.key)) {
-                Assert.assertEquals(it.value, manifest[it.key], "Manifest values should match")
+            if (case.manifest.containsKey(it.key)) {
+                Assert.assertEquals(it.value,case.manifest[it.key], "Manifest values should match")
             }
         }
 

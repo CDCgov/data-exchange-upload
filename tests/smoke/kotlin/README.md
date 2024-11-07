@@ -31,6 +31,7 @@ The following are the currently configured environment variables that can be set
 | ps.api.url           | Yes       | URL for Processing Status API  
 | sams.username        | No        | SAMS username for authentication (if needed)
 | sams.password        | No        | SAMS password for authentication (if needed)
+| healthcheck.case     | Yes       | The healthcheck json to match to for the current environment - should be in `src/test/resources`
 
 The EnvConfig class (`src/test/kotlin/util/EnvConfig.kt`) reads configuration values from a local.properties file. This setup allows us to manage environment-specific settings, like URLs and credentials.
 

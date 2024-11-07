@@ -9,7 +9,6 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus/admin"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"nhooyr.io/websocket"
 )
@@ -29,22 +28,18 @@ func NewAMQPServiceBusClient(connString string) (*azservicebus.Client, error) {
 	})
 }
 
-func NewAzurePublisher[T Identifiable](ctx context.Context, pubConn appconfig.AzureQueueConfig) (*AzurePublisher[T], error) {
-	client, err := NewAMQPServiceBusClient(pubConn.ConnectionString)
+func NewAzurePublisher[T Identifiable](ctx context.Context, connectionString, topic string) (*AzurePublisher[T], error) {
+	client, err := NewAMQPServiceBusClient(connectionString)
 	if err != nil {
 		slog.Error("failed to connect to event service bus", "error", err)
 		return nil, err
 	}
-	queueOrTopic := pubConn.Queue
-	if queueOrTopic == "" {
-		queueOrTopic = pubConn.Topic
-	}
-	sender, err := client.NewSender(queueOrTopic, nil)
+	sender, err := client.NewSender(topic, nil)
 	if err != nil {
 		slog.Error("failed to configure event publisher", "error", err)
 		return nil, err
 	}
-	adminClient, err := admin.NewClientFromConnectionString(pubConn.ConnectionString, nil)
+	adminClient, err := admin.NewClientFromConnectionString(connectionString, nil)
 	if err != nil {
 		slog.Error("failed to connect to service bus admin client", "error", err)
 		return nil, err
@@ -53,16 +48,16 @@ func NewAzurePublisher[T Identifiable](ctx context.Context, pubConn appconfig.Az
 	return &AzurePublisher[T]{
 		Context:     ctx,
 		Sender:      sender,
-		Config:      pubConn,
 		AdminClient: adminClient,
+		Topic:       topic,
 	}, nil
 }
 
 type AzurePublisher[T Identifiable] struct {
 	Context     context.Context
 	Sender      *azservicebus.Sender
-	Config      appconfig.AzureQueueConfig
 	AdminClient *admin.Client
+	Topic       string
 }
 
 func (ap *AzurePublisher[T]) Publish(ctx context.Context, event T) error {
@@ -84,55 +79,46 @@ func (ap *AzurePublisher[T]) Health(ctx context.Context) (rsp models.ServiceHeal
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 
-	if ap.Config.Queue != "" {
-		rsp.Service = fmt.Sprintf("Event Publishing %s", ap.Config.Queue)
-		queueResp, err := ap.AdminClient.GetQueue(ctx, ap.Config.Queue, nil)
-		if err != nil {
-			return rsp.BuildErrorResponse(err)
-		}
-		if queueResp == nil {
-			return rsp.BuildErrorResponse(fmt.Errorf("nil queue response"))
-		}
-		if *queueResp.Status != admin.EntityStatusActive {
-			return rsp.BuildErrorResponse(fmt.Errorf("service bus queue %s status: %s", ap.Config.Queue, *queueResp.Status))
-		}
+	rsp.Service = fmt.Sprintf("Event Publishing %s", ap.Topic)
+	topicResp, err := ap.AdminClient.GetTopic(ctx, ap.Topic, nil)
+	if err != nil {
+		return rsp.BuildErrorResponse(err)
 	}
-
-	if ap.Config.Topic != "" {
-		rsp.Service = fmt.Sprintf("Event Publishing %s", ap.Config.Topic)
-		topicResp, err := ap.AdminClient.GetTopic(ctx, ap.Config.Topic, nil)
-		if err != nil {
-			return rsp.BuildErrorResponse(err)
-		}
-		if *topicResp.Status != admin.EntityStatusActive {
-			return rsp.BuildErrorResponse(fmt.Errorf("service bus topic %s status: %s", ap.Config.Topic, *topicResp.Status))
-		}
+	if *topicResp.Status != admin.EntityStatusActive {
+		return rsp.BuildErrorResponse(fmt.Errorf("service bus topic %s status: %s", ap.Topic, *topicResp.Status))
 	}
 
 	return rsp
 }
 
-func NewAzureSubscriber[T Identifiable](ctx context.Context, subConn appconfig.AzureQueueConfig) (*AzureSubscriber[T], error) {
-	client, err := NewAMQPServiceBusClient(subConn.ConnectionString)
+func NewAzureSubscriber[T Identifiable](ctx context.Context, connectionString, topic, subscription string, maxMessages int) (*AzureSubscriber[T], error) {
+	client, err := NewAMQPServiceBusClient(connectionString)
 	if err != nil {
 		slog.Error("failed to connect to event service bus", "error", err)
 		return nil, err
 	}
-	receiver, err := client.NewReceiverForSubscription(subConn.Topic, subConn.Subscription, nil)
+	receiver, err := client.NewReceiverForSubscription(topic, subscription, nil)
 	if err != nil {
 		slog.Error("failed to configure event subscriber", "error", err)
 		return nil, err
 	}
-	adminClient, err := admin.NewClientFromConnectionString(subConn.ConnectionString, nil)
+	adminClient, err := admin.NewClientFromConnectionString(connectionString, nil)
 	if err != nil {
 		slog.Error("failed to connect to service bus admin client", "error", err)
 		return nil, err
 	}
+
+	if maxMessages == 0 {
+		maxMessages = MaxMessages
+	}
+
 	return &AzureSubscriber[T]{
-		Context:     ctx,
-		Receiver:    receiver,
-		Config:      subConn,
-		AdminClient: adminClient,
+		Context:      ctx,
+		Receiver:     receiver,
+		AdminClient:  adminClient,
+		Topic:        topic,
+		Subscription: subscription,
+		Max:          maxMessages,
 	}, nil
 }
 
@@ -149,11 +135,12 @@ func NewEventFromServiceBusMessage[T Identifiable](m *azservicebus.ReceivedMessa
 }
 
 type AzureSubscriber[T Identifiable] struct {
-	Context     context.Context
-	Receiver    *azservicebus.Receiver
-	Config      appconfig.AzureQueueConfig
-	AdminClient *admin.Client
-	Max         int
+	Context      context.Context
+	Receiver     *azservicebus.Receiver
+	AdminClient  *admin.Client
+	Subscription string
+	Topic        string
+	Max          int
 }
 
 func (as *AzureSubscriber[T]) Listen(ctx context.Context, process func(context.Context, T) error) error {
@@ -198,17 +185,17 @@ func (as *AzureSubscriber[T]) Close() error {
 }
 
 func (as *AzureSubscriber[T]) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = fmt.Sprintf("%s Event Subscriber", as.Config.Subscription)
+	rsp.Service = fmt.Sprintf("%s Event Subscriber", as.Subscription)
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 
-	subResp, err := as.AdminClient.GetSubscription(ctx, as.Config.Topic, as.Config.Subscription, nil)
+	subResp, err := as.AdminClient.GetSubscription(ctx, as.Topic, as.Subscription, nil)
 	if err != nil {
 		return rsp.BuildErrorResponse(err)
 	}
 
 	if *subResp.Status != admin.EntityStatusActive {
-		return rsp.BuildErrorResponse(fmt.Errorf("service bus subscription %s status: %s", as.Config.Subscription, *subResp.Status))
+		return rsp.BuildErrorResponse(fmt.Errorf("service bus subscription %s status: %s", as.Subscription, *subResp.Status))
 	}
 
 	return rsp

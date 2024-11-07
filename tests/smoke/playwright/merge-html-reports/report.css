@@ -1,0 +1,135 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* 1 rem = 10px */
+  font-size: 75%;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 1.4rem;
+  margin: 0 auto;
+  width: 100vw;
+}
+
+main {
+  margin: 0 auto;
+  max-width: 1024px;
+  margin-top: 3rem;
+}
+
+.report-title {
+  font-size: x-large;
+  font-weight: bolder;
+  padding: 1rem 3rem 0 0;
+}
+
+.report-list {
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.test-report-container {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-header {
+  border: 1px solid #d0d7de;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  background-color: #f6f8fa;
+  padding: 0 1rem;
+  border-bottom: none;
+  margin-top: 1rem;
+  font-weight: 600;
+  line-height: 3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.report-body {
+  border: 1px solid #d0d7de;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  line-height: 1.5rem;
+  font-size: smaller;
+  padding: 0.5rem 6rem 0.5rem 4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.stat-item:first-child {
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+
+.stat-item:last-child {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.stat-item {
+  flex: none;
+  position: relative;
+  float: left;
+  padding: 0.5rem 1rem;
+  color: #24292f;
+  border: 1px solid #d0d7de;
+}
+
+.report-stats {
+  display: flex;
+  flex-direction: row;
+  font-weight: 500;
+  line-height: 2rem;
+}
+
+.stat-count {
+  margin-left: 0.5rem;
+  display: inline;
+  min-width: 2rem;
+  padding: 0 0.5rem;
+  color: #24292f;
+  text-align: center;
+  background-color: rgba(175, 184, 193, 0.2);
+  border: 1px solid transparent;
+  border-radius: 2em;
+}
+
+.report-time {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: #6e7781;
+  display: flex;
+  justify-content: end;
+  gap: 2rem;
+}
+
+.result-success {
+  fill: rgb(2, 119, 2);
+}
+
+.result-failure {
+  fill: rgb(155, 0, 0);
+}
+
+.result-warning {
+  fill: rgb(243, 186, 17);
+}

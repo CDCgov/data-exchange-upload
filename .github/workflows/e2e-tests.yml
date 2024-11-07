@@ -1,0 +1,105 @@
+name: 'Playwright Tests'
+
+on:
+  workflow_call:
+    inputs:
+      BRANCH_NAME:
+        type: string
+        required: true
+      RUN_ID:
+        type: string
+        required: true
+
+defaults:
+  run:
+    working-directory: upload-server/
+
+jobs:
+  e2e-tests:
+    strategy:
+      matrix:
+        include:
+          - title: 'E2E FS Tests'
+            name: 'fs-to-fs'
+            compose: './docker-compose.e2e.yml'
+          - title: 'E2E Azure Tests'
+            name: 'azure-to-azure'
+            compose: './docker-compose.e2e.azurite.yml'
+          - title: 'E2E AWS Tests'
+            name: 'aws-to-aws'
+            compose: './docker-compose.e2e.minio.yml'
+          - title: 'E2E FS -> Azure & AWS Tests'
+            name: 'fs-to-azure-and-aws'
+            compose: './docker-compose.e2e.all.yml'
+          - title: 'E2E AWS -> Azure Tests'
+            name: 'aws-to-azure'
+            compose: './docker-compose.e2e.minio-azurite.yml'
+    name: ${{ matrix.title }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      CI: true
+      AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
+      # The compose file sends this variable into the Playwright configs
+      HTML_REPORT_DIR: ${{ matrix.name }}-html-report
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install podman compose
+        run: pip3 install podman-compose
+      - name: Run E2E Tests
+        id: test
+        run:
+          podman-compose -f ${{ matrix.compose }} up --build --exit-code-from playwright
+          --abort-on-container-exit
+      - name: Print Test Report
+        # Piping the logs through perl so that we can append the test title to make where they are coming from clearer
+        # The only annotation types produced by the `github` report are 'debug', 'notice', 'warning', and 'error' so this should cover them all
+        run:
+          podman-compose -f ${{ matrix.compose }} logs -f playwright | perl -pe
+          's/::(debug|notice|warning|error) title=/$&\[${{ matrix.title }}\] /g'
+      - name: Upload Playwright Reports
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ matrix.name }}
+          path: tests/smoke/playwright/test-reports
+          retention-days: 1
+      - name: Tear Down Containers
+        run: podman-compose -f ${{ matrix.compose }} down
+    outputs:
+      actualResult: ${{ steps.test.conclusion }}
+
+  generate-report:
+    name: Generate HTML Report from Blob Reports
+    needs: [e2e-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Playwright Files
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Download Blob Reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: playwright-report-*
+          path: tests/smoke/playwright/test-reports
+          merge-multiple: true
+      - name: Merge Blobs Reports into HTML Report
+        working-directory: tests/smoke/playwright
+        run: npm ci && npm run merge-reports ./test-reports
+      - name: Upload HTML Reprot
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: tests/smoke/playwright/test-reports
+          retention-days: 1
+  publish:
+    needs: [generate-report]
+    uses: ./.github/workflows/push-to-gh-pages.yml
+    with:
+      ARTIFACT_ID: playwright-report
+      DEPLOY_TO: playwright-reports/${{ inputs.BRANCH_NAME }}/${{ inputs.RUN_ID }}/
+      COMMIT_MSG:
+        'add HTML report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}'

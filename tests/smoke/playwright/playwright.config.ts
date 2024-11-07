@@ -1,11 +1,19 @@
-import { PlaywrightTestConfig, devices } from "@playwright/test";
+import { PlaywrightTestConfig, devices } from '@playwright/test';
 
 const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
-const jsonReportFilename = process.env.TEST_REPORT_JSON ?? 'test-report.json'
+const testReportDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
+const jsonReportFilename = `${testReportDir}/${process.env.JSON_REPORT_FILE ?? 'test-report.json'}`;
+const htmlReportLink = process.env.HTML_REPORT_DIR ?? 'html';
+const htmlReportDir = `${testReportDir}/${htmlReportLink}`;
+const summaryJsonReportFilename = `${testReportDir}/${process.env.SUMMARY_JSON_REPORT_FILE ?? 'summary-report.json'}`;
+const testTitle = process.env.TEST_TITLE ?? 'Playwright Test Report';
 
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
-  testDir: "./test",
+  testDir: './test',
+
+  // Artifacts folder where screenshots, videos, and traces are stored.
+  outputDir: './test-output',
 
   // Use this to change the number of browsers/contexts to run in parallel
   // Setting this to 1 will run tests serially which can help if you're seeing issues with parallel execution
@@ -24,42 +32,40 @@ const config: PlaywrightTestConfig = {
 
   // Reporter to use
   reporter: process.env.CI
-    ? 'github' : [
-        ['list'],
+    ? [
+        ['github'],
+        ['html', { outputFolder: htmlReportDir, open: 'never' }],
         [
-          'html',
+          './custom-reporter/index.ts',
           {
-            outputFolder: `./test-reports/html`,
-            open: 'never',
-          },
-        ],
-        [
-          'json',
-          {
-            outputFile: `./test-reports/${jsonReportFilename}`,
-          },
-        ],
+            title: testTitle,
+            htmlReportLink: `./${htmlReportLink}`,
+            outputFilename: summaryJsonReportFilename
+          }
+        ]
+      ]
+    : [
+        ['list', { printSteps: true }],
+        ['json', { outputFile: jsonReportFilename }],
+        ['html', { outputFolder: htmlReportDir, open: 'never' }]
       ],
-
-  // Artifacts folder where screenshots, videos, and traces are stored.
-  outputDir: './test-results',
 
   // Specify browser to use
   use: {
     // Specify browser to use. You can also use 'firefox' or 'webkit'.
-    browserName: "chromium",
+    browserName: 'chromium',
 
     // Specify browser launch options
     launchOptions: {
-      headless: true, // Set to false if you want to see the browser UI
+      headless: true // Set to false if you want to see the browser UI
     },
 
     // Specify viewport size
     viewport: { width: 1280, height: 720 },
 
     // Specify the server url
-    baseURL,
-    
+    baseURL
+
     // More options can be set here
   },
 
@@ -70,11 +76,11 @@ const config: PlaywrightTestConfig = {
   // Configure projects for testing across multiple configurations
   projects: [
     {
-      name: "Desktop Chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
+      name: 'Desktop Chromium',
+      use: { ...devices['Desktop Chrome'] }
+    }
     // More projects can be configured here
-  ],
+  ]
 };
 
 export default config;

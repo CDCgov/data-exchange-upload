@@ -23,7 +23,7 @@ routing_groups:
     data_stream_route: localsequencefile
     delivery_targets:
       - name: edav
-        path_template: "{{.DataStreamID}}/{{.DataStreamRoute}}/{{.Filename}}"
+        path_template: '{{.DataStreamID}}/{{.DataStreamRoute}}/{{.Filename}}'
   - data_stream_id: ehdi
     data_stream_route: csv
     delivery_targets:
@@ -32,7 +32,7 @@ routing_groups:
     data_stream_route: fhir
     delivery_targets:
       - name: eicr
-  - data_stream_id: rsp-prevention
+  - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
@@ -48,18 +48,12 @@ routing_groups:
     data_stream_route: other
     delivery_targets:
       - name: ncird
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
   - data_stream_id: dextesting
     data_stream_route: testevent1
     delivery_targets:
-      - name: ncird
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
-      - name: eicr
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
       - name: edav
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
-      - name: ehdi
-        path_template: "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}"
+        path_template: '{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}_{{.UploadId}}'

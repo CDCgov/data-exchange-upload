@@ -54,7 +54,7 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 
     // Wrap the particular route that needs to be protected
     router.HandleFunc("/public-route", publicRouteHandler)
-    router.HandleFunc("/private-route", authMiddleware.VerifyOAuthTokenHandler(privateRouteHandler))
+    router.HandleFunc("/private-route", authMiddleware.VerifyOAuthTokenMiddleware(privateRouteHandler))
 
     return router
 }
