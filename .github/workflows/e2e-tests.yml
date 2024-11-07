@@ -9,6 +9,9 @@ on:
       RUN_ID:
         type: string
         required: true
+      EVENT_TYPE:
+        type: string
+        required: true
 
 defaults:
   run:
@@ -89,13 +92,26 @@ jobs:
       - name: Merge Blobs Reports into HTML Report
         working-directory: tests/smoke/playwright
         run: npm ci && npm run merge-reports ./test-reports
-      - name: Upload HTML Reprot
+      - name: Upload HTML Report
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
           path: tests/smoke/playwright/test-reports
           retention-days: 1
-  publish:
+
+  publish-pr:
+    if: ${{ inputs.EVENT_TYPE != 'push' }}
+    needs: [generate-report]
+    uses: ./.github/workflows/push-to-gh-pages.yml
+    with:
+      ARTIFACT_ID: playwright-report
+      DEPLOY_TO: playwright-reports/${{ inputs.BRANCH_NAME }}/${{ inputs.RUN_ID }}/
+      COMMIT_MSG:
+        'add HTML report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}'
+
+  publish-main:
+    if: ${{ inputs.EVENT_TYPE == 'push' }}
+    else:
     needs: [generate-report]
     uses: ./.github/workflows/push-to-gh-pages.yml
     with:

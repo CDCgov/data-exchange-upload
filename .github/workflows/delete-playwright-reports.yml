@@ -2,11 +2,19 @@
 name: Delete
 
 on:
-  delete:
+  # delete:
+  workflow_dispatch:
+    inputs:
+      REF:
+        description:
+          Branch from CDCgov/data-exchange-upload that you want to deploy to the tst environment.
+        default: main
+        required: true
+        type: string
 
 # ensures that currently running Playwright workflow of deleted branch gets cancelled
 concurrency:
-  group: ${{ github.event.ref }}
+  group: ${{ inputs.REF }} # TODO - change back to github.event.ref
   cancel-in-progress: true
 
 jobs:
@@ -15,31 +23,40 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Contains all reports for deleted branch
-      BRANCH_REPORTS_DIR: playwright-reports/${{ github.event.ref }}
+      GITHUB_REF_NAME: ${{ inputs.REF }} # TODO - change back to github.event.ref
+      PLAYWRIGHT_REPORTS_DIR: playwright-reports
+      BRANCH_REPORTS_DIR: null
+      BRANCH_REPORTS_EXIST: 'false'
     steps:
       - name: Checkout GitHub Pages Branch
         uses: actions/checkout@v4
         with:
           ref: gh-pages
+      - name: Set Branch Report Directory
+        run: |
+          split=(${GITHUB_REF_NAME//\// })
+          echo BRANCH_REPORTS_DIR=${split[0]} >> $GITHUB_ENV
       - name: Set Git User
         # see: https://github.com/actions/checkout/issues/13#issuecomment-724415212
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: Check for workflow reports
+      - name: Check for Branch Reports
         run: |
-          if [ -z "$(ls -A $BRANCH_REPORTS_DIR)" ]; then
+          if [ -z "$(ls -A $PLAYWRIGHT_REPORTS_DIR/$BRANCH_REPORTS_DIR)" ]; then
             echo "BRANCH_REPORTS_EXIST="false"" >> $GITHUB_ENV
           else
             echo "BRANCH_REPORTS_EXIST="true"" >> $GITHUB_ENV
           fi
-      - name: Delete reports from repo for branch
-        if: ${{ env.BRANCH_REPORTS_EXIST == 'true' && github.event.ref_type == 'branch' }}
+      - name: Delete Reports for Branch
+        # if: ${{ env.BRANCH_REPORTS_EXIST == 'true' && github.event.ref_type == 'branch' }}
+        if: ${{ env.BRANCH_REPORTS_EXIST == 'true' }}
         timeout-minutes: 3
         run: |
-          cd $BRANCH_REPORTS_DIR/..
+          cd $PLAYWRIGHT_REPORTS_DIR
+          pwd
 
-          rm -rf ${{ github.event.ref }}
+          rm -rf $BRANCH_REPORTS_DIR
           git add .
-          git commit -m "workflow: remove all reports for branch ${{ github.event.ref }}"
+          git commit -m "workflow: remove all reports for branch ${{ env.GITHUB_REF_NAME }}"
           git push
