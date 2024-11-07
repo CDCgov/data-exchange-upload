@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"math/big"
 	"os"
 	"strings"
@@ -17,33 +18,33 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
 )
 
+// TODO move out to config.go
 // COMMAND LINE INPUTS
 var (
-	TARGET_ENV      *string = flag.String("target_env", "", "Target Environment")
-	DATA_STREAM     *string = flag.String("data_stream", "", "The data stream name")
-	ROUTE           *string = flag.String("route", "", "The route name")
+	TARGET_ENV  *string = flag.String("target_env", "", "Target Environment")
+	DATA_STREAM *string = flag.String("data_stream", "", "The data stream name")
+	ROUTE       *string = flag.String("route", "", "The route name")
 )
 
 // GITHUB ACTION INPUTS
-var ACCOUNT_KEY string = ""
+var ACCOUNT_KEY = ""
 
 // FIXED VALUES
-var CONTAINER string = "bulkuploads"
-var FOLDER string = "tus-prefix/"
+var CONTAINER = "bulkuploads"
+var FOLDER = "tus-prefix/"
 
 // Concurrency
 const MAX_CONCURRENCY = 10
 
 // Delete List
 var blobsToDelete []string
-var mutex sync.Mutex 
+var mutex sync.Mutex
 
 var readCount = big.NewInt(0)
 
 func main() {
-
 	startTime := time.Now()
-    fmt.Println("Start Time:", startTime)
+	fmt.Println("Start Time:", startTime)
 
 	flag.Parse()
 
@@ -59,13 +60,9 @@ func main() {
 		log.Fatalf("ROUTE is not set")
 	}
 
-	if(ACCOUNT_KEY == "") {
-		// IF not set for local runs pull from the environment
-		envKey := fmt.Sprintf("ACCOUNT_KEY_%s", strings.ToUpper(*TARGET_ENV))
-		ACCOUNT_KEY := os.Getenv(envKey)
-		if ACCOUNT_KEY == "" {
-			log.Fatalf("ACCOUNT_KEY is not set")
-		}
+	ACCOUNT_KEY = os.Getenv("ACCOUNT_KEY")
+	if ACCOUNT_KEY == "" {
+		log.Fatalf("ACCOUNT_KEY is not set")
 	}
 
 	fmt.Println("------- SCRIPT INPUTS -------")
@@ -75,7 +72,7 @@ func main() {
 	fmt.Println("CONTAINER:", CONTAINER)
 	fmt.Println("FOLDER:", FOLDER)
 	fmt.Println("------- SCRIPT INPUTS -------")
-	
+
 	STORAGE_ACCOUNT := getStorageAccountName(*TARGET_ENV)
 	if STORAGE_ACCOUNT == "" {
 		log.Fatalf("STORAGE_ACCOUNT is not set")
@@ -85,7 +82,6 @@ func main() {
 
 	cred, err := azblob.NewSharedKeyCredential(STORAGE_ACCOUNT, ACCOUNT_KEY)
 	if err != nil {
-
 		log.Fatalf("Failed to create shared key credential: %v", err)
 	}
 
@@ -95,21 +91,185 @@ func main() {
 		log.Fatalf("Failed to create service client: %v", err)
 	}
 
-	containerClient := serviceClient.ServiceClient().NewContainerClient(CONTAINER)
+	//containerClient := serviceClient.ServiceClient().NewContainerClient(CONTAINER)
 
-    listBlobstoDelete(serviceClient, containerClient)
+	// TODO use data_stream_id and data_stream_route
+	criteria := map[string]string{
+		"meta_destination_id": *DATA_STREAM,
+		"meta_ext_event":      *ROUTE,
+	}
 
-	fmt.Println("------- DELETE SUMMARY -------")
-	log.Printf("Delete List Count: %d", len(blobsToDelete))
-	fmt.Println("------- DELETE SUMMARY -------")
+	c := make(chan searchPage)
+	defer close(c)
+	ctx := context.Background()
+	o := initWorkers(ctx, c, serviceClient)
 
-	deleteBlobs(serviceClient)
+	go func() {
+		searchUploadsByMetadata(ctx, criteria, serviceClient, CONTAINER, FOLDER, c)
+	}()
 
-	endTime := time.Now()
-    fmt.Println("End Time:", endTime)
+	searchSummary := searchResult{}
+	for r := range o {
+		// may need to use atomic here
+		searchSummary.totalSearched += r.totalSearched
+		searchSummary.totalMatched += r.totalMatched
+		fmt.Printf("searched %d blobs; matched on %d\r\n", searchSummary.totalSearched, searchSummary.totalMatched)
+	}
 
-    duration := endTime.Sub(startTime)
-    fmt.Printf("Duration: %v\n", duration)
+	//listBlobstoDelete(serviceClient, containerClient)
+	//
+	//fmt.Println("------- DELETE SUMMARY -------")
+	//log.Printf("Delete List Count: %d", len(blobsToDelete))
+	//fmt.Println("------- DELETE SUMMARY -------")
+	//
+	//deleteBlobs(serviceClient)
+
+	fmt.Printf("Duration: %v\n", time.Since(startTime))
+}
+
+func initWorkers(ctx context.Context, c <-chan searchPage, serviceClient *azblob.Client) <-chan *searchResult {
+	o := make(chan *searchResult)
+	go func() {
+		defer close(o)
+		var wg sync.WaitGroup
+		slog.Info("starting 10 workers")
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				worker(ctx, c, o, serviceClient)
+			}()
+		}
+		wg.Wait()
+	}()
+	return o
+}
+
+type searchPage struct {
+	page             *container.BlobFlatListSegment
+	metadataCriteria map[string]string
+}
+
+type searchResult struct {
+	matchingUploads []string
+	totalMatched    int
+	totalSearched   int
+	errors          []error
+}
+
+func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, serviceClient *azblob.Client, containerName string, folderPrefix string, c chan<- searchPage) {
+	// Loop through all blobs
+	var maxResults int32 = 10
+	pager := serviceClient.NewListBlobsFlatPager(containerName, &azblob.ListBlobsFlatOptions{
+		MaxResults: &maxResults,
+		Prefix:     &folderPrefix,
+		Include: azblob.ListBlobsInclude{
+			Tags: true,
+		},
+	})
+
+	for pager.More() {
+		page, err := pager.NextPage(ctx)
+		if err != nil {
+			slog.Error("error getting page", "error", err)
+			continue
+		}
+
+		c <- searchPage{
+			page:             page.Segment,
+			metadataCriteria: metadata,
+		}
+	}
+}
+
+func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, serviceClient *azblob.Client) {
+	for p := range c {
+		result := &searchResult{
+			totalMatched:  0,
+			totalSearched: len(p.page.BlobItems),
+		}
+		for _, blob := range p.page.BlobItems {
+			if strings.Contains(*blob.Name, ".info") {
+				// Found an upload
+				uid := strings.Split(*blob.Name, ".")[0]
+				slog.Info("found info file for upload", "upload id", uid)
+
+				// First, check if matched on tags
+				if matchesTags(blob.BlobTags, p.metadataCriteria) {
+					result.matchingUploads = append(result.matchingUploads, uid)
+					continue
+				}
+
+				// Download, unmarshal, and match on the metadata criteria
+				rsp, err := serviceClient.DownloadStream(ctx, CONTAINER, *blob.Name, nil)
+				if err != nil {
+					result.errors = append(result.errors, err)
+					continue
+				}
+
+				body, err := io.ReadAll(rsp.Body)
+				if err != nil {
+					result.errors = append(result.errors, err)
+					continue
+				}
+				defer rsp.Body.Close()
+
+				var data map[string]any
+				err = json.Unmarshal(body, &data)
+				if err != nil {
+					result.errors = append(result.errors, err)
+					continue
+				}
+
+				metadata, ok := data["MetaData"].(map[string]any)
+				if !ok {
+					slog.Warn("found info file with no metadata; skipping", "filename", *blob.Name)
+					continue
+				}
+
+				ms := convertMap(metadata)
+				if matchesMetadata(ms, p.metadataCriteria) {
+					result.matchingUploads = append(result.matchingUploads, uid)
+					continue
+				}
+
+				// Tag blob and info blob for all criteria metadata fields
+				containerClient := serviceClient.ServiceClient().NewContainerClient(CONTAINER)
+				blobClient := containerClient.NewBlobClient(*blob.Name)
+				_, err = blobClient.SetTags(ctx, ms, nil)
+				if err != nil {
+					slog.Warn("error while tagging file", "filename", blob.Name, "error", err)
+				}
+			}
+		}
+
+		result.totalMatched = len(result.matchingUploads)
+		o <- result
+	}
+}
+
+func matchesTags(tags *container.BlobTags, criteria map[string]string) bool {
+	// TODO
+	return false
+}
+
+func matchesMetadata(metadata map[string]string, criteria map[string]string) bool {
+	for k, v := range criteria {
+		super, ok := metadata[k]
+		if !ok || super != v {
+			return false
+		}
+	}
+	return true
+}
+
+func convertMap(m map[string]any) map[string]string {
+	out := make(map[string]string)
+	for k, v := range m {
+		out[k] = v.(string)
+	}
+
+	return out
 }
 
 func listBlobstoDelete(serviceClient *azblob.Client, containerClient *container.Client) {
@@ -126,11 +286,11 @@ func listBlobstoDelete(serviceClient *azblob.Client, containerClient *container.
 
 	for pager.More() {
 
-		resp, err := pager.NextPage(context.Background())		
+		resp, err := pager.NextPage(context.Background())
 		if err != nil {
 
 			log.Fatalf("Failed to list blobs: %v", err)
-		}		
+		}
 
 		for _, blobItem := range resp.Segment.BlobItems {
 
@@ -141,16 +301,16 @@ func listBlobstoDelete(serviceClient *azblob.Client, containerClient *container.
 			wg.Add(1)
 
 			blobName := *blobItem.Name
-			
+
 			go func(blobName string) {
 
 				defer wg.Done()
 
 				sem <- struct{}{}
 				defer func() { <-sem }()
-	
+
 				if strings.Contains(blobName, ".info") {
-										
+
 					readBlob(serviceClient, containerClient, blobName)
 				}
 			}(blobName)
@@ -159,7 +319,7 @@ func listBlobstoDelete(serviceClient *azblob.Client, containerClient *container.
 
 	wg.Wait()
 }
- 
+
 func readBlob(serviceClient *azblob.Client, containerClient *container.Client, blobName string) {
 
 	readCount.Add(readCount, big.NewInt(1))
@@ -183,10 +343,10 @@ func readBlob(serviceClient *azblob.Client, containerClient *container.Client, b
 		if err != nil {
 
 			log.Printf("Failed to read blob content: %v", err)
-		}	
+		}
 
 		var jsonData map[string]interface{}
-		
+
 		if err := json.Unmarshal(body, &jsonData); err != nil {
 
 			log.Printf("Blob content is not JSON: %s\nContent:\n%s\n", blobName, string(body))
@@ -197,26 +357,26 @@ func readBlob(serviceClient *azblob.Client, containerClient *container.Client, b
 			metadata, metadataExists := jsonData["MetaData"].(map[string]interface{})
 
 			if metadataExists {
-			
-				data_stream :=  metadata["meta_destination_id"]
+
+				data_stream := metadata["meta_destination_id"]
 				route := metadata["meta_ext_event"]
 
 				// Define tags
 				tags := map[string]string{
 					"data_stream": fmt.Sprintf("%v", data_stream),
-					"route": fmt.Sprintf("%v", route),
+					"route":       fmt.Sprintf("%v", route),
 				}
 
 				addTags(containerClient, blobName, tags)
 
-				if(data_stream == DATA_STREAM && route == ROUTE) {
+				if data_stream == DATA_STREAM && route == ROUTE {
 
 					mutex.Lock()
 					blobsToDelete = append(blobsToDelete, strings.TrimSuffix(blobName, ".info"))
 					blobsToDelete = append(blobsToDelete, blobName)
 					mutex.Unlock()
-				} 
-			}	
+				}
+			}
 		}
 	}
 }
@@ -224,35 +384,35 @@ func readBlob(serviceClient *azblob.Client, containerClient *container.Client, b
 func getStorageAccountName(targetEnv string) string {
 
 	switch targetEnv {
-    	case "dev":
-        	return "ocioededataexchangedev"
-		case "tst":
-        	return "ocioededataexchangetst"
-    	case "stg":
-        	return "ocioededataexchangestg"
-    	case "prd":
-        	return "ocioededataexchangeprd"
-    	default:
-        	return ""
-    }
+	case "dev":
+		return "ocioededataexchangedev"
+	case "tst":
+		return "ocioededataexchangetst"
+	case "stg":
+		return "ocioededataexchangestg"
+	case "prd":
+		return "ocioededataexchangeprd"
+	default:
+		return ""
+	}
 }
 
 func addTags(containerClient *container.Client, blobName string, tags map[string]string) {
 
 	blobClient := containerClient.NewBlobClient(blobName)
-	 _, err := blobClient.SetTags(context.Background(), tags, nil)
-	 if err != nil {
-		 log.Printf("Failed to set tags on blob %s: %v", blobName, err)
-	 } 	
+	_, err := blobClient.SetTags(context.Background(), tags, nil)
+	if err != nil {
+		log.Printf("Failed to set tags on blob %s: %v", blobName, err)
+	}
 }
 
 func deleteBlobs(serviceClient *azblob.Client) {
 
 	for _, blobName := range blobsToDelete {
-    	log.Printf("Deleting Blob - %s", blobName)
-    	_, err := serviceClient.DeleteBlob(context.Background(), CONTAINER, blobName, nil)
-    	if err != nil {
-        	log.Printf("Failed to delete blob: %v", err)
-    	}
+		log.Printf("Deleting Blob - %s", blobName)
+		_, err := serviceClient.DeleteBlob(context.Background(), CONTAINER, blobName, nil)
+		if err != nil {
+			log.Printf("Failed to delete blob: %v", err)
+		}
 	}
 }
