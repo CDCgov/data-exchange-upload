@@ -8,9 +8,11 @@ import (
 	"io"
 	"net/http"
 	neturl "net/url"
+	"os"
 	"path"
 	"slices"
 	"sync/atomic"
+	"time"
 )
 
 type InfoResponse struct {
@@ -98,26 +100,33 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 	}
 
 	for _, delivery := range info.Deliveries {
-		if delivery.Status != "SUCCESS" {
-			return errors.Join(&ErrAssertion{
-				Expected: "SUCCESS",
-				Actual:   delivery.Status,
-			}, &ErrFatalAssertion{
-				msg: "unexpected delivery status",
-			})
-		}
+		// Calculate time difference in milliseconds
+		chunkReceivedAt, _ := time.Parse(time.RFC3339Nano, info.UploadStatus.LastChunkReceived)
+		deliveredAt, _ := time.Parse(time.RFC3339Nano, delivery.DeliveredAt)
+		timeDiff := deliveredAt.Sub(chunkReceivedAt).Milliseconds()
 
-		if !slices.Contains(c.ExpectedDeliveryTargets, delivery.Name) {
-			return errors.Join(&ErrAssertion{
-				Expected: c.ExpectedDeliveryTargets,
-				Actual:   delivery.Name,
-			}, &ErrFatalAssertion{
-				msg: "unexpected delivery target",
-			})
+		// Log or add timeDiff to statistics
+		addDeliveryTime(timeDiff) // new function to store delivery times
+
+		if delivery.Status != "SUCCESS" || !slices.Contains(c.ExpectedDeliveryTargets, delivery.Name) {
+			return fmt.Errorf("unexpected delivery status or target. upload_id=%s", uploadId)
 		}
 	}
 
+	name := fmt.Sprintf("./output/manifests/%v.json", info.Manifest["upload_id"])
+	err = os.WriteFile(name, b, 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write manifest: %w", err)
+	}
+
 	return nil
+}
+
+// Add delivery time to test result statistics
+func addDeliveryTime(timeDiff int64) {
+	atomic.AddInt64(&testResult.TotalDeliveryTime, timeDiff) // Accumulating time
+	testResult.DeliveryTimes = append(testResult.DeliveryTimes, timeDiff)
+	atomic.AddInt32(&testResult.DeliveryCount, 1)
 }
 
 func (ic *InfoChecker) OnSuccess() {
