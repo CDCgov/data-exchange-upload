@@ -41,8 +41,10 @@ jobs:
           echo "REF = ${{ github.event.ref }}"
           echo "REF_TYPE = ${{ github.event.ref_type }}"
           if [ -z "$(ls -A $norm_branch)" ]; then
+            echo "Deleting $norm_branch"
             rm -rf $norm_branch
             git add .
             git commit -m "workflow: remove all reports for branch $BRANCH_NAME"
             git pull origin gh-pages --rebase -s recursive -X ours
+            git push
           fi
