@@ -112,7 +112,8 @@ jobs:
             echo "commit_msg='update Playwright report for main'" >> "$GITHUB_OUTPUT"
           else
             # Normalize the branch name to convert '/' to '_' so it doesn't create extra subdirectories
-            norm_branch=(${${{ inputs.BRANCH_NAME }}//\//_})
+            branch=${{ inputs.BRANCH_NAME }}
+            norm_branch=(${branch//\//_})
 
             echo "deploy_to=${{ env.ARTIFACT_ID }}/$norm_branch/${{ inputs.RUN_ID }}/" >> "$GITHUB_OUTPUT"
             echo "commit_msg='add Playwright report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}'" >> "$GITHUB_OUTPUT"

@@ -4,8 +4,6 @@ name: Delete Playwright Report for Branch
 on:
   # delete:
   pull_request:
-    branches:
-      - UPLOAD-1825/delete-workflow
 
 # ensures that currently running Playwright workflow of deleted branch gets cancelled
 concurrency:
@@ -35,9 +33,11 @@ jobs:
         working-directory: playwright-reports
         run: |
           # Normalize the branch name to convert '/' to '_' so it doesn't create extra subdirectories
-          norm_branch=(${${{ env.BRANCH_NAME }}//\//_})
+          branch=${{ env.BRANCH_NAME }}
+          norm_branch=(${branch//\//_})
 
           echo "BRANCH_NAME = $BRANCH_NAME"
+          echo "NORM BRANCH = $norm_branch"
           echo "REF = ${{ github.event.ref }}"
           echo "REF_TYPE = ${{ github.event.ref_type }}"
           if [ -z "$(ls -A $norm_branch)" ]; then
