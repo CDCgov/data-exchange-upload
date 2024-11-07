@@ -12,7 +12,8 @@ class DataProvider {
         @JvmStatic
         @DataProvider(name = "validManifestProvider")
         fun validManifestAllProvider(): Array<Array<TestCase>> {
-            val cases = loadTestCases("valid_manifests.json")
+            var validManifests = arrayOf("valid_manifests.json")
+            val cases = loadTestCases(validManifests)
             logger<util.DataProvider>().info("Filtering all valid manifests")
             return filterCases(cases)
         }

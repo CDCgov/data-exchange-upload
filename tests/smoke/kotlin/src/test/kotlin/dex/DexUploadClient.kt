@@ -6,7 +6,6 @@ import model.AuthResponse
 import model.HealthResponse
 import model.InfoResponse
 import okhttp3.FormBody
-import okhttp3.Headers
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okio.IOException
@@ -15,6 +14,7 @@ import java.nio.charset.StandardCharsets
 
 class DexUploadClient(private val url: String) {
     private val httpClient = OkHttpClient()
+
     private val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
 
     fun getToken(username: String, password: String): String {
@@ -62,10 +62,9 @@ class DexUploadClient(private val url: String) {
         return respBody
     }
 
-    fun getHealth(authToken: String): HealthResponse {
+    fun getHealth(): HealthResponse {
         val req = Request.Builder()
             .url("$url/upload/health")
-            .header("Authorization", "Bearer $authToken")
             .build()
 
         val resp = httpClient

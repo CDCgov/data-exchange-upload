@@ -33,6 +33,7 @@ func (fd *FileDestination) Copy(ctx context.Context, id string, path string, sou
 
 func (fd *FileDestination) Upload(_ context.Context, path string, r io.Reader, _ map[string]string) (string, error) {
 	loc := filepath.Join(fd.ToPath, path)
+
 	if err := os.MkdirAll(filepath.Dir(loc), 0755); err != nil {
 		return "", err
 	}

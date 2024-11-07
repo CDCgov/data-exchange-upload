@@ -26,7 +26,7 @@ func GetHookHandler(appConfig appconfig.AppConfig) (RegisterableHookHandler, err
 	}
 
 	if appConfig.AzureConnection != nil {
-		tusContainerClient, err := storeaz.NewContainerClient(*appConfig.AzureConnection, appConfig.AzureUploadContainer)
+		tusContainerClient, err := storeaz.NewContainerClient(appConfig.AzureConnection.Credentials(), appConfig.AzureUploadContainer)
 		if err != nil {
 			return nil, err
 		}

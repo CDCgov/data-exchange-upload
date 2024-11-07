@@ -7,11 +7,14 @@
     "build": "npx tsc",
     "wait": "./wait-for-it.sh ${UI_URL:-http://localhost:8081}",
     "test": "npx playwright test",
-    "test:docker": "npm install; npm run wait; npm run test"
+    "test:ui": "npx playwright test --ui",
+    "test:docker": "npm install; npm run wait; npm run test",
+    "merge-reports": "npx ts-node merge-html-reports",
+    "prettier": "prettier --write \"**/*.{js,jsx,cjs,ts,tsx,css,md,json}\" --config \".prettierrc\""
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "tus-js-client": "^4.0.1",
+    "tus-js-client": "latest",
     "uuid": "^9.0.1"
   },
   "keywords": [],
@@ -22,6 +25,8 @@
     "@playwright/test": "1.48.0",
     "@types/express": "^4.17.1",
     "@types/node": "^20.11.22",
+    "@types/uuid": "^10.0.0",
+    "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }

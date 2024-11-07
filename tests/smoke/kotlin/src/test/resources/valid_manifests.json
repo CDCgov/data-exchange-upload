@@ -13,36 +13,9 @@
         "name": "edav",
         "path_template": {
           "LOCAL": "/upload/edav/{uploadId}",
-          "DEV": "/upload/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
-          "TEST": "/upload/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/upload/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}"
-        }
-      },
-      {
-        "name": "ncird",
-        "path_template": {
-          "LOCAL": "/upload/ncird/{uploadId}",
-          "DEV": "/dex-dev/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
-          "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/dex-stg/{dataStream}-{route}/{year}/{month}/{day}/{filename}_{uploadId}"
-        }
-      },
-      {
-        "name": "ehdi",
-        "path_template": {
-          "LOCAL": "/upload/ehdi/{uploadId}",
-          "DEV": "/ddnid-ncbddd/DHDD/EHDI/DEX-DEV/{year}/{month}/{day}/{filename}_{uploadId}",
-          "TEST": "/ddnid-ncbddd/DHDD/EHDI/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/ddnid-ncbddd/DHDD/EHDI/DEX-STG/{year}/{month}/{day}/{filename}_{uploadId}"
-        }
-      },
-      {
-        "name": "eicr",
-        "path_template": {
-          "LOCAL": "/upload/eicr/{uploadId}",
-          "DEV": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-DEV/{year}/{month}/{day}/{filename}_{uploadId}",
-          "TEST": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-TST/{year}/{month}/{day}/{filename}_{uploadId}",
-          "STAGE": "/ddphss-csels/DDTP/eICR Learning Pilot(eICRLRNG)/DEX-STG/{year}/{month}/{day}/{filename}_{uploadId}"
+          "DEV": "/upload/phdo-testing/{year}/{month}/{day}/{filename}_{uploadId}",
+          "TEST": "/upload/phdo-testing/{year}/{month}/{day}/{filename}_{uploadId}",
+          "STAGE": "/upload/phdo-testing/{year}/{month}/{day}/{filename}_{uploadId}"
         }
       }
     ]
