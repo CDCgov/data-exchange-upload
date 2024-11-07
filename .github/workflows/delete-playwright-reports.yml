@@ -32,12 +32,12 @@ jobs:
           norm_branch=(${branch//\//_})
 
           if [[ -d "$norm_branch" ]]; then
-            echo "Deleting $norm_branch"
-            rm -rf $norm_branch
-            git add .
-            git commit -m "workflow: remove all reports for branch $BRANCH_NAME"
-            git pull origin gh-pages --rebase -s recursive -X ours
-            git push
+          rm -rf $norm_branch
+          git add .
+          git commit -m "workflow: remove all reports for branch $BRANCH_NAME"
+          git pull origin gh-pages --rebase -s recursive -X ours
+          git push
+            echo "Deleted Playwright Reports for $branch from GitHub Pages" >> "$GITHUB_STEP_SUMMARY"
           else 
-            echo "Cannot find $norm_branch"
+            echo "Could not find Playwright Reports for $branch to delete" >> "$GITHUB_STEP_SUMMARY"
           fi
