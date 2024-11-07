@@ -2,8 +2,7 @@
 name: Delete Playwright Report for Branch
 
 on:
-  # delete:
-  pull_request:
+  delete:
 
 jobs:
   delete_reports:
@@ -11,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Contains all reports for deleted branch
-      BRANCH_NAME: UPLOAD-1825/playwright-ghpages # TODO - change back to github.event.ref
+      BRANCH_NAME: ${{ github.event.ref }}
     steps:
       - name: Checkout GitHub Pages Branch
         uses: actions/checkout@v4
@@ -23,16 +22,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Delete Reports for Branch
-        # if: ${{ github.event.ref_type == 'branch' }}
+        if: ${{ github.event.ref_type == 'branch' }}
         timeout-minutes: 3
         working-directory: playwright-reports/
         run: |
           # Normalize the branch name to convert '/' to '_' so it doesn't create extra subdirectories
           branch=${{ env.BRANCH_NAME }}
           norm_branch=(${branch//\//_})
+
           echo "Branch: $branch"
           echo "Directory: $norm_branch"
-          echo "(ls -A)"
 
           if [[ -d $norm_branch ]]; then
             rm -rf $norm_branch
