@@ -76,6 +76,12 @@ jobs:
     name: Generate HTML Report from Blob Reports
     needs: [e2e-tests]
     runs-on: ubuntu-latest
+    env:
+      ARTIFACT_ID: playwright-reports
+    outputs:
+      deploy_to: ${{ steps.variables.outputs.deploy_to }}
+      commit_msg: ${{ steps.variables.outputs.commit_msg }}
+      artifact_id: ${{ env.ARTIFACT_ID }}
     steps:
       - name: Checkout Playwright Files
         uses: actions/checkout@v4
@@ -89,33 +95,30 @@ jobs:
           pattern: playwright-report-*
           path: tests/smoke/playwright/test-reports
           merge-multiple: true
-      - name: Merge Blobs Reports into HTML Report
+      - name: Merge Multiple Reports into Single Report
         working-directory: tests/smoke/playwright
         run: npm ci && npm run merge-reports ./test-reports
       - name: Upload HTML Report
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: ${{ env.ARTIFACT_ID }}
           path: tests/smoke/playwright/test-reports
           retention-days: 1
+      - name: Set Report Path and Message
+        id: variables
+        run: |
+          if [[ ${{ inputs.EVENT_TYPE }} == 'push' ]]; then
+            echo "deploy_to='${{ env.ARTIFACT_ID }}/main/'" >> "$GITHUB_OUTPUT"
+            echo "commit_msg='update Playwright report for main'" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_to='${{ env.ARTIFACT_ID }}/${{ inputs.BRANCH_NAME }}/${{ inputs.RUN_ID }}/'" >> "$GITHUB_OUTPUT"
+            echo "commit_msg='add Playwright report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}'" >> "$GITHUB_OUTPUT"
+          fi
 
-  publish-pr:
-    if: ${{ inputs.EVENT_TYPE != 'push' }}
+  publish:
     needs: [generate-report]
     uses: ./.github/workflows/push-to-gh-pages.yml
     with:
-      ARTIFACT_ID: playwright-report
-      DEPLOY_TO: playwright-reports/${{ inputs.BRANCH_NAME }}/${{ inputs.RUN_ID }}/
-      COMMIT_MSG:
-        'add HTML report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}'
-
-  publish-main:
-    if: ${{ inputs.EVENT_TYPE == 'push' }}
-    else:
-    needs: [generate-report]
-    uses: ./.github/workflows/push-to-gh-pages.yml
-    with:
-      ARTIFACT_ID: playwright-report
-      DEPLOY_TO: playwright-reports/${{ inputs.BRANCH_NAME }}/${{ inputs.RUN_ID }}/
-      COMMIT_MSG:
-        'add HTML report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}'
+      ARTIFACT_ID: ${{ needs.generate-report.outputs.artifact_id }}
+      DEPLOY_TO: ${{ needs.generate-report.outputs.deploy_to }}
+      COMMIT_MSG: ${{ needs.generate-report.outputs.commit_msg }}
