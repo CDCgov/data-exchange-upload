@@ -2,19 +2,14 @@
 name: Delete Playwright Report for Branch
 
 on:
-  delete:
-  workflow_dispatch:
-    inputs:
-      REF:
-        description:
-          Branch from CDCgov/data-exchange-upload that you want to deploy to the tst environment.
-        default: main
-        required: true
-        type: string
+  # delete:
+  pull_request:
+    branches:
+      - UPLOAD-1825/delete-workflow
 
 # ensures that currently running Playwright workflow of deleted branch gets cancelled
 concurrency:
-  group: ${{ inputs.REF }} # TODO - change back to github.event.ref
+  group: ${{ github.event.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -23,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Contains all reports for deleted branch
-      BRANCH_NAME: ${{ inputs.REF }} # TODO - change back to github.event.ref
+      BRANCH_NAME: UPLOAD-1825/playwright-ghpages # TODO - change back to github.event.ref
     steps:
       - name: Checkout GitHub Pages Branch
         uses: actions/checkout@v4
@@ -35,17 +30,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Delete Reports for Branch
-        if: ${{ github.event.ref_type == 'branch' }}
+        # if: ${{ github.event.ref_type == 'branch' }}
         timeout-minutes: 3
         working-directory: playwright-reports
         run: |
-          path=(${BRANCH_NAME//\// })
-          base_dir=${path[0]}
+          # Normalize the branch name to convert '/' to '_' so it doesn't create extra subdirectories
+          norm_branch=(${${{ env.BRANCH_NAME }}//\//_})
 
-          if [ -z "$(ls -A $base_dir)" ]; then
-            rm -rf $base_dir
+          echo "BRANCH_NAME = $BRANCH_NAME"
+          echo "REF = ${{ github.event.ref }}"
+          echo "REF_TYPE = ${{ github.event.ref_type }}"
+          if [ -z "$(ls -A $norm_branch)" ]; then
+            rm -rf $norm_branch
             git add .
-
             git commit -m "workflow: remove all reports for branch $BRANCH_NAME"
             git pull origin gh-pages --rebase -s recursive -X ours
           fi
