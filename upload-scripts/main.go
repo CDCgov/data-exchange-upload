@@ -71,6 +71,15 @@ func main() {
 			searchUploadsMatchingIndexTags(ctx, metadataCriteria, serviceClient, containerName, outChan)
 		}()
 		o = outChan
+	} else if checkpointFile != "" {
+		outChan := make(chan *searchResult)
+		go func() {
+			defer close(outChan)
+			err := loadCheckpointFile(checkpointFile, outChan)
+			if err != nil {
+				log.Fatalf("error loading checkpoint file %v", err)
+			}
+		}()
 	} else {
 		c := make(chan searchPage)
 		o = initWorkers(ctx, c, serviceClient)
@@ -341,6 +350,28 @@ func convertMap(m map[string]any) map[string]string {
 	}
 
 	return out
+}
+
+func loadCheckpointFile(filename string, o chan<- *searchResult) error {
+	f, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	var checkpointSummary searchResult
+	err = json.Unmarshal(b, &checkpointSummary)
+	if err != nil {
+		return err
+	}
+
+	o <- &checkpointSummary
+	return nil
 }
 
 func deleteUploads(ctx context.Context, files []string, serviceClient *azblob.Client) error {

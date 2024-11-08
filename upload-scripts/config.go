@@ -16,6 +16,7 @@ var (
 	storageConnectionString string
 	containerName           string
 	blobPrefix              string
+	checkpointFile          string
 	metadataCriteria        Criteria
 	parallelism             int
 	maxPageSize             int
@@ -65,6 +66,7 @@ func init() {
 	flag.StringVar(&storageConnectionString, "storageConnectionString", fromEnv("STORAGE_CONNECTION_STRING", "", passthroughString), "connection string for the storage account")
 	flag.StringVar(&containerName, "container", "bulkuploads", "name of the blob container to search")
 	flag.StringVar(&blobPrefix, "blobPrefix", "tus-prefix", "subfolder prefix for target files")
+	flag.StringVar(&checkpointFile, "checkpointFile", "", "file to use to load a set of search results from a previous run")
 	flag.Var(&metadataCriteria, "metadataCriteria", "metadata fields to match on when searching blobs")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "number of parallel threads to use; represents number of search pages to process in parallel")
 	flag.IntVar(&maxPageSize, "maxPageSize", 5000, "limit of number of search results for a page; ignored when searchTagsOnly is true")
