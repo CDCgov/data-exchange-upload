@@ -159,10 +159,11 @@ type searchResult struct {
 
 func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, serviceClient *azblob.Client, containerName string, folderPrefix string, c chan<- searchPage) {
 	// Loop through all blobs
-	var maxResults int32 = 10
+	// TODO add to config
+	//var maxResults int32 = 10
 	pager := serviceClient.NewListBlobsFlatPager(containerName, &azblob.ListBlobsFlatOptions{
-		MaxResults: &maxResults,
-		Prefix:     &folderPrefix,
+		//MaxResults: &maxResults,
+		Prefix: &folderPrefix,
 		Include: azblob.ListBlobsInclude{
 			Tags: true,
 		},
@@ -175,10 +176,12 @@ func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, se
 			continue
 		}
 
-		c <- searchPage{
-			page:             page.Segment,
-			metadataCriteria: metadata,
-		}
+		go func() {
+			c <- searchPage{
+				page:             page.Segment,
+				metadataCriteria: metadata,
+			}
+		}()
 	}
 }
 
@@ -195,9 +198,11 @@ func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, se
 				slog.Info("found info file for upload", "upload id", uid)
 
 				// First, check if matched on tags
-				if matchesTags(blob.BlobTags, p.metadataCriteria) {
-					result.matchingUploads = append(result.matchingUploads, uid)
-					continue
+				if blob.BlobTags != nil && len(blob.BlobTags.BlobTagSet) > 0 {
+					if matchesTags(blob.BlobTags, p.metadataCriteria) {
+						result.matchingUploads = append(result.matchingUploads, uid)
+						continue
+					}
 				}
 
 				// Download, unmarshal, and match on the metadata criteria
@@ -235,8 +240,13 @@ func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, se
 
 				// Tag blob and info blob for all criteria metadata fields
 				containerClient := serviceClient.ServiceClient().NewContainerClient(CONTAINER)
-				blobClient := containerClient.NewBlobClient(*blob.Name)
-				_, err = blobClient.SetTags(ctx, ms, nil)
+				infoBlobClient := containerClient.NewBlobClient(*blob.Name)
+				uploadBlobClient := containerClient.NewBlobClient(uid)
+				_, err = infoBlobClient.SetTags(ctx, ms, nil)
+				if err != nil {
+					slog.Warn("error while tagging file", "filename", blob.Name, "error", err)
+				}
+				_, err = uploadBlobClient.SetTags(ctx, ms, nil)
 				if err != nil {
 					slog.Warn("error while tagging file", "filename", blob.Name, "error", err)
 				}
@@ -249,8 +259,12 @@ func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, se
 }
 
 func matchesTags(tags *container.BlobTags, criteria map[string]string) bool {
-	// TODO
-	return false
+	tagMap := make(map[string]string)
+	for _, t := range tags.BlobTagSet {
+		tagMap[*t.Key] = *t.Value
+	}
+
+	return matchesMetadata(tagMap, criteria)
 }
 
 func matchesMetadata(metadata map[string]string, criteria map[string]string) bool {
