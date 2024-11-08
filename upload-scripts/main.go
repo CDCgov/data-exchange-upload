@@ -343,26 +343,35 @@ func convertMap(m map[string]any) map[string]string {
 	return out
 }
 
-// TODO use threads for this
 func deleteUploads(ctx context.Context, files []string, serviceClient *azblob.Client) error {
+	delFileChan := make(chan string)
+	var wg sync.WaitGroup
+
+	for i := 0; i < parallelism; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for f := range delFileChan {
+				_, err := serviceClient.DeleteBlob(ctx, containerName, f, nil)
+				if err != nil {
+					slog.Warn("failed to delete file", "filename", f, "error", err)
+				} else {
+					slog.Debug(fmt.Sprintf("successfully deleted file %s", f))
+				}
+			}
+		}()
+	}
+
 	for _, f := range files {
 		infoFile := f + ".info"
 		uploadFile := f
 
-		_, err := serviceClient.DeleteBlob(ctx, containerName, infoFile, nil)
-		if err != nil {
-			slog.Warn("failed to delete info file", "filename", infoFile, "error", err)
-		} else {
-			slog.Debug(fmt.Sprintf("successfully deleted file %s", infoFile))
-		}
-
-		_, err = serviceClient.DeleteBlob(ctx, containerName, uploadFile, nil)
-		if err != nil {
-			slog.Warn("failed to delete info file", "filename", uploadFile, "error", err)
-		} else {
-			slog.Debug(fmt.Sprintf("successfully deleted file %s", uploadFile))
-		}
+		delFileChan <- infoFile
+		delFileChan <- uploadFile
 	}
+
+	close(delFileChan)
+	wg.Wait()
 
 	return nil
 }
