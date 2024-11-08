@@ -26,15 +26,29 @@ func main() {
 	startTime := time.Now()
 	fmt.Println("Start Time:", startTime)
 
-	cred, err := azblob.NewSharedKeyCredential(storageAccount, storageKey)
-	if err != nil {
-		log.Fatalf("Failed to create shared key credential: %v", err)
+	var serviceClient *azblob.Client
+
+	if storageKey != "" {
+		cred, err := azblob.NewSharedKeyCredential(storageAccount, storageKey)
+		if err != nil {
+			log.Fatalf("Failed to create shared key credential: %v", err)
+		}
+
+		serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", storageAccount)
+		serviceClient, err = azblob.NewClientWithSharedKeyCredential(serviceURL, cred, nil)
+		if err != nil {
+			log.Fatalf("Failed to create service client: %v", err)
+		}
+	} else if storageConnectionString != "" {
+		var err error
+		serviceClient, err = azblob.NewClientFromConnectionString(storageConnectionString, nil)
+		if err != nil {
+			log.Fatalf("Failed to create service client: %v", err)
+		}
 	}
 
-	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", storageAccount)
-	serviceClient, err := azblob.NewClientWithSharedKeyCredential(serviceURL, cred, nil)
-	if err != nil {
-		log.Fatalf("Failed to create service client: %v", err)
+	if serviceClient == nil {
+		log.Fatalf("failed to init service client")
 	}
 
 	var o <-chan *searchResult

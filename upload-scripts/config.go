@@ -11,18 +11,19 @@ import (
 )
 
 var (
-	storageAccount   string
-	storageKey       string
-	containerName    string
-	blobPrefix       string
-	metadataCriteria Criteria
-	parallelism      int
-	maxPageSize      int
-	maxPages         int
-	maxResults       int
-	verbose          bool
-	searchTagsOnly   bool
-	nonInteractive   bool
+	storageAccount          string
+	storageKey              string
+	storageConnectionString string
+	containerName           string
+	blobPrefix              string
+	metadataCriteria        Criteria
+	parallelism             int
+	maxPageSize             int
+	maxPages                int
+	maxResults              int
+	verbose                 bool
+	searchTagsOnly          bool
+	nonInteractive          bool
 )
 
 type Criteria map[string]string
@@ -61,6 +62,7 @@ func passthroughString(s string) (string, error) {
 func init() {
 	flag.StringVar(&storageAccount, "storageAccount", "", "name of the storage account to search")
 	flag.StringVar(&storageKey, "storageKey", fromEnv("STORAGE_KEY", "", passthroughString), "access token for the storage account")
+	flag.StringVar(&storageConnectionString, "storageConnectionString", fromEnv("STORAGE_CONNECTION_STRING", "", passthroughString), "connection string for the storage account")
 	flag.StringVar(&containerName, "container", "bulkuploads", "name of the blob container to search")
 	flag.StringVar(&blobPrefix, "blobPrefix", "tus-prefix", "subfolder prefix for target files")
 	flag.Var(&metadataCriteria, "metadataCriteria", "metadata fields to match on when searching blobs")
