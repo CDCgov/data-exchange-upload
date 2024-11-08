@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"log/slog"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -46,10 +48,26 @@ func main() {
 	for r := range o {
 		searchSummary.totalSearched += r.totalSearched
 		searchSummary.totalMatched += r.totalMatched
+		searchSummary.matchingUploads = append(searchSummary.matchingUploads, r.matchingUploads...)
 	}
 
 	fmt.Printf("searched %d blobs; matched on %d\r\n", searchSummary.totalSearched, searchSummary.totalMatched)
 	fmt.Printf("Duration: %v\n", time.Since(startTime))
+
+	var ans string
+	if !nonInteractive {
+		r := bufio.NewReader(os.Stdin)
+		fmt.Printf("%d uploads marked for deletion.  Proceed? (y/n) ", searchSummary.totalMatched)
+		ans, _ = r.ReadString('\n')
+		ans = strings.TrimSpace(ans)
+	}
+
+	if ans == "y" || ans == "yes" || nonInteractive {
+		err := deleteUploads(ctx, searchSummary.matchingUploads, serviceClient)
+		if err != nil {
+			slog.Error("error deleting uploads", "error", err)
+		}
+	}
 }
 
 func initWorkers(ctx context.Context, c <-chan searchPage, serviceClient *azblob.Client) <-chan *searchResult {
@@ -98,7 +116,6 @@ func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, se
 			slog.Error("error getting page", "error", err)
 			continue
 		}
-		slog.Info("processing page")
 
 		atomic.AddInt32(&pageCount, 1)
 
@@ -112,8 +129,9 @@ func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, se
 func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, serviceClient *azblob.Client) {
 	for p := range c {
 		result := &searchResult{
-			totalMatched:  0,
-			totalSearched: 0,
+			totalMatched:    0,
+			totalSearched:   0,
+			matchingUploads: []string{},
 		}
 		for _, blob := range p.page.BlobItems {
 			result.totalSearched++
@@ -121,7 +139,7 @@ func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, se
 			if strings.Contains(*blob.Name, ".info") {
 				// Found an upload
 				uid := strings.Split(*blob.Name, ".")[0]
-				slog.Info("found info file for upload", "upload id", uid)
+				slog.Debug("found info file for upload", "upload id", uid)
 
 				// First, check if matched on tags
 				if blob.BlobTags != nil && len(blob.BlobTags.BlobTagSet) > 0 {
@@ -210,4 +228,27 @@ func convertMap(m map[string]any) map[string]string {
 	}
 
 	return out
+}
+
+func deleteUploads(ctx context.Context, files []string, serviceClient *azblob.Client) error {
+	for _, f := range files {
+		infoFile := f + ".info"
+		uploadFile := f
+
+		_, err := serviceClient.DeleteBlob(ctx, containerName, infoFile, nil)
+		if err != nil {
+			slog.Warn("failed to delete info file", "filename", infoFile, "error", err)
+		} else {
+			slog.Debug(fmt.Sprintf("successfully deleted file %s", infoFile))
+		}
+
+		_, err = serviceClient.DeleteBlob(ctx, containerName, uploadFile, nil)
+		if err != nil {
+			slog.Warn("failed to delete info file", "filename", uploadFile, "error", err)
+		} else {
+			slog.Debug(fmt.Sprintf("successfully deleted file %s", uploadFile))
+		}
+	}
+
+	return nil
 }

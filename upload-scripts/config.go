@@ -20,6 +20,7 @@ var (
 	maxPages         int
 	verbose          bool
 	searchTagsOnly   bool
+	nonInteractive   bool
 )
 
 type Criteria map[string]string
@@ -67,6 +68,7 @@ func init() {
 	flag.IntVar(&maxPages, "maxPages", 0, "limit of total number of pages to search; if zero, fetches and searches all pages")
 	flag.BoolVar(&verbose, "v", false, "turn on debug logging")
 	flag.BoolVar(&searchTagsOnly, "searchTagsOnly", false, "search using blob index tags instead of pages; parallelism is ignored in this mode as all search results are fetched in a single call")
+	flag.BoolVar(&nonInteractive, "yes", false, "prompt user before deleting files")
 	flag.Parse()
 
 	programLevel := new(slog.LevelVar)
