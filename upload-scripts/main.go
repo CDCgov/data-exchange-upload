@@ -55,6 +55,11 @@ func main() {
 	fmt.Printf("searched %d blobs; matched on %d (%d total bytes)\r\n", searchSummary.totalSearched, searchSummary.totalMatched, searchSummary.totalMatchedBytes)
 	fmt.Printf("Duration: %v\n", time.Since(startTime))
 
+	if searchSummary.totalMatched == 0 {
+		slog.Info("found no matching files")
+		return
+	}
+
 	var ans string
 	if !nonInteractive {
 		r := bufio.NewReader(os.Stdin)

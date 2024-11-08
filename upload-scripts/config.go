@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"math"
 	"os"
 	"runtime"
 	"strings"
@@ -65,7 +66,7 @@ func init() {
 	flag.Var(&metadataCriteria, "metadataCriteria", "metadata fields to match on when searching blobs")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "number of parallel threads to use; represents number of search pages to process in parallel")
 	flag.IntVar(&maxPageSize, "maxPageSize", 5000, "limit of number of search results for a page")
-	flag.IntVar(&maxPages, "maxPages", 0, "limit of total number of pages to search; if zero, fetches and searches all pages")
+	flag.IntVar(&maxPages, "maxPages", math.MaxInt, "limit of total number of pages to search; if zero, fetches and searches all pages")
 	flag.BoolVar(&verbose, "v", false, "turn on debug logging")
 	flag.BoolVar(&searchTagsOnly, "searchTagsOnly", false, "search using blob index tags instead of pages; parallelism is ignored in this mode as all search results are fetched in a single call")
 	flag.BoolVar(&nonInteractive, "yes", false, "prompt user before deleting files")
