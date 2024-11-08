@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"io"
 	"log"
 	"log/slog"
@@ -13,6 +14,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
@@ -35,14 +37,25 @@ func main() {
 		log.Fatalf("Failed to create service client: %v", err)
 	}
 
-	c := make(chan searchPage)
+	var o <-chan *searchResult
 	ctx := context.Background()
-	o := initWorkers(ctx, c, serviceClient)
 
-	go func() {
-		defer close(c)
-		searchUploadsByMetadata(ctx, metadataCriteria, serviceClient, containerName, blobPrefix, c)
-	}()
+	if searchTagsOnly {
+		outChan := make(chan *searchResult)
+		go func() {
+			defer close(outChan)
+			searchUploadsMatchingIndexTags(ctx, metadataCriteria, serviceClient, containerName, outChan)
+		}()
+		o = outChan
+	} else {
+		c := make(chan searchPage)
+		o = initWorkers(ctx, c, serviceClient)
+
+		go func() {
+			defer close(c)
+			searchUploadsByMetadata(ctx, metadataCriteria, serviceClient, containerName, blobPrefix, c)
+		}()
+	}
 
 	searchSummary := searchResult{}
 	for r := range o {
@@ -131,6 +144,65 @@ func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, se
 			metadataCriteria: metadata,
 		}
 	}
+}
+
+func searchUploadsMatchingIndexTags(ctx context.Context, metadata map[string]string, serviceClient *azblob.Client, containerName string, o chan<- *searchResult) {
+	cc := serviceClient.ServiceClient().NewContainerClient(containerName)
+
+	w := buildWhereClause(metadata)
+	rsp, err := cc.FilterBlobs(ctx, w, &container.FilterBlobsOptions{
+		MaxResults: to.Ptr(int32(maxResults)),
+	})
+	if err != nil {
+		slog.Error("error fetching filtered blobs", "error", err)
+		return
+	}
+
+	uids, bytes := parseIndexResult(ctx, rsp, cc)
+
+	o <- &searchResult{
+		totalMatched:      len(rsp.Blobs),
+		totalMatchedBytes: bytes,
+		matchingUploads:   uids,
+	}
+}
+
+func buildWhereClause(criteria map[string]string) string {
+	out := ""
+	for k, v := range criteria {
+		out += fmt.Sprintf("\"%s\"='%s' AND ", k, v)
+	}
+	// Remove trailing AND
+	out = strings.TrimRightFunc(out, unicode.IsSpace)
+	out = strings.TrimSuffix(out, "AND")
+	slog.Debug(fmt.Sprintf("using WHERE clause %s", out))
+	return out
+}
+
+func parseIndexResult(ctx context.Context, res container.FilterBlobsResponse, containerClient *container.Client) ([]string, int64) {
+	uids := make([]string, len(res.Blobs))
+	var bytes int64
+
+	for _, b := range res.Blobs {
+		// Get blob size
+		blobClient := containerClient.NewBlobClient(*b.Name)
+		props, err := blobClient.GetProperties(ctx, nil)
+		if err != nil {
+			// TODO better error handling here
+			slog.Warn("error getting blob properties", "error", err)
+			continue
+		}
+		bytes += *props.ContentLength
+
+		// Get uid
+		if strings.Contains(*b.Name, ".info") {
+			// Skip info files to avoid duplicates
+			continue
+		}
+		uids = append(uids, *b.Name)
+	}
+
+	return uids, bytes
 }
 
 func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, serviceClient *azblob.Client) {
@@ -247,6 +319,7 @@ func convertMap(m map[string]any) map[string]string {
 	return out
 }
 
+// TODO use threads for this
 func deleteUploads(ctx context.Context, files []string, serviceClient *azblob.Client) error {
 	for _, f := range files {
 		infoFile := f + ".info"

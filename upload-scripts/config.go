@@ -19,6 +19,7 @@ var (
 	parallelism      int
 	maxPageSize      int
 	maxPages         int
+	maxResults       int
 	verbose          bool
 	searchTagsOnly   bool
 	nonInteractive   bool
@@ -27,15 +28,14 @@ var (
 type Criteria map[string]string
 
 func (c *Criteria) Set(s string) error {
-	m := make(map[string]string)
+	*c = make(map[string]string)
 	entries := strings.Split(s, ",")
 
 	for _, e := range entries {
 		kv := strings.Split(e, ":")
-		m[kv[0]] = kv[1]
+		(*c)[kv[0]] = kv[1]
 	}
 
-	c = (*Criteria)(&m)
 	return nil
 }
 
@@ -65,8 +65,9 @@ func init() {
 	flag.StringVar(&blobPrefix, "blobPrefix", "tus-prefix", "subfolder prefix for target files")
 	flag.Var(&metadataCriteria, "metadataCriteria", "metadata fields to match on when searching blobs")
 	flag.IntVar(&parallelism, "parallelism", runtime.NumCPU(), "number of parallel threads to use; represents number of search pages to process in parallel")
-	flag.IntVar(&maxPageSize, "maxPageSize", 5000, "limit of number of search results for a page")
-	flag.IntVar(&maxPages, "maxPages", math.MaxInt32, "limit of total number of pages to search; if zero, fetches and searches all pages")
+	flag.IntVar(&maxPageSize, "maxPageSize", 5000, "limit of number of search results for a page; ignored when searchTagsOnly is true")
+	flag.IntVar(&maxPages, "maxPages", math.MaxInt32, "limit of total number of pages to search; ignored if searchTagsOnly is true; if zero, fetches and searches all pages")
+	flag.IntVar(&maxResults, "maxResults", math.MaxInt32, "limit total number of results for an index search; ignored when searchTagsOnly is false; if zero, fetches and searches all results")
 	flag.BoolVar(&verbose, "v", false, "turn on debug logging")
 	flag.BoolVar(&searchTagsOnly, "searchTagsOnly", false, "search using blob index tags instead of pages; parallelism is ignored in this mode as all search results are fetched in a single call")
 	flag.BoolVar(&nonInteractive, "yes", false, "prompt user before deleting files")
