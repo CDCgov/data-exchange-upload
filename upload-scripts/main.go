@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"io"
 	"log"
 	"log/slog"
@@ -27,6 +28,7 @@ func main() {
 	fmt.Println("Start Time:", startTime)
 
 	var serviceClient *azblob.Client
+	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", storageAccount)
 
 	if storageKey != "" {
 		cred, err := azblob.NewSharedKeyCredential(storageAccount, storageKey)
@@ -34,7 +36,6 @@ func main() {
 			log.Fatalf("Failed to create shared key credential: %v", err)
 		}
 
-		serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net/", storageAccount)
 		serviceClient, err = azblob.NewClientWithSharedKeyCredential(serviceURL, cred, nil)
 		if err != nil {
 			log.Fatalf("Failed to create service client: %v", err)
@@ -42,6 +43,15 @@ func main() {
 	} else if storageConnectionString != "" {
 		var err error
 		serviceClient, err = azblob.NewClientFromConnectionString(storageConnectionString, nil)
+		if err != nil {
+			log.Fatalf("Failed to create service client: %v", err)
+		}
+	} else {
+		cred, err := azidentity.NewDefaultAzureCredential(nil)
+		if err != nil {
+			log.Fatalf("Failed to get credential with default identity: %v", err)
+		}
+		serviceClient, err = azblob.NewClient(serviceURL, cred, nil)
 		if err != nil {
 			log.Fatalf("Failed to create service client: %v", err)
 		}
