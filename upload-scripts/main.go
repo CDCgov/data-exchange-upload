@@ -48,10 +48,11 @@ func main() {
 	for r := range o {
 		searchSummary.totalSearched += r.totalSearched
 		searchSummary.totalMatched += r.totalMatched
+		searchSummary.totalMatchedBytes += r.totalMatchedBytes
 		searchSummary.matchingUploads = append(searchSummary.matchingUploads, r.matchingUploads...)
 	}
 
-	fmt.Printf("searched %d blobs; matched on %d\r\n", searchSummary.totalSearched, searchSummary.totalMatched)
+	fmt.Printf("searched %d blobs; matched on %d (%d total bytes)\r\n", searchSummary.totalSearched, searchSummary.totalMatched, searchSummary.totalMatchedBytes)
 	fmt.Printf("Duration: %v\n", time.Since(startTime))
 
 	var ans string
@@ -94,10 +95,11 @@ type searchPage struct {
 }
 
 type searchResult struct {
-	matchingUploads []string
-	totalMatched    int
-	totalSearched   int
-	errors          []error
+	matchingUploads   []string
+	totalMatched      int
+	totalMatchedBytes int64
+	totalSearched     int
+	errors            []error
 }
 
 func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, serviceClient *azblob.Client, containerName string, folderPrefix string, c chan<- searchPage) {
@@ -128,11 +130,7 @@ func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, se
 
 func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, serviceClient *azblob.Client) {
 	for p := range c {
-		result := &searchResult{
-			totalMatched:    0,
-			totalSearched:   0,
-			matchingUploads: []string{},
-		}
+		result := &searchResult{}
 		for _, blob := range p.page.BlobItems {
 			result.totalSearched++
 
@@ -145,6 +143,13 @@ func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, se
 				if blob.BlobTags != nil && len(blob.BlobTags.BlobTagSet) > 0 {
 					if matchesTags(blob.BlobTags, p.metadataCriteria) {
 						result.matchingUploads = append(result.matchingUploads, uid)
+						result.totalMatchedBytes += *blob.Properties.ContentLength
+
+						uploadBlob := serviceClient.ServiceClient().NewContainerClient(containerName).NewBlobClient(uid)
+						rsp, err := uploadBlob.GetProperties(ctx, nil)
+						if err == nil {
+							result.totalMatchedBytes += *rsp.ContentLength
+						}
 						continue
 					}
 				}
@@ -179,6 +184,13 @@ func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, se
 				ms := convertMap(metadata)
 				if matchesMetadata(ms, p.metadataCriteria) {
 					result.matchingUploads = append(result.matchingUploads, uid)
+					result.totalMatchedBytes += *blob.Properties.ContentLength
+
+					uploadBlob := serviceClient.ServiceClient().NewContainerClient(containerName).NewBlobClient(uid)
+					rsp, err := uploadBlob.GetProperties(ctx, nil)
+					if err == nil {
+						result.totalMatchedBytes += *rsp.ContentLength
+					}
 					continue
 				}
 
