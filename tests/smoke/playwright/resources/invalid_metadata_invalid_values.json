@@ -1,0 +1,214 @@
+[
+  {
+    "name": "should error because of invalid character in filename",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "dextesting",
+      "data_stream_route": "testevent1",
+      "sender_id": "dexsender",
+      "received_filename": "test/-file",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["invalid character found in test/-file validation failure"]
+  },
+  {
+    "name": "should error because of invalid upload target",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "dextesting",
+      "data_stream_route": "testevent100",
+      "send_id": "dexsender",
+      "received_filename": "dex-smoke-test",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": [
+      "open dextesting_testevent100.json: no such file or directory",
+      "manifest validation config file not found"
+    ]
+  },
+  {
+    "name": "should error because of invalid jurisdiction for covid-all-monthly-vaccination_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "covid-all-monthly-vaccination",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "sender_id": "IZGW",
+      "data_producer_id": "AKA",
+      "jurisdiction": "blah",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "submission-period",
+      "meta_ext_sourceversion": "V2024-09-04",
+      "meta_username": "dex-smoke-test-user"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid sender_id for covid-all-monthly-vaccination_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "covid-all-monthly-vaccination",
+      "data_stream_route": "csv",
+      "sender_id": "blah",
+      "data_producer_id": "AKA",
+      "jurisdiction": "XXA",
+      "received_filename": "dex-smoke-test",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "submission-period",
+      "meta_ext_sourceversion": "V2023-09-01",
+      "meta_username": "dex-smoke-test-username"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["sender_id had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid sender_id for ehdi_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "ehdi",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "RI",
+      "data_producer_id": "RI-PHA",
+      "sender_id": "blah"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["sender_id had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid data_producer_id for ehdi_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "ehdi",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "RI",
+      "data_producer_id": "blah",
+      "sender_id": "RI-PHA"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["data_producer_id had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid jurisdiction for ehdi_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "ehdi",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "blah",
+      "data_producer_id": "RI-PHA",
+      "sender_id": "RI-PHA"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid sender_id for eicr_fhir",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "eicr",
+      "data_stream_route": "fhir",
+      "sender_id": "blah",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction",
+      "received_filename": "dex-smoke-test",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_file_timestamp": "test-file-timestamp"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["sender_id had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid jurisdiction for influenza-vaccination_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "influenza-vaccination",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "blah",
+      "data_producer_id": "XXA",
+      "sender_id": "IZGW",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid sender_id for routine-immunization_other",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "routine-immunization",
+      "data_stream_route": "other",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "sender_id": "blah",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["sender_id had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid jurisdiction for rsv-prevention_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "rsv-prevention",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "blah",
+      "data_producer_id": "XXA",
+      "sender_id": "IZGW",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid sender_id for pulsenet_localsequencefile",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "pulsenet",
+      "data_stream_route": "localsequencefile",
+      "received_filename": "dex-smoke-test",
+      "sender_id": "blah",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["sender_id had disallowed value blah"]
+  },
+  {
+    "name": "should error because of invalid jurisdiction for generic-immunization_csv",
+    "metadata": {
+      "version": "2.0",
+      "data_stream_id": "generic-immunization",
+      "data_stream_route": "csv",
+      "sender_id": "IZGW",
+      "data_producer_id": "XXA",
+      "jurisdiction": "blah",
+      "received_filename": "dex-smoke-test",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_file_timestamp": "test-file-timestamp",
+      "meta_username": "test-user",
+      "meta_ext_sourceversion": "V2024-09-04",
+      "meta_ext_submissionperiod": "test-submissionperiod"
+    },
+    "expectedStatusCode": 400,
+    "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
+  }
+]

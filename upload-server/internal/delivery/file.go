@@ -19,8 +19,9 @@ type FileDestination struct {
 	PathTemplate string `yaml:"path_template"`
 }
 
-func (fd *FileDestination) Upload(_ context.Context, path string, r io.Reader, m map[string]string) (string, error) {
+func (fd *FileDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
 	loc := filepath.Join(fd.ToPath, path)
+
 	if err := os.MkdirAll(filepath.Dir(loc), 0755); err != nil {
 		return "", err
 	}

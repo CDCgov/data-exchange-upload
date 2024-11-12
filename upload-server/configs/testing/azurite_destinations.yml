@@ -4,29 +4,29 @@ targets:
   edav:
     name: edav
     type: az-blob
-    endpoint: "http://azurite:10000/devstoreaccount1"
-    storage_account: "devstoreaccount1"
+    endpoint: 'http://azurite:10000/devstoreaccount1'
+    storage_account: 'devstoreaccount1'
     storage_key: $AZURITE_KEY
     container_name: edav
   ehdi:
     name: ehdi
     type: az-blob
-    endpoint: "http://azurite:10000/devstoreaccount1"
-    storage_account: "devstoreaccount1"
+    endpoint: 'http://azurite:10000/devstoreaccount1'
+    storage_account: 'devstoreaccount1'
     storage_key: $AZURITE_KEY
     container_name: ehdi
   eicr:
     name: eicr
     type: az-blob
-    endpoint: "http://azurite:10000/devstoreaccount1"
-    storage_account: "devstoreaccount1"
+    endpoint: 'http://azurite:10000/devstoreaccount1'
+    storage_account: 'devstoreaccount1'
     storage_key: $AZURITE_KEY
     container_name: eicr
   ncird:
     name: ncird
     type: az-blob
-    endpoint: "http://azurite:10000/devstoreaccount1"
-    storage_account: "devstoreaccount1"
+    endpoint: 'http://azurite:10000/devstoreaccount1'
+    storage_account: 'devstoreaccount1'
     storage_key: $AZURITE_KEY
     container_name: ncird
 routing_groups:
@@ -45,7 +45,7 @@ routing_groups:
     delivery_targets:
       - name: eicr
         path_template: $EICR_PATH_TEMPLATE
-  - data_stream_id: rsp-prevention
+  - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
       - name: ncird
@@ -61,7 +61,7 @@ routing_groups:
     data_stream_route: other
     delivery_targets:
       - name: ncird
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird

@@ -30,7 +30,6 @@ var (
 	patchURL    string
 
 	manifest = JSONVar{
-		"version":           "2.0",
 		"data_stream_id":    "dextesting",
 		"data_stream_route": "testevent1",
 		"received_filename": "test",
@@ -38,7 +37,7 @@ var (
 		"data_producer_id":  "dex simulation harness",
 		"jurisdiction":      "test",
 	}
-	manifestTargets = []string{"edav", "eicr", "ehdi", "ncird"}
+	manifestTargets = []string{"edav"}
 
 	testcase TestCase
 	cases    TestCases
