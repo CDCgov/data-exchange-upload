@@ -24,7 +24,7 @@ var (
 	maxResults              int
 	verbose                 bool
 	searchTagsOnly          bool
-	nonInteractive          bool
+	smoke                   bool
 )
 
 type Criteria map[string]string
@@ -74,7 +74,8 @@ func init() {
 	flag.IntVar(&maxResults, "maxResults", math.MaxInt32, "limit total number of results for an index search; ignored when searchTagsOnly is false; if zero, fetches and searches all results")
 	flag.BoolVar(&verbose, "v", false, "turn on debug logging")
 	flag.BoolVar(&searchTagsOnly, "searchTagsOnly", false, "search using blob index tags instead of pages; parallelism is ignored in this mode as all search results are fetched in a single call")
-	flag.BoolVar(&nonInteractive, "yes", false, "prompt user before deleting files")
+	flag.BoolVar(&smoke, "smoke", false, "skip actual deletion of the matching files")
+	// TODO config for deleting info file as well as raw upload file
 	flag.Parse()
 
 	programLevel := new(slog.LevelVar)

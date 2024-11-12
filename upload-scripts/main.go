@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,6 +21,7 @@ import (
 )
 
 var pageCount int32
+var totalSearched int
 
 func main() {
 	startTime := time.Now()
@@ -61,15 +61,17 @@ func main() {
 		log.Fatalf("failed to init service client")
 	}
 
-	var o <-chan *searchResult
+	containerClient := serviceClient.ServiceClient().NewContainerClient(containerName)
+
+	var o <-chan matchResult
 	ctx := context.Background()
 
 	// This currently isn't working.  Getting permission issue.  Need to see if we have the action/filter permission
 	if searchTagsOnly {
-		outChan := make(chan *searchResult)
+		outChan := make(chan matchResult)
 		go func() {
 			defer close(outChan)
-			searchUploadsMatchingIndexTags(ctx, metadataCriteria, serviceClient, containerName, outChan)
+			searchUploadsMatchingIndexTags(ctx, metadataCriteria, containerClient, outChan)
 		}()
 		o = outChan
 		// TODO implement checkpoint file saving
@@ -83,49 +85,63 @@ func main() {
 			}
 		}()
 	} else {
-		c := make(chan searchPage)
-		o = initWorkers(ctx, c, serviceClient)
+		c := make(chan pageItemResult)
+		o = initWorkers(ctx, c, containerClient, metadataCriteria)
 
 		go func() {
 			defer close(c)
-			searchUploadsByMetadata(ctx, metadataCriteria, serviceClient, containerName, blobPrefix, c)
+			searchUploadsByMetadata(ctx, serviceClient, containerName, blobPrefix, c)
 		}()
 	}
 
 	searchSummary := searchResult{}
 	for r := range o {
-		searchSummary.totalSearched += r.totalSearched
-		searchSummary.totalMatched += r.totalMatched
-		searchSummary.totalMatchedBytes += r.totalMatchedBytes
-		searchSummary.matchingUploads = append(searchSummary.matchingUploads, r.matchingUploads...)
+		if r.err != nil {
+			slog.Error("error parsing file", "uid", r.uid, "error", r.err)
+			continue
+		}
+		//searchSummary.totalSearched += r.totalSearched
+		searchSummary.totalMatched++
+
+		bytes, err := deleteUpload(ctx, r.uid, serviceClient, containerClient)
+		if err != nil {
+			slog.Error("error deleting upload", "uid", r.uid, "error", err)
+		}
+		searchSummary.totalMatchedBytes += bytes
+		slog.Debug("successfully deleted upload", "uid", r.uid)
+		//searchSummary.matchingUploads = append(searchSummary.matchingUploads, r.matchingUploads...)
 	}
 
-	fmt.Printf("searched %d blobs; matched on %d (%d total bytes)\r\n", searchSummary.totalSearched, searchSummary.totalMatched, searchSummary.totalMatchedBytes)
+	fmt.Printf("searched %d blobs; matched on %d (%d total bytes)\r\n", totalSearched, searchSummary.totalMatched, searchSummary.totalMatchedBytes)
 	fmt.Printf("Duration: %v\n", time.Since(startTime))
+
+	if smoke {
+		fmt.Println("skipped deletion due to smoke flag")
+	}
 
 	if searchSummary.totalMatched == 0 {
 		slog.Info("found no matching files")
 		return
 	}
 
-	var ans string
-	if !nonInteractive {
-		r := bufio.NewReader(os.Stdin)
-		fmt.Printf("%d uploads marked for deletion.  Proceed? (y/n) ", searchSummary.totalMatched)
-		ans, _ = r.ReadString('\n')
-		ans = strings.TrimSpace(ans)
-	}
-
-	if ans == "y" || ans == "yes" || nonInteractive {
-		err := deleteUploads(ctx, searchSummary.matchingUploads, serviceClient)
-		if err != nil {
-			slog.Error("error deleting uploads", "error", err)
-		}
-	}
+	//var ans string
+	//if !smoke {
+	//	r := bufio.NewReader(os.Stdin)
+	//	fmt.Printf("%d uploads marked for deletion.  Proceed? (y/n) ", searchSummary.totalMatched)
+	//	ans, _ = r.ReadString('\n')
+	//	ans = strings.TrimSpace(ans)
+	//}
+	//
+	//if ans == "y" || ans == "yes" || smoke {
+	//	err := deleteUploads(ctx, searchSummary.matchingUploads, serviceClient)
+	//	if err != nil {
+	//		slog.Error("error deleting uploads", "error", err)
+	//	}
+	//}
 }
 
-func initWorkers(ctx context.Context, c <-chan searchPage, serviceClient *azblob.Client) <-chan *searchResult {
-	o := make(chan *searchResult)
+func initWorkers(ctx context.Context, c <-chan pageItemResult, containerClient *container.Client, criteria map[string]string) <-chan matchResult {
+	o := make(chan matchResult)
 	go func() {
 		defer close(o)
 		var wg sync.WaitGroup
@@ -134,7 +150,7 @@ func initWorkers(ctx context.Context, c <-chan searchPage, serviceClient *azblob
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				worker(ctx, c, o, serviceClient)
+				worker(ctx, c, o, containerClient, criteria)
 			}()
 		}
 		wg.Wait()
@@ -142,20 +158,28 @@ func initWorkers(ctx context.Context, c <-chan searchPage, serviceClient *azblob
 	return o
 }
 
-type searchPage struct {
-	page             *container.BlobFlatListSegment
-	metadataCriteria map[string]string
-}
+//type searchPage struct {
+//	page             *container.BlobFlatListSegment
+//	metadataCriteria map[string]string
+//}
 
 type searchResult struct {
-	matchingUploads   []string
 	totalMatched      int
 	totalMatchedBytes int64
-	totalSearched     int
 	errors            []error
 }
 
-func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, serviceClient *azblob.Client, containerName string, folderPrefix string, c chan<- searchPage) {
+type pageItemResult struct {
+	item *container.BlobItem
+	tags *container.BlobTags
+}
+
+type matchResult struct {
+	uid string
+	err error
+}
+
+func searchUploadsByMetadata(ctx context.Context, serviceClient *azblob.Client, containerName string, folderPrefix string, c chan<- pageItemResult) {
 	pageSize := int32(maxPageSize)
 	pager := serviceClient.NewListBlobsFlatPager(containerName, &azblob.ListBlobsFlatOptions{
 		MaxResults: &pageSize,
@@ -174,18 +198,24 @@ func searchUploadsByMetadata(ctx context.Context, metadata map[string]string, se
 
 		atomic.AddInt32(&pageCount, 1)
 
-		c <- searchPage{
-			page:             page.Segment,
-			metadataCriteria: metadata,
+		for _, b := range page.Segment.BlobItems {
+			totalSearched++
+			c <- pageItemResult{
+				item: b,
+				tags: b.BlobTags,
+			}
 		}
+
+		//c <- searchPage{
+		//	page:             page.Segment,
+		//	metadataCriteria: metadata,
+		//}
 	}
 }
 
-func searchUploadsMatchingIndexTags(ctx context.Context, metadata map[string]string, serviceClient *azblob.Client, containerName string, o chan<- *searchResult) {
-	cc := serviceClient.ServiceClient().NewContainerClient(containerName)
-
+func searchUploadsMatchingIndexTags(ctx context.Context, metadata map[string]string, containerClient *container.Client, o chan<- matchResult) {
 	w := buildWhereClause(metadata)
-	rsp, err := cc.FilterBlobs(ctx, w, &container.FilterBlobsOptions{
+	rsp, err := containerClient.FilterBlobs(ctx, w, &container.FilterBlobsOptions{
 		MaxResults: to.Ptr(int32(maxResults)),
 	})
 	if err != nil {
@@ -193,13 +223,25 @@ func searchUploadsMatchingIndexTags(ctx context.Context, metadata map[string]str
 		return
 	}
 
-	uids, bytes := parseIndexResult(ctx, rsp, cc)
+	//uids, bytes := parseIndexResult(ctx, rsp, containerClient)
 
-	o <- &searchResult{
-		totalMatched:      len(rsp.Blobs),
-		totalMatchedBytes: bytes,
-		matchingUploads:   uids,
+	for _, res := range rsp.Blobs {
+		totalSearched++
+		uid := *res.Name
+		if strings.Contains(*res.Name, ".info") {
+			uid = strings.Split(*res.Name, ".")[0]
+		}
+		o <- matchResult{
+			uid: uid,
+			err: nil,
+		}
 	}
+
+	//o <- &searchResult{
+	//	totalMatched:      len(rsp.Blobs),
+	//	totalMatchedBytes: bytes,
+	//	matchingUploads:   uids,
+	//}
 }
 
 func buildWhereClause(criteria map[string]string) string {
@@ -214,119 +256,214 @@ func buildWhereClause(criteria map[string]string) string {
 	return out
 }
 
-func parseIndexResult(ctx context.Context, res container.FilterBlobsResponse, containerClient *container.Client) ([]string, int64) {
-	uids := make([]string, len(res.Blobs))
-	var bytes int64
+//func parseIndexResult(ctx context.Context, res container.FilterBlobsResponse, containerClient *container.Client) ([]string, int64) {
+//	uids := make([]string, len(res.Blobs))
+//	var bytes int64
+//
+//	for _, b := range res.Blobs {
+//		// Get blob size
+//		blobClient := containerClient.NewBlobClient(*b.Name)
+//		props, err := blobClient.GetProperties(ctx, nil)
+//		if err != nil {
+//			// TODO better error handling here
+//			slog.Warn("error getting blob properties", "error", err)
+//			continue
+//		}
+//		bytes += *props.ContentLength
+//
+//		// Get uid
+//		if strings.Contains(*b.Name, ".info") {
+//			// Skip info files to avoid duplicates
+//			continue
+//		}
+//		uids = append(uids, *b.Name)
+//	}
+//
+//	return uids, bytes
+//}
 
-	for _, b := range res.Blobs {
-		// Get blob size
-		blobClient := containerClient.NewBlobClient(*b.Name)
-		props, err := blobClient.GetProperties(ctx, nil)
-		if err != nil {
-			// TODO better error handling here
-			slog.Warn("error getting blob properties", "error", err)
-			continue
+func worker(ctx context.Context, c <-chan pageItemResult, o chan<- matchResult, containerClient *container.Client, criteria map[string]string) {
+	for r := range c {
+		uid := *r.item.Name
+
+		if strings.Contains(*r.item.Name, ".info") {
+			uid = strings.Split(*r.item.Name, ".")[0]
 		}
-		bytes += *props.ContentLength
-
-		// Get uid
-		if strings.Contains(*b.Name, ".info") {
-			// Skip info files to avoid duplicates
-			continue
-		}
-		uids = append(uids, *b.Name)
-	}
-
-	return uids, bytes
-}
-
-func worker(ctx context.Context, c <-chan searchPage, o chan<- *searchResult, serviceClient *azblob.Client) {
-	for p := range c {
-		result := &searchResult{}
-		for _, blob := range p.page.BlobItems {
-			result.totalSearched++
-
-			if strings.Contains(*blob.Name, ".info") {
-				// Found an upload
-				uid := strings.Split(*blob.Name, ".")[0]
-				slog.Debug("found info file for upload", "upload id", uid)
-
-				// First, check if matched on tags
-				if blob.BlobTags != nil && len(blob.BlobTags.BlobTagSet) > 0 {
-					if matchesTags(blob.BlobTags, p.metadataCriteria) {
-						result.matchingUploads = append(result.matchingUploads, uid)
-						result.totalMatchedBytes += *blob.Properties.ContentLength
-
-						uploadBlob := serviceClient.ServiceClient().NewContainerClient(containerName).NewBlobClient(uid)
-						rsp, err := uploadBlob.GetProperties(ctx, nil)
-						if err == nil {
-							result.totalMatchedBytes += *rsp.ContentLength
-						}
-						continue
-					}
+		// First, check if matched on tags
+		if r.tags != nil && len(r.tags.BlobTagSet) > 0 {
+			if matchesTags(r.tags, criteria) {
+				slog.Debug("matched on tags", "uid", uid)
+				o <- matchResult{
+					uid: uid,
+					err: nil,
 				}
-
-				// Download, unmarshal, and match on the metadata criteria
-				rsp, err := serviceClient.DownloadStream(ctx, containerName, *blob.Name, nil)
-				if err != nil {
-					result.errors = append(result.errors, err)
-					continue
-				}
-
-				body, err := io.ReadAll(rsp.Body)
-				if err != nil {
-					result.errors = append(result.errors, err)
-					continue
-				}
-				defer rsp.Body.Close()
-
-				var data map[string]any
-				err = json.Unmarshal(body, &data)
-				if err != nil {
-					result.errors = append(result.errors, err)
-					continue
-				}
-
-				metadata, ok := data["MetaData"].(map[string]any)
-				if !ok {
-					slog.Warn("found info file with no metadata; skipping", "filename", *blob.Name)
-					continue
-				}
-
-				ms := convertMap(metadata)
-				if matchesMetadata(ms, p.metadataCriteria) {
-					result.matchingUploads = append(result.matchingUploads, uid)
-					result.totalMatchedBytes += *blob.Properties.ContentLength
-
-					uploadBlob := serviceClient.ServiceClient().NewContainerClient(containerName).NewBlobClient(uid)
-					rsp, err := uploadBlob.GetProperties(ctx, nil)
-					if err == nil {
-						result.totalMatchedBytes += *rsp.ContentLength
-					}
-					continue
-				}
-
-				// Tag blob and info blob for all criteria metadata fields
-				containerClient := serviceClient.ServiceClient().NewContainerClient(containerName)
-				infoBlobClient := containerClient.NewBlobClient(*blob.Name)
-				uploadBlobClient := containerClient.NewBlobClient(uid)
-				_, err = infoBlobClient.SetTags(ctx, ms, nil)
-				if err != nil {
-					slog.Warn("error while tagging file", "filename", blob.Name, "error", err)
-				}
-				_, err = uploadBlobClient.SetTags(ctx, ms, nil)
-				if err != nil {
-					slog.Warn("error while tagging file", "filename", blob.Name, "error", err)
-				}
+				continue
 			}
 		}
 
-		result.totalMatched = len(result.matchingUploads)
-		o <- result
+		// Couldn't match on tags, so fallback to match on metadata
+		fileClient := containerClient.NewBlobClient(uid)
+		rsp, err := fileClient.GetProperties(ctx, nil)
+		if err == nil {
+			if matchesMetadata(depointerizeMap(rsp.Metadata), criteria) {
+				o <- matchResult{
+					uid: uid,
+					err: nil,
+				}
+				continue
+			}
+		}
+
+		// Didn't find metadata on file.  Fallback to info file content
+		infoClient := containerClient.NewBlobClient(uid + ".info")
+		infoRsp, err := infoClient.DownloadStream(ctx, nil)
+		if err != nil {
+			o <- matchResult{
+				uid: uid,
+				err: err,
+			}
+			continue
+		}
+
+		body, err := io.ReadAll(infoRsp.Body)
+		if err != nil {
+			o <- matchResult{
+				uid: uid,
+				err: err,
+			}
+			continue
+		}
+		defer infoRsp.Body.Close()
+
+		var data map[string]any
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			o <- matchResult{
+				uid: uid,
+				err: err,
+			}
+			continue
+		}
+
+		metadata, ok := data["MetaData"].(map[string]any)
+		if !ok {
+			slog.Warn("found info file with no metadata; skipping", "uid", uid)
+			continue
+		}
+
+		ms := convertMap(metadata)
+		if matchesMetadata(ms, criteria) {
+			o <- matchResult{
+				uid: uid,
+				err: nil,
+			}
+			continue
+		}
+
+		// Blob didn't match criteria.  Tag for future inspection
+		_, err = fileClient.SetTags(ctx, ms, nil)
+		if err != nil {
+			slog.Debug("error while tagging file", "uid", uid, "error", err)
+		}
+		_, err = infoClient.SetTags(ctx, ms, nil)
+		if err != nil {
+			slog.Debug("error while tagging info file", "uid", uid, "error", err)
+		}
 	}
+
+	//for p := range c {
+	//	result := &searchResult{}
+	//	for _, blob := range p.page.BlobItems {
+	//		result.totalSearched++
+	//
+	//		if strings.Contains(*blob.Name, ".info") {
+	//			// Found an upload
+	//			uid := strings.Split(*blob.Name, ".")[0]
+	//			slog.Debug("found info file for upload", "upload id", uid)
+	//
+	//			uploadBlob := serviceClient.ServiceClient().NewContainerClient(containerName).NewBlobClient(uid)
+	//
+	//			// First, check if matched on tags
+	//			if blob.BlobTags != nil && len(blob.BlobTags.BlobTagSet) > 0 {
+	//				if matchesTags(blob.BlobTags, p.metadataCriteria) {
+	//					result.matchingUploads = append(result.matchingUploads, uid)
+	//					result.totalMatchedBytes += *blob.Properties.ContentLength
+	//
+	//					rsp, err := uploadBlob.GetProperties(ctx, nil)
+	//					if err == nil {
+	//						result.totalMatchedBytes += *rsp.ContentLength
+	//					}
+	//					continue
+	//				}
+	//			}
+	//
+	//			// Couldn't match on tags, so fallback to match on metadata
+	//			// TODO check upload file metadata before downloading info file
+	//
+	//			// Download, unmarshal, and match on the metadata criteria
+	//			rsp, err := serviceClient.DownloadStream(ctx, containerName, *blob.Name, nil)
+	//			if err != nil {
+	//				result.errors = append(result.errors, err)
+	//				continue
+	//			}
+	//
+	//			body, err := io.ReadAll(rsp.Body)
+	//			if err != nil {
+	//				result.errors = append(result.errors, err)
+	//				continue
+	//			}
+	//			defer rsp.Body.Close()
+	//
+	//			var data map[string]any
+	//			err = json.Unmarshal(body, &data)
+	//			if err != nil {
+	//				result.errors = append(result.errors, err)
+	//				continue
+	//			}
+	//
+	//			metadata, ok := data["MetaData"].(map[string]any)
+	//			if !ok {
+	//				slog.Warn("found info file with no metadata; skipping", "filename", *blob.Name)
+	//				continue
+	//			}
+	//
+	//			ms := convertMap(metadata)
+	//			if matchesMetadata(ms, p.metadataCriteria) {
+	//				result.matchingUploads = append(result.matchingUploads, uid)
+	//				result.totalMatchedBytes += *blob.Properties.ContentLength
+	//
+	//				//uploadBlob := serviceClient.ServiceClient().NewContainerClient(containerName).NewBlobClient(uid)
+	//				rsp, err := uploadBlob.GetProperties(ctx, nil)
+	//				if err == nil {
+	//					result.totalMatchedBytes += *rsp.ContentLength
+	//				}
+	//				continue
+	//			}
+	//
+	//			// Tag blob and info blob for all criteria metadata fields
+	//			//containerClient := serviceClient.ServiceClient().NewContainerClient(containerName)
+	//			infoBlobClient := containerClient.NewBlobClient(*blob.Name)
+	//			//uploadBlobClient := containerClient.NewBlobClient(uid)
+	//			_, err = infoBlobClient.SetTags(ctx, ms, nil)
+	//			if err != nil {
+	//				slog.Warn("error while tagging file", "filename", blob.Name, "error", err)
+	//			}
+	//			_, err = uploadBlob.SetTags(ctx, ms, nil)
+	//			if err != nil {
+	//				slog.Warn("error while tagging file", "filename", uid, "error", err)
+	//			}
+	//		}
+	//	}
+	//
+	//	result.totalMatched = len(result.matchingUploads)
+	//	o <- result
+	//}
 }
 
 func matchesTags(tags *container.BlobTags, criteria map[string]string) bool {
+	if tags == nil {
+		return false
+	}
 	tagMap := make(map[string]string)
 	for _, t := range tags.BlobTagSet {
 		tagMap[*t.Key] = *t.Value
@@ -354,6 +491,15 @@ func convertMap(m map[string]any) map[string]string {
 	return out
 }
 
+func depointerizeMap(m map[string]*string) map[string]string {
+	out := make(map[string]string)
+	for k, v := range m {
+		out[k] = *v
+	}
+
+	return out
+}
+
 func loadCheckpointFile(filename string, o chan<- *searchResult) error {
 	f, err := os.Open(filename)
 	if err != nil {
@@ -374,6 +520,40 @@ func loadCheckpointFile(filename string, o chan<- *searchResult) error {
 
 	o <- &checkpointSummary
 	return nil
+}
+
+func deleteUpload(ctx context.Context, uid string, serviceClient *azblob.Client, containerClient *container.Client) (int64, error) {
+	var bytesDeleted int64
+	infoClient := containerClient.NewBlobClient(uid + ".info")
+	fileClient := containerClient.NewBlobClient(uid)
+
+	rsp, err := infoClient.GetProperties(ctx, nil)
+	if err != nil {
+		slog.Warn("failed to get info file for deletion", "uid", uid, "error", err)
+	} else {
+		if !smoke {
+			_, err := serviceClient.DeleteBlob(ctx, containerName, uid+".info", nil)
+			if err != nil {
+				return 0, err
+			}
+		}
+		bytesDeleted += *rsp.ContentLength
+	}
+
+	rsp, err = fileClient.GetProperties(ctx, nil)
+	if err != nil {
+		slog.Warn("failed to get upload file for deletion", "uid", uid, "error", err)
+	} else {
+		if !smoke {
+			_, err := serviceClient.DeleteBlob(ctx, containerName, uid, nil)
+			if err != nil {
+				return bytesDeleted, err
+			}
+		}
+		bytesDeleted += *rsp.ContentLength
+	}
+
+	return bytesDeleted, nil
 }
 
 func deleteUploads(ctx context.Context, files []string, serviceClient *azblob.Client) error {
