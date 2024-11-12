@@ -10,9 +10,11 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 	"unicode"
 
@@ -95,6 +97,15 @@ func main() {
 	}
 
 	searchSummary := searchResult{}
+
+	sigChan := make(chan os.Signal)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sigChan
+		printSummary(searchSummary, startTime)
+		os.Exit(1)
+	}()
+
 	for r := range o {
 		if r.err != nil {
 			slog.Error("error parsing file", "uid", r.uid, "error", r.err)
@@ -110,17 +121,7 @@ func main() {
 		slog.Debug("successfully deleted upload", "uid", r.uid)
 	}
 
-	fmt.Printf("searched %d blobs; matched on %d (%d total bytes)\r\n", totalSearched, searchSummary.totalMatched, searchSummary.totalMatchedBytes)
-	fmt.Printf("Duration: %v\n", time.Since(startTime))
-
-	if smoke {
-		fmt.Println("skipped deletion due to smoke flag")
-	}
-
-	if searchSummary.totalMatched == 0 {
-		slog.Info("found no matching files")
-		return
-	}
+	printSummary(searchSummary, startTime)
 }
 
 func initWorkers(ctx context.Context, c <-chan pageItemResult, containerClient *container.Client, criteria map[string]string) <-chan matchResult {
@@ -405,4 +406,17 @@ func deleteUpload(ctx context.Context, uid string, serviceClient *azblob.Client,
 	}
 
 	return bytesDeleted, nil
+}
+
+func printSummary(summary searchResult, startTime time.Time) {
+	fmt.Printf("searched %d blobs; matched on %d (%d total bytes)\r\n", totalSearched, summary.totalMatched, summary.totalMatchedBytes)
+	fmt.Printf("Duration: %v\n", time.Since(startTime))
+
+	if smoke {
+		fmt.Println("skipped deletion due to smoke flag")
+	}
+
+	if summary.totalMatched == 0 {
+		slog.Info("found no matching files")
+	}
 }
