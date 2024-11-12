@@ -64,6 +64,7 @@ func main() {
 	var o <-chan *searchResult
 	ctx := context.Background()
 
+	// This currently isn't working.  Getting permission issue.  Need to see if we have the action/filter permission
 	if searchTagsOnly {
 		outChan := make(chan *searchResult)
 		go func() {
@@ -71,6 +72,7 @@ func main() {
 			searchUploadsMatchingIndexTags(ctx, metadataCriteria, serviceClient, containerName, outChan)
 		}()
 		o = outChan
+		// TODO implement checkpoint file saving
 	} else if checkpointFile != "" {
 		outChan := make(chan *searchResult)
 		go func() {
