@@ -38,7 +38,7 @@
         "name": "ncird",
         "path_template": {
           "LOCAL": "/upload/ncird/{uid}",
-          "DEV": "/dex-dev/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
+          "DEV": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
           "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
           "STAGE": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}"
         }
@@ -63,7 +63,7 @@
         "name": "ncird",
         "path_template": {
           "LOCAL": "/upload/ncird/{uid}",
-          "DEV": "/dex-dev/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
+          "DEV": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
           "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
           "STAGE": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}"
         }
@@ -88,7 +88,7 @@
         "name": "ncird",
         "path_template": {
           "LOCAL": "/dex-test/routine-immunization-zip/{year}/{month}/{day}/{filename}",
-          "DEV": "/dex-dev/routine-immunization-zip/{year}/{month}/{day}/{filename}",
+          "DEV": "/dex/routine-immunization-zip/{year}/{month}/{day}/{filename}",
           "TEST": "/dex-test/routine-immunization-zip/{year}/{month}/{day}/{filename}",
           "STAGE": "/dex/routine-immunization-zip/{year}/{month}/{day}/{filename}"
         }
@@ -113,7 +113,7 @@
         "name": "ncird",
         "path_template": {
           "LOCAL": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "DEV": "/dex-dev/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
+          "DEV": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
           "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
           "STAGE": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}"
         }
