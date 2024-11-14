@@ -106,6 +106,14 @@ func main() {
 		os.Exit(1)
 	}()
 
+	logTicker := time.NewTicker(30 * time.Second)
+	defer logTicker.Stop()
+	go func() {
+		for range logTicker.C {
+			slog.Info("heartbeat log", "total searched", totalSearched, "total matched", searchSummary.totalMatched, "total bytes", searchSummary.totalMatchedBytes)
+		}
+	}()
+
 	for r := range o {
 		if r.err != nil {
 			slog.Error("error parsing file", "uid", r.uid, "error", r.err)
@@ -182,7 +190,7 @@ func searchUploadsByMetadata(ctx context.Context, serviceClient *azblob.Client, 
 
 		for _, b := range page.Segment.BlobItems {
 			totalSearched++
-			slog.Info("searching file", "file", *b.Name, "total searched", totalSearched)
+			slog.Debug("searching file", "file", *b.Name, "total searched", totalSearched)
 
 			c <- pageItemResult{
 				item: b,
