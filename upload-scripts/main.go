@@ -73,7 +73,7 @@ func main() {
 		outChan := make(chan matchResult)
 		go func() {
 			defer close(outChan)
-			searchUploadsMatchingIndexTags(ctx, metadataCriteria, containerClient, outChan)
+			searchUploadsMatchingIndexTags(ctx, metadataCriteria, serviceClient, containerClient, outChan)
 		}()
 		o = outChan
 		// TODO implement checkpoint file saving
@@ -88,7 +88,7 @@ func main() {
 		}()
 	} else {
 		c := make(chan pageItemResult)
-		o = initWorkers(ctx, c, containerClient, metadataCriteria)
+		o = initWorkers(ctx, c, serviceClient, containerClient, metadataCriteria)
 
 		go func() {
 			defer close(c)
@@ -111,20 +111,21 @@ func main() {
 			slog.Error("error parsing file", "uid", r.uid, "error", r.err)
 			continue
 		}
-		searchSummary.totalMatched++
 
-		bytes, err := deleteUpload(ctx, r.uid, serviceClient, containerClient)
-		if err != nil {
-			slog.Error("error deleting upload", "uid", r.uid, "error", err)
+		if r.bytesDeleted > 0 {
+			searchSummary.totalMatched++
+			searchSummary.totalMatchedBytes += r.bytesDeleted
+			slog.Info("found match", "uid", r.uid, "total matched", searchSummary.totalMatched, "total searched", totalSearched)
+			continue
 		}
-		searchSummary.totalMatchedBytes += bytes
-		slog.Debug("successfully deleted upload", "uid", r.uid)
+
+		slog.Debug("no match on file", "uid", r.uid)
 	}
 
 	printSummary(searchSummary, startTime)
 }
 
-func initWorkers(ctx context.Context, c <-chan pageItemResult, containerClient *container.Client, criteria map[string]string) <-chan matchResult {
+func initWorkers(ctx context.Context, c <-chan pageItemResult, serviceClient *azblob.Client, containerClient *container.Client, criteria map[string]string) <-chan matchResult {
 	o := make(chan matchResult)
 	go func() {
 		defer close(o)
@@ -134,7 +135,7 @@ func initWorkers(ctx context.Context, c <-chan pageItemResult, containerClient *
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				worker(ctx, c, o, containerClient, criteria)
+				worker(ctx, c, o, serviceClient, containerClient, criteria)
 			}()
 		}
 		wg.Wait()
@@ -154,8 +155,10 @@ type pageItemResult struct {
 }
 
 type matchResult struct {
-	uid string
-	err error
+	foundMatch   bool
+	uid          string
+	bytesDeleted int64
+	err          error
 }
 
 func searchUploadsByMetadata(ctx context.Context, serviceClient *azblob.Client, containerName string, folderPrefix string, c chan<- pageItemResult) {
@@ -179,6 +182,8 @@ func searchUploadsByMetadata(ctx context.Context, serviceClient *azblob.Client, 
 
 		for _, b := range page.Segment.BlobItems {
 			totalSearched++
+			slog.Info("searching file", "file", *b.Name, "total searched", totalSearched)
+
 			c <- pageItemResult{
 				item: b,
 				tags: b.BlobTags,
@@ -187,7 +192,7 @@ func searchUploadsByMetadata(ctx context.Context, serviceClient *azblob.Client, 
 	}
 }
 
-func searchUploadsMatchingIndexTags(ctx context.Context, metadata map[string]string, containerClient *container.Client, o chan<- matchResult) {
+func searchUploadsMatchingIndexTags(ctx context.Context, metadata map[string]string, serviceClient *azblob.Client, containerClient *container.Client, o chan<- matchResult) {
 	w := buildWhereClause(metadata)
 	rsp, err := containerClient.FilterBlobs(ctx, w, &container.FilterBlobsOptions{
 		MaxResults: to.Ptr(int32(maxResults)),
@@ -201,12 +206,13 @@ func searchUploadsMatchingIndexTags(ctx context.Context, metadata map[string]str
 		totalSearched++
 		uid := *res.Name
 		if strings.Contains(*res.Name, ".info") {
-			uid = strings.Split(*res.Name, ".")[0]
+			continue
 		}
-		o <- matchResult{
-			uid: uid,
-			err: nil,
-		}
+		handleMatchResult(ctx, matchResult{
+			foundMatch: true,
+			uid:        uid,
+			err:        nil,
+		}, o, serviceClient, containerClient)
 	}
 }
 
@@ -222,21 +228,26 @@ func buildWhereClause(criteria map[string]string) string {
 	return out
 }
 
-func worker(ctx context.Context, c <-chan pageItemResult, o chan<- matchResult, containerClient *container.Client, criteria map[string]string) {
+func worker(ctx context.Context, c <-chan pageItemResult, o chan<- matchResult, serviceClient *azblob.Client, containerClient *container.Client, criteria map[string]string) {
 	for r := range c {
+		if strings.Contains(*r.item.Name, ".info") {
+			// Skip .info files to prevent duplicate matches.  Result handling will take care of .info files.
+			continue
+		}
+
 		uid := *r.item.Name
 
-		if strings.Contains(*r.item.Name, ".info") {
-			uid = strings.Split(*r.item.Name, ".")[0]
-		}
 		// First, check if matched on tags
 		if r.tags != nil && len(r.tags.BlobTagSet) > 0 {
+			slog.Debug("attempting to match on tags", "uid", uid, "tags", r.tags)
 			if matchesTags(r.tags, criteria) {
 				slog.Debug("matched on tags", "uid", uid)
-				o <- matchResult{
-					uid: uid,
-					err: nil,
-				}
+
+				handleMatchResult(ctx, matchResult{
+					foundMatch: true,
+					uid:        uid,
+					err:        nil,
+				}, o, serviceClient, containerClient)
 				continue
 			}
 		}
@@ -244,33 +255,46 @@ func worker(ctx context.Context, c <-chan pageItemResult, o chan<- matchResult, 
 		// Couldn't match on tags, so fallback to match on metadata
 		fileClient := containerClient.NewBlobClient(uid)
 		rsp, err := fileClient.GetProperties(ctx, nil)
-		if err == nil {
-			if matchesMetadata(depointerizeMap(rsp.Metadata), criteria) {
-				o <- matchResult{
-					uid: uid,
-					err: nil,
-				}
-				continue
-			}
+		if err != nil {
+			slog.Debug("error getting file metadata", "error", err)
+			handleMatchResult(ctx, matchResult{
+				foundMatch: false,
+				uid:        uid,
+				err:        err,
+			}, o, serviceClient, containerClient)
+			continue
+		}
+
+		slog.Debug("attempting to match on metadata", "uid", uid, "metadata", rsp.Metadata)
+		if matchesMetadata(depointerizeMap(rsp.Metadata), criteria) {
+			handleMatchResult(ctx, matchResult{
+				foundMatch: false,
+				uid:        uid,
+				err:        nil,
+			}, o, serviceClient, containerClient)
+			continue
 		}
 
 		// Didn't find metadata on file.  Fallback to info file content
 		infoClient := containerClient.NewBlobClient(uid + ".info")
 		infoRsp, err := infoClient.DownloadStream(ctx, nil)
 		if err != nil {
-			o <- matchResult{
-				uid: uid,
-				err: err,
-			}
+			slog.Debug("error downloading info file", "error", err)
+			handleMatchResult(ctx, matchResult{
+				foundMatch: false,
+				uid:        uid,
+				err:        err,
+			}, o, serviceClient, containerClient)
 			continue
 		}
 
+		// Deserialize info file
 		body, err := io.ReadAll(infoRsp.Body)
 		if err != nil {
-			o <- matchResult{
+			handleMatchResult(ctx, matchResult{
 				uid: uid,
 				err: err,
-			}
+			}, o, serviceClient, containerClient)
 			continue
 		}
 		defer infoRsp.Body.Close()
@@ -278,10 +302,11 @@ func worker(ctx context.Context, c <-chan pageItemResult, o chan<- matchResult, 
 		var data map[string]any
 		err = json.Unmarshal(body, &data)
 		if err != nil {
-			o <- matchResult{
-				uid: uid,
-				err: err,
-			}
+			handleMatchResult(ctx, matchResult{
+				foundMatch: false,
+				uid:        uid,
+				err:        err,
+			}, o, serviceClient, containerClient)
 			continue
 		}
 
@@ -292,11 +317,13 @@ func worker(ctx context.Context, c <-chan pageItemResult, o chan<- matchResult, 
 		}
 
 		ms := convertMap(metadata)
+		slog.Debug("attempting to match on info file metadata", "uid", uid, "metadata", ms)
 		if matchesMetadata(ms, criteria) {
-			o <- matchResult{
-				uid: uid,
-				err: nil,
-			}
+			handleMatchResult(ctx, matchResult{
+				foundMatch: true,
+				uid:        uid,
+				err:        nil,
+			}, o, serviceClient, containerClient)
 			continue
 		}
 
@@ -332,6 +359,22 @@ func matchesMetadata(metadata map[string]string, criteria map[string]string) boo
 		}
 	}
 	return true
+}
+
+func handleMatchResult(ctx context.Context, result matchResult, o chan<- matchResult, serviceClient *azblob.Client, containerClient *container.Client) {
+	if result.err != nil {
+		o <- result
+	}
+
+	if result.foundMatch {
+		bytes, err := deleteUpload(ctx, result.uid, serviceClient, containerClient)
+		if err != nil {
+			result.err = fmt.Errorf("error deleting upload; %w", err)
+		}
+		result.bytesDeleted = bytes
+	}
+
+	o <- result
 }
 
 func convertMap(m map[string]any) map[string]string {
@@ -405,10 +448,12 @@ func deleteUpload(ctx context.Context, uid string, serviceClient *azblob.Client,
 		bytesDeleted += *rsp.ContentLength
 	}
 
+	slog.Debug("successfully deleted upload", "uid", uid)
 	return bytesDeleted, nil
 }
 
 func printSummary(summary searchResult, startTime time.Time) {
+	fmt.Println("**********")
 	fmt.Printf("searched %d blobs; matched on %d (%d total bytes)\r\n", totalSearched, summary.totalMatched, summary.totalMatchedBytes)
 	fmt.Printf("Duration: %v\n", time.Since(startTime))
 
@@ -419,4 +464,5 @@ func printSummary(summary searchResult, startTime time.Time) {
 	if summary.totalMatched == 0 {
 		slog.Info("found no matching files")
 	}
+	fmt.Println("**********")
 }
