@@ -280,7 +280,7 @@ func (s *SQSSubscriber[T]) getBatch(ctx context.Context, max int) ([]types.Messa
 		WaitTimeSeconds:     1,
 		VisibilityTimeout:   int32(DefaultMessageVisibility),
 	})
-	slog.Info("Got response", "rsp", rsp)
+	slog.Debug("Got response", "rsp", rsp)
 	if err != nil {
 		return nil, err
 	}
