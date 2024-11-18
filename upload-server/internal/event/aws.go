@@ -3,7 +3,6 @@ package event
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -107,12 +106,10 @@ func (s SNSPublisher[T]) Publish(ctx context.Context, e T) error {
 	}
 
 	var b bytes.Buffer
-	encoder := base64.NewEncoder(base64.StdEncoding, &b)
-	jsonEncoder := json.NewEncoder(encoder)
+	jsonEncoder := json.NewEncoder(&b)
 	if err := jsonEncoder.Encode(e); err != nil {
 		return err
 	}
-	encoder.Close()
 	m := b.String()
 	result, err := c.Publish(ctx, &sns.PublishInput{
 		Message:  &m,
@@ -215,6 +212,9 @@ func (s *SQSSubscriber[T]) Subscribe(ctx context.Context, topicArn string) error
 		Protocol: aws.String("sqs"),
 		TopicArn: aws.String(topicArn),
 		Endpoint: aws.String(s.ARN),
+		Attributes: map[string]string{
+			"RawMessageDelivery": "true",
+		},
 	}); err != nil {
 		return err
 	}
@@ -318,14 +318,7 @@ func (s *SQSSubscriber[T]) decodeEvent(message *types.Message) (T, error) {
 	var e T
 	id := *message.MessageId
 	body := *message.Body
-	snsMessage := map[string]string{}
-	if err := json.Unmarshal([]byte(body), &snsMessage); err != nil {
-		return e, err
-	}
-	b := bytes.NewBuffer([]byte(snsMessage["Message"]))
-	decoder := base64.NewDecoder(base64.StdEncoding, b)
-	jsonDecoder := json.NewDecoder(decoder)
-	if err := jsonDecoder.Decode(&e); err != nil {
+	if err := json.Unmarshal([]byte(body), &e); err != nil {
 		return e, err
 	}
 	e.SetIdentifier(id)
