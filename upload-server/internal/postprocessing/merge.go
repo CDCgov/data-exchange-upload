@@ -26,7 +26,7 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 		}
 
 		for _, target := range routeGroup.DeliveryTargets {
-			path, err := delivery.GetDeliveredFilename(ctx, id, target.PathTemplate, meta)
+			path, err := delivery.GetDeliveredFilename(id, target.PathTemplate, meta)
 			if err != nil {
 				return resp, err
 			}

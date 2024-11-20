@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"strconv"
+	"time"
 )
 
 type FileDestination struct {
@@ -19,7 +20,18 @@ type FileDestination struct {
 	PathTemplate string `yaml:"path_template"`
 }
 
-func (fd *FileDestination) Upload(ctx context.Context, path string, r io.Reader, m map[string]string) (string, error) {
+func (fd *FileDestination) DestinationType() string {
+	return storageTypeLocalFile
+}
+
+func (fd *FileDestination) Copy(ctx context.Context, id string, path string, source *Source,
+	metadata map[string]string, _ int64, _ int) (string, error) {
+	s := *source
+	reader, _ := s.Reader(ctx, id)
+	return fd.Upload(ctx, path, reader, metadata)
+}
+
+func (fd *FileDestination) Upload(_ context.Context, path string, r io.Reader, _ map[string]string) (string, error) {
 	loc := filepath.Join(fd.ToPath, path)
 
 	if err := os.MkdirAll(filepath.Dir(loc), 0755); err != nil {
@@ -58,6 +70,15 @@ type FileSource struct {
 	FS fs.FS
 }
 
+func (fd *FileSource) SourceType() string {
+	return storageTypeLocalFile
+}
+
+func (fd *FileSource) GetSourceFilePath(path string) string {
+	// needed for interface conformance
+	return path
+}
+
 func (fd *FileSource) Reader(_ context.Context, path string) (io.Reader, error) {
 	f, err := fd.FS.Open(path)
 	if err != nil {
@@ -77,7 +98,6 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 		}
 		return nil, err
 	}
-	defer f.Close()
 
 	b, err := io.ReadAll(f)
 	if err != nil {
@@ -90,6 +110,15 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 		return nil, err
 	}
 
+	fMain, err := fd.FS.Open(tuid)
+	if err != nil {
+		return nil, err
+	}
+	info, e := fMain.Stat()
+	if e == nil {
+		m["last_modified"] = info.ModTime().Format(time.RFC3339Nano)
+		m["content_length"] = strconv.FormatInt(info.Size(), 10)
+	}
 	return m, nil
 }
 

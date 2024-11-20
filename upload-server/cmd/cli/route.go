@@ -62,7 +62,7 @@ func (router *Router) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	gIndex := slices.IndexFunc(routeGroup.DeliveryTargets, func(t delivery.TargetDesignation) bool { return t.Name == body.Target })
-	path, err := delivery.GetDeliveredFilename(r.Context(), id, routeGroup.DeliveryTargets[gIndex].PathTemplate, m)
+	path, err := delivery.GetDeliveredFilename(id, routeGroup.DeliveryTargets[gIndex].PathTemplate, m)
 	if err != nil {
 		http.Error(rw, "Invalid target for metadata", http.StatusBadRequest)
 		return

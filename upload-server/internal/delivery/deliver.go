@@ -20,12 +20,35 @@ import (
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 )
 
+const storageTypeLocalFile string = "file"
+const storageTypeAzureBlob string = "az-blob"
+const storageTypeS3 string = "s3"
+
 var UploadSrc = "upload"
 
 var ErrSrcFileNotExist = fmt.Errorf("source file does not exist")
 
 var Groups map[string]Group
 var Targets map[string]Destination
+
+type CloudSource interface {
+	GetSignedObjectURL(ctx context.Context, containerName string, objectPath string) (string, error)
+	Container() string
+	Source
+}
+
+type Source interface {
+	Reader(context.Context, string) (io.Reader, error)
+	GetMetadata(context.Context, string) (map[string]string, error)
+	GetSourceFilePath(string) string
+	SourceType() string
+}
+
+type Destination interface {
+	Copy(ctx context.Context, id string, path string, source *Source, metadata map[string]string, length int64,
+		concurrency int) (string, error)
+	DestinationType() string
+}
 
 func GetTarget(target string) (Destination, bool) {
 	d, ok := Targets[target]
@@ -51,15 +74,6 @@ func RegisterSource(name string, s Source) {
 func GetSource(name string) (Source, bool) {
 	s, ok := sources[name]
 	return s, ok
-}
-
-type Source interface {
-	Reader(context.Context, string) (io.Reader, error)
-	GetMetadata(context.Context, string) (map[string]string, error)
-}
-
-type Destination interface {
-	Upload(context.Context, string, io.Reader, map[string]string) (string, error)
 }
 
 type PathInfo struct {
@@ -111,12 +125,12 @@ type Target struct {
 }
 
 var DestinationTypes = map[string]func() Destination{
-	"s3":      func() Destination { return &S3Destination{} },
-	"file":    func() Destination { return &FileDestination{} },
-	"az-blob": func() Destination { return &AzureDestination{} },
+	storageTypeS3:        func() Destination { return &S3Destination{} },
+	storageTypeLocalFile: func() Destination { return &FileDestination{} },
+	storageTypeAzureBlob: func() Destination { return &AzureDestination{} },
 }
 
-var ErrUnknownDestinationType = errors.New("Unknown destination type")
+var ErrUnknownDestinationType = errors.New("unknown destination type")
 
 func (t *Target) UnmarshalYAML(n *yaml.Node) error {
 	type alias Target
@@ -149,25 +163,24 @@ func UnmarshalDeliveryConfig(confBody string) (*Config, error) {
 
 // target may end up being a type
 func Deliver(ctx context.Context, id string, path string, s Source, d Destination) (string, error) {
-
 	manifest, err := s.GetMetadata(ctx, id)
 	if err != nil {
 		return "", err
 	}
 
-	r, err := s.Reader(ctx, id)
-	if err != nil {
-		return "", err
+	length, e := strconv.ParseInt(manifest["content_length"], 10, 64)
+	if e != nil {
+		length = 1
 	}
-	if rc, ok := r.(io.Closer); ok {
-		defer rc.Close()
-	}
-	return d.Upload(ctx, path, r, manifest)
+	// TODO: Add configuration parameter
+	maxConcurrency := 500
+
+	return d.Copy(ctx, id, path, &s, manifest, length, maxConcurrency)
 }
 
 var ErrBadIngestTimestamp = errors.New("bad ingest timestamp")
 
-func GetDeliveredFilename(ctx context.Context, tuid string, pathTemplate string, manifest map[string]string) (string, error) {
+func GetDeliveredFilename(tuid string, pathTemplate string, manifest map[string]string) (string, error) {
 	if pathTemplate == "" {
 		pathTemplate = "{{.Year}}/{{.Month}}/{{.Day}}/{{.Filename}}"
 	}
