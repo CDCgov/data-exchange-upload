@@ -26,7 +26,7 @@ WORKDIR /app
 
 COPY --from=builder /app/dextusd .
 RUN mkdir -p ./configs/local
-COPY --from=builder /app/configs/local/deliver.yml ./configs/local/deliver.yml
+COPY --from=builder /app/configs/phdo/deliver.yml ./configs/local/deliver.yml
 
 # Create the 'app' user and group
 RUN addgroup -S app && adduser -S -G app app
