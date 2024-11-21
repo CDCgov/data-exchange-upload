@@ -1,0 +1,22 @@
+services:
+  report-sink:
+    image: imagehub.cdc.gov:6989/dex/pstatus/report-sink-service
+    environment:
+      DATABASE: "couchbase"
+      COUCHBASE_CONNECTION_STRING: "couchbase://couchbase"
+      COUCHBASE_USERNAME: "admin"
+      COUCHBASE_PASSWORD: "password"
+      MSG_SYSTEM: "AWS"
+      AWS_SQS_URL: http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/report-queue
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: LSIAQAAAAAAVNCBMPNSG
+      AWS_SECRET_ACCESS_KEY: bogus
+      AWS_ENDPOINT_URL: http://localstack:4566
+    depends_on:
+      - localstack
+    restart: "always"
+
+  couchbase-setup:
+    volumes:
+      - ../../data-exchange-processing-status/couchbase-init.sh:/scripts/couchbase-init.sh # Mount the setup script
