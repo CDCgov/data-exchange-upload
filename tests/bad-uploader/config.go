@@ -10,7 +10,9 @@ import (
 	"log"
 	"log/slog"
 	"math/rand"
+	neturl "net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -19,6 +21,7 @@ import (
 
 var (
 	url         string
+	infoUrl     string
 	size        float64
 	parallelism int
 	load        int
@@ -202,6 +205,7 @@ func passthroughString(s string) (string, error) {
 func init() {
 	flag.Float64Var(&size, "size", 5, "the size of the file to upload, in MB")
 	flag.StringVar(&url, "url", fromEnv("UPLOAD_URL", "http://localhost:8080/files", passthroughString), "the upload url for the tus server")
+	flag.StringVar(&infoUrl, "infoUrl", "", "the url for the info endpoint")
 	flag.StringVar(&reportsURL, "reports-url", fromEnv("DEX_REPORTS_URL", "", passthroughString), "the url for the reports graphql server")
 	flag.IntVar(&parallelism, "parallelism", fromEnv("UPLOAD_PARALLELISM", runtime.NumCPU(), strconv.Atoi), "the number of parallel threads to use, defaults to MAXGOPROC when set to < 1.")
 	flag.IntVar(&load, "load", fromEnv("UPLOAD_LOAD", 0, strconv.Atoi), "set the number of files to load, defaults to 0 and adjusts based on benchmark logic")
@@ -245,6 +249,10 @@ func init() {
 	}
 	if !flagset["case-dir"] {
 		cases.cases = []TestCase{testcase}
+	}
+	if !flagset["infoUrl"] {
+		serverUrl, _ := path.Split(url)
+		infoUrl, _ = neturl.JoinPath(serverUrl, "info")
 	}
 	slog.Debug("testing with cases", "cases", cases)
 	conf = resultOrFatal(buildConfig())
