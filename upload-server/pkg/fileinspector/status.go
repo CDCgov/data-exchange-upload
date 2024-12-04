@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -20,6 +21,7 @@ type FileSystemUploadStatusInspector struct {
 }
 
 func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ context.Context, id string) ([]info.FileDeliveryStatus, error) {
+	id, _, _ = strings.Cut(id, "+")
 	deliveries := []info.FileDeliveryStatus{}
 	deliveryReportFilename := filepath.Join(fsusi.ReportsDir, id+event.TypeSeparator+reports.StageFileCopy)
 	f, err := os.Open(deliveryReportFilename)
@@ -64,6 +66,7 @@ func (fsusi *FileSystemUploadStatusInspector) InspectFileDeliveryStatus(_ contex
 }
 
 func (fsusi *FileSystemUploadStatusInspector) InspectFileUploadStatus(ctx context.Context, id string) (info.FileUploadStatus, error) {
+	id, _, _ = strings.Cut(id, "+")
 	// check if the upload-completed file exists
 	uploadCompletedReportFilename := filepath.Join(fsusi.ReportsDir, id+event.TypeSeparator+reports.StageUploadCompleted)
 	uploadCompletedFileInfo, err := os.Stat(uploadCompletedReportFilename)
