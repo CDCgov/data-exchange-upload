@@ -16,11 +16,11 @@ var DefaultMetrics = []prometheus.Collector{
 	ActiveUploads,
 }
 
-func ActiveUploadIncHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func ActiveUploadIncHook(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	ActiveUploads.Inc()
 	return resp, nil
 }
-func ActiveUploadDecHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func ActiveUploadDecHook(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	ActiveUploads.Dec()
 	return resp, nil
 }
@@ -57,7 +57,7 @@ type ManifestMetrics struct {
 	Counter *prometheus.CounterVec
 }
 
-func (mm *ManifestMetrics) Hook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (mm *ManifestMetrics) Hook(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	vals := []string{}
 	for _, key := range mm.Keys {
 		val, ok := event.Upload.MetaData[key]

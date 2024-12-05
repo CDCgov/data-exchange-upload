@@ -2,7 +2,6 @@ package reports
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
@@ -146,7 +145,6 @@ type Builder[T any] interface {
 }
 
 func NewBuilder[T any](version string, action string, uploadId string, dispType string) Builder[T] {
-	uploadId, _, _ = strings.Cut(uploadId, "+")
 	return &ReportBuilder[T]{
 		Version:         version,
 		Action:          action,
@@ -159,7 +157,6 @@ func NewBuilder[T any](version string, action string, uploadId string, dispType 
 }
 
 func NewBuilderWithManifest[T any](version string, action string, uploadId string, manifest map[string]string, dispType string) Builder[T] {
-	uploadId, _, _ = strings.Cut(uploadId, "+")
 	return &ReportBuilder[T]{
 		Version:         version,
 		Action:          action,
@@ -191,6 +188,7 @@ func (b *ReportBuilder[T]) SetAction(s string) Builder[T] {
 }
 
 func (b *ReportBuilder[T]) SetUploadId(id string) Builder[T] {
+	b.UploadId = id
 	return b
 }
 

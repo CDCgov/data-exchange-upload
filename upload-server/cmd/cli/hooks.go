@@ -44,13 +44,13 @@ func PrebuiltHooks(validator metadata.SenderManifestVerification, appender metad
 	handler := &prebuilthooks.PrebuiltHook{}
 
 	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, validator.Verify)
-	handler.Register(tusHooks.HookPostCreate, upload.ReportUploadStarted)
-	handler.Register(tusHooks.HookPostReceive, upload.ReportUploadStatus)
+	handler.Register(tusHooks.HookPostCreate, upload.TrimS3MultipartID, upload.ReportUploadStarted)
+	handler.Register(tusHooks.HookPostReceive, upload.TrimS3MultipartID, upload.ReportUploadStatus)
 	handler.Register(tusHooks.HookPreFinish, appender.Append)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
 
-	handler.Register(tusHooks.HookPostFinish, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook())
+	handler.Register(tusHooks.HookPostFinish, upload.TrimS3MultipartID, upload.ReportUploadComplete, postprocessing.RouteAndDeliverHook())
 
 	return handler, nil
 }

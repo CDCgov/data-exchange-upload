@@ -1,15 +1,16 @@
 package upload
 
 import (
+	"log/slog"
+	"reflect"
+	"strings"
+	"time"
+
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
-	"log/slog"
-	"reflect"
-	"strings"
-	"time"
 )
 
 var logger *slog.Logger
@@ -21,7 +22,12 @@ func init() {
 	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
 }
 
-func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func TrimS3MultipartID(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	event.Upload.ID, _, _ = strings.Cut(event.Upload.ID, "+")
+	return resp, nil
+}
+
+func ReportUploadStatus(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	// Get values from event
 	uploadId := event.Upload.ID
 	uploadOffset := event.Upload.Offset
@@ -50,7 +56,7 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	return resp, nil
 }
 
-func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func ReportUploadStarted(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	uploadId := event.Upload.ID
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
@@ -93,7 +99,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	return resp, nil
 }
 
-func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func ReportUploadComplete(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	uploadId := event.Upload.ID
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
