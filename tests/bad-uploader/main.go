@@ -139,8 +139,9 @@ func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
 		res, err := runTest(e, conf)
 		if err != nil {
 			slog.Error("ERROR: ", "error", err, "case", e)
+		} else {
+			atomic.AddInt32(&testResult.SuccessfulUploads, 1)
 		}
-		atomic.AddInt32(&testResult.SuccessfulUploads, 1)
 		o <- res
 	}
 }
