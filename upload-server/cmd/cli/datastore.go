@@ -2,17 +2,11 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
-	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/s3store"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -23,87 +17,6 @@ import (
 	"github.com/tus/tusd/v2/pkg/azurestore"
 	"github.com/tus/tusd/v2/pkg/filestore"
 )
-
-type S3Store struct {
-	store s3store.S3Store
-}
-
-type S3StoreUpload struct {
-	handler.Upload
-}
-
-func (su *S3StoreUpload) GetInfo(ctx context.Context) (handler.FileInfo, error) {
-	info, err := su.Upload.GetInfo(ctx)
-	info.ID, _, _ = strings.Cut(info.ID, "+")
-	return info, err
-}
-
-func (s *S3Store) NewUpload(ctx context.Context, info handler.FileInfo) (handler.Upload, error) {
-	u, err := s.store.NewUpload(ctx, info)
-	return &S3StoreUpload{
-		u,
-	}, err
-}
-
-func (s *S3Store) metadataKeyWithPrefix(key string) *string {
-	prefix := s.store.MetadataObjectPrefix
-	if prefix == "" {
-		prefix = s.store.ObjectPrefix
-	}
-	if prefix != "" && !strings.HasSuffix(prefix, "/") {
-		prefix += "/"
-	}
-
-	return aws.String(prefix + key)
-}
-
-func (s *S3Store) GetUpload(ctx context.Context, id string) (handler.Upload, error) {
-	if !strings.Contains(id, "+") {
-		log.Println("UPLOAD ID", id)
-		c, err := stores3.NewWithEndpoint(ctx, appconfig.LoadedConfig.S3Connection.Endpoint)
-		if err != nil {
-			return nil, err
-		}
-		rsp, err := c.GetObject(ctx, &s3.GetObjectInput{
-			Bucket: aws.String(s.store.Bucket),
-			Key:    s.metadataKeyWithPrefix(id + ".info"),
-		})
-		if err != nil {
-			return nil, err
-		}
-		info := &handler.FileInfo{}
-		if err := json.NewDecoder(rsp.Body).Decode(info); err != nil {
-			return nil, err
-		}
-		id = info.ID
-	}
-	u, err := s.store.GetUpload(ctx, id)
-	return &S3StoreUpload{
-		u,
-	}, err
-}
-
-func (s S3Store) AsTerminatableUpload(upload handler.Upload) handler.TerminatableUpload {
-	u := upload.(*S3StoreUpload)
-	return s.store.AsTerminatableUpload(u.Upload)
-}
-
-func (s S3Store) AsLengthDeclarableUpload(upload handler.Upload) handler.LengthDeclarableUpload {
-	u := upload.(*S3StoreUpload)
-	return s.store.AsLengthDeclarableUpload(u.Upload)
-}
-
-func (s S3Store) AsConcatableUpload(upload handler.Upload) handler.ConcatableUpload {
-	u := upload.(*S3StoreUpload)
-	return s.store.AsConcatableUpload(u.Upload)
-}
-
-func (s *S3Store) UseIn(composer *handler.StoreComposer) {
-	composer.UseCore(s)
-	composer.UseTerminater(s)
-	composer.UseConcater(s)
-	composer.UseLengthDeferrer(s)
-}
 
 func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertusd.Store, health.Checkable, error) {
 	// ------------------------------------------------------------------
@@ -155,8 +68,8 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 		store.ObjectPrefix = appConfig.TusUploadPrefix
 
 		logger.Info("using S3 bucket", "bucket", appConfig.S3Connection.BucketName)
-		return &S3Store{
-			store: store,
+		return &stores3.S3Store{
+			Store: store,
 		}, hc, nil
 	}
 
