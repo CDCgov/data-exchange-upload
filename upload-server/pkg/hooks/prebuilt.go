@@ -9,7 +9,7 @@ type PrebuiltHook struct {
 	hookMapping map[tusHooks.HookType][]HookHandlerFunc
 }
 
-type HookHandlerFunc func(event *handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error)
+type HookHandlerFunc func(event handler.HookEvent, resp tusHooks.HookResponse) (tusHooks.HookResponse, error)
 
 func (ph *PrebuiltHook) Setup() error {
 	return nil
@@ -24,7 +24,7 @@ func (ph *PrebuiltHook) InvokeHook(req tusHooks.HookRequest) (res tusHooks.HookR
 
 	resp := tusHooks.HookResponse{}
 	for _, hf := range hookFuncs {
-		resp, err = hf(&req.Event, resp)
+		resp, err = hf(req.Event, resp)
 
 		// Return early if we got an error.
 		if err != nil {

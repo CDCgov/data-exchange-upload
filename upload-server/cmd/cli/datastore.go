@@ -77,14 +77,32 @@ func (s *S3Store) GetUpload(ctx context.Context, id string) (handler.Upload, err
 		}
 		id = info.ID
 	}
-	return s.store.GetUpload(ctx, id)
+	u, err := s.store.GetUpload(ctx, id)
+	return &S3StoreUpload{
+		u,
+	}, err
+}
+
+func (s S3Store) AsTerminatableUpload(upload handler.Upload) handler.TerminatableUpload {
+	u := upload.(*S3StoreUpload)
+	return s.store.AsTerminatableUpload(u.Upload)
+}
+
+func (s S3Store) AsLengthDeclarableUpload(upload handler.Upload) handler.LengthDeclarableUpload {
+	u := upload.(*S3StoreUpload)
+	return s.store.AsLengthDeclarableUpload(u.Upload)
+}
+
+func (s S3Store) AsConcatableUpload(upload handler.Upload) handler.ConcatableUpload {
+	u := upload.(*S3StoreUpload)
+	return s.store.AsConcatableUpload(u.Upload)
 }
 
 func (s *S3Store) UseIn(composer *handler.StoreComposer) {
 	composer.UseCore(s)
-	composer.UseTerminater(s.store)
-	composer.UseConcater(s.store)
-	composer.UseLengthDeferrer(s.store)
+	composer.UseTerminater(s)
+	composer.UseConcater(s)
+	composer.UseLengthDeferrer(s)
 }
 
 func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertusd.Store, health.Checkable, error) {

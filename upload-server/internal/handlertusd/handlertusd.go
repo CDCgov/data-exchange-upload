@@ -2,6 +2,7 @@ package handlertusd
 
 import (
 	"errors"
+	"os"
 
 	"golang.org/x/exp/slog"
 
@@ -57,7 +58,7 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 		BasePath:                basePath,
 		StoreComposer:           composer,
 		NotifyCompleteUploads:   true,
-		Logger:                  logger,
+		Logger:                  slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})),
 		RespectForwardedHeaders: true,
 		DisableDownload:         true,
 	}, hooksHandler, []hooks.HookType{hooks.HookPreCreate, hooks.HookPostCreate, hooks.HookPostReceive, hooks.HookPreFinish, hooks.HookPostFinish, hooks.HookPostTerminate}) // .handler
