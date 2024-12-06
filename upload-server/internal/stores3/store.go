@@ -70,17 +70,17 @@ func (s *S3Store) GetUpload(ctx context.Context, id string) (handler.Upload, err
 	}, err
 }
 
-func (s S3Store) AsTerminatableUpload(upload handler.Upload) handler.TerminatableUpload {
+func (s *S3Store) AsTerminatableUpload(upload handler.Upload) handler.TerminatableUpload {
 	u := upload.(*S3StoreUpload)
 	return s.Store.AsTerminatableUpload(u.Upload)
 }
 
-func (s S3Store) AsLengthDeclarableUpload(upload handler.Upload) handler.LengthDeclarableUpload {
+func (s *S3Store) AsLengthDeclarableUpload(upload handler.Upload) handler.LengthDeclarableUpload {
 	u := upload.(*S3StoreUpload)
 	return s.Store.AsLengthDeclarableUpload(u.Upload)
 }
 
-func (s S3Store) AsConcatableUpload(upload handler.Upload) handler.ConcatableUpload {
+func (s *S3Store) AsConcatableUpload(upload handler.Upload) handler.ConcatableUpload {
 	u := upload.(*S3StoreUpload)
 	return s.Store.AsConcatableUpload(u.Upload)
 }
