@@ -1,15 +1,16 @@
 package upload
 
 import (
+	"log/slog"
+	"reflect"
+	"strings"
+	"time"
+
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
-	"log/slog"
-	"reflect"
-	"strings"
-	"time"
 )
 
 var logger *slog.Logger

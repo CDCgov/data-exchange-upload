@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -28,8 +27,6 @@ func NewS3UploadInspector(containerClient *s3.Client, bucketName string, tusPref
 }
 
 func (sui *S3UploadInspector) InspectInfoFile(c context.Context, id string) (map[string]any, error) {
-	// temp solution for handling hash that tus s3 store puts on upload IDs.  See https://github.com/tus/tusd/pull/1167
-	id = strings.Split(id, "+")[0]
 
 	filename := sui.TusPrefix + "/" + id + ".info"
 	output, err := sui.Client.GetObject(c, &s3.GetObjectInput{
@@ -55,8 +52,6 @@ func (sui *S3UploadInspector) InspectInfoFile(c context.Context, id string) (map
 }
 
 func (sui *S3UploadInspector) InspectUploadedFile(c context.Context, id string) (map[string]any, error) {
-	// temp solution for handling hash that tus s3 store puts on upload IDs.  See https://github.com/tus/tusd/pull/1167
-	id = strings.Split(id, "+")[0]
 
 	filename := sui.TusPrefix + "/" + id
 	output, err := sui.Client.GetObjectAttributes(c, &s3.GetObjectAttributesInput{
