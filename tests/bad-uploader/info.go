@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	neturl "net/url"
-	"path"
 	"slices"
 	"sync/atomic"
 )
@@ -43,8 +42,7 @@ type InfoChecker struct {
 }
 
 func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) error {
-	serverUrl, _ := path.Split(url)
-	infoUrl, err := neturl.JoinPath(serverUrl, "info", uploadId)
+	infoUrl, err := neturl.JoinPath(infoUrl, uploadId)
 	if err != nil {
 		return err
 	}

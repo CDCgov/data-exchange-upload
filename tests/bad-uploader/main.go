@@ -41,7 +41,7 @@ func main() {
 	err = ValidateResults(ctx, o)
 	testResult.TotalDuration = time.Since(tStart)
 	PrintFinalReport(err)
-
+	exitError(err)
 }
 
 func StartWorkers(c <-chan TestCase) <-chan *Result {
@@ -139,8 +139,9 @@ func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
 		res, err := runTest(e, conf)
 		if err != nil {
 			slog.Error("ERROR: ", "error", err, "case", e)
+		} else {
+			atomic.AddInt32(&testResult.SuccessfulUploads, 1)
 		}
-		atomic.AddInt32(&testResult.SuccessfulUploads, 1)
 		o <- res
 	}
 }
@@ -173,5 +174,14 @@ func logErrors(err error, uploadId string) {
 	defer f.Close()
 	if _, e = f.WriteString(err.Error()); e != nil {
 		panic(e)
+	}
+}
+
+func exitError(validationErrors error) {
+	unsuccessfulUploads := load > 0 && testResult.SuccessfulUploads < int32(load)
+	unsuccessfulDeliveries := testResult.SuccessfulDeliveries < testResult.SuccessfulUploads
+	if validationErrors != nil || unsuccessfulUploads || unsuccessfulDeliveries {
+		fmt.Println("FAILED")
+		os.Exit(1)
 	}
 }
