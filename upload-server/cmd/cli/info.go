@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/azureinspector"
@@ -34,7 +33,6 @@ func (ih *InfoHandler) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, "UploadID is required to retrieve info", http.StatusNotFound)
 		return
 	}
-	id, _, _ = strings.Cut(id, "+")
 
 	fileInfo, err := ih.inspector.InspectInfoFile(r.Context(), id)
 	if err != nil {
