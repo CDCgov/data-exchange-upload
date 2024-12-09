@@ -19,41 +19,35 @@ import (
 var AZURITE_KEY = os.Getenv("AZURITE_STORAGE_KEY")
 
 func TestTus(t *testing.T) {
-	var mwg sync.WaitGroup
-	mwg.Add(len(cases))
 	for name, c := range cases {
-		go func(name string, c map[string]string) {
-			defer mwg.Done()
-			log.Println("Starting case", name)
-			setUp(name, c)
-			var wg sync.WaitGroup
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				main()
-			}()
-			// wait for main to start (should make this more resilient)
-			time.Sleep(1 * time.Second)
+		log.Println("Starting case", name)
+		setUp(name, c)
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			main()
+		}()
+		// wait for main to start (should make this more resilient)
+		time.Sleep(1 * time.Second)
 
-			url := fmt.Sprintf("http://localhost:%s", os.Getenv("SERVER_PORT"))
-			var twg sync.WaitGroup
-			for name, c := range dexTesting.Cases {
-				twg.Add(1)
-				go func(t *testing.T) {
-					defer twg.Done()
-					if _, err := dexTesting.RunTusTestCase(url, "../testing/test.txt", c); err != nil {
-						t.Error(name, err)
-					} else {
-						t.Log("test case", name, "passed")
-					}
-				}(t)
-			}
-			twg.Wait()
-			syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-			wg.Wait()
-		}(name, c)
+		url := fmt.Sprintf("http://localhost:%s", os.Getenv("SERVER_PORT"))
+		var twg sync.WaitGroup
+		for name, c := range dexTesting.Cases {
+			twg.Add(1)
+			go func(t *testing.T) {
+				defer twg.Done()
+				if _, err := dexTesting.RunTusTestCase(url, "../testing/test.txt", c); err != nil {
+					t.Error(name, err)
+				} else {
+					t.Log("test case", name, "passed")
+				}
+			}(t)
+		}
+		twg.Wait()
+		syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+		wg.Wait()
 	}
-	mwg.Wait()
 }
 
 // GetFreePort asks the kernel for a free open port that is ready to use.
@@ -83,7 +77,7 @@ func setUp(name string, c map[string]string) {
 	os.Setenv("SERVER_PORT", fmt.Sprintf("%d", port))
 	os.Setenv("UI_PORT", "")
 	os.Setenv("REDIS_CONNECTION_STRING", "redis://redispw@cache:6379")
-	os.Setenv("SQS_SUBSCRIBER_EVENT_ARN", "arn:aws:sqs:us-east-1:000000000042:test-topic")
+	os.Setenv("SQS_SUBSCRIBER_EVENT_ARN", "arn:aws:sns:us-east-1:000000000042:test-topic")
 	os.Setenv("SNS_PUBLISHER_EVENT_ARN", "arn:aws:sns:us-east-1:000000000042:test-topic")
 	os.Setenv("SNS_REPORTER_EVENT_ARN", "arn:aws:sns:us-east-1:000000000042:report-topic")
 	os.Setenv("AWS_DEFAULT_REGION", "us-east-1")
