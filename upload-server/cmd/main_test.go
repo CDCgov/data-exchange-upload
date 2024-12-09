@@ -20,7 +20,7 @@ var AZURITE_KEY = os.Getenv("AZURITE_STORAGE_KEY")
 
 func TestTus(t *testing.T) {
 	var mwg sync.WaitGroup
-	wmg.Add(len(cases))
+	mwg.Add(len(cases))
 	for name, c := range cases {
 		go func(name string, c map[string]string) {
 			defer mwg.Done()
