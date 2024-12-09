@@ -12,17 +12,19 @@ import (
 func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig, defaultBus event.Subscribable[T]) (event.Subscribable[T], error) {
 
 	if appConfig.SQSSubscriberConnection != nil {
-		arn := appConfig.SQSSubscriberConnection.EventArn
+		sqsArn := appConfig.SQSSubscriberConnection.EventArn
+		snsArn := appConfig.SNSPublisherConnection.EventArn
+
 		batchMax := appConfig.SQSSubscriberConnection.MaxMessages
 		if batchMax == 0 {
 			batchMax = event.MaxMessages
 		}
-		s, err := event.NewSQSSubscriber[T](ctx, arn, 1)
+		s, err := event.NewSQSSubscriber[T](ctx, sqsArn, 1)
 		if err != nil {
 			return s, err
 		}
-		if err := s.Subscribe(ctx, arn); err != nil {
-			return s, fmt.Errorf("arn: %s, %w", arn, err)
+		if err := s.Subscribe(ctx, snsArn); err != nil {
+			return s, fmt.Errorf("arn: %s, %w", snsArn, err)
 		}
 		health.Register(s)
 		return s, nil

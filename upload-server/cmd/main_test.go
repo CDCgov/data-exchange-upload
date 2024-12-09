@@ -77,7 +77,7 @@ func setUp(name string, c map[string]string) {
 	os.Setenv("SERVER_PORT", fmt.Sprintf("%d", port))
 	os.Setenv("UI_PORT", "")
 	os.Setenv("REDIS_CONNECTION_STRING", "redis://redispw@cache:6379")
-	os.Setenv("SQS_SUBSCRIBER_EVENT_ARN", "arn:aws:sns:us-east-1:000000000042:test-topic")
+	os.Setenv("SQS_SUBSCRIBER_EVENT_ARN", "arn:aws:sqs:us-east-1:000000000042:test-topic")
 	os.Setenv("SNS_PUBLISHER_EVENT_ARN", "arn:aws:sns:us-east-1:000000000042:test-topic")
 	os.Setenv("SNS_REPORTER_EVENT_ARN", "arn:aws:sns:us-east-1:000000000042:report-topic")
 	os.Setenv("AWS_DEFAULT_REGION", "us-east-1")
