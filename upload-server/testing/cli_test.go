@@ -487,20 +487,34 @@ func TestMain(m *testing.M) {
 	var testWaitGroup sync.WaitGroup
 	defer testWaitGroup.Wait()
 
-	err := cli.RegisterAllSourcesAndDestinations(testContext, appConfig)
-	event.InitFileReadyChannel()
-	testWaitGroup.Add(1)
-	err = cli.InitReporters(testContext, appConfig)
+	if err := cli.RegisterAllSourcesAndDestinations(testContext, appConfig); err != nil {
+		log.Fatal(err)
+	}
+	if err := cli.InitReporters(testContext, appConfig); err != nil {
+		log.Fatal(err)
+	}
 	defer reports.CloseAll()
-	err = cli.InitFileReadyPublisher(testContext, appConfig)
-	defer event.FileReadyPublisher.Close()
-	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig)
+	memBus := &event.MemoryBus[*event.FileReady]{
+		Chan: make(chan *event.FileReady),
+	}
+	publisher, err := cli.NewEventPublisher[*event.FileReady](testContext, appConfig, memBus)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer publisher.Close()
+
+	testListener, err := cli.NewEventSubscriber[*event.FileReady](testContext, appConfig, memBus)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer testListener.(io.Closer).Close()
+	testWaitGroup.Add(1)
 	go func() {
-		testListener.Listen(testContext, postprocessing.ProcessFileReadyEvent)
+		testListener.Listen(testContext, postprocessing.DeliverFileReadyEvent)
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig)
+	serveHandler, err := cli.Serve(testContext, appConfig, publisher)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -514,7 +528,6 @@ func TestMain(m *testing.M) {
 	testRes := m.Run()
 
 	ts.Close()
-	event.CloseFileReadyChannel()
 	os.Exit(testRes)
 }
 

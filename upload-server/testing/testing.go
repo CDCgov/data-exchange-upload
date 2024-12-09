@@ -149,40 +149,56 @@ func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
 
 		tuid = filepath.Base(uploader.Url())
 
-		time.Sleep(1 * time.Second)
+		if err := checkInfo(len(c.deliveries), url, tuid); err != nil {
+			return "", err
+		}
+	}
+
+	return tuid, nil
+}
+
+func checkInfo(expectedNumDeliveries int, url, tuid string) error {
+	var rspBody []byte
+	for range 1000 {
 		// check the file
 		resp, err := http.Get(url + "/info/" + tuid)
 		if err != nil {
-			return "", err
+			return err
 		}
 		if resp.StatusCode != http.StatusOK {
-			return "", fmt.Errorf("failed to get upload info %s", resp.Status)
+			return fmt.Errorf("failed to get upload info %s", resp.Status)
 		}
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return "", err
+			return err
 		}
+		resp.Body.Close()
+		rspBody = body
 
 		infoJson := &info.InfoResponse{}
 		if err := json.Unmarshal(body, infoJson); err != nil {
-			return "", err
+			return err
 		}
 
 		_, ok := infoJson.FileInfo["size_bytes"]
 		if !ok {
-			return "", fmt.Errorf("invalid info response: %s", infoJson)
+			return fmt.Errorf("invalid info response: %s", infoJson)
 		}
 
 		// check hydrated manifest fields
 		_, ok = infoJson.Manifest["dex_ingest_datetime"]
 		if !ok {
-			return "", fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
+			return fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
 		}
 
-		if len(infoJson.Deliveries) != len(c.deliveries) {
-			return "", fmt.Errorf("incorrect deliveries: %+v %+v", infoJson.Deliveries, c.deliveries)
+		if len(infoJson.Deliveries) > expectedNumDeliveries {
+			return fmt.Errorf("too many deliveries: %+v %d", infoJson.Deliveries, expectedNumDeliveries)
 		}
+
+		if len(infoJson.Deliveries) == expectedNumDeliveries {
+			return nil
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
-
-	return tuid, nil
+	return fmt.Errorf("incorrect results from info endpoint %s", string(rspBody))
 }

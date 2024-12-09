@@ -2,8 +2,6 @@ package event
 
 const FileReadyEventType = "FileReady"
 
-var FileReadyPublisher Publishers[*FileReady]
-
 var MaxRetries = 5
 var MaxMessages = 3
 
