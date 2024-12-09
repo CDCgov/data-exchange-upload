@@ -2,36 +2,17 @@ package event
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log/slog"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 )
 
-var FileReadyChan chan *FileReady
-
-func InitFileReadyChannel() {
-	FileReadyChan = make(chan *FileReady)
+type MemoryBus[T Identifiable] struct {
+	Chan   chan T
+	closed bool
 }
 
-func CloseFileReadyChannel() {
-	close(FileReadyChan)
-}
-
-func GetChannel[T Identifiable]() (chan T, error) {
-	if r, ok := any(FileReadyChan).(chan T); ok {
-		return r, nil
-	}
-
-	return nil, fmt.Errorf("channel not found")
-}
-
-type MemorySubscriber[T Identifiable] struct {
-	Chan chan T
-}
-
-func (ms *MemorySubscriber[T]) Listen(ctx context.Context, process func(context.Context, T) error) error {
+func (ms *MemoryBus[T]) Listen(ctx context.Context, process func(context.Context, T) error) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -51,39 +32,26 @@ func (ms *MemorySubscriber[T]) Listen(ctx context.Context, process func(context.
 	}
 }
 
-func (ms *MemorySubscriber[T]) Close() error {
-	slog.Info("closing in-memory subscriber")
+func (ms *MemoryBus[T]) Close() error {
+	ms.closed = true
+	if !ms.closed && ms.Chan != nil {
+		close(ms.Chan)
+	}
 	return nil
 }
 
-func (ms *MemorySubscriber[T]) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+func (ms *MemoryBus[T]) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "Memory Subscriber"
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 	return rsp
 }
 
-type MemoryPublisher[T Identifiable] struct {
-	Chan chan T
-}
-
-func (mp *MemoryPublisher[T]) Publish(_ context.Context, event T) error {
-	if mp.Chan != nil {
+func (mp *MemoryBus[T]) Publish(_ context.Context, event T) error {
+	if mp.Chan != nil && !mp.closed {
 		go func() {
 			mp.Chan <- event
 		}()
-		return nil
 	}
-	return errors.New("No event channel found")
-}
-
-func (mp *MemoryPublisher[T]) Close() error {
 	return nil
-}
-
-func (mp *MemoryPublisher[T]) Health(_ context.Context) (rsp models.ServiceHealthResp) {
-	rsp.Service = "Memory Publisher"
-	rsp.Status = models.STATUS_UP
-	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
-	return rsp
 }
