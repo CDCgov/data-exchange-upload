@@ -3,6 +3,7 @@ package delivery
 import (
 	"context"
 	"io"
+	"net/url"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
@@ -106,7 +107,13 @@ func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader
 	_, err = client.UploadStream(ctx, r, &azblob.UploadStreamOptions{
 		Metadata: storeaz.PointerizeMetadata(m),
 	})
-	return client.URL(), err
+
+	decodedUrl, err := url.QueryUnescape(client.URL())
+	if err != nil {
+		return "", err
+	}
+
+	return decodedUrl, err
 }
 
 func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
