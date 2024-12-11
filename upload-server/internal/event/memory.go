@@ -33,10 +33,10 @@ func (ms *MemoryBus[T]) Listen(ctx context.Context, process func(context.Context
 }
 
 func (ms *MemoryBus[T]) Close() error {
-	ms.closed = true
 	if !ms.closed && ms.Chan != nil {
 		close(ms.Chan)
 	}
+	ms.closed = true
 	return nil
 }
 
