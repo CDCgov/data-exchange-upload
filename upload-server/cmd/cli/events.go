@@ -8,13 +8,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 )
 
-func InitFileReadyPublisher(ctx context.Context, appConfig appconfig.AppConfig) error {
-	p, err := NewEventPublisher[*event.FileReady](ctx, appConfig)
-	event.FileReadyPublisher = p
-	return err
-}
-
-func NewEventPublisher[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (event.Publishers[T], error) {
+func NewEventPublisher[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig, defaultBus event.Publisher[T]) (event.Publishers[T], error) {
 	p := event.Publishers[T]{}
 
 	if appConfig.SNSPublisherConnection != nil {
@@ -37,19 +31,14 @@ func NewEventPublisher[T event.Identifiable](ctx context.Context, appConfig appc
 		}
 		health.Register(ap)
 		p = append(p, ap)
-		return p, err
 	}
 
 	if len(p) < 1 {
-		c, err := event.GetChannel[T]()
-		if err != nil {
-			return nil, err
-		}
-		p = append(p, &event.MemoryPublisher[T]{
-			Chan: c,
-		}, &event.FilePublisher[T]{
-			Dir: appConfig.LocalEventsFolder,
-		})
+		p = append(p,
+			defaultBus,
+			&event.FilePublisher[T]{
+				Dir: appConfig.LocalEventsFolder,
+			})
 	}
 
 	return p, nil

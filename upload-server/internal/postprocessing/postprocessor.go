@@ -28,7 +28,7 @@ type PostProcessor struct {
 	UploadDir     string
 }
 
-func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
+func DeliverFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 
 	rb := reports.NewBuilder[reports.FileCopyContent](
 		"1.0.0",

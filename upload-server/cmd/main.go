@@ -72,18 +72,20 @@ func main() {
 	}
 	defer reports.CloseAll()
 
-	event.InitFileReadyChannel()
-	defer event.CloseFileReadyChannel()
+	defaultBus := &event.MemoryBus[*event.FileReady]{
+		Chan: make(chan *event.FileReady),
+	}
 
-	if err := cli.InitFileReadyPublisher(ctx, appConfig); err != nil {
+	publisher, err := cli.NewEventPublisher[*event.FileReady](ctx, appConfig, defaultBus)
+	if err != nil {
 		slog.Error("error creating file ready publisher", "error", err)
 		os.Exit(appMainExitCode)
 	}
-	defer event.FileReadyPublisher.Close()
+	defer publisher.Close()
 
 	mainWaitGroup.Add(appConfig.ListenerWorkers)
 	for range appConfig.ListenerWorkers {
-		subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
+		subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig, defaultBus)
 		if err != nil {
 			slog.Error("error subscribing to file ready", "error", err)
 			os.Exit(appMainExitCode)
@@ -95,7 +97,7 @@ func main() {
 		}
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := subscriber.Listen(ctx, postprocessing.ProcessFileReadyEvent); err != nil {
+			if err := subscriber.Listen(ctx, postprocessing.DeliverFileReadyEvent); err != nil {
 				cancelFunc()
 				slog.Error("Listener failed", "error", err)
 			}
@@ -103,7 +105,7 @@ func main() {
 	}
 
 	// start serving the app
-	handler, err := cli.Serve(ctx, appConfig)
+	handler, err := cli.Serve(ctx, appConfig, publisher)
 	if err != nil {
 		slog.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
@@ -138,7 +140,7 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl); err != nil {
+			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}
@@ -154,6 +156,7 @@ func main() {
 		sigint := make(chan os.Signal, 1)
 		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
 		<-sigint
+		slog.Info("signal recieved stopping system")
 		cancelFunc()
 	}()
 	<-ctx.Done()
