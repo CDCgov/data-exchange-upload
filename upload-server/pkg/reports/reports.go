@@ -18,4 +18,5 @@ func Publish(ctx context.Context, r *Report) {
 
 func CloseAll() {
 	Reporters.Close()
+	Reporters = []event.Publisher[*Report]{}
 }

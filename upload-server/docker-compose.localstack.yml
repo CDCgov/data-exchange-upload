@@ -12,7 +12,7 @@ services:
       - ./configs/local/localstack:/etc/localstack/init/ready.d
   upload-server:
     environment:
-      - SQS_SUBSCRIBER_EVENT_ARN=arn:aws:sns:us-east-1:000000000042:test-topic
+      - SQS_SUBSCRIBER_EVENT_ARN=arn:aws:sqs:us-east-1:000000000042:test-topic
       - SNS_PUBLISHER_EVENT_ARN=arn:aws:sns:us-east-1:000000000042:test-topic
       - SNS_REPORTER_EVENT_ARN=arn:aws:sns:us-east-1:000000000000:report-topic
       - AWS_DEFAULT_REGION=us-east-1
