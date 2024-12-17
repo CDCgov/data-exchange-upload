@@ -112,6 +112,9 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
+	if len(manifest) == 0 {
+		manifest = resp.ChangeFileInfo.MetaData
+	}
 	logger.Info("checking the sender manifest:", "manifest", manifest)
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
@@ -243,6 +246,10 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	logger.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
+	for k, v := range handler.ParseMetadataHeader(event.HTTPRequest.Header.Get("Upload-Metadata")) {
+		manifest[k] = v
+	}
+
 	manifest["dex_ingest_datetime"] = timestamp
 	manifest["upload_id"] = tuid
 	resp.ChangeFileInfo.MetaData = manifest

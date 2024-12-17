@@ -55,12 +55,13 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 	// Create a new HTTP handler for the tusd server by providing a configuration.
 	// The StoreComposer property must be set to allow the handler to function.
 	handler, err := hooks.NewHandlerWithHooks(&tusd.Config{
-		BasePath:                basePath,
-		StoreComposer:           composer,
-		NotifyCompleteUploads:   true,
-		Logger:                  slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})),
-		RespectForwardedHeaders: true,
-		DisableDownload:         true,
+		BasePath:                   basePath,
+		StoreComposer:              composer,
+		NotifyCompleteUploads:      true,
+		Logger:                     slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})),
+		RespectForwardedHeaders:    true,
+		DisableDownload:            true,
+		EnableExperimentalProtocol: true,
 	}, hooksHandler, []hooks.HookType{hooks.HookPreCreate, hooks.HookPostCreate, hooks.HookPostReceive, hooks.HookPreFinish, hooks.HookPostFinish, hooks.HookPostTerminate}) // .handler
 	if err != nil {
 		logger.Error("error start tusd handler", "error", err)
