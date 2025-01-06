@@ -187,7 +187,7 @@ func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) error {
 	s.QueueURL = *rsp.QueueUrl
 	arn := GetQueueArn(rsp.QueueUrl)
 	if *arn != s.ARN {
-		return fmt.Errorf("failed to get or create the correct queue arn: %s url: %s", *arn, *rsp.QueueUrl)
+		return fmt.Errorf("failed to get or create the correct queue arn, given arn: %s arn: %s url: %s", s.ARN, *arn, *rsp.QueueUrl)
 	}
 	return nil
 }
