@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -184,7 +185,59 @@ func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) error {
 		return nil
 	}
 	s.QueueURL = *rsp.QueueUrl
+	arn := GetQueueArn(rsp.QueueUrl)
+	if *arn != s.ARN {
+		return fmt.Errorf("failed to get or create the correct queue arn: %s url: %s", *arn, *rsp.QueueUrl)
+	}
 	return nil
+}
+
+func (s *SQSSubscriber[T]) setUpDeadletterQueue(ctx context.Context, arn *string) error {
+	client, err := s.Client(ctx)
+	if err != nil {
+		return err
+	}
+
+	rsp, err := client.CreateQueue(ctx, &sqs.CreateQueueInput{
+		QueueName: aws.String(fmt.Sprintf("dl-queue-%s", *arn)),
+		Tags:      tags,
+	})
+	if err != nil {
+		return err
+	}
+	dlQueueARN := GetQueueArn(rsp.QueueUrl)
+
+	policy := map[string]string{
+		"deadLetterTargetArn": *dlQueueARN,
+		"maxReceiveCount":     "10", //TODO make configurable
+	}
+
+	b, err := json.Marshal(policy)
+	if err != nil {
+		return err
+	}
+
+	// snippet-start:[sqs.go.dead_letter_queue.set_attributes]
+	if _, err := client.SetQueueAttributes(ctx, &sqs.SetQueueAttributesInput{
+		QueueUrl: &s.QueueURL,
+		Attributes: map[string]string{
+			"RedrivePolicy": string(b),
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetQueueArn(queueURL *string) *string {
+	// snippet-start:[sqs.go.get_queue_url.arn]
+	parts := strings.Split(*queueURL, "/")
+	subParts := strings.Split(parts[2], ".")
+
+	arn := "arn:aws:" + subParts[0] + ":" + subParts[1] + ":" + parts[3] + ":" + parts[4]
+	// snippet-end:[sqs.go.get_queue_url.arn]
+
+	return &arn
 }
 
 func (s *SQSSubscriber[T]) Subscribe(ctx context.Context, topicArn string) error {
