@@ -25,7 +25,11 @@ func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig app
 		if batchMax == 0 {
 			batchMax = event.MaxMessages
 		}
-		s, err := event.NewSQSSubscriber[T](ctx, arn, batchMax, appConfig.SQSSubscriberConnection.MaxRetries)
+		maxRetries := appConfig.SQSSubscriberConnection.MaxRetries
+		if maxRetries == 0 {
+			maxRetries = 5
+		}
+		s, err := event.NewSQSSubscriber[T](ctx, arn, batchMax, maxRetries)
 		if err != nil {
 			return s, err
 		}
