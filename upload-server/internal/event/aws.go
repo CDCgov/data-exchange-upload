@@ -120,7 +120,7 @@ func (s SNSPublisher[T]) Publish(ctx context.Context, e T) error {
 	return err
 }
 
-func NewSQSSubscriber[T Identifiable](ctx context.Context, queueArn string, batchMax int) (*SQSSubscriber[T], error) {
+func NewSQSSubscriber[T Identifiable](ctx context.Context, queueArn string, batchMax int, retryMax int) (*SQSSubscriber[T], error) {
 	if !arn.IsARN(queueArn) {
 		return nil, ErrInvalidARN
 	}
@@ -132,8 +132,21 @@ func NewSQSSubscriber[T Identifiable](ctx context.Context, queueArn string, batc
 		Max: batchMax,
 		ARN: queueArn,
 	}
-	if err := s.queue(ctx, qa.Resource); err != nil {
-		return s, err
+
+	s.QueueURL, err = s.queue(ctx, qa.Resource)
+	if err != nil {
+		s.QueueURL, err = s.createQueue(ctx, qa.Resource)
+		if err != nil {
+			return s, err
+		}
+		if err := s.setUpDeadletterQueue(ctx, qa.Resource, retryMax); err != nil {
+			return s, err
+		}
+	}
+
+	arn := GetQueueArn(&s.QueueURL)
+	if *arn != s.ARN {
+		return s, fmt.Errorf("failed to get or create the correct queue arn, given arn: %s arn: %s url: %s", s.ARN, *arn, s.QueueURL)
 	}
 
 	return s, nil
@@ -165,41 +178,43 @@ func (s *SQSSubscriber[T]) Health(ctx context.Context) (rsp models.ServiceHealth
 	return rsp
 }
 
-func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) error {
+func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) (string, error) {
 	client, err := s.Client(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	rsp, err := client.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
 		QueueName: aws.String(name),
 	})
 	if err != nil {
-		rsp, e := client.CreateQueue(ctx, &sqs.CreateQueueInput{
-			QueueName: aws.String(name),
-			Tags:      tags,
-		})
-		if e != nil {
-			return errors.Join(e, err)
-		}
-		s.QueueURL = *rsp.QueueUrl
-		return nil
+		return "", err
 	}
-	s.QueueURL = *rsp.QueueUrl
-	arn := GetQueueArn(rsp.QueueUrl)
-	if *arn != s.ARN {
-		return fmt.Errorf("failed to get or create the correct queue arn, given arn: %s arn: %s url: %s", s.ARN, *arn, *rsp.QueueUrl)
-	}
-	return nil
+	return *rsp.QueueUrl, nil
 }
 
-func (s *SQSSubscriber[T]) setUpDeadletterQueue(ctx context.Context, arn *string) error {
+func (s *SQSSubscriber[T]) createQueue(ctx context.Context, name string) (string, error) {
+	client, err := s.Client(ctx)
+	if err != nil {
+		return "", err
+	}
+	rsp, e := client.CreateQueue(ctx, &sqs.CreateQueueInput{
+		QueueName: aws.String(name),
+		Tags:      tags,
+	})
+	if e != nil {
+		return "", e
+	}
+	return *rsp.QueueUrl, nil
+}
+
+func (s *SQSSubscriber[T]) setUpDeadletterQueue(ctx context.Context, name string, retryMax int) error {
 	client, err := s.Client(ctx)
 	if err != nil {
 		return err
 	}
 
 	rsp, err := client.CreateQueue(ctx, &sqs.CreateQueueInput{
-		QueueName: aws.String(fmt.Sprintf("dl-queue-%s", *arn)),
+		QueueName: aws.String(fmt.Sprintf("dl-queue-%s", name)),
 		Tags:      tags,
 	})
 	if err != nil {
@@ -209,7 +224,7 @@ func (s *SQSSubscriber[T]) setUpDeadletterQueue(ctx context.Context, arn *string
 
 	policy := map[string]string{
 		"deadLetterTargetArn": *dlQueueARN,
-		"maxReceiveCount":     "10", //TODO make configurable
+		"maxReceiveCount":     fmt.Sprintf("%d", retryMax),
 	}
 
 	b, err := json.Marshal(policy)
@@ -219,7 +234,7 @@ func (s *SQSSubscriber[T]) setUpDeadletterQueue(ctx context.Context, arn *string
 
 	// snippet-start:[sqs.go.dead_letter_queue.set_attributes]
 	if _, err := client.SetQueueAttributes(ctx, &sqs.SetQueueAttributesInput{
-		QueueUrl: &s.QueueURL,
+		QueueUrl: aws.String(s.QueueURL),
 		Attributes: map[string]string{
 			"RedrivePolicy": string(b),
 		},
