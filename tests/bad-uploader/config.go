@@ -252,6 +252,11 @@ func init() {
 	if !flagset["case-dir"] {
 		cases.cases = []TestCase{testcase}
 	}
+	if flagset["timeout"] {
+		for _, c := range cases.cases {
+			c.TimeLimit = Duration(timeout)
+		}
+	}
 	if !flagset["infoUrl"] {
 		serverUrl, _ := path.Split(url)
 		infoUrl, _ = neturl.JoinPath(serverUrl, "info")
