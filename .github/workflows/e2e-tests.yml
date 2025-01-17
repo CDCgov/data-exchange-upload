@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install podman compose
-        run: pip3 install podman-compose
+        run: pip3 install podman-compose==1.2.0
       - name: Run E2E Tests
         id: test
         run:
