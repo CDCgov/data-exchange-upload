@@ -2,22 +2,12 @@
     "status": "UP",
     "services": [
         {
-            "service": "Event Publishing processing-status-cosmos-db-report-sink-topics",
+            "service": "SNS - arn:aws:sns:us-east-1:767828728573:phdo-psapi-tst-topic",
             "status": "UP",
             "health_issue": "None reported"
         },
         {
-            "service": "Event Publishing ocio-ede-tst-upload-file-ready-topic",
-            "status": "UP",
-            "health_issue": "None reported"
-        },
-        {
-            "service": "ocio-ede-tst-upload-file-ready-subscription Event Subscriber",
-            "status": "UP",
-            "health_issue": "None reported"
-        },
-        {
-            "service": "Tus storage",
+            "service": "Tus storage S3 Bucket phdo-upload-tst",
             "status": "UP",
             "health_issue": "None reported"
         },
@@ -27,17 +17,12 @@
             "health_issue": "None reported"
         },
         {
-            "service": "Azure deliver target ehdi",
-            "status": "UP",
-            "health_issue": ""
-        },
-        {
             "service": "Azure deliver target edav",
             "status": "UP",
             "health_issue": ""
         },
         {
-            "service": "Azure deliver target ncird",
+            "service": "Azure deliver target ehdi",
             "status": "UP",
             "health_issue": ""
         },
@@ -47,7 +32,12 @@
             "health_issue": ""
         },
         {
-            "service": "Azure source",
+            "service": "Azure deliver target ncird",
+            "status": "UP",
+            "health_issue": ""
+        },
+        {
+            "service": "S3 source phdo-upload-tst",
             "status": "UP",
             "health_issue": ""
         }
