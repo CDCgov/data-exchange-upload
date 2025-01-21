@@ -1,8 +1,8 @@
 version: "3.8"
 
 services:
-  localstack:4.0.3:
-    image: localstack/localstack
+  localstack:
+    image: localstack/localstack:4.0.3
     environment:
       # LocalStack configuration: https://docs.localstack.cloud/references/configuration/
       - DEBUG=${DEBUG:-0}
