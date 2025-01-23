@@ -29,7 +29,8 @@
           "NJ-PHA",
           "ND-PHA",
           "NE-PHA",
-          "MI-PHA"
+          "MI-PHA",
+          "PHDO-USER"
         ],
         "description": "This field is the identifier for the sender of the data."
       },
@@ -45,7 +46,8 @@
           "NJ-PHA",
           "ND-PHA",
           "NE-PHA",
-          "MI-PHA"
+          "MI-PHA",
+          "PHDO-USER"
         ],
         "description": "This field is the identifier for the data producer."
       },
@@ -61,7 +63,8 @@
           "NJ",
           "ND",
           "NE",
-          "MI"
+          "MI",
+          "XX"
         ],
         "description": "This field indicates the jurisdiction associated with the data. If not provided, populate with null."
       },

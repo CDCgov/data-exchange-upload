@@ -5,7 +5,8 @@
 				"field_name": "sender_id",
 				"required": true,
 				"allowed_values": [
-					"APHL"
+					"APHL",
+					"PHDO-USER"
 				],
 				"description": "This field is the identifier for the sender of the data."
 			},
