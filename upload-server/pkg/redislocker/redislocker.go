@@ -206,7 +206,7 @@ type redisLock struct {
 }
 
 func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
-	l.logger.Info("locking upload", "id", l.id)
+	l.logger.Info("locking upload")
 	if err := l.requestLock(ctx); err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
 			}
 		}
 	}()
-	l.logger.Info("locked upload", "id", l.id)
+	l.logger.Info("locked upload")
 	return nil
 }
 
@@ -253,7 +253,7 @@ func (l *redisLock) requestLock(ctx context.Context) error {
 	errs = errors.Join(errs, err)
 	select {
 	case <-c:
-		l.logger.Info("notified of lock release", "id", l.id)
+		l.logger.Info("notified of lock release")
 		return l.aquireLock(ctx)
 	case <-ctx.Done():
 		return errors.Join(errs, handler.ErrLockTimeout)

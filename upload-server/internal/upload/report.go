@@ -2,25 +2,13 @@ package upload
 
 import (
 	"log/slog"
-	"reflect"
-	"strings"
 	"time"
 
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
-
-var logger *slog.Logger
-
-func init() {
-	type Empty struct{}
-	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
-	// add package name to app logger
-	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
-}
 
 func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	// Get values from event
@@ -45,7 +33,8 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 		Size:     uploadSize,
 	}).Build()
 
-	logger.Info("REPORT", "report", report)
+	slog.Info("REPORT", "report", report)
+
 	reports.Publish(event.Context, report)
 
 	return resp, nil
@@ -56,7 +45,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
-	logger.Info("Attempting to report upload started")
+	slog.Info("Attempting to report upload started")
 
 	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
@@ -88,7 +77,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		Size:     uploadSize,
 	}).Build()
 
-	logger.Info("REPORT upload-status", "report", report)
+	slog.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
 
 	return resp, nil
@@ -99,7 +88,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
-	logger.Info("Attempting to report upload completed", "uploadId", uploadId)
+	slog.Info("Attempting to report upload completed", "uploadId", uploadId)
 
 	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
@@ -131,7 +120,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		Size:     uploadSize,
 	}).Build()
 
-	logger.Info("REPORT upload-status", "report", report)
+	slog.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
 
 	return resp, nil

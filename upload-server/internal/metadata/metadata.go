@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -20,7 +19,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
@@ -29,15 +27,6 @@ const FolderStructureDate = "date_YYYY_MM_DD"
 const FolderStructureRoot = "root"
 const FilenameSuffixUploadId = "upload_id"
 const ErrNoUploadId = "no upload ID defined"
-
-var logger *slog.Logger
-
-func init() {
-	type Empty struct{}
-	pkgParts := strings.Split(reflect.TypeOf(Empty{}).PkgPath(), "/")
-	// add package name to app logger
-	logger = sloger.With("pkg", pkgParts[len(pkgParts)-1])
-}
 
 type PreCreateResponse struct {
 	UploadId         string   `json:"upload_id"`
@@ -100,7 +89,7 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 		return err
 	}
 	config := c.Metadata
-	logger.Info("checking config", "config", config)
+	slog.Info("checking config", "config", config)
 
 	var errs error
 	for _, field := range config.Fields {
@@ -112,7 +101,7 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
-	logger.Info("checking the sender manifest:", "manifest", manifest)
+	slog.Error("checking the sender manifest:", "manifest", manifest)
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
@@ -138,12 +127,12 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
-		logger.Info("REPORT", "report", report)
+		slog.Info("REPORT", "report", report)
 		reports.Publish(event.Context, report)
 	}()
 
 	if err := v.verify(event.Context, manifest); err != nil {
-		logger.Error("validation errors and warnings", "errors", err)
+		slog.Error("validation errors and warnings", "errors", err)
 
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
@@ -240,7 +229,7 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	resp.ChangeFileInfo.ID = tuid
 
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
-	logger.Info("adding global timestamp", "timestamp", timestamp)
+	slog.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
 	manifest["dex_ingest_datetime"] = timestamp
@@ -271,7 +260,7 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 			}},
 	}).Build()
 
-	logger.Info("METADATA TRANSFORM REPORT", "report", report)
+	slog.Info("METADATA TRANSFORM REPORT", "report", report)
 	reports.Publish(event.Context, report)
 
 	return resp, nil
