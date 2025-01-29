@@ -41,7 +41,7 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 			slog.Error("failed to register destination", "destination", t)
 		}
 	}
-	slog.Info("targets", "targets", delivery.Targets)
+	slog.Info("registering destinations", "targets", delivery.Targets)
 
 	for _, g := range cfg.Groups {
 		delivery.Groups[g.Key()] = g

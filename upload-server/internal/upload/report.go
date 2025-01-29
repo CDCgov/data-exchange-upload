@@ -17,6 +17,8 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
+	slog.Info("starting upload-status report", "uploadId", uploadId)
+
 	report := reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
 		reports.StageUploadStatus,
@@ -33,9 +35,10 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 		Size:     uploadSize,
 	}).Build()
 
-	slog.Info("REPORT", "report", report)
-
+	slog.Info("REPORT upload-status", "report", report, "uploadId", uploadId)
 	reports.Publish(event.Context, report)
+
+	slog.Info("upload-status report complete", "uploadId", uploadId)
 
 	return resp, nil
 }
@@ -45,7 +48,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
-	slog.Info("Attempting to report upload started")
+	slog.Info("starting upload-started report", "uploadId", uploadId)
 
 	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
@@ -59,6 +62,8 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		},
 		Status: reports.StatusSuccess,
 	}).Build()
+
+	slog.Info("REPORT upload-started", "report", report, "uploadId", uploadId)
 	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
@@ -77,8 +82,10 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		Size:     uploadSize,
 	}).Build()
 
-	slog.Info("REPORT upload-status", "report", report)
+	slog.Info("REPORT upload-status", "report", report, "uploadId", uploadId)
 	reports.Publish(event.Context, report)
+
+	slog.Info("upload-started report complete", "uploadId", uploadId)
 
 	return resp, nil
 }
@@ -88,7 +95,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
-	slog.Info("Attempting to report upload completed", "uploadId", uploadId)
+	slog.Info("starting upload-completed report", "uploadId", uploadId)
 
 	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
@@ -102,6 +109,8 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		},
 		Status: reports.StatusSuccess,
 	}).Build()
+
+	slog.Info("REPORT upload-completed", "report", report, "uploadId", uploadId)
 	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
@@ -120,8 +129,9 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		Size:     uploadSize,
 	}).Build()
 
-	slog.Info("REPORT upload-status", "report", report)
+	slog.Info("REPORT upload-status", "report", report, "uploadId", uploadId)
 	reports.Publish(event.Context, report)
 
+	slog.Info("upload-completed report complete", "uploadId", uploadId)
 	return resp, nil
 }

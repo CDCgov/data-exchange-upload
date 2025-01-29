@@ -172,7 +172,7 @@ func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {
 		exchange: &RedisLockExchange{
 			client: locker.redis,
 		},
-		logger: locker.logger.With("upload_id", id),
+		logger: locker.logger.With("uploadId", id),
 	}, nil
 }
 
@@ -206,7 +206,7 @@ type redisLock struct {
 }
 
 func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
-	l.logger.Info("locking upload")
+	l.logger.Debug("locking upload")
 	if err := l.requestLock(ctx); err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
 			}
 		}
 	}()
-	l.logger.Info("locked upload")
+	l.logger.Debug("locked upload")
 	return nil
 }
 
@@ -253,7 +253,7 @@ func (l *redisLock) requestLock(ctx context.Context) error {
 	errs = errors.Join(errs, err)
 	select {
 	case <-c:
-		l.logger.Info("notified of lock release")
+		l.logger.Debug("notified of lock release")
 		return l.aquireLock(ctx)
 	case <-ctx.Done():
 		return errors.Join(errs, handler.ErrLockTimeout)
@@ -265,22 +265,22 @@ func (l *redisLock) keepAlive(ctx context.Context) error {
 	for {
 		select {
 		case <-time.After(time.Until(l.mutex.Until()) / 2):
-			l.logger.Info("extend lock attempt started", "time", time.Now())
+			l.logger.Debug("extend lock attempt started", "time", time.Now())
 			_, err := l.mutex.ExtendContext(ctx)
 			if err != nil {
 				l.logger.Error("failed to extend lock", "time", time.Now(), "error", err)
 				return err
 			}
-			l.logger.Info("lock extended", "time", time.Now())
+			l.logger.Debug("lock extended", "time", time.Now())
 		case <-ctx.Done():
-			l.logger.Info("lock was closed")
+			l.logger.Debug("lock was closed")
 			return nil
 		}
 	}
 }
 
 func (l *redisLock) Unlock() error {
-	l.logger.Info("unlocking upload")
+	l.logger.Debug("unlocking upload")
 	if l.cancel != nil {
 		defer l.cancel()
 	}
@@ -288,7 +288,7 @@ func (l *redisLock) Unlock() error {
 	if !b {
 		l.logger.Error("failed to release lock", "err", err)
 	}
-	l.logger.Info("notifying of lock release")
+	l.logger.Debug("notifying of lock release")
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	if e := l.exchange.Release(ctx, l.id); e != nil {

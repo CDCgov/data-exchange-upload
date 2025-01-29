@@ -18,6 +18,8 @@ type PostProcessor struct {
 
 func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 
+	slog.Info("starting file copy", "uploadId", e.UploadId)
+
 	rb := reports.NewBuilder[reports.FileCopyContent](
 		"1.0.0",
 		reports.StageFileCopy,
@@ -34,7 +36,10 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
+		slog.Info("REPORT blob-file-copy", "report", report, "uploadId", e.UploadId)
 		reports.Publish(ctx, report)
+
+		slog.Info("file-copy report complete", "uploadId", e.UploadId)
 	}()
 
 	src, ok := delivery.GetSource("upload")
@@ -64,6 +69,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
+	slog.Info("file delivered", "event", e, "uploadId", e.UploadId) // Is this necessary?
 
 	m, err := src.GetMetadata(ctx, e.UploadId)
 	if err != nil {

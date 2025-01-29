@@ -101,8 +101,11 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 
 func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
-	slog.Error("checking the sender manifest:", "manifest", manifest)
 	tuid := event.Upload.ID
+
+	slog.Info("starting metadata-verify", "uploadId", tuid)
+	slog.Info("checking the sender manifest", "manifest", manifest, "uploadId", tuid)
+
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
 	}
@@ -127,8 +130,9 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
-		slog.Info("REPORT", "report", report)
+		slog.Info("REPORT metadata-verify", "report", report, "uploadId", report.UploadID)
 		reports.Publish(event.Context, report)
+		slog.Info("metadata-verify complete", "uploadId", report.UploadID)
 	}()
 
 	if err := v.verify(event.Context, manifest); err != nil {
@@ -160,6 +164,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	}
 
 	rb.SetStatus(reports.StatusSuccess)
+
 	return resp, nil
 }
 
@@ -228,6 +233,8 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
+	slog.Info("starting metadata-transform", "uploadId", tuid)
+
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
 	slog.Info("adding global timestamp", "timestamp", timestamp)
 
@@ -260,8 +267,10 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 			}},
 	}).Build()
 
-	slog.Info("METADATA TRANSFORM REPORT", "report", report)
+	slog.Info("REPORT metadata-transform", "report", report, "uploadId", report.UploadID)
 	reports.Publish(event.Context, report)
+
+	slog.Info("metadata-transform complete", "uploadId", report.UploadID)
 
 	return resp, nil
 }
