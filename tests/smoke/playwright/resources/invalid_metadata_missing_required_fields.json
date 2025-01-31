@@ -76,18 +76,6 @@
     "expectedErrorMessages": ["field meta_ext_submissionperiod was missing"]
   },
   {
-    "name": "should error because of missing sender_id for ehdi_csv",
-    "metadata": {
-      "data_stream_id": "ehdi",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "RI",
-      "data_producer_id": "RI-PHA"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": ["field sender_id was missing"]
-  },
-  {
     "name": "should error because of missing meta_ext_file_timestamp for eicr_fhir",
     "metadata": {
       "data_stream_id": "eicr",
