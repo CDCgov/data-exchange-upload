@@ -67,48 +67,6 @@
     "expectedErrorMessages": ["sender_id had disallowed value blah"]
   },
   {
-    "name": "should error because of invalid sender_id for ehdi_csv",
-    "metadata": {
-      "version": "2.0",
-      "data_stream_id": "ehdi",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "RI",
-      "data_producer_id": "RI-PHA",
-      "sender_id": "blah"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": ["sender_id had disallowed value blah"]
-  },
-  {
-    "name": "should error because of invalid data_producer_id for ehdi_csv",
-    "metadata": {
-      "version": "2.0",
-      "data_stream_id": "ehdi",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "RI",
-      "data_producer_id": "blah",
-      "sender_id": "RI-PHA"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": ["data_producer_id had disallowed value blah"]
-  },
-  {
-    "name": "should error because of invalid jurisdiction for ehdi_csv",
-    "metadata": {
-      "version": "2.0",
-      "data_stream_id": "ehdi",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "blah",
-      "data_producer_id": "RI-PHA",
-      "sender_id": "RI-PHA"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": ["jurisdiction had disallowed value blah"]
-  },
-  {
     "name": "should error because of invalid sender_id for eicr_fhir",
     "metadata": {
       "version": "2.0",

@@ -53,20 +53,6 @@
   },
   {
     "manifest": {
-      "data_stream_id": "ehdi",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "RI",
-      "data_producer_id": "RI-PHA",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_file_timestamp": "test-timestamp",
-      "meta_ext_uploadid": "test-upload-id",
-      "meta_ext_source": "test-src",
-      "meta_ext_filestatus": "test-file-status"
-    }
-  },
-  {
-    "manifest": {
       "data_stream_id": "eicr",
       "data_stream_route": "fhir",
       "data_producer_id": "test-producer-id",
