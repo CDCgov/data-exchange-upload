@@ -244,6 +244,7 @@ async function uploadFile(file, { chunkSize, parallelUploads }) {
   const options = {
     headers: {
       "Tus-Resumable": "1.0.0",
+      "Content-Type": "application/offset+octet-stream"
     },
     metadata: {
       filename: file.name,
@@ -318,8 +319,7 @@ async function uploadFile(file, { chunkSize, parallelUploads }) {
       const durationUpload = new Date().getTime() - startTimeUpload;
 
       console.log(
-        `total upload duration [ms]: ${durationUpload}, [s]: ${
-          durationUpload / 1000
+        `total upload duration [ms]: ${durationUpload}, [s]: ${durationUpload / 1000
         }`
       );
 

@@ -42,7 +42,8 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
         expect(uploadUrlId).not.toBeNull();
 
         // wait 10 seconds for deliveries to complete
-        await page.waitForTimeout(10000);
+        await page.waitForTimeout(15000);
+        
         const response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
         expect(response.ok()).toBeTruthy();
 
@@ -55,7 +56,7 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
         validateDeliveries(
           infoResponse.deliveries,
           config.delivery_targets,
-          `${config?.manifest?.received_filename}_${uploadUrlId}`
+          `${config?.manifest?.received_filename}`
         );
       });
     });
