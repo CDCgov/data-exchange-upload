@@ -12,7 +12,7 @@ targets:
   eicr:
     name: eicr
     type: s3
-    bucket_name: ehdi
+    bucket_name: eicr
     access_key_id: minioadmin
     secret_access_key: minioadmin
     endpoint: "http://minio:8000"
@@ -20,7 +20,7 @@ targets:
   ncird:
     name: ncird
     type: s3
-    bucket_name: ehdi
+    bucket_name: ncird
     access_key_id: minioadmin
     secret_access_key: minioadmin
     endpoint: "http://minio:8000"
