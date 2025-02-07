@@ -44,7 +44,6 @@ var (
 
 const TestFolderUploadsTus = "uploads"
 const TestEDAVFolder = "uploads/edav"
-const TestEhdiFolder = "uploads/ehdi"
 const TestEicrFolder = "uploads/eicr"
 const TestEventsFolder = "uploads/events"
 const TestNcirdFolder = "uploads/ncird"
@@ -52,7 +51,6 @@ const TestReportsFolder = "uploads/reports"
 
 var AllTargets = map[string]string{
 	"edav":  TestEDAVFolder,
-	"ehdi":  TestEhdiFolder,
 	"eicr":  TestEicrFolder,
 	"ncird": TestNcirdFolder,
 }
