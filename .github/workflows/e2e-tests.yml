@@ -20,6 +20,7 @@ defaults:
 jobs:
   e2e-tests:
     strategy:
+      max-parallel: 2
       matrix:
         include:
           - title: 'E2E FS Tests'
