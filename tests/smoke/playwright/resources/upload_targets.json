@@ -8,10 +8,6 @@
     "route": "testevent1"
   },
   {
-    "dataStream": "ehdi",
-    "route": "csv"
-  },
-  {
     "dataStream": "eicr",
     "route": "fhir"
   },
