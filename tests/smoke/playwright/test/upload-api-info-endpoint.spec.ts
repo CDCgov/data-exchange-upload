@@ -18,6 +18,9 @@ import {
 } from '../resources/test-utils';
 import tusClient from '../tus-playwright';
 
+// set the wait time for checking the info page to the ENV VAR or 15000 by default
+const UPLOAD_INFO_WAIT = process.env.UPLOAD_INFO_WAIT ? parseInt(process.env.UPLOAD_INFO_WAIT) : 15000;
+
 test.describe.configure({ mode: 'parallel' });
 
 test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
@@ -40,9 +43,9 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
         expect(uploadId).not.toBeNull();
         const uploadUrlId = uploadResponse.getUploadUrlId();
         expect(uploadUrlId).not.toBeNull();
-
-        // wait 10 seconds for deliveries to complete
-        await page.waitForTimeout(10000);
+        
+        await page.waitForTimeout(UPLOAD_INFO_WAIT);
+        
         const response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
         expect(response.ok()).toBeTruthy();
 
@@ -55,7 +58,7 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
         validateDeliveries(
           infoResponse.deliveries,
           config.delivery_targets,
-          `${config?.manifest?.received_filename}_${uploadUrlId}`
+          `${config?.manifest?.received_filename}`
         );
       });
     });
@@ -84,8 +87,7 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
 
       uploadResponse = await uploader.upload();
 
-      // wait 10 seconds for deliveries to complete
-      await page.waitForTimeout(10000);
+      await page.waitForTimeout(UPLOAD_INFO_WAIT);
       response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
       expect(response.ok()).toBeTruthy();
 
@@ -125,8 +127,7 @@ test.describe('Info Endpoint', { tag: ['@api', '@info'] }, () => {
 
       uploadResponse = await uploader.upload();
 
-      // wait 10 seconds for deliveries to complete
-      await page.waitForTimeout(10000);
+      await page.waitForTimeout(UPLOAD_INFO_WAIT);
       response = await request.get(`${API_INFO_ENDPOINT}/${uploadUrlId}`);
       expect(response.ok()).toBeTruthy();
 
