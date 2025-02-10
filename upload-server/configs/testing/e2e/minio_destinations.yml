@@ -9,14 +9,6 @@ targets:
     secret_access_key: minioadmin
     endpoint: 'http://minio:8000'
     region: us-east-1
-  ehdi:
-    name: ehdi
-    type: s3
-    bucket_name: ehdi
-    access_key_id: minioadmin
-    secret_access_key: minioadmin
-    endpoint: 'http://minio:8000'
-    region: us-east-1
   eicr:
     name: eicr
     type: s3
@@ -38,11 +30,6 @@ routing_groups:
     data_stream_route: localsequencefile
     delivery_targets:
       - name: edav
-        path_template: '{{.Filename}}_{{.UploadId}}'
-  - data_stream_id: ehdi
-    data_stream_route: csv
-    delivery_targets:
-      - name: ehdi
         path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: eicr
     data_stream_route: fhir

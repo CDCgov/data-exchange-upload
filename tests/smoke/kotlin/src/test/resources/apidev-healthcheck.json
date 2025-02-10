@@ -22,11 +22,6 @@
             "health_issue": ""
         },
         {
-            "service": "Azure deliver target ehdi",
-            "status": "UP",
-            "health_issue": ""
-        },
-        {
             "service": "Azure deliver target eicr",
             "status": "UP",
             "health_issue": ""
