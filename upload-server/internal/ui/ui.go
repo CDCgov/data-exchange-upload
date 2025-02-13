@@ -30,7 +30,7 @@ import (
 
 // content holds our static web server content.
 //
-//go:embed assets/* components/* index.html manifest.html upload.html
+//go:embed assets/* components/* index.html manifest.html upload.html login.html
 var content embed.FS
 
 func FixNames(name string) string {
@@ -89,8 +89,13 @@ func generateTemplate(templatePath string, useFuncs bool) *template.Template {
 }
 
 var indexTemplate = generateTemplate("index.html", false)
+var loginTemplate = generateTemplate("login.html", false)
 var manifestTemplate = generateTemplate("manifest.html", true)
 var uploadTemplate = generateTemplate("upload.html", true)
+
+type LoginTemplateData struct {
+	AuthFailed bool
+}
 
 type ManifestTemplateData struct {
 	DataStream      string
@@ -131,14 +136,31 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 
 func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authEnabled bool) *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
-		dataStream := r.FormValue("data_stream_id")
-		dataStreamRoute := r.FormValue("data_stream_route")
+	protectedRouter := router.PathPrefix("/").Subrouter()
+	protectedRouter.Use(ValidateToken)
+
+	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
 		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
+		if err != nil {
+			authFailed = false
+		}
+
+		err = loginTemplate.Execute(rw, &LoginTemplateData{
+			AuthFailed: authFailed,
+		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+	})
+	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
+		dataStream := r.FormValue("data_stream_id")
+		dataStreamRoute := r.FormValue("data_stream_route")
+		//authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
+		//if err != nil {
+		//	http.Error(rw, err.Error(), http.StatusInternalServerError)
+		//	return
+		//}
 
 		configId := metadata.ConfigIdentification{
 			DataStreamID:    dataStream,
@@ -158,14 +180,14 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			Navbar:          components.NewNavbar(false),
 			CsrfToken:       csrf.Token(r),
 			AuthEnabled:     authEnabled,
-			AuthFailed:      authFailed,
+			//AuthFailed:      authFailed,
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	})
-	router.HandleFunc("/upload", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/upload", func(rw http.ResponseWriter, r *http.Request) {
 		// Tell the tus server we want to start an upload
 		// turn form values into map[string]string
 		err := r.ParseForm()
@@ -218,12 +240,20 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, string(respMsg), resp.StatusCode)
 			return
 		}
+
+		if token != "" {
+			http.SetCookie(rw, &http.Cookie{
+				Name:  "token",
+				Value: token,
+			})
+		}
+
 		uuid := resp.Header.Get("Location")
 		uuid = filepath.Base(uuid)
 
 		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid), http.StatusFound)
 	}).Methods("POST")
-	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["upload_id"]
 
@@ -289,7 +319,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 	})
-	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
 		err := indexTemplate.Execute(rw, nil)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
