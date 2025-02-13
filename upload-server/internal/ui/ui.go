@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -97,6 +98,8 @@ type ManifestTemplateData struct {
 	MetadataFields  []validation.FieldConfig
 	Navbar          components.Navbar
 	CsrfToken       string
+	AuthEnabled     bool
+	AuthFailed      bool
 }
 
 type UploadTemplateData struct {
@@ -110,8 +113,8 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string) *http.Server {
-	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl)
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authEnabled bool) *http.Server {
+	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authEnabled)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
@@ -126,11 +129,16 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 	return s
 }
 
-func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string) *mux.Router {
+func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authEnabled bool) *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
+		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
 		configId := metadata.ConfigIdentification{
 			DataStreamID:    dataStream,
@@ -149,6 +157,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			MetadataFields:  filterMetadataFields(config),
 			Navbar:          components.NewNavbar(false),
 			CsrfToken:       csrf.Token(r),
+			AuthEnabled:     authEnabled,
+			AuthFailed:      authFailed,
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -164,7 +174,9 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
+		token := r.FormValue("token")
 		r.Form.Del("gorilla.csrf.Token")
+		r.Form.Del("token")
 		manifest := map[string]string{"version": "2.0"}
 		for k, v := range r.Form {
 			manifest[k] = v[0]
@@ -184,10 +196,15 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		req.Header.Set("Upload-Metadata", upload.EncodedMetadata())
 		req.Header.Set("Upload-Defer-Length", "1")
 		req.Header.Set("Tus-Resumable", "1.0.0")
+		req.Header.Set("Authorization", "Bearer "+token)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if resp.StatusCode == http.StatusUnauthorized {
+			http.Redirect(rw, r, fmt.Sprintf("/manifest?data_stream_id=%s&data_stream_route=%s&auth_failed=true", manifest["data_stream_id"], manifest["data_stream_route"]), http.StatusSeeOther)
 			return
 		}
 		if resp.StatusCode != http.StatusCreated {
@@ -287,8 +304,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string) error {
-	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl)
+func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authEnabled bool) error {
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authEnabled)
 
 	return DefaultServer.ListenAndServe()
 }
