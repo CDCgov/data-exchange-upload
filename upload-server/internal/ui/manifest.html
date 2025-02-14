@@ -11,9 +11,6 @@
   <body>
     {{template "navbar" .Navbar}}
     <main id="main" class="upload-container">
-      {{if .AuthFailed}}
-      <h3 class="warning">Authentication failed, try again!</h3>
-      {{ end }}
       <h1>Please fill in the sender manifest form for your file</h1>
       <p> * indicates a required field </p>
       <div class="form-container">
@@ -38,12 +35,6 @@
               {{ end }}
             </div>
           {{end}}
-          {{if .AuthEnabled}}
-          <div>
-            <label for="token">Authentication Token *</label>
-            <textarea id="token" name="token" required></textarea>
-          </div>
-          {{ end }}
           <div class="hidden">
             <input type="hidden" id="data_stream_id" name="data_stream_id" value="{{.DataStream}}" />
             <input type="hidden" id="data_stream_route" name="data_stream_route" value="{{.DataStreamRoute}}" />

@@ -3,9 +3,28 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" type="text/css" href="/assets/index.css">
         <title>DEX Upload</title>
     </head>
     <body>
-        login
+        <main id="main">
+            {{if .AuthFailed}}
+            <h3 class="warning">Authentication failed, try again!</h3>
+            {{ end }}
+            <div class="form-container">
+                <form method="POST" action="/oauth_callback">
+                    <div>
+                        <label for="token">Authentication Token *</label>
+                        <textarea id="token" name="token" required></textarea>
+                    </div>
+                    <div class="hidden">
+                        <input type="hidden" name="gorilla.csrf.Token" value="{{.CsrfToken}}" />
+                    </div>
+                    <div class="submit-button">
+                        <button type="submit">Login</button>
+                    </div>
+                </form>
+            </div>
+        </main>
     </body>
 </html>

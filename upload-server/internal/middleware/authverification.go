@@ -5,6 +5,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Claims struct {
@@ -56,7 +57,7 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 
 		if strings.Count(token, ".") == 2 {
 			// Token is JWT, validate using oidc verifier
-			err = a.validator.ValidateJWT(r.Context(), token)
+			_, err = a.validator.ValidateJWT(r.Context(), token)
 			if err != nil {
 				if errors.Is(err, oauth.ErrTokenVerificationFailed) || errors.Is(err, oauth.ErrTokenClaimsFailed) {
 					err = errors.Join(err, NewHTTPError(http.StatusUnauthorized, err.Error()))
@@ -90,10 +91,24 @@ func (a AuthMiddleware) ProtectUIRouteMiddleware(next http.Handler) http.Handler
 			return
 		}
 
-		_, err := getAuthToken(r.Header)
+		token, err := r.Cookie("token")
+
 		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
 		}
+
+		claims, err := a.validator.ValidateJWT(r.Context(), token.Value)
+		if err != nil {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		// set token expiry based on expiration claim.
+		token.Expires = time.Unix(claims.Expiry, 0)
+		http.SetCookie(w, token)
+
+		next.ServeHTTP(w, r)
 	})
 }
 

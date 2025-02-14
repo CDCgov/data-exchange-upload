@@ -98,6 +98,7 @@ var uploadTemplate = generateTemplate("upload.html", true)
 
 type LoginTemplateData struct {
 	AuthFailed bool
+	CsrfToken  string
 }
 
 type ManifestTemplateData struct {
@@ -153,12 +154,39 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 		err = loginTemplate.Execute(rw, &LoginTemplateData{
 			AuthFailed: authFailed,
+			CsrfToken:  csrf.Token(r),
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	})
+	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
+		tokenCookie, err := r.Cookie("token")
+		if err != nil {
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		tokenCookie.Expires = time.Unix(0, 0)
+		tokenCookie.MaxAge = -1
+		http.SetCookie(rw, tokenCookie)
+		http.Redirect(rw, r, "/login", http.StatusFound)
+	})
+	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
+		token := r.FormValue("token")
+		if token == "" {
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		http.SetCookie(rw, &http.Cookie{
+			Name:  "token",
+			Value: token,
+			Path:  "/",
+		})
+		http.Redirect(rw, r, "/", http.StatusFound)
+	}).Methods("POST")
 	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
@@ -195,9 +223,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		token := r.FormValue("token")
 		r.Form.Del("gorilla.csrf.Token")
-		r.Form.Del("token")
 		manifest := map[string]string{"version": "2.0"}
 		for k, v := range r.Form {
 			manifest[k] = v[0]
@@ -217,17 +243,16 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		req.Header.Set("Upload-Metadata", upload.EncodedMetadata())
 		req.Header.Set("Upload-Defer-Length", "1")
 		req.Header.Set("Tus-Resumable", "1.0.0")
-		req.Header.Set("Authorization", "Bearer "+token)
+		//req.Header.Set("Authorization", "Bearer "+token)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if resp.StatusCode == http.StatusUnauthorized {
-			http.Redirect(rw, r, fmt.Sprintf("/manifest?data_stream_id=%s&data_stream_route=%s&auth_failed=true", manifest["data_stream_id"], manifest["data_stream_route"]), http.StatusSeeOther)
-			return
-		}
+
+		// TODO handle status unauthorized
+
 		if resp.StatusCode != http.StatusCreated {
 			// Failed to init upload.  Forward response from tus.
 			var respMsg []byte
@@ -238,13 +263,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			}
 			http.Error(rw, string(respMsg), resp.StatusCode)
 			return
-		}
-
-		if token != "" {
-			http.SetCookie(rw, &http.Cookie{
-				Name:  "token",
-				Value: token,
-			})
 		}
 
 		uuid := resp.Header.Get("Location")
