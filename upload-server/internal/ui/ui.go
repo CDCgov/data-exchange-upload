@@ -5,6 +5,9 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"io"
 	"net/http"
 	"net/url"
@@ -118,8 +121,11 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authEnabled bool) *http.Server {
-	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authEnabled)
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authConfig appconfig.OauthConfig) *http.Server {
+	oauthValidator := oauth.NewOAuthValidator(authConfig.IssuerUrl, authConfig.RequiredScopes)
+	authMiddleware := middleware.NewAuthMiddleware(oauthValidator, authConfig.AuthEnabled)
+
+	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
@@ -134,10 +140,10 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 	return s
 }
 
-func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authEnabled bool) *mux.Router {
+func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) *mux.Router {
 	router := mux.NewRouter()
 	protectedRouter := router.PathPrefix("/").Subrouter()
-	protectedRouter.Use(ValidateToken)
+	protectedRouter.Use(authMiddleware.ProtectUIRouteMiddleware)
 
 	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
 		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
@@ -156,11 +162,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
-		//authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
-		//if err != nil {
-		//	http.Error(rw, err.Error(), http.StatusInternalServerError)
-		//	return
-		//}
 
 		configId := metadata.ConfigIdentification{
 			DataStreamID:    dataStream,
@@ -179,8 +180,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			MetadataFields:  filterMetadataFields(config),
 			Navbar:          components.NewNavbar(false),
 			CsrfToken:       csrf.Token(r),
-			AuthEnabled:     authEnabled,
-			//AuthFailed:      authFailed,
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -334,8 +333,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authEnabled bool) error {
-	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authEnabled)
+func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authConfig appconfig.OauthConfig) error {
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authConfig)
 
 	return DefaultServer.ListenAndServe()
 }

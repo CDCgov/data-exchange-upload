@@ -48,20 +48,12 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 			return
 		}
 
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Authorization header missing", http.StatusUnauthorized)
+		token, err := getAuthToken(r.Header)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
 
-		if len(authHeader) < len("Bearer ") {
-			http.Error(w, "Authorization header format is invalid", http.StatusUnauthorized)
-			return
-		}
-
-		token := authHeader[len("Bearer "):]
-
-		var err error
 		if strings.Count(token, ".") == 2 {
 			// Token is JWT, validate using oidc verifier
 			err = a.validator.ValidateJWT(r.Context(), token)
@@ -91,7 +83,34 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 	})
 }
 
+func (a AuthMiddleware) ProtectUIRouteMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !a.authEnabled {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		_, err := getAuthToken(r.Header)
+		if err != nil {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+		}
+	})
+}
+
 func validateOpaqueToken() error {
 	// TODO: work out opaque token validation logic
 	return nil
+}
+
+func getAuthToken(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("authorization header missing")
+	}
+
+	if len(authHeader) < len("Bearer ") {
+		return "", errors.New("authorization header format is invalid")
+	}
+
+	return authHeader[len("Bearer "):], nil
 }

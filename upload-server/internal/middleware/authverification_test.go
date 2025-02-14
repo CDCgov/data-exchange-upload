@@ -83,7 +83,7 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			authEnabled:    true,
 			authHeader:     "",
 			expectStatus:   http.StatusUnauthorized,
-			expectMesg:     "Authorization header missing",
+			expectMesg:     "authorization header missing",
 			expectNext:     false,
 			requiredScopes: "",
 		},
@@ -93,7 +93,7 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			authEnabled:    true,
 			authHeader:     "Bearer", // related code checks for <len("Bearer ")
 			expectStatus:   http.StatusUnauthorized,
-			expectMesg:     "Authorization header format is invalid",
+			expectMesg:     "authorization header format is invalid",
 			expectNext:     false,
 			requiredScopes: "",
 		},

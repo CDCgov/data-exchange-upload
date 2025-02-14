@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"io"
 	"log"
 	"net/http"
@@ -506,7 +508,9 @@ func TestMain(m *testing.M) {
 	ts = httptest.NewServer(serveHandler)
 
 	// Start ui server
-	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, oauthConfig.AuthEnabled)
+	oauthValidator := oauth.NewOAuthValidator(appConfig.OauthConfig.IssuerUrl, appConfig.OauthConfig.RequiredScopes)
+	authMiddleware := middleware.NewAuthMiddleware(oauthValidator, appConfig.OauthConfig.AuthEnabled)
+	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, authMiddleware)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()
