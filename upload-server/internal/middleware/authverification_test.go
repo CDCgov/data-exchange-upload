@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -102,7 +103,7 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			authEnabled:    true,
 			authHeader:     "Bearer " + mockTokenExpired,
 			expectStatus:   http.StatusUnauthorized,
-			expectMesg:     "Failed to verify token: oidc: token is expired",
+			expectMesg:     "failed to verify token\noidc: token is expired",
 			expectNext:     false,
 			requiredScopes: "",
 		},
@@ -112,7 +113,7 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			authEnabled:    true,
 			authHeader:     "Bearer " + mockTokenInvalidSignature,
 			expectStatus:   http.StatusUnauthorized,
-			expectMesg:     "Failed to verify token: failed to verify signature:",
+			expectMesg:     "failed to verify token\nfailed to verify signature:",
 			expectNext:     false,
 			requiredScopes: "",
 		},
@@ -122,7 +123,7 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			authEnabled:    true,
 			authHeader:     "Bearer " + mockTokenWrongIssuer,
 			expectStatus:   http.StatusUnauthorized,
-			expectMesg:     "Failed to verify token: oidc: id token issued by a different provider",
+			expectMesg:     "failed to verify token\noidc: id token issued by a different provider",
 			expectNext:     false,
 			requiredScopes: "",
 		},
@@ -153,7 +154,7 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			authEnabled:    true,
 			authHeader:     "Bearer " + mockTokenValid,
 			expectStatus:   http.StatusForbidden,
-			expectMesg:     "One or more required scopes not found",
+			expectMesg:     "one or more required scopes not found",
 			expectNext:     false,
 			requiredScopes: "read:scope1",
 		},
@@ -163,7 +164,7 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			authEnabled:    true,
 			authHeader:     "Bearer " + mockTokenValidIncludesReqScopes,
 			expectStatus:   http.StatusForbidden,
-			expectMesg:     "One or more required scopes not found",
+			expectMesg:     "one or more required scopes not found",
 			expectNext:     false,
 			requiredScopes: "read:scope1 write:scope1 read:scope2",
 		},
@@ -197,11 +198,8 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 		})
 
 		// Create an instance of AuthMiddleware
-		middlewareConfig := AuthMiddleware{
-			AuthEnabled:    tc.authEnabled,
-			IssuerUrl:      tc.issuerURL,
-			RequiredScopes: tc.requiredScopes,
-		}
+		oauthValidator := oauth.NewOAuthValidator(tc.issuerURL, tc.requiredScopes)
+		middlewareConfig := NewAuthMiddleware(oauthValidator, tc.authEnabled)
 
 		// create a test server with the middleware
 		middleware := middlewareConfig.VerifyOAuthTokenMiddleware(handler)

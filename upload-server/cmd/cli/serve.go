@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"net/http"
 	"strings"
 
@@ -86,11 +87,8 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	// 	TUSD handler
 	// --------------------------------------------------------------
 
-	authMiddleware := middleware.AuthMiddleware{
-		AuthEnabled:    appConfig.OauthConfig.AuthEnabled,
-		IssuerUrl:      appConfig.OauthConfig.IssuerUrl,
-		RequiredScopes: appConfig.OauthConfig.RequiredScopes,
-	}
+	oauthValidator := oauth.NewOAuthValidator(appConfig.OauthConfig.IssuerUrl, appConfig.OauthConfig.RequiredScopes)
+	authMiddleware := middleware.NewAuthMiddleware(oauthValidator, appConfig.OauthConfig.AuthEnabled)
 
 	// Route for TUSD to start listening on and accept http request
 	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)

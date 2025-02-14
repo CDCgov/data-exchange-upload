@@ -1,13 +1,10 @@
 package middleware
 
 import (
-	"context"
-	"fmt"
+	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"net/http"
-	"slices"
 	"strings"
-
-	"github.com/coreos/go-oidc/v3/oidc"
 )
 
 type Claims struct {
@@ -32,15 +29,21 @@ func NewHTTPError(code int, msg string) *HTTPError {
 	return &HTTPError{Code: code, Msg: msg}
 }
 
+func NewAuthMiddleware(validator oauth.OAuthValidator, enabled bool) AuthMiddleware {
+	return AuthMiddleware{
+		authEnabled: enabled,
+		validator:   validator,
+	}
+}
+
 type AuthMiddleware struct {
-	AuthEnabled    bool
-	IssuerUrl      string
-	RequiredScopes string
+	authEnabled bool
+	validator   oauth.OAuthValidator
 }
 
 func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !a.AuthEnabled {
+		if !a.authEnabled {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -61,22 +64,25 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 		var err error
 		if strings.Count(token, ".") == 2 {
 			// Token is JWT, validate using oidc verifier
-			requiredScopes := []string{}
-			if a.RequiredScopes != "" {
-				requiredScopes = strings.Split(a.RequiredScopes, " ")
+			err = a.validator.ValidateJWT(r.Context(), token)
+			if err != nil {
+				if errors.Is(err, oauth.ErrTokenVerificationFailed) || errors.Is(err, oauth.ErrTokenClaimsFailed) {
+					err = errors.Join(err, NewHTTPError(http.StatusUnauthorized, err.Error()))
+				} else if errors.Is(err, oauth.ErrTokenScopesMismatch) {
+					err = errors.Join(err, NewHTTPError(http.StatusForbidden, err.Error()))
+				} else {
+					err = errors.Join(err, NewHTTPError(http.StatusInternalServerError, err.Error()))
+				}
 			}
-
-			err = validateJWT(r.Context(), token, a.IssuerUrl, requiredScopes)
 		} else {
 			// Token is opaque, validate using introspection
 			err = validateOpaqueToken()
 		}
 
 		if err != nil {
-			if httpErr, ok := err.(*HTTPError); ok {
+			var httpErr *HTTPError
+			if errors.As(err, &httpErr) {
 				http.Error(w, httpErr.Msg, httpErr.Code)
-			} else {
-				http.Error(w, "unknown error occurred", http.StatusInternalServerError)
 			}
 			return
 		}
@@ -85,47 +91,7 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 	})
 }
 
-func validateJWT(ctx context.Context, token string, issuer string, requiredScopes []string) error {
-	provider, err := oidc.NewProvider(ctx, issuer)
-	if err != nil {
-		return NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to get provider: %v", err))
-	}
-
-	verifier := provider.Verifier(&oidc.Config{SkipClientIDCheck: true})
-
-	idToken, err := verifier.Verify(ctx, token)
-	if err != nil {
-		return NewHTTPError(http.StatusUnauthorized, fmt.Sprintf("Failed to verify token: %v", err))
-	}
-
-	var claims Claims
-	if err := idToken.Claims(&claims); err != nil {
-		return NewHTTPError(http.StatusUnauthorized, "Failed to parse token claims")
-	}
-
-	actualScopes := strings.Split(claims.Scopes, " ")
-
-	if !hasRequiredScopes(actualScopes, requiredScopes) {
-		return NewHTTPError(http.StatusForbidden, "One or more required scopes not found")
-	}
-
-	return nil
-}
-
 func validateOpaqueToken() error {
 	// TODO: work out opaque token validation logic
 	return nil
-}
-
-func hasRequiredScopes(actualScopes, requiredScopes []string) bool {
-	if len(requiredScopes) == 0 {
-		return true
-	}
-
-	for _, reqScope := range requiredScopes {
-		if !slices.Contains(actualScopes, reqScope) {
-			return false
-		}
-	}
-	return true
 }
