@@ -2,9 +2,8 @@ package handlertusd
 
 import (
 	"errors"
-	"os"
-
 	"golang.org/x/exp/slog"
+	"os"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
 	"github.com/prometheus/client_golang/prometheus"

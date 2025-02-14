@@ -79,7 +79,6 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 			}
 			return
 		}
-
 		next.ServeHTTP(w, r)
 	})
 }
@@ -107,6 +106,7 @@ func (a AuthMiddleware) ProtectUIRouteMiddleware(next http.Handler) http.Handler
 		// set token expiry based on expiration claim.
 		token.Expires = time.Unix(claims.Expiry, 0)
 		http.SetCookie(w, token)
+		r.Header.Set("Authorization", "Bearer "+token.Value)
 
 		next.ServeHTTP(w, r)
 	})

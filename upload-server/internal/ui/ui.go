@@ -243,7 +243,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		req.Header.Set("Upload-Metadata", upload.EncodedMetadata())
 		req.Header.Set("Upload-Defer-Length", "1")
 		req.Header.Set("Tus-Resumable", "1.0.0")
-		//req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Authorization", r.Header.Get("Authorization"))
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -286,6 +286,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		req.Header.Set("Authorization", r.Header.Get("Authorization"))
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
