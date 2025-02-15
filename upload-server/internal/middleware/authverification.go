@@ -49,6 +49,12 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 			return
 		}
 
+		// allow preflight checks from browser clients
+		if r.Method == http.MethodOptions {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		token, err := getAuthToken(r.Header)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
