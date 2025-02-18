@@ -98,6 +98,7 @@ var uploadTemplate = generateTemplate("upload.html", true)
 
 type LoginTemplateData struct {
 	AuthFailed bool
+	Redirect   string
 	CsrfToken  string
 }
 
@@ -148,6 +149,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	protectedRouter.Use(authMiddleware.VerifyUserSession)
 
 	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
+		redirect := r.URL.Query().Get("redirect")
 		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
 		if err != nil {
 			authFailed = false
@@ -155,6 +157,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 		err = loginTemplate.Execute(rw, &LoginTemplateData{
 			AuthFailed: authFailed,
+			Redirect:   redirect,
 			CsrfToken:  csrf.Token(r),
 		})
 		if err != nil {
@@ -173,6 +176,14 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
+		redirect := r.URL.Query().Get("redirect")
+		fmt.Println(redirect)
+		if redirect == "" {
+			redirect = "/"
+		}
+		if !strings.HasPrefix(redirect, "/") {
+			redirect = "/" + redirect
+		}
 		token := r.FormValue("token")
 
 		if token == "" {
@@ -196,7 +207,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
 		})
-		http.Redirect(rw, r, "/", http.StatusFound)
+		http.Redirect(rw, r, redirect, http.StatusFound)
 	}).Methods("POST")
 	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")

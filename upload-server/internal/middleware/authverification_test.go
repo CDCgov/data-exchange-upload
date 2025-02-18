@@ -5,10 +5,12 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -24,6 +26,7 @@ var publicKey rsa.PublicKey
 type testCase struct {
 	name                     string
 	issuerURL                string
+	route                    string
 	authEnabled              bool // flag to test when auth enabled/disabled
 	authHeader               string
 	sessionCookie            *http.Cookie
@@ -305,6 +308,28 @@ func TestUserSessionMiddleware_TestCases(t *testing.T) {
 			expectNext:               false,
 			expectedRedirectLocation: "/login",
 		},
+		{
+			name:                     "Redirect to Other Page",
+			issuerURL:                issuerURL,
+			authEnabled:              true,
+			sessionCookie:            mockSessionWithExpiredToken,
+			expectStatus:             http.StatusSeeOther,
+			expectMesg:               "",
+			expectNext:               false,
+			route:                    "/status/1234",
+			expectedRedirectLocation: "/login?redirect=/status/1234",
+		},
+		{
+			name:                     "Redirect with Query Params",
+			issuerURL:                issuerURL,
+			authEnabled:              true,
+			sessionCookie:            mockSessionWithExpiredToken,
+			expectStatus:             http.StatusSeeOther,
+			expectMesg:               "",
+			expectNext:               false,
+			route:                    "/manifest?data_stream=test&data_stream_route=test",
+			expectedRedirectLocation: "/login?redirect=/manifest?data_stream=test&data_stream_route=test",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -326,7 +351,7 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
 
-		req := httptest.NewRequest(http.MethodGet, ts.URL, nil)
+		req := httptest.NewRequest(http.MethodGet, ts.URL+tc.route, nil)
 		if tc.sessionCookie != nil {
 			req.AddCookie(tc.sessionCookie)
 		}
@@ -342,12 +367,17 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 		}
 
 		if tc.expectedRedirectLocation != "" {
-			url, err := resp.Result().Location()
+			redirectUrl, err := resp.Result().Location()
 			if err != nil {
 				t.Error(err)
 			}
-			if tc.expectedRedirectLocation != url.Path {
-				t.Errorf("expected redirect to %s, got %s", tc.expectedRedirectLocation, url.Path)
+			fmt.Printf("%+v\n", redirectUrl)
+			decoded, err := url.QueryUnescape(redirectUrl.String())
+			if err != nil {
+				t.Error(err)
+			}
+			if tc.expectedRedirectLocation != decoded {
+				t.Errorf("expected redirect to %s, got %s", tc.expectedRedirectLocation, decoded)
 			}
 		}
 	})

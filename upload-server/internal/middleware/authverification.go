@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -97,16 +98,24 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 			return
 		}
 
+		var redirectQuery string
+		if r.URL.Path != "" && r.URL.Path != "/" {
+			redirectQuery = "?redirect=" + r.URL.Path
+			if r.URL.RawQuery != "" {
+				redirectQuery += "?" + url.QueryEscape(r.URL.RawQuery)
+			}
+		}
+
 		token, err := r.Cookie(UserSessionCookieName)
 
 		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			http.Redirect(w, r, "/login"+redirectQuery, http.StatusSeeOther)
 			return
 		}
 
 		_, err = a.validator.ValidateJWT(r.Context(), token.Value)
 		if err != nil {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			http.Redirect(w, r, "/login"+redirectQuery, http.StatusSeeOther)
 			return
 		}
 

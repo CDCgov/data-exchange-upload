@@ -14,7 +14,7 @@
             {{ end }}
             <h1>Welcome to PHDO Upload Login</h1>
             <div class="form-container">
-                <form method="POST" action="/oauth_callback">
+                <form method="POST" action="/oauth_callback?redirect={{.Redirect}}">
                     <div>
                         <label for="token">Authentication Token *</label>
                         <textarea id="token" name="token" rows="4" cols="50" required></textarea>

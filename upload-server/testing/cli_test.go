@@ -420,29 +420,6 @@ func TestOauthCallbackInvalidToken(t *testing.T) {
 	}
 }
 
-//func TestLogoutExpireSessionCookie(t *testing.T) {
-//	client := testUIServer.Client()
-//	req, err := http.NewRequest(http.MethodGet, testUIServer.URL+"/logout", nil)
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	req.AddCookie(&http.Cookie{
-//		Name:  middleware.UserSessionCookieName,
-//		Value: "1234",
-//	})
-//
-//	resp, err := client.Do(req)
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//
-//	cookies := resp.Cookies()
-//	if len(cookies) != 1 {
-//		t.Errorf("Expected one cookie but got %d", len(cookies))
-//	}
-//}
-
 func TestManifestPageManifestNoQueryParams(t *testing.T) {
 	client := testUIServer.Client()
 	resp, err := client.Get(testUIServer.URL + "/manifest")
