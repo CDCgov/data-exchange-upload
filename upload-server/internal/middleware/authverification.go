@@ -10,6 +10,8 @@ import (
 
 const UserSessionCookieName = "phdo_auth_token"
 
+var protectedPaths = []string{"/", "/manifest", "/upload", "/status"}
+
 type Claims struct {
 	Scopes string `json:"scope"`
 }
@@ -99,11 +101,13 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 		}
 
 		var redirectQuery string
-		if r.URL.Path != "" && r.URL.Path != "/" {
-			redirectQuery = "?redirect=" + r.URL.Path
-			if r.URL.RawQuery != "" {
-				redirectQuery += "?" + url.QueryEscape(r.URL.RawQuery)
-			}
+		redirectPath := r.URL.Path
+		if r.URL.RawQuery != "" {
+			redirectPath += "?" + r.URL.RawQuery
+		}
+		sanitizedRedirect := sanitizeRedirectUrl(redirectPath)
+		if sanitizedRedirect != "/" {
+			redirectQuery = "?redirect=" + sanitizedRedirect
 		}
 
 		token, err := r.Cookie(UserSessionCookieName)
@@ -145,4 +149,33 @@ func getAuthToken(headers http.Header) (string, error) {
 	}
 
 	return authHeader[len("Bearer "):], nil
+}
+
+func sanitizeRedirectUrl(redirectURL string) string {
+	sanitized := "/"
+
+	if redirectURL == "" {
+		return sanitized
+	}
+
+	parsed, err := url.Parse(redirectURL)
+	if err != nil {
+		return sanitized
+	}
+
+	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
+		return sanitized
+	}
+
+	for _, p := range protectedPaths {
+		if strings.HasPrefix(parsed.Path, p) {
+			sanitized = parsed.Path
+			if parsed.RawQuery != "" {
+				sanitized += "?" + url.QueryEscape(parsed.RawQuery)
+			}
+			return sanitized
+		}
+	}
+
+	return sanitized
 }
