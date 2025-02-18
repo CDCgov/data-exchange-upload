@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
@@ -84,7 +85,7 @@ var usefulFuncs = template.FuncMap{
 }
 
 func generateTemplate(templatePath string, useFuncs bool) *template.Template {
-	var templatePaths = []string{templatePath, "components/navbar.html", "components/newuploadbtn.html"}
+	var templatePaths = []string{templatePath, "components/navbar.html", "components/linkbtn.html"}
 	if useFuncs {
 		return template.Must(template.New(templatePath).Funcs(usefulFuncs).ParseFS(content, templatePaths...))
 	}
@@ -100,6 +101,10 @@ type LoginTemplateData struct {
 	AuthFailed bool
 	Redirect   string
 	CsrfToken  string
+}
+
+type IndexTemplateData struct {
+	Navbar components.Navbar
 }
 
 type ManifestTemplateData struct {
@@ -119,7 +124,7 @@ type UploadTemplateData struct {
 	AuthToken      string
 	Info           info.InfoResponse
 	Navbar         components.Navbar
-	NewUploadBtn   components.NewUploadBtn
+	NewUploadBtn   components.LinkBtn
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
@@ -228,7 +233,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			DataStream:      dataStream,
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
-			Navbar:          components.NewNavbar(false),
+			Navbar:          components.NewNavbar(false, isLoggedIn(*r)),
 			CsrfToken:       csrf.Token(r),
 		})
 		if err != nil {
@@ -354,8 +359,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			Info:           fileInfo,
 			UploadStatus:   fileInfo.UploadStatus.Status,
 			AuthToken:      authToken,
-			Navbar:         components.NewNavbar(true),
-			NewUploadBtn:   components.NewUploadBtn{},
+			Navbar:         components.NewNavbar(true, isLoggedIn(*r)),
+			NewUploadBtn:   components.LinkBtn{Href: "/", Text: "Upload New File"},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -363,7 +368,9 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		}
 	})
 	protectedRouter.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		err := indexTemplate.Execute(rw, nil)
+		err := indexTemplate.Execute(rw, &IndexTemplateData{
+			Navbar: components.NewNavbar(false, isLoggedIn(*r)),
+		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -400,4 +407,12 @@ func filterMetadataFields(config *validation.ManifestConfig) []validation.FieldC
 	}
 
 	return fields
+}
+
+func isLoggedIn(r http.Request) bool {
+	_, err := r.Cookie(middleware.UserSessionCookieName)
+	if err != nil && errors.Is(err, http.ErrNoCookie) {
+		return false
+	}
+	return true
 }

@@ -126,6 +126,11 @@ a:visited {
   width: 7.5rem !important;
 }
 
+.nav-actions-container {
+  display: flex;
+  gap: 6px;
+}
+
 /* ------------------- */
 /* Link Button Styling */
 /* ------------------- */
