@@ -5,7 +5,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type Claims struct {
@@ -103,19 +102,20 @@ func (a AuthMiddleware) ProtectUIRouteMiddleware(next http.Handler) http.Handler
 			return
 		}
 
-		claims, err := a.validator.ValidateJWT(r.Context(), token.Value)
+		_, err = a.validator.ValidateJWT(r.Context(), token.Value)
 		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
-		// set token expiry based on expiration claim.
-		token.Expires = time.Unix(claims.Expiry, 0)
-		http.SetCookie(w, token)
 		r.Header.Set("Authorization", "Bearer "+token.Value)
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (a AuthMiddleware) Validator() oauth.OAuthValidator {
+	return a.validator
 }
 
 func validateOpaqueToken() error {

@@ -115,6 +115,7 @@ type UploadTemplateData struct {
 	UploadEndpoint string
 	UploadUrl      string
 	UploadStatus   string
+	AuthToken      string
 	Info           info.InfoResponse
 	Navbar         components.Navbar
 	NewUploadBtn   components.NewUploadBtn
@@ -162,15 +163,13 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		}
 	})
 	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
-		tokenCookie, err := r.Cookie("token")
-		if err != nil {
-			http.Redirect(rw, r, "/login", http.StatusSeeOther)
-			return
+		tokenCookies := r.CookiesNamed("token")
+		for _, c := range tokenCookies {
+			c.Expires = time.Unix(0, 0)
+			c.MaxAge = -1
+			http.SetCookie(rw, c)
 		}
 
-		tokenCookie.Expires = time.Unix(0, 0)
-		tokenCookie.MaxAge = -1
-		http.SetCookie(rw, tokenCookie)
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
@@ -180,10 +179,22 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
+		claims, err := authMiddleware.Validator().ValidateJWT(r.Context(), token)
+		if err != nil {
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		// TODO add security flags
 		http.SetCookie(rw, &http.Cookie{
-			Name:  "token",
-			Value: token,
-			Path:  "/",
+			Name:     "token",
+			Value:    token,
+			Path:     "/",
+			Expires:  time.Unix(claims.Expiry, 0),
+			MaxAge:   int(claims.Expiry),
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
 		})
 		http.Redirect(rw, r, "/", http.StatusFound)
 	}).Methods("POST")
@@ -324,12 +335,14 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		authToken := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
 			UploadEndpoint: externalUploadUrl,
 			UploadUrl:      uploadDestinationUrl,
 			Info:           fileInfo,
 			UploadStatus:   fileInfo.UploadStatus.Status,
+			AuthToken:      authToken,
 			Navbar:         components.NewNavbar(true),
 			NewUploadBtn:   components.NewUploadBtn{},
 		})

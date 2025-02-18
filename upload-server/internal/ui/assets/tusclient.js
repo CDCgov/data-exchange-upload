@@ -241,12 +241,11 @@ async function uploadFile(file, { chunkSize, parallelUploads }) {
   const fileSize = file.size;
 
   console.log("starting upload to endpoint: ", endpoint);
-  console.log(getCookie("token"))
   const options = {
     headers: {
       "Tus-Resumable": "1.0.0",
       "Content-Type": "application/offset+octet-stream",
-      "Authorization": "Bearer " + getCookie("token")
+      "Authorization": "Bearer " + authToken
     },
     metadata: {
       filename: file.name,
