@@ -171,12 +171,14 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		}
 	})
 	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
-		tokenCookies := r.CookiesNamed(middleware.UserSessionCookieName)
-		for _, c := range tokenCookies {
-			c.Expires = time.Unix(0, 0)
-			c.MaxAge = -1
-			http.SetCookie(rw, c)
+		c, err := r.Cookie(middleware.UserSessionCookieName)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		c.Expires = time.Unix(0, 0)
+		c.MaxAge = -1
+		http.SetCookie(rw, c)
 
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
