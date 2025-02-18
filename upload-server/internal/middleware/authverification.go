@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const UserSessionCookieName = "phdo_auth_token"
+
 type Claims struct {
 	Scopes string `json:"scope"`
 }
@@ -88,14 +90,14 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 	})
 }
 
-func (a AuthMiddleware) ProtectUIRouteMiddleware(next http.Handler) http.Handler {
+func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !a.authEnabled {
 			next.ServeHTTP(w, r)
 			return
 		}
 
-		token, err := r.Cookie("token")
+		token, err := r.Cookie(UserSessionCookieName)
 
 		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)

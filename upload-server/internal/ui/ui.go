@@ -145,7 +145,7 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) *mux.Router {
 	router := mux.NewRouter()
 	protectedRouter := router.PathPrefix("/").Subrouter()
-	protectedRouter.Use(authMiddleware.ProtectUIRouteMiddleware)
+	protectedRouter.Use(authMiddleware.VerifyUserSession)
 
 	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
 		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
@@ -163,7 +163,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		}
 	})
 	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
-		tokenCookies := r.CookiesNamed("token")
+		tokenCookies := r.CookiesNamed(middleware.UserSessionCookieName)
 		for _, c := range tokenCookies {
 			c.Expires = time.Unix(0, 0)
 			c.MaxAge = -1
@@ -185,9 +185,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		// TODO add security flags
 		http.SetCookie(rw, &http.Cookie{
-			Name:     "token",
+			Name:     middleware.UserSessionCookieName,
 			Value:    token,
 			Path:     "/",
 			Expires:  time.Unix(claims.Expiry, 0),
