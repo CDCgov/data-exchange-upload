@@ -174,6 +174,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
 		token := r.FormValue("token")
+
 		if token == "" {
 			http.Redirect(rw, r, "/login", http.StatusSeeOther)
 			return

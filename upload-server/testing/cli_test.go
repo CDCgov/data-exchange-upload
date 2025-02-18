@@ -343,6 +343,106 @@ func TestLandingPage(t *testing.T) {
 	}
 }
 
+func TestLoginPage(t *testing.T) {
+	client := testUIServer.Client()
+	resp, err := client.Get(testUIServer.URL + "/login")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if ct != "text/html; charset=utf-8" {
+		t.Error("Expected html content but got", ct)
+	}
+}
+
+func TestLogoutRedirect(t *testing.T) {
+	didRedirect := false
+	var redirectUrl *url.URL
+	client := testUIServer.Client()
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		didRedirect = true
+		redirectUrl = req.URL
+		return nil
+	}
+
+	resp, err := client.Get(testUIServer.URL + "/logout")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !didRedirect {
+		t.Error("Expected to redirect but did not")
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+
+	if redirectUrl.Path != "/login" {
+		t.Errorf("Expected to be redirected to login but got %s", redirectUrl.Path)
+	}
+}
+
+func TestOauthCallbackInvalidToken(t *testing.T) {
+	didRedirect := false
+	var redirectUrl *url.URL
+	client := testUIServer.Client()
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		didRedirect = true
+		redirectUrl = req.URL
+		return nil
+	}
+	loginForm := url.Values{
+		"token": {"bogus"},
+	}
+	body := strings.NewReader(loginForm.Encode())
+	resp, err := client.Post(testUIServer.URL+"/oauth_callback", "application/x-www-form-urlencoded", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+
+	if !didRedirect {
+		t.Error("Expected to redirect but did not")
+	}
+
+	if redirectUrl.Path != "/login" {
+		t.Errorf("Expected to be redirected to login but got %s", redirectUrl.Path)
+	}
+
+	cookies := resp.Cookies()
+	if len(cookies) != 0 {
+		t.Errorf("Expected zero cookies but got %d", len(cookies))
+	}
+}
+
+//func TestLogoutExpireSessionCookie(t *testing.T) {
+//	client := testUIServer.Client()
+//	req, err := http.NewRequest(http.MethodGet, testUIServer.URL+"/logout", nil)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	req.AddCookie(&http.Cookie{
+//		Name:  middleware.UserSessionCookieName,
+//		Value: "1234",
+//	})
+//
+//	resp, err := client.Do(req)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//
+//	cookies := resp.Cookies()
+//	if len(cookies) != 1 {
+//		t.Errorf("Expected one cookie but got %d", len(cookies))
+//	}
+//}
+
 func TestManifestPageManifestNoQueryParams(t *testing.T) {
 	client := testUIServer.Client()
 	resp, err := client.Get(testUIServer.URL + "/manifest")
