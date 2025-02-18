@@ -83,7 +83,6 @@
 
       let lastChunckNotAdded = true;
       let prevFileBytesUploaded = 0;
-
       console.log(uploadUrl);
       const options = {
         endpoint,

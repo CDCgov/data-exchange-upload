@@ -90,6 +90,10 @@ button {
   font-style: italic;
 }
 
+.warning {
+  color: var(--upload-failure)
+}
+
 /* -------------- */
 /* Navbar Styling */
 /* -------------- */

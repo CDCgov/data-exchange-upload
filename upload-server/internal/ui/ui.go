@@ -5,10 +5,14 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,7 +33,7 @@ import (
 
 // content holds our static web server content.
 //
-//go:embed assets/* components/* index.html manifest.html upload.html
+//go:embed assets/* components/* index.html manifest.html upload.html login.html
 var content embed.FS
 
 func FixNames(name string) string {
@@ -88,8 +92,14 @@ func generateTemplate(templatePath string, useFuncs bool) *template.Template {
 }
 
 var indexTemplate = generateTemplate("index.html", false)
+var loginTemplate = generateTemplate("login.html", false)
 var manifestTemplate = generateTemplate("manifest.html", true)
 var uploadTemplate = generateTemplate("upload.html", true)
+
+type LoginTemplateData struct {
+	AuthFailed bool
+	CsrfToken  string
+}
 
 type ManifestTemplateData struct {
 	DataStream      string
@@ -97,12 +107,15 @@ type ManifestTemplateData struct {
 	MetadataFields  []validation.FieldConfig
 	Navbar          components.Navbar
 	CsrfToken       string
+	AuthEnabled     bool
+	AuthFailed      bool
 }
 
 type UploadTemplateData struct {
 	UploadEndpoint string
 	UploadUrl      string
 	UploadStatus   string
+	AuthToken      string
 	Info           info.InfoResponse
 	Navbar         components.Navbar
 	NewUploadBtn   components.NewUploadBtn
@@ -110,8 +123,11 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string) *http.Server {
-	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl)
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authConfig appconfig.OauthConfig) *http.Server {
+	oauthValidator := oauth.NewOAuthValidator(authConfig.IssuerUrl, authConfig.RequiredScopes)
+	authMiddleware := middleware.NewAuthMiddleware(oauthValidator, authConfig.AuthEnabled)
+
+	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
@@ -126,9 +142,63 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 	return s
 }
 
-func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string) *mux.Router {
+func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter := router.PathPrefix("/").Subrouter()
+	protectedRouter.Use(authMiddleware.ProtectUIRouteMiddleware)
+
+	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
+		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
+		if err != nil {
+			authFailed = false
+		}
+
+		err = loginTemplate.Execute(rw, &LoginTemplateData{
+			AuthFailed: authFailed,
+			CsrfToken:  csrf.Token(r),
+		})
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
+		tokenCookies := r.CookiesNamed("token")
+		for _, c := range tokenCookies {
+			c.Expires = time.Unix(0, 0)
+			c.MaxAge = -1
+			http.SetCookie(rw, c)
+		}
+
+		http.Redirect(rw, r, "/login", http.StatusFound)
+	})
+	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
+		token := r.FormValue("token")
+		if token == "" {
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		claims, err := authMiddleware.Validator().ValidateJWT(r.Context(), token)
+		if err != nil {
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		// TODO add security flags
+		http.SetCookie(rw, &http.Cookie{
+			Name:     "token",
+			Value:    token,
+			Path:     "/",
+			Expires:  time.Unix(claims.Expiry, 0),
+			MaxAge:   int(claims.Expiry),
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
+		http.Redirect(rw, r, "/", http.StatusFound)
+	}).Methods("POST")
+	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
 
@@ -155,7 +225,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 	})
-	router.HandleFunc("/upload", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/upload", func(rw http.ResponseWriter, r *http.Request) {
 		// Tell the tus server we want to start an upload
 		// turn form values into map[string]string
 		err := r.ParseForm()
@@ -184,12 +254,16 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		req.Header.Set("Upload-Metadata", upload.EncodedMetadata())
 		req.Header.Set("Upload-Defer-Length", "1")
 		req.Header.Set("Tus-Resumable", "1.0.0")
+		req.Header.Set("Authorization", r.Header.Get("Authorization"))
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// TODO handle status unauthorized
+
 		if resp.StatusCode != http.StatusCreated {
 			// Failed to init upload.  Forward response from tus.
 			var respMsg []byte
@@ -201,12 +275,13 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, string(respMsg), resp.StatusCode)
 			return
 		}
+
 		uuid := resp.Header.Get("Location")
 		uuid = filepath.Base(uuid)
 
 		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid), http.StatusFound)
 	}).Methods("POST")
-	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["upload_id"]
 
@@ -222,6 +297,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		req.Header.Set("Authorization", r.Header.Get("Authorization"))
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -258,12 +335,14 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		authToken := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
 			UploadEndpoint: externalUploadUrl,
 			UploadUrl:      uploadDestinationUrl,
 			Info:           fileInfo,
 			UploadStatus:   fileInfo.UploadStatus.Status,
+			AuthToken:      authToken,
 			Navbar:         components.NewNavbar(true),
 			NewUploadBtn:   components.NewUploadBtn{},
 		})
@@ -272,7 +351,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 	})
-	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
 		err := indexTemplate.Execute(rw, nil)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -287,8 +366,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string) error {
-	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl)
+func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authConfig appconfig.OauthConfig) error {
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authConfig)
 
 	return DefaultServer.ListenAndServe()
 }

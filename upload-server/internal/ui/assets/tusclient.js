@@ -244,7 +244,8 @@ async function uploadFile(file, { chunkSize, parallelUploads }) {
   const options = {
     headers: {
       "Tus-Resumable": "1.0.0",
-      "Content-Type": "application/offset+octet-stream"
+      "Content-Type": "application/offset+octet-stream",
+      "Authorization": "Bearer " + authToken
     },
     metadata: {
       filename: file.name,
@@ -396,6 +397,21 @@ async function findResumableUpload() {
   }
 
   return null;
+}
+
+function getCookie(cname) {
+  let name = cname + "=";
+  let ca = document.cookie.split(';');
+  for(let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) === 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
 }
 
 (async () => {
