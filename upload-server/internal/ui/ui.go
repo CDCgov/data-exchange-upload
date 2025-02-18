@@ -173,7 +173,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie(middleware.UserSessionCookieName)
 		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			http.Redirect(rw, r, "/login", http.StatusFound)
 			return
 		}
 		c.Expires = time.Unix(0, 0)
