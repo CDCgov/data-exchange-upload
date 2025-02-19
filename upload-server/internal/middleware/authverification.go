@@ -10,7 +10,7 @@ import (
 
 const UserSessionCookieName = "phdo_auth_token"
 
-var protectedPaths = []string{"/", "/manifest", "/upload", "/status"}
+var protectedUIRoutes = [...]string{"/", "/manifest", "/upload", "/status"}
 
 type Claims struct {
 	Scopes string `json:"scope"`
@@ -167,7 +167,7 @@ func sanitizeRedirectUrl(redirectURL string) string {
 		return sanitized
 	}
 
-	for _, p := range protectedPaths {
+	for _, p := range protectedUIRoutes {
 		if strings.HasPrefix(parsed.Path, p) {
 			sanitized = parsed.Path
 			if parsed.RawQuery != "" {
