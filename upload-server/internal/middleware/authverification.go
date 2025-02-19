@@ -2,10 +2,11 @@ package middleware
 
 import (
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 )
 
 const UserSessionCookieName = "phdo_auth_token"
