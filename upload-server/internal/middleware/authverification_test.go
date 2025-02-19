@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"math/big"
 	"net/http"
@@ -371,7 +370,6 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 			if err != nil {
 				t.Error(err)
 			}
-			fmt.Printf("%+v\n", redirectUrl)
 			decoded, err := url.QueryUnescape(redirectUrl.String())
 			if err != nil {
 				t.Error(err)

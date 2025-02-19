@@ -184,7 +184,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
 		redirect := r.URL.Query().Get("redirect")
-		fmt.Println(redirect)
 		if redirect == "" {
 			redirect = "/"
 		}
