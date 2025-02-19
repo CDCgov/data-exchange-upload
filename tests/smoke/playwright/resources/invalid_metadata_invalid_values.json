@@ -67,22 +67,6 @@
     "expectedErrorMessages": ["sender_id had disallowed value blah"]
   },
   {
-    "name": "should error because of invalid sender_id for eicr_fhir",
-    "metadata": {
-      "version": "2.0",
-      "data_stream_id": "eicr",
-      "data_stream_route": "fhir",
-      "sender_id": "blah",
-      "data_producer_id": "test-producer-id",
-      "jurisdiction": "test-jurisdiction",
-      "received_filename": "dex-smoke-test",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_file_timestamp": "test-file-timestamp"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": ["sender_id had disallowed value blah"]
-  },
-  {
     "name": "should error because of invalid jurisdiction for influenza-vaccination_csv",
     "metadata": {
       "version": "2.0",

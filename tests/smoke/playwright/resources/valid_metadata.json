@@ -72,19 +72,6 @@
   },
   {
     "manifest": {
-      "data_stream_id": "eicr",
-      "data_stream_route": "fhir",
-      "sender_id": "APHL",
-      "data_producer_id": "test-producer-id",
-      "jurisdiction": "test-jurisdiction",
-      "received_filename": "dex-smoke-test",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_file_timestamp": "test-file-timestamp"
-    },
-    "delivery_targets": ["eicr"]
-  },
-  {
-    "manifest": {
       "data_stream_id": "pulsenet",
       "data_stream_route": "localsequencefile",
       "received_filename": "dex-smoke-test",

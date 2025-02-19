@@ -146,7 +146,7 @@ export function getTestConfigV2(metadata: Metadata[] | null): Metadata {
         data_producer_id: 'test-producer-id',
         jurisdiction: 'test-jurisdiction'
       },
-      delivery_targets: ['edav', 'ncird', 'eicr']
+      delivery_targets: ['edav', 'ncird']
     }
   );
 }

@@ -8,10 +8,6 @@
     "route": "testevent1"
   },
   {
-    "dataStream": "eicr",
-    "route": "fhir"
-  },
-  {
     "dataStream": "generic-immunization",
     "route": "csv"
   },
