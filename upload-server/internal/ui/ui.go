@@ -128,9 +128,21 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authConfig appconfig.OauthConfig) *http.Server {
-	oauthValidator := oauth.NewOAuthValidator(authConfig.IssuerUrl, authConfig.RequiredScopes)
-	authMiddleware := middleware.NewAuthMiddleware(oauthValidator, authConfig.AuthEnabled)
+func NewServer(ctx context.Context, port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authConfig appconfig.OauthConfig) (*http.Server, error) {
+	var validator oauth.Validator = oauth.PassthroughValidator{}
+	if authConfig.AuthEnabled {
+		var err error
+		validator, err = oauth.NewOAuthValidator(ctx, authConfig.IssuerUrl, authConfig.RequiredScopes)
+		if err != nil {
+			//logger.Error("error initializing oauth validator", "error", err)
+			return nil, err
+		}
+	}
+	//oauthValidator, err := oauth.NewOAuthValidator(ctx, authConfig.IssuerUrl, authConfig.RequiredScopes)
+	//if err != nil {
+	//	return nil, err
+	//}
+	authMiddleware := middleware.NewAuthMiddleware(validator, authConfig.AuthEnabled)
 
 	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
 	secureRouter := csrf.Protect(
@@ -144,7 +156,7 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 		Addr:    addr,
 		Handler: secureRouter,
 	}
-	return s
+	return s, nil
 }
 
 func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) *mux.Router {
@@ -382,8 +394,11 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authConfig appconfig.OauthConfig) error {
-	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authConfig)
+func Start(ctx context.Context, uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authConfig appconfig.OauthConfig) error {
+	DefaultServer, err := NewServer(ctx, uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authConfig)
+	if err != nil {
+		return err
+	}
 
 	return DefaultServer.ListenAndServe()
 }

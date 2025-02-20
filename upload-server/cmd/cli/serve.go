@@ -87,8 +87,16 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	// 	TUSD handler
 	// --------------------------------------------------------------
 
-	oauthValidator := oauth.NewOAuthValidator(appConfig.OauthConfig.IssuerUrl, appConfig.OauthConfig.RequiredScopes)
-	authMiddleware := middleware.NewAuthMiddleware(oauthValidator, appConfig.OauthConfig.AuthEnabled)
+	var validator oauth.Validator = oauth.PassthroughValidator{}
+	if appConfig.OauthConfig.AuthEnabled {
+		validator, err = oauth.NewOAuthValidator(ctx, appConfig.OauthConfig.IssuerUrl, appConfig.OauthConfig.RequiredScopes)
+		if err != nil {
+			logger.Error("error initializing oauth validator", "error", err)
+			return nil, err
+		}
+	}
+
+	authMiddleware := middleware.NewAuthMiddleware(validator, appConfig.OauthConfig.AuthEnabled)
 
 	// Route for TUSD to start listening on and accept http request
 	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)

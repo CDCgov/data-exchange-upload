@@ -40,7 +40,7 @@ func NewHTTPError(code int, msg string) *HTTPError {
 	return &HTTPError{Code: code, Msg: msg}
 }
 
-func NewAuthMiddleware(validator oauth.OAuthValidator, enabled bool) AuthMiddleware {
+func NewAuthMiddleware(validator oauth.Validator, enabled bool) AuthMiddleware {
 	return AuthMiddleware{
 		authEnabled: enabled,
 		validator:   validator,
@@ -49,7 +49,7 @@ func NewAuthMiddleware(validator oauth.OAuthValidator, enabled bool) AuthMiddlew
 
 type AuthMiddleware struct {
 	authEnabled bool
-	validator   oauth.OAuthValidator
+	validator   oauth.Validator
 }
 
 func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handler {
@@ -143,7 +143,7 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 	})
 }
 
-func (a AuthMiddleware) Validator() oauth.OAuthValidator {
+func (a AuthMiddleware) Validator() oauth.Validator {
 	return a.validator
 }
 

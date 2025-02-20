@@ -138,7 +138,7 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, *appConfig.OauthConfig); err != nil {
+			if err := ui.Start(ctx, appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, *appConfig.OauthConfig); err != nil {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}

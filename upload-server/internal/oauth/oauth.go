@@ -17,31 +17,43 @@ type Claims struct {
 	Scopes string `json:"scope"`
 }
 
-func NewOAuthValidator(issuerUrl string, requiredScopes string) OAuthValidator {
+type Validator interface {
+	ValidateJWT(ctx context.Context, token string) (Claims, error)
+}
+
+type PassthroughValidator struct{}
+
+func (v PassthroughValidator) ValidateJWT(_ context.Context, _ string) (Claims, error) {
+	return Claims{}, nil
+}
+
+func NewOAuthValidator(ctx context.Context, issuerUrl string, requiredScopes string) (*OAuthValidator, error) {
 	var scopes []string
 	if requiredScopes != "" {
 		scopes = strings.Split(requiredScopes, " ")
 	}
 
-	return OAuthValidator{
+	provider, err := oidc.NewProvider(ctx, issuerUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &OAuthValidator{
 		IssuerUrl:      issuerUrl,
 		RequiredScopes: scopes,
-	}
+		provider:       provider,
+	}, nil
 }
 
 type OAuthValidator struct {
 	IssuerUrl      string
 	RequiredScopes []string
+	provider       *oidc.Provider
 }
 
 func (v OAuthValidator) ValidateJWT(ctx context.Context, token string) (Claims, error) {
 	var claims Claims
-	provider, err := oidc.NewProvider(ctx, v.IssuerUrl)
-	if err != nil {
-		return claims, err
-	}
-
-	verifier := provider.Verifier(&oidc.Config{SkipClientIDCheck: true})
+	verifier := v.provider.Verifier(&oidc.Config{SkipClientIDCheck: true})
 	idToken, err := verifier.Verify(ctx, token)
 	if err != nil {
 		return claims, errors.Join(ErrTokenVerificationFailed, err)

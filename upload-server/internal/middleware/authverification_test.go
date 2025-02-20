@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -215,8 +216,11 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 		})
 
 		// Create an instance of AuthMiddleware
-		oauthValidator := oauth.NewOAuthValidator(tc.issuerURL, tc.requiredScopes)
-		middlewareConfig := NewAuthMiddleware(oauthValidator, tc.authEnabled)
+		oauthValidator, err := oauth.NewOAuthValidator(context.Background(), tc.issuerURL, tc.requiredScopes)
+		if err != nil {
+			t.Fatal(err)
+		}
+		middlewareConfig := NewAuthMiddleware(*oauthValidator, tc.authEnabled)
 
 		// create a test server with the middleware
 		middleware := middlewareConfig.VerifyOAuthTokenMiddleware(handler)
@@ -360,8 +364,11 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		oauthValidator := oauth.NewOAuthValidator(tc.issuerURL, tc.requiredScopes)
-		middleware := NewAuthMiddleware(oauthValidator, tc.authEnabled)
+		oauthValidator, err := oauth.NewOAuthValidator(context.Background(), tc.issuerURL, tc.requiredScopes)
+		if err != nil {
+			t.Fatal(err)
+		}
+		middleware := NewAuthMiddleware(*oauthValidator, tc.authEnabled)
 		handler := middleware.VerifyUserSession(nextHandler)
 		ts := httptest.NewServer(handler)
 		defer ts.Close()

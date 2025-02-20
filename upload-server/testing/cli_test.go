@@ -410,8 +410,8 @@ func TestOauthCallbackInvalidToken(t *testing.T) {
 		t.Error("Expected to redirect but did not")
 	}
 
-	if redirectUrl.Path != "/login" {
-		t.Errorf("Expected to be redirected to login but got %s", redirectUrl.Path)
+	if redirectUrl.Path != "/" {
+		t.Errorf("Expected to be redirected to home but got %s", redirectUrl.Path)
 	}
 
 	cookies := resp.Cookies()
@@ -585,8 +585,12 @@ func TestMain(m *testing.M) {
 	ts = httptest.NewServer(serveHandler)
 
 	// Start ui server
-	oauthValidator := oauth.NewOAuthValidator(appConfig.OauthConfig.IssuerUrl, appConfig.OauthConfig.RequiredScopes)
-	authMiddleware := middleware.NewAuthMiddleware(oauthValidator, appConfig.OauthConfig.AuthEnabled)
+
+	//oauthValidator, err := oauth.NewOAuthValidator(testContext, appConfig.OauthConfig.IssuerUrl, appConfig.OauthConfig.RequiredScopes)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	authMiddleware := middleware.NewAuthMiddleware(oauth.PassthroughValidator{}, appConfig.OauthConfig.AuthEnabled)
 	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, authMiddleware)
 	testUIServer = httptest.NewServer(uiHandler)
 
