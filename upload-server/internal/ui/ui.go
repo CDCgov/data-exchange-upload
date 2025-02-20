@@ -121,7 +121,6 @@ type UploadTemplateData struct {
 	UploadEndpoint string
 	UploadUrl      string
 	UploadStatus   string
-	AuthToken      string
 	Info           info.InfoResponse
 	Navbar         components.Navbar
 	NewUploadBtn   components.LinkBtn
@@ -352,14 +351,12 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		authToken := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 
 		err = uploadTemplate.Execute(rw, &UploadTemplateData{
 			UploadEndpoint: externalUploadUrl,
 			UploadUrl:      uploadDestinationUrl,
 			Info:           fileInfo,
 			UploadStatus:   fileInfo.UploadStatus.Status,
-			AuthToken:      authToken,
 			Navbar:         components.NewNavbar(true, isLoggedIn(*r)),
 			NewUploadBtn:   components.LinkBtn{Href: "/", Text: "Upload New File"},
 		})

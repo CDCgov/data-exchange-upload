@@ -2,12 +2,17 @@ package middleware
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 )
+
+var ErrNoAuthHeader = errors.New("authorization header missing")
+var ErrAuthHeaderInvalidFormat = errors.New("authorization header format is invalid")
+var ErrTokenNotFound = errors.New("authorization token not found")
 
 const UserSessionCookieName = "phdo_auth_token"
 
@@ -53,19 +58,26 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 			next.ServeHTTP(w, r)
 			return
 		}
-
 		// allow preflight checks from browser clients
 		if r.Method == http.MethodOptions {
 			next.ServeHTTP(w, r)
 			return
 		}
-
+		// read auth token from either headers or cookies
 		token, err := getAuthToken(r.Header)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			if errors.Is(err, ErrNoAuthHeader) {
+				// fallback to cookies
+				token = getAuthTokenFromCookies(*r)
+			} else {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+		}
+		if token == "" {
+			http.Error(w, ErrTokenNotFound.Error(), http.StatusUnauthorized)
 			return
 		}
-
 		if strings.Count(token, ".") == 2 {
 			// Token is JWT, validate using oidc verifier
 			_, err = a.validator.ValidateJWT(r.Context(), token)
@@ -82,14 +94,15 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 			// Token is opaque, validate using introspection
 			err = validateOpaqueToken()
 		}
-
 		if err != nil {
 			var httpErr *HTTPError
 			if errors.As(err, &httpErr) {
 				http.Error(w, httpErr.Msg, httpErr.Code)
 			}
+			slog.Warn("request failed token validation", "path", r.URL.Path, "error", httpErr.Msg)
 			return
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -142,14 +155,22 @@ func validateOpaqueToken() error {
 func getAuthToken(headers http.Header) (string, error) {
 	authHeader := headers.Get("Authorization")
 	if authHeader == "" {
-		return "", errors.New("authorization header missing")
+		return "", ErrNoAuthHeader
 	}
 
 	if len(authHeader) < len("Bearer ") {
-		return "", errors.New("authorization header format is invalid")
+		return "", ErrAuthHeaderInvalidFormat
 	}
 
 	return authHeader[len("Bearer "):], nil
+}
+
+func getAuthTokenFromCookies(r http.Request) string {
+	c, err := r.Cookie(UserSessionCookieName)
+	if err != nil && errors.Is(err, http.ErrNoCookie) {
+		return ""
+	}
+	return c.Value
 }
 
 func sanitizeRedirectUrl(redirectURL string) string {

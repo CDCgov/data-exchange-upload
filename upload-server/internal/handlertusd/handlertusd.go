@@ -4,6 +4,7 @@ import (
 	"errors"
 	"golang.org/x/exp/slog"
 	"os"
+	"regexp"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
 	"github.com/prometheus/client_golang/prometheus"
@@ -60,6 +61,15 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 		Logger:                  slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})),
 		RespectForwardedHeaders: true,
 		DisableDownload:         true,
+		Cors: &tusd.CorsConfig{
+			Disable:          false,
+			AllowCredentials: true,
+			AllowOrigin:      regexp.MustCompile(".*"),
+			AllowHeaders:     "Authorization, Origin, X-Requested-With, X-Request-ID, X-HTTP-Method-Override, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat, Upload-Incomplete, Upload-Complete, Upload-Draft-Interop-Version",
+			ExposeHeaders:    "Authorization, Origin, X-Requested-With, X-Request-ID, X-HTTP-Method-Override, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat, Upload-Incomplete, Upload-Complete, Upload-Draft-Interop-Version",
+			AllowMethods:     "POST, HEAD, PATCH, OPTIONS, GET, DELETE",
+			MaxAge:           "86400",
+		},
 	}, hooksHandler, []hooks.HookType{hooks.HookPreCreate, hooks.HookPostCreate, hooks.HookPostReceive, hooks.HookPreFinish, hooks.HookPostFinish, hooks.HookPostTerminate}) // .handler
 	if err != nil {
 		logger.Error("error start tusd handler", "error", err)

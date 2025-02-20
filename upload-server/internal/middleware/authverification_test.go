@@ -53,7 +53,10 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 
 	// create VALID mock token w/ +1-hour expire offset
 	mockTokenValid, _ := createMockJWT(issuerURL, 1, "")
-
+	mockValidSessionCookie := &http.Cookie{
+		Name:  UserSessionCookieName,
+		Value: mockTokenValid,
+	}
 	// create mock token by concat a Z to make an invalid signature
 	mockTokenInvalidSignature := mockTokenValid + "Z"
 
@@ -82,12 +85,12 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			requiredScopes: "",
 		},
 		{
-			name:           "Missing Authorization Header",
+			name:           "No Token Provided In Request",
 			issuerURL:      issuerURL,
 			authEnabled:    true,
 			authHeader:     "",
 			expectStatus:   http.StatusUnauthorized,
-			expectMesg:     "authorization header missing",
+			expectMesg:     "authorization token not found",
 			expectNext:     false,
 			requiredScopes: "",
 		},
@@ -142,7 +145,7 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			requiredScopes: "",
 		},
 		{
-			name:           "Valid JWT Token",
+			name:           "Valid JWT Token In Auth Header",
 			issuerURL:      issuerURL,
 			authEnabled:    true,
 			authHeader:     "Bearer " + mockTokenValid,
@@ -150,6 +153,16 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			expectMesg:     "",
 			expectNext:     true,
 			requiredScopes: "",
+		},
+		{
+			name:           "Valid JWT Token In Cookie",
+			issuerURL:      issuerURL,
+			authEnabled:    true,
+			expectStatus:   http.StatusOK,
+			expectMesg:     "",
+			expectNext:     true,
+			requiredScopes: "",
+			sessionCookie:  mockValidSessionCookie,
 		},
 		// RequiredScopes related tests
 		{
@@ -214,6 +227,9 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 		req := httptest.NewRequest(http.MethodGet, ts.URL, nil)
 		if tc.authHeader != "" {
 			req.Header.Set("Authorization", tc.authHeader)
+		}
+		if tc.sessionCookie != nil {
+			req.AddCookie(tc.sessionCookie)
 		}
 
 		// record the response
