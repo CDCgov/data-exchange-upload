@@ -309,7 +309,10 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		req.Header.Set("Authorization", r.Header.Get("Authorization"))
+		if c, err := r.Cookie(middleware.UserSessionCookieName); !errors.Is(err, http.ErrNoCookie) {
+			req.AddCookie(c)
+		}
+		//req.Header.Set("Authorization", r.Header.Get("Authorization"))
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
