@@ -90,6 +90,10 @@ button {
   font-style: italic;
 }
 
+.warning {
+  color: var(--upload-failure)
+}
+
 /* -------------- */
 /* Navbar Styling */
 /* -------------- */
@@ -120,6 +124,11 @@ a:visited {
 
 .nav-container img {
   width: 7.5rem !important;
+}
+
+.nav-actions-container {
+  display: flex;
+  gap: 6px;
 }
 
 /* ------------------- */

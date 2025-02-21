@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"log/slog"
 	"net/http"
 	"os"
@@ -102,8 +103,10 @@ func main() {
 		}()
 	}
 
+	authMiddleware, err := middleware.NewAuthMiddleware(ctx, *appConfig.OauthConfig)
+
 	// start serving the app
-	handler, err := cli.Serve(ctx, appConfig)
+	handler, err := cli.Serve(ctx, appConfig, *authMiddleware)
 	if err != nil {
 		slog.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
@@ -138,7 +141,7 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl); err != nil {
+			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, *authMiddleware); err != nil {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}

@@ -244,7 +244,7 @@ async function uploadFile(file, { chunkSize, parallelUploads }) {
   const options = {
     headers: {
       "Tus-Resumable": "1.0.0",
-      "Content-Type": "application/offset+octet-stream"
+      "Content-Type": "application/offset+octet-stream",
     },
     metadata: {
       filename: file.name,
@@ -264,6 +264,10 @@ async function uploadFile(file, { chunkSize, parallelUploads }) {
     uploadUrl,
     chunkSize,
     parallelUploads,
+    onBeforeRequest(req) {
+      const xhr = req.getUnderlyingObject()
+      xhr.withCredentials = true
+    },
     onError(error) {
       if (error.originalRequest) {
         // if the upload failed but is recoverable, ask if the user wants to retry
