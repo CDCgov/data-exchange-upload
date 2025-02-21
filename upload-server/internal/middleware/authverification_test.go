@@ -24,17 +24,18 @@ var publicKey rsa.PublicKey
 
 // setup struct for individual test case
 type testCase struct {
-	name                     string
-	issuerURL                string
-	route                    string
-	authEnabled              bool // flag to test when auth enabled/disabled
-	authHeader               string
-	sessionCookie            *http.Cookie
-	expectStatus             int    // expected HTTP status code in response
-	expectMesg               string // expected error response body message
-	expectNext               bool   // false = has error response in middleware, true = passes on to next handler
-	expectedRedirectLocation string
-	requiredScopes           string // "" for no required scopes
+	name                          string
+	issuerURL                     string
+	route                         string
+	authEnabled                   bool // flag to test when auth enabled/disabled
+	authHeader                    string
+	sessionCookie                 *http.Cookie
+	expectStatus                  int    // expected HTTP status code in response
+	expectMesg                    string // expected error response body message
+	expectNext                    bool   // false = has error response in middleware, true = passes on to next handler
+	expectedRedirectLocation      string
+	expectedLoginRedirectLocation string
+	requiredScopes                string // "" for no required scopes
 }
 
 // tests the VerifyOAuthTokenMiddleware for multiple cases
@@ -330,26 +331,28 @@ func TestUserSessionMiddleware_TestCases(t *testing.T) {
 			expectedRedirectLocation: "/login",
 		},
 		{
-			name:                     "Redirect to Other Page",
-			issuerURL:                issuerURL,
-			authEnabled:              true,
-			sessionCookie:            mockSessionWithExpiredToken,
-			expectStatus:             http.StatusSeeOther,
-			expectMesg:               "",
-			expectNext:               false,
-			route:                    "/status/1234",
-			expectedRedirectLocation: "/login?redirect=/status/1234",
+			name:                          "Redirect to Other Page",
+			issuerURL:                     issuerURL,
+			authEnabled:                   true,
+			sessionCookie:                 mockSessionWithExpiredToken,
+			expectStatus:                  http.StatusSeeOther,
+			expectMesg:                    "",
+			expectNext:                    false,
+			route:                         "/status/1234",
+			expectedRedirectLocation:      "/login",
+			expectedLoginRedirectLocation: "/status/1234",
 		},
 		{
-			name:                     "Redirect with Query Params",
-			issuerURL:                issuerURL,
-			authEnabled:              true,
-			sessionCookie:            mockSessionWithExpiredToken,
-			expectStatus:             http.StatusSeeOther,
-			expectMesg:               "",
-			expectNext:               false,
-			route:                    "/manifest?data_stream=test&data_stream_route=test",
-			expectedRedirectLocation: "/login?redirect=/manifest?data_stream=test&data_stream_route=test",
+			name:                          "Redirect with Query Params",
+			issuerURL:                     issuerURL,
+			authEnabled:                   true,
+			sessionCookie:                 mockSessionWithExpiredToken,
+			expectStatus:                  http.StatusSeeOther,
+			expectMesg:                    "",
+			expectNext:                    false,
+			route:                         "/manifest?data_stream=test&data_stream_route=test",
+			expectedRedirectLocation:      "/login",
+			expectedLoginRedirectLocation: "/manifest?data_stream=test&data_stream_route=test",
 		},
 	}
 
@@ -394,16 +397,24 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 		}
 
 		if tc.expectedRedirectLocation != "" {
-			redirectUrl, err := resp.Result().Location()
+			var redirectUrl *url.URL
+			redirectUrl, err = resp.Result().Location()
 			if err != nil {
 				t.Error(err)
 			}
-			decoded, err := url.QueryUnescape(redirectUrl.String())
-			if err != nil {
-				t.Error(err)
+
+			if tc.expectedRedirectLocation != redirectUrl.String() {
+				t.Errorf("expected redirect to %s, got %s", tc.expectedRedirectLocation, redirectUrl.String())
 			}
-			if tc.expectedRedirectLocation != decoded {
-				t.Errorf("expected redirect to %s, got %s", tc.expectedRedirectLocation, decoded)
+
+			loginRedirectUrl := ""
+			for _, c := range resp.Result().Cookies() {
+				if c.Name == LoginRedirectCookieName {
+					loginRedirectUrl = c.Value
+				}
+			}
+			if tc.expectedLoginRedirectLocation != loginRedirectUrl {
+				t.Errorf("expected post login redirect to %s, got %s", tc.expectedLoginRedirectLocation, loginRedirectUrl)
 			}
 		}
 	})

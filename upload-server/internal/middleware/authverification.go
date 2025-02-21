@@ -17,8 +17,7 @@ var ErrAuthHeaderInvalidFormat = errors.New("authorization header format is inva
 var ErrTokenNotFound = errors.New("authorization token not found")
 
 const UserSessionCookieName = "phdo_auth_token"
-
-//var protectedUIRoutes = [...]string{"/", "/manifest", "/upload", "/status"}
+const LoginRedirectCookieName = "login_redirect"
 
 type Claims struct {
 	Scopes string `json:"scope"`
@@ -132,32 +131,12 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 
 		token, err := r.Cookie(UserSessionCookieName)
 		if err != nil {
-			//redirectSanitized("/login", http.StatusSeeOther, w, r)
-			//http.SetCookie(w, &http.Cookie{
-			//	Name:  "redirectUrl",
-			//	Value: r.URL.String(),
-			//	Path: "/",
-			//	Secure: true,
-			//	HttpOnly: true,
-			//	SameSite: http.SameSiteLaxMode,
-			//})
-			//http.Redirect(w, r, "/login", http.StatusSeeOther)
 			loginRedirect(w, r)
 			return
 		}
 
 		_, err = a.validator.ValidateJWT(r.Context(), token.Value)
 		if err != nil {
-			//redirectSanitized("/login", http.StatusSeeOther, w, r)
-			//http.SetCookie(w, &http.Cookie{
-			//	Name:  "redirectUrl",
-			//	Value: r.URL.String(),
-			//	Path: "/",
-			//	Secure: true,
-			//	HttpOnly: true,
-			//	SameSite: http.SameSiteLaxMode,
-			//})
-			//http.Redirect(w, r, "/login", http.StatusSeeOther)
 			loginRedirect(w, r)
 			return
 		}
@@ -171,9 +150,13 @@ func (a AuthMiddleware) Validator() oauth.Validator {
 }
 
 func loginRedirect(w http.ResponseWriter, r *http.Request) {
+	v := r.URL.Path
+	if r.URL.RawQuery != "" {
+		v += "?" + r.URL.RawQuery
+	}
 	http.SetCookie(w, &http.Cookie{
-		Name:     "redirectUrl",
-		Value:    r.URL.String(),
+		Name:     LoginRedirectCookieName,
+		Value:    v,
 		Path:     "/oauth_callback",
 		Secure:   true,
 		HttpOnly: true,
