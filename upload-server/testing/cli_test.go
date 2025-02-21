@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"io"
 	"log"
 	"net/http"
@@ -577,7 +576,12 @@ func TestMain(m *testing.M) {
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig)
+	authMiddleware, err := middleware.NewAuthMiddleware(testContext, *appConfig.OauthConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	serveHandler, err := cli.Serve(testContext, appConfig, *authMiddleware)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -585,13 +589,7 @@ func TestMain(m *testing.M) {
 	ts = httptest.NewServer(serveHandler)
 
 	// Start ui server
-
-	//oauthValidator, err := oauth.NewOAuthValidator(testContext, appConfig.OauthConfig.IssuerUrl, appConfig.OauthConfig.RequiredScopes)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	authMiddleware := middleware.NewAuthMiddleware(oauth.PassthroughValidator{}, appConfig.OauthConfig.AuthEnabled)
-	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, authMiddleware)
+	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, *authMiddleware)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()

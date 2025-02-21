@@ -6,9 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"io"
 	"net/http"
 	"net/url"
@@ -128,22 +126,7 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(ctx context.Context, port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authConfig appconfig.OauthConfig) (*http.Server, error) {
-	var validator oauth.Validator = oauth.PassthroughValidator{}
-	if authConfig.AuthEnabled {
-		var err error
-		validator, err = oauth.NewOAuthValidator(ctx, authConfig.IssuerUrl, authConfig.RequiredScopes)
-		if err != nil {
-			//logger.Error("error initializing oauth validator", "error", err)
-			return nil, err
-		}
-	}
-	//oauthValidator, err := oauth.NewOAuthValidator(ctx, authConfig.IssuerUrl, authConfig.RequiredScopes)
-	//if err != nil {
-	//	return nil, err
-	//}
-	authMiddleware := middleware.NewAuthMiddleware(validator, authConfig.AuthEnabled)
-
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) (*http.Server, error) {
 	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
@@ -394,8 +377,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 var DefaultServer *http.Server
 
-func Start(ctx context.Context, uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authConfig appconfig.OauthConfig) error {
-	DefaultServer, err := NewServer(ctx, uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authConfig)
+func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) error {
+	DefaultServer, err := NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
 	if err != nil {
 		return err
 	}

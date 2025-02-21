@@ -6,7 +6,7 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -208,6 +208,7 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 
 	t.Run(tc.name, func(t *testing.T) {
+		ctx := context.Background()
 		// create handler for middleware
 		hasBeenCalled := false
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -215,16 +216,18 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		// Create an instance of AuthMiddleware
-		oauthValidator, err := oauth.NewOAuthValidator(context.Background(), tc.issuerURL, tc.requiredScopes)
+		middleware, err := NewAuthMiddleware(ctx, appconfig.OauthConfig{
+			AuthEnabled:    tc.authEnabled,
+			IssuerUrl:      tc.issuerURL,
+			RequiredScopes: tc.requiredScopes,
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		middlewareConfig := NewAuthMiddleware(*oauthValidator, tc.authEnabled)
 
 		// create a test server with the middleware
-		middleware := middlewareConfig.VerifyOAuthTokenMiddleware(handler)
-		ts := httptest.NewServer(middleware)
+		middlewareHandler := middleware.VerifyOAuthTokenMiddleware(handler)
+		ts := httptest.NewServer(middlewareHandler)
 		defer ts.Close()
 
 		// create a new request
@@ -240,7 +243,7 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 		rec := httptest.NewRecorder()
 
 		// serve the request using the middleware
-		middleware.ServeHTTP(rec, req)
+		middlewareHandler.ServeHTTP(rec, req)
 
 		// check the status code
 		if rec.Code != tc.expectStatus {
@@ -364,11 +367,14 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		oauthValidator, err := oauth.NewOAuthValidator(context.Background(), tc.issuerURL, tc.requiredScopes)
+		middleware, err := NewAuthMiddleware(context.Background(), appconfig.OauthConfig{
+			AuthEnabled:    tc.authEnabled,
+			IssuerUrl:      tc.issuerURL,
+			RequiredScopes: tc.requiredScopes,
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
-		middleware := NewAuthMiddleware(*oauthValidator, tc.authEnabled)
 		handler := middleware.VerifyUserSession(nextHandler)
 		ts := httptest.NewServer(handler)
 		defer ts.Close()
