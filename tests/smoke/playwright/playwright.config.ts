@@ -80,11 +80,7 @@ const config: PlaywrightTestConfig = {
       use: { ...devices['Desktop Chrome'] }
     }
     // More projects can be configured here
-  ],
-  webServer: {
-    command: 'node server/index.js',
-    url: 'http://localhost:3000',
-  }
+  ]
 };
 
 export default config;
