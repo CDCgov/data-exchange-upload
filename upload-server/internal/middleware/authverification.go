@@ -149,8 +149,6 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 			return
 		}
 
-		r.Header.Set("Authorization", "Bearer "+token.Value)
-
 		next.ServeHTTP(w, r)
 	})
 }

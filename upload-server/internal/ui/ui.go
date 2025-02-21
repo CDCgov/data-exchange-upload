@@ -265,7 +265,10 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		req.Header.Set("Upload-Metadata", upload.EncodedMetadata())
 		req.Header.Set("Upload-Defer-Length", "1")
 		req.Header.Set("Tus-Resumable", "1.0.0")
-		req.Header.Set("Authorization", r.Header.Get("Authorization"))
+
+		if c, err := r.Cookie(middleware.UserSessionCookieName); !errors.Is(err, http.ErrNoCookie) {
+			req.AddCookie(c)
+		}
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -312,7 +315,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		if c, err := r.Cookie(middleware.UserSessionCookieName); !errors.Is(err, http.ErrNoCookie) {
 			req.AddCookie(c)
 		}
-		//req.Header.Set("Authorization", r.Header.Get("Authorization"))
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
