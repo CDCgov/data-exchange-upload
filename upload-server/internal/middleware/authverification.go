@@ -7,7 +7,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
@@ -134,18 +133,32 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 		token, err := r.Cookie(UserSessionCookieName)
 		if err != nil {
 			//redirectSanitized("/login", http.StatusSeeOther, w, r)
-			http.SetCookie(w, &http.Cookie{
-				Name:  "redirectUrl",
-				Value: r.URL.String(),
-			})
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			//http.SetCookie(w, &http.Cookie{
+			//	Name:  "redirectUrl",
+			//	Value: r.URL.String(),
+			//	Path: "/",
+			//	Secure: true,
+			//	HttpOnly: true,
+			//	SameSite: http.SameSiteLaxMode,
+			//})
+			//http.Redirect(w, r, "/login", http.StatusSeeOther)
+			loginRedirect(w, r)
 			return
 		}
 
 		_, err = a.validator.ValidateJWT(r.Context(), token.Value)
 		if err != nil {
 			//redirectSanitized("/login", http.StatusSeeOther, w, r)
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			//http.SetCookie(w, &http.Cookie{
+			//	Name:  "redirectUrl",
+			//	Value: r.URL.String(),
+			//	Path: "/",
+			//	Secure: true,
+			//	HttpOnly: true,
+			//	SameSite: http.SameSiteLaxMode,
+			//})
+			//http.Redirect(w, r, "/login", http.StatusSeeOther)
+			loginRedirect(w, r)
 			return
 		}
 
@@ -155,6 +168,18 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 
 func (a AuthMiddleware) Validator() oauth.Validator {
 	return a.validator
+}
+
+func loginRedirect(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "redirectUrl",
+		Value:    r.URL.String(),
+		Path:     "/",
+		Secure:   true,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 func validateOpaqueToken() error {
@@ -226,54 +251,48 @@ func getAuthTokenFromCookies(r http.Request) string {
 //	return sanitized
 //}
 
-func isValidRedirectURL(redirectURL string) bool {
-	if redirectURL == "" {
-		return false
-	}
+//func isValidRedirectURL(redirectURL string) bool {
+//	if redirectURL == "" {
+//		return false
+//	}
+//
+//	parsed, err := url.Parse(redirectURL)
+//	if err != nil {
+//		return false
+//	}
+//
+//	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
+//		return false
+//	}
+//
+//	return true
+//}
 
-	parsed, err := url.Parse(redirectURL)
-	if err != nil {
-		return false
-	}
-
-	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
-		return false
-	}
-
-	//for _, p := range protectedUIRoutes {
-	//	if strings.HasPrefix(parsed.Path, p) {
-	//		return true
-	//	}
-	//}
-
-	return true
-}
-
-func sanitizeRedirectUrl(redirectURL string) string {
-	sanitized := "/"
-
-	if redirectURL == "" {
-		return sanitized
-	}
-
-	parsed, err := url.Parse(redirectURL)
-	if err != nil {
-		return sanitized
-	}
-
-	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
-		return sanitized
-	}
-
-	//for _, p := range protectedUIRoutes {
-	//	if strings.HasPrefix(parsed.Path, p) {
-	//		sanitized = parsed.Path
-	//		if parsed.RawQuery != "" {
-	//			sanitized += "?" + url.QueryEscape(parsed.RawQuery)
-	//		}
-	//		return sanitized
-	//	}
-	//}
-
-	return sanitized
-}
+//func sanitizeRedirectUrl(redirectURL string) string {
+//	sanitized := "/"
+//
+//	if redirectURL == "" {
+//		return sanitized
+//	}
+//
+//	parsed, err := url.Parse(redirectURL)
+//	if err != nil {
+//		return sanitized
+//	}
+//
+//	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
+//		return sanitized
+//	}
+//
+//	//for _, p := range protectedUIRoutes {
+//	//	if strings.HasPrefix(parsed.Path, p) {
+//	//		sanitized = parsed.Path
+//	//		if parsed.RawQuery != "" {
+//	//			sanitized += "?" + url.QueryEscape(parsed.RawQuery)
+//	//		}
+//	//		return sanitized
+//	//	}
+//	//}
+//
+//	return sanitized
+//}

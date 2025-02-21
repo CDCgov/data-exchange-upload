@@ -183,7 +183,9 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		redirect := "/"
 		rc, err := r.Cookie("redirectUrl") //r.URL.Query().Get("redirect")
 		if err == nil {
-			redirect = rc.Value
+			if isValidRedirectURL(rc.Value) {
+				redirect = rc.Value
+			}
 		}
 		//if redirect == "" {
 		//	redirect = "/"
@@ -423,5 +425,22 @@ func isLoggedIn(r http.Request) bool {
 	if err != nil && errors.Is(err, http.ErrNoCookie) {
 		return false
 	}
+	return true
+}
+
+func isValidRedirectURL(redirectURL string) bool {
+	if redirectURL == "" {
+		return false
+	}
+
+	parsed, err := url.Parse(redirectURL)
+	if err != nil {
+		return false
+	}
+
+	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
+		return false
+	}
+
 	return true
 }
