@@ -181,17 +181,11 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
 		redirect := "/"
-		rc, err := r.Cookie("redirectUrl") //r.URL.Query().Get("redirect")
+		rc, err := r.Cookie(middleware.LoginRedirectCookieName) //r.URL.Query().Get("redirect")
 		if err == nil {
 			if isValidRedirectURL(rc.Value) {
 				redirect = rc.Value
 			}
-		}
-		//if redirect == "" {
-		//	redirect = "/"
-		//}
-		if !strings.HasPrefix(redirect, "/") {
-			redirect = "/" + redirect
 		}
 		token := r.FormValue("token")
 
