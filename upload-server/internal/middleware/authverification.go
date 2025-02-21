@@ -174,7 +174,7 @@ func loginRedirect(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "redirectUrl",
 		Value:    r.URL.String(),
-		Path:     "/",
+		Path:     "/oauth_callback",
 		Secure:   true,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
