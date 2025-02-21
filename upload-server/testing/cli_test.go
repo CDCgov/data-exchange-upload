@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"io"
 	"log"
 	"net/http"
@@ -339,6 +340,83 @@ func TestLandingPage(t *testing.T) {
 	}
 }
 
+func TestLoginPage(t *testing.T) {
+	client := testUIServer.Client()
+	resp, err := client.Get(testUIServer.URL + "/login")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if ct != "text/html; charset=utf-8" {
+		t.Error("Expected html content but got", ct)
+	}
+}
+
+func TestLogoutRedirect(t *testing.T) {
+	didRedirect := false
+	var redirectUrl *url.URL
+	client := testUIServer.Client()
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		didRedirect = true
+		redirectUrl = req.URL
+		return nil
+	}
+
+	resp, err := client.Get(testUIServer.URL + "/logout")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !didRedirect {
+		t.Error("Expected to redirect but did not")
+	}
+	if resp.StatusCode != 200 {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+
+	if redirectUrl.Path != "/login" {
+		t.Errorf("Expected to be redirected to login but got %s", redirectUrl.Path)
+	}
+}
+
+func TestOauthCallbackInvalidToken(t *testing.T) {
+	didRedirect := false
+	var redirectUrl *url.URL
+	client := testUIServer.Client()
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		didRedirect = true
+		redirectUrl = req.URL
+		return nil
+	}
+	loginForm := url.Values{
+		"token": {"bogus"},
+	}
+	body := strings.NewReader(loginForm.Encode())
+	resp, err := client.Post(testUIServer.URL+"/oauth_callback", "application/x-www-form-urlencoded", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Error("Expected 200 but got", resp.StatusCode)
+	}
+
+	if !didRedirect {
+		t.Error("Expected to redirect but did not")
+	}
+
+	if redirectUrl.Path != "/" {
+		t.Errorf("Expected to be redirected to home but got %s", redirectUrl.Path)
+	}
+
+	cookies := resp.Cookies()
+	if len(cookies) != 0 {
+		t.Errorf("Expected zero cookies but got %d", len(cookies))
+	}
+}
+
 func TestManifestPageManifestNoQueryParams(t *testing.T) {
 	client := testUIServer.Client()
 	resp, err := client.Get(testUIServer.URL + "/manifest")
@@ -496,7 +574,12 @@ func TestMain(m *testing.M) {
 		testWaitGroup.Done()
 	}()
 
-	serveHandler, err := cli.Serve(testContext, appConfig)
+	authMiddleware, err := middleware.NewAuthMiddleware(testContext, *appConfig.OauthConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	serveHandler, err := cli.Serve(testContext, appConfig, *authMiddleware)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -504,7 +587,7 @@ func TestMain(m *testing.M) {
 	ts = httptest.NewServer(serveHandler)
 
 	// Start ui server
-	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath)
+	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, *authMiddleware)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()
