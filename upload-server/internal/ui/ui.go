@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/session"
+	"github.com/gorilla/sessions"
 	"io"
 	"net/http"
 	"net/url"
@@ -167,13 +169,14 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
-		redirect := "/"
-		rc, err := r.Cookie(middleware.LoginRedirectCookieName) //r.URL.Query().Get("redirect")
-		if err == nil {
-			if isValidRedirectURL(rc.Value) {
-				redirect = rc.Value
-			}
-		}
+		//redirect := r.URL.Query().Get("redirect")
+		//rc, err := r.Cookie(middleware.LoginRedirectCookieName)
+		//if err == nil {
+		//	if isValidRedirectURL(rc.Value) {
+		//		redirect = rc.Value
+		//	}
+		//}
+
 		token := r.FormValue("token")
 
 		if token == "" {
@@ -187,17 +190,37 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		http.SetCookie(rw, &http.Cookie{
-			Name:     middleware.UserSessionCookieName,
-			Value:    token,
+		sess, _ := session.Store().Get(r, middleware.UserSessionCookieName)
+		sess.Options = &sessions.Options{
 			Path:     "/",
-			Expires:  time.Unix(claims.Expiry, 0),
 			MaxAge:   int(claims.Expiry),
 			Secure:   true,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
-		})
-		http.Redirect(rw, r, redirect, http.StatusFound)
+		}
+		sess.Values["token"] = token
+		err = sess.Save(r, rw)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+
+		redirect := sess.Values["redirect"]
+
+		//http.SetCookie(rw, &http.Cookie{
+		//	Name:     middleware.UserSessionCookieName,
+		//	Value:    token,
+		//	Path:     "/",
+		//	Expires:  time.Unix(claims.Expiry, 0),
+		//	MaxAge:   int(claims.Expiry),
+		//	Secure:   true,
+		//	HttpOnly: true,
+		//	SameSite: http.SameSiteLaxMode,
+		//})
+		if redirect != nil {
+			http.Redirect(rw, r, redirect.(string), http.StatusFound)
+		} else {
+			http.Redirect(rw, r, "/", http.StatusFound)
+		}
 	}).Methods("POST")
 	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
