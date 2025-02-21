@@ -131,26 +131,15 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 			return
 		}
 
-		var redirectQuery string
-		redirectPath := r.URL.Path
-		if r.URL.RawQuery != "" {
-			redirectPath += "?" + r.URL.RawQuery
-		}
-		sanitizedRedirect := sanitizeRedirectUrl(redirectPath)
-		if sanitizedRedirect != "/" {
-			redirectQuery = "?redirect=" + sanitizedRedirect
-		}
-
 		token, err := r.Cookie(UserSessionCookieName)
-
 		if err != nil {
-			http.Redirect(w, r, "/login"+redirectQuery, http.StatusSeeOther)
+			http.Redirect(w, r, sanitizeRedirectPath("/login", *r), http.StatusSeeOther)
 			return
 		}
 
 		_, err = a.validator.ValidateJWT(r.Context(), token.Value)
 		if err != nil {
-			http.Redirect(w, r, "/login"+redirectQuery, http.StatusSeeOther)
+			http.Redirect(w, r, sanitizeRedirectPath("/login", *r), http.StatusSeeOther)
 			return
 		}
 
@@ -186,6 +175,25 @@ func getAuthTokenFromCookies(r http.Request) string {
 		return ""
 	}
 	return c.Value
+}
+
+func sanitizeRedirectPath(path string, r http.Request) string {
+	sanitized := path
+
+	//append redirect query
+	var redirectQuery string
+	redirectPath := r.URL.Path
+	if r.URL.RawQuery != "" {
+		redirectPath += "?" + r.URL.RawQuery
+	}
+	sanitizedRedirect := sanitizeRedirectUrl(redirectPath)
+	if sanitizedRedirect != "/" {
+		redirectQuery = "?redirect=" + sanitizedRedirect
+	}
+
+	sanitized += redirectQuery
+
+	return sanitized
 }
 
 func sanitizeRedirectUrl(redirectURL string) string {
