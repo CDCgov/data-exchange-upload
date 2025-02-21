@@ -5,10 +5,6 @@ targets:
     name: edav
     type: file
     path: ./uploads/edav
-  eicr:
-    name: eicr
-    type: file
-    path: ./uploads/eicr
   ncird:
     name: ncird
     type: file
@@ -20,12 +16,7 @@ routing_groups:
     delivery_targets:
       - name: edav
         path_template: "{{.DataStreamID}}/{{.DataStreamRoute}}/{{.Filename}}"
-  - data_stream_id: eicr
-    data_stream_route: fhir
-    delivery_targets:
-      - name: eicr
-        path_template: "{{.UploadId}}"
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird
@@ -41,7 +32,7 @@ routing_groups:
     data_stream_route: other
     delivery_targets:
       - name: ncird
-  - data_stream_id: rsp-prevention
+  - data_stream_id: rsv-prevention
     data_stream_route: csv
     delivery_targets:
       - name: ncird

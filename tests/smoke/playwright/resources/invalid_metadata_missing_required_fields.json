@@ -76,20 +76,6 @@
     "expectedErrorMessages": ["field meta_ext_submissionperiod was missing"]
   },
   {
-    "name": "should error because of missing meta_ext_file_timestamp for eicr_fhir",
-    "metadata": {
-      "data_stream_id": "eicr",
-      "data_stream_route": "fhir",
-      "data_producer_id": "test-producer-id",
-      "sender_id": "APHL",
-      "jurisdiction": "test-jurisdiction",
-      "received_filename": "dex-smoke-test",
-      "meta_ext_objectkey": "test-obj-key"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": ["field meta_ext_file_timestamp was missing"]
-  },
-  {
     "name": "should error because of missing sender_id for pulsenet_localsequencefile",
     "metadata": {
       "data_stream_id": "pulsenet",
