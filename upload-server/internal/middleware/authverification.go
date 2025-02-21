@@ -134,6 +134,10 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 		token, err := r.Cookie(UserSessionCookieName)
 		if err != nil {
 			//redirectSanitized("/login", http.StatusSeeOther, w, r)
+			http.SetCookie(w, &http.Cookie{
+				Name:  "redirectUrl",
+				Value: r.URL.String(),
+			})
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}

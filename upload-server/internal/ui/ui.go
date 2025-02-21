@@ -180,10 +180,14 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
-		redirect := r.URL.Query().Get("redirect")
-		if redirect == "" {
-			redirect = "/"
+		redirect := "/"
+		rc, err := r.Cookie("redirectUrl") //r.URL.Query().Get("redirect")
+		if err == nil {
+			redirect = rc.Value
 		}
+		//if redirect == "" {
+		//	redirect = "/"
+		//}
 		if !strings.HasPrefix(redirect, "/") {
 			redirect = "/" + redirect
 		}
