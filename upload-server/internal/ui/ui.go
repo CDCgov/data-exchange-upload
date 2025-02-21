@@ -148,7 +148,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	protectedRouter.Use(authMiddleware.VerifyUserSession)
 
 	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
-		redirect := r.URL.Query().Get("redirect")
 		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
 		if err != nil {
 			authFailed = false
@@ -156,7 +155,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 		err = loginTemplate.Execute(rw, &LoginTemplateData{
 			AuthFailed: authFailed,
-			Redirect:   redirect,
 			CsrfToken:  csrf.Token(r),
 		})
 		if err != nil {
