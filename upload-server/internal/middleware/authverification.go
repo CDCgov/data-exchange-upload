@@ -160,7 +160,7 @@ func loginRedirect(w http.ResponseWriter, r *http.Request) {
 		Path:     "/oauth_callback",
 		Secure:   true,
 		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
+		SameSite: http.SameSiteStrictMode,
 	})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
