@@ -19,7 +19,7 @@ var ErrTokenNotFound = errors.New("authorization token not found")
 
 const UserSessionCookieName = "phdo_auth_token"
 
-var protectedUIRoutes = [...]string{"/", "/manifest", "/upload", "/status"}
+//var protectedUIRoutes = [...]string{"/", "/manifest", "/upload", "/status"}
 
 type Claims struct {
 	Scopes string `json:"scope"`
@@ -133,13 +133,15 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 
 		token, err := r.Cookie(UserSessionCookieName)
 		if err != nil {
-			http.Redirect(w, r, sanitizeRedirectPath("/login", *r), http.StatusSeeOther)
+			redirectSanitized("/login", http.StatusSeeOther, w, r)
+			//http.Redirect(w, r, sanitizeRedirectPath("/login", *r), http.StatusSeeOther)
 			return
 		}
 
 		_, err = a.validator.ValidateJWT(r.Context(), token.Value)
 		if err != nil {
-			http.Redirect(w, r, sanitizeRedirectPath("/login", *r), http.StatusSeeOther)
+			redirectSanitized("/login", http.StatusSeeOther, w, r)
+			//http.Redirect(w, r, sanitizeRedirectPath("/login", *r), http.StatusSeeOther)
 			return
 		}
 
@@ -177,23 +179,70 @@ func getAuthTokenFromCookies(r http.Request) string {
 	return c.Value
 }
 
-func sanitizeRedirectPath(path string, r http.Request) string {
-	sanitized := path
-
-	//append redirect query
-	var redirectQuery string
-	redirectPath := r.URL.Path
+func redirectSanitized(path string, code int, w http.ResponseWriter, r *http.Request) {
+	redirectURL := path
+	if redirectURL == "" {
+		// default to home page
+		redirectURL = "/"
+	}
+	// build target URL
+	targetURL := r.URL.Path
 	if r.URL.RawQuery != "" {
-		redirectPath += "?" + r.URL.RawQuery
-	}
-	sanitizedRedirect := sanitizeRedirectUrl(redirectPath)
-	if sanitizedRedirect != "/" {
-		redirectQuery = "?redirect=" + sanitizedRedirect
+		// append incoming query params
+		targetURL += "?" + r.URL.RawQuery
 	}
 
-	sanitized += redirectQuery
+	if targetURL != "" {
+		redirectURL += "?redirect=" + url.QueryEscape(targetURL)
+	}
 
-	return sanitized
+	if isValidRedirectURL(redirectURL) {
+		http.Redirect(w, r, redirectURL, code)
+		return
+	}
+	http.Error(w, "invalid redirect url", http.StatusBadRequest)
+}
+
+//func sanitizeRedirectPath(path string, r http.Request) string {
+//	sanitized := path
+//
+//	//append redirect query
+//	var redirectQuery string
+//	redirectPath := r.URL.Path
+//	if r.URL.RawQuery != "" {
+//		redirectPath += "?" + r.URL.RawQuery
+//	}
+//	sanitizedRedirect := sanitizeRedirectUrl(redirectPath)
+//	if sanitizedRedirect != "/" {
+//		redirectQuery = "?redirect=" + sanitizedRedirect
+//	}
+//
+//	sanitized += redirectQuery
+//
+//	return sanitized
+//}
+
+func isValidRedirectURL(redirectURL string) bool {
+	if redirectURL == "" {
+		return false
+	}
+
+	parsed, err := url.Parse(redirectURL)
+	if err != nil {
+		return false
+	}
+
+	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
+		return false
+	}
+
+	//for _, p := range protectedUIRoutes {
+	//	if strings.HasPrefix(parsed.Path, p) {
+	//		return true
+	//	}
+	//}
+
+	return true
 }
 
 func sanitizeRedirectUrl(redirectURL string) string {
@@ -212,15 +261,15 @@ func sanitizeRedirectUrl(redirectURL string) string {
 		return sanitized
 	}
 
-	for _, p := range protectedUIRoutes {
-		if strings.HasPrefix(parsed.Path, p) {
-			sanitized = parsed.Path
-			if parsed.RawQuery != "" {
-				sanitized += "?" + url.QueryEscape(parsed.RawQuery)
-			}
-			return sanitized
-		}
-	}
+	//for _, p := range protectedUIRoutes {
+	//	if strings.HasPrefix(parsed.Path, p) {
+	//		sanitized = parsed.Path
+	//		if parsed.RawQuery != "" {
+	//			sanitized += "?" + url.QueryEscape(parsed.RawQuery)
+	//		}
+	//		return sanitized
+	//	}
+	//}
 
 	return sanitized
 }
