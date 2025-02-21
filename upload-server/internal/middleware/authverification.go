@@ -3,11 +3,14 @@ package middleware
 import (
 	"context"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"log/slog"
 	"net/http"
 	"strings"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/session"
+	"github.com/gorilla/sessions"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 )
@@ -16,7 +19,7 @@ var ErrNoAuthHeader = errors.New("authorization header missing")
 var ErrAuthHeaderInvalidFormat = errors.New("authorization header format is invalid")
 var ErrTokenNotFound = errors.New("authorization token not found")
 
-const UserSessionCookieName = "phdo_auth_token"
+const UserSessionCookieName = "phdo_session"
 const LoginRedirectCookieName = "login_redirect"
 
 type Claims struct {
@@ -129,15 +132,16 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 			return
 		}
 
-		token, err := r.Cookie(UserSessionCookieName)
-		if err != nil {
-			loginRedirect(w, r)
+		sess, _ := session.Store().Get(r, UserSessionCookieName)
+		token := sess.Values["token"]
+		if token == nil {
+			loginRedirect(sess, w, r)
 			return
 		}
 
-		_, err = a.validator.ValidateJWT(r.Context(), token.Value)
+		_, err := a.validator.ValidateJWT(r.Context(), token.(string))
 		if err != nil {
-			loginRedirect(w, r)
+			loginRedirect(sess, w, r)
 			return
 		}
 
@@ -149,19 +153,24 @@ func (a AuthMiddleware) Validator() oauth.Validator {
 	return a.validator
 }
 
-func loginRedirect(w http.ResponseWriter, r *http.Request) {
-	v := r.URL.Path
-	if r.URL.RawQuery != "" {
-		v += "?" + r.URL.RawQuery
+func loginRedirect(sess *sessions.Session, w http.ResponseWriter, r *http.Request) {
+	if sess != nil {
+		v := r.URL.Path
+		if r.URL.RawQuery != "" {
+			v += "?" + r.URL.RawQuery
+		}
+		sess.Values["redirect"] = v
 	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     LoginRedirectCookieName,
-		Value:    v,
-		Path:     "/oauth_callback",
-		Secure:   true,
-		HttpOnly: true,
-		SameSite: http.SameSiteStrictMode,
-	})
+	sess.Save(r, w)
+
+	//http.SetCookie(w, &http.Cookie{
+	//	Name:     LoginRedirectCookieName,
+	//	Value:    v,
+	//	Path:     "/oauth_callback",
+	//	Secure:   true,
+	//	HttpOnly: true,
+	//	SameSite: http.SameSiteStrictMode,
+	//})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 

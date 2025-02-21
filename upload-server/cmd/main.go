@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/session"
 	"log/slog"
 	"net/http"
 	"os"
@@ -102,7 +103,7 @@ func main() {
 			}
 		}()
 	}
-
+	session.Init()
 	authMiddleware, err := middleware.NewAuthMiddleware(ctx, *appConfig.OauthConfig)
 	if err != nil {
 		slog.Error("error starting app, error initialize auth middleware", "error", err)

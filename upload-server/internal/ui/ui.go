@@ -16,9 +16,9 @@ import (
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/session"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 
@@ -29,6 +29,7 @@ import (
 	"github.com/eventials/go-tus"
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/sessions"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -170,13 +171,14 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
-		redirect := "/"
-		rc, err := r.Cookie(middleware.LoginRedirectCookieName) //r.URL.Query().Get("redirect")
-		if err == nil {
-			if isValidRedirectURL(rc.Value) {
-				redirect = rc.Value
-			}
-		}
+		//redirect := r.URL.Query().Get("redirect")
+		//rc, err := r.Cookie(middleware.LoginRedirectCookieName)
+		//if err == nil {
+		//	if isValidRedirectURL(rc.Value) {
+		//		redirect = rc.Value
+		//	}
+		//}
+
 		token := r.FormValue("token")
 
 		if token == "" {
@@ -191,17 +193,37 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		http.SetCookie(rw, &http.Cookie{
-			Name:     middleware.UserSessionCookieName,
-			Value:    token,
+		sess, _ := session.Store().Get(r, middleware.UserSessionCookieName)
+		sess.Options = &sessions.Options{
 			Path:     "/",
-			Expires:  time.Unix(claims.Expiry, 0),
 			MaxAge:   int(claims.Expiry),
 			Secure:   appconfig.LoadedConfig.Environment != "DEV",
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
-		})
-		http.Redirect(rw, r, redirect, http.StatusFound)
+		}
+		sess.Values["token"] = token
+		err = sess.Save(r, rw)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+
+		redirect := sess.Values["redirect"]
+
+		//http.SetCookie(rw, &http.Cookie{
+		//	Name:     middleware.UserSessionCookieName,
+		//	Value:    token,
+		//	Path:     "/",
+		//	Expires:  time.Unix(claims.Expiry, 0),
+		//	MaxAge:   int(claims.Expiry),
+		//	Secure:   true,
+		//	HttpOnly: true,
+		//	SameSite: http.SameSiteLaxMode,
+		//})
+		if redirect != nil {
+			http.Redirect(rw, r, redirect.(string), http.StatusFound)
+		} else {
+			http.Redirect(rw, r, "/", http.StatusFound)
+		}
 	}).Methods("POST")
 	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
