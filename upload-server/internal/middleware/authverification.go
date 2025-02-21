@@ -133,15 +133,15 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 
 		token, err := r.Cookie(UserSessionCookieName)
 		if err != nil {
-			redirectSanitized("/login", http.StatusSeeOther, w, r)
-			//http.Redirect(w, r, sanitizeRedirectPath("/login", *r), http.StatusSeeOther)
+			//redirectSanitized("/login", http.StatusSeeOther, w, r)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
 		_, err = a.validator.ValidateJWT(r.Context(), token.Value)
 		if err != nil {
-			redirectSanitized("/login", http.StatusSeeOther, w, r)
-			//http.Redirect(w, r, sanitizeRedirectPath("/login", *r), http.StatusSeeOther)
+			//redirectSanitized("/login", http.StatusSeeOther, w, r)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		}
 
@@ -179,29 +179,29 @@ func getAuthTokenFromCookies(r http.Request) string {
 	return c.Value
 }
 
-func redirectSanitized(path string, code int, w http.ResponseWriter, r *http.Request) {
-	redirectURL := path
-	if redirectURL == "" {
-		// default to home page
-		redirectURL = "/"
-	}
-	// build target URL
-	targetURL := r.URL.Path
-	if r.URL.RawQuery != "" {
-		// append incoming query params
-		targetURL += "?" + r.URL.RawQuery
-	}
-
-	if targetURL != "" {
-		redirectURL += "?redirect=" + url.QueryEscape(targetURL)
-	}
-
-	if isValidRedirectURL(redirectURL) {
-		http.Redirect(w, r, redirectURL, code)
-		return
-	}
-	http.Error(w, "invalid redirect url", http.StatusBadRequest)
-}
+//func redirectSanitized(path string, code int, w http.ResponseWriter, r *http.Request) {
+//	redirectURL := path
+//	if redirectURL == "" {
+//		// default to home page
+//		redirectURL = "/"
+//	}
+//	// build target URL
+//	targetURL := r.URL.Path
+//	if r.URL.RawQuery != "" {
+//		// append incoming query params
+//		targetURL += "?" + r.URL.RawQuery
+//	}
+//
+//	if targetURL != "" {
+//		redirectURL += "?redirect=" + url.QueryEscape(targetURL)
+//	}
+//
+//	if isValidRedirectURL(redirectURL) {
+//		http.Redirect(w, r, redirectURL, code)
+//		return
+//	}
+//	http.Error(w, "invalid redirect url", http.StatusBadRequest)
+//}
 
 //func sanitizeRedirectPath(path string, r http.Request) string {
 //	sanitized := path
