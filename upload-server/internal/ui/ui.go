@@ -126,7 +126,7 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) (*http.Server, error) {
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) *http.Server {
 	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
@@ -139,7 +139,7 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 		Addr:    addr,
 		Handler: secureRouter,
 	}
-	return s, nil
+	return s
 }
 
 func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) *mux.Router {
@@ -148,7 +148,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	protectedRouter.Use(authMiddleware.VerifyUserSession)
 
 	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
-		redirect := r.URL.Query().Get("redirect")
 		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
 		if err != nil {
 			authFailed = false
@@ -156,7 +155,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 		err = loginTemplate.Execute(rw, &LoginTemplateData{
 			AuthFailed: authFailed,
-			Redirect:   redirect,
 			CsrfToken:  csrf.Token(r),
 		})
 		if err != nil {
@@ -165,25 +163,18 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		}
 	})
 	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie(middleware.UserSessionCookieName)
-		if err != nil {
-			http.Redirect(rw, r, "/login", http.StatusFound)
-			return
-		}
-		c.Expires = time.Unix(0, 0)
-		c.MaxAge = -1
-		http.SetCookie(rw, c)
-
+		deleteSession(rw, r)
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
-		redirect := r.URL.Query().Get("redirect")
-		if redirect == "" {
-			redirect = "/"
-		}
-		if !strings.HasPrefix(redirect, "/") {
-			redirect = "/" + redirect
-		}
+		//redirect := r.URL.Query().Get("redirect")
+		//rc, err := r.Cookie(middleware.LoginRedirectCookieName)
+		//if err == nil {
+		//	if isValidRedirectURL(rc.Value) {
+		//		redirect = rc.Value
+		//	}
+		//}
+
 		token := r.FormValue("token")
 
 		if token == "" {
@@ -197,17 +188,50 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		http.SetCookie(rw, &http.Cookie{
-			Name:     middleware.UserSessionCookieName,
-			Value:    token,
-			Path:     "/",
-			Expires:  time.Unix(claims.Expiry, 0),
-			MaxAge:   int(claims.Expiry),
-			Secure:   true,
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		})
-		http.Redirect(rw, r, redirect, http.StatusFound)
+		us, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+
+		err = us.SetToken(r, rw, token, int(claims.Expiry))
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+
+		//err = session.CreateUserSession(r, rw, token, redirect)
+
+		//sess, _ := session.Store().Get(r, middleware.UserSessionCookieName)
+		//sess.Options = &sessions.Options{
+		//	Path:     "/",
+		//	MaxAge:   int(claims.Expiry),
+		//	Secure:   true,
+		//	HttpOnly: true,
+		//	SameSite: http.SameSiteLaxMode,
+		//}
+		//sess.Values["token"] = token
+		//err = sess.Save(r, rw)
+		//if err != nil {
+		//	http.Error(rw, err.Error(), http.StatusInternalServerError)
+		//}
+
+		redirect := us.Data().Redirect
+		//redirect := sess.Values["redirect"]
+
+		//http.SetCookie(rw, &http.Cookie{
+		//	Name:     middleware.UserSessionCookieName,
+		//	Value:    token,
+		//	Path:     "/",
+		//	Expires:  time.Unix(claims.Expiry, 0),
+		//	MaxAge:   int(claims.Expiry),
+		//	Secure:   true,
+		//	HttpOnly: true,
+		//	SameSite: http.SameSiteLaxMode,
+		//})
+		if redirect != "" {
+			http.Redirect(rw, r, redirect, http.StatusFound)
+		} else {
+			http.Redirect(rw, r, "/", http.StatusFound)
+		}
 	}).Methods("POST")
 	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
@@ -383,10 +407,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 var DefaultServer *http.Server
 
 func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) error {
-	DefaultServer, err := NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
-	if err != nil {
-		return err
-	}
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
 
 	return DefaultServer.ListenAndServe()
 }
@@ -416,4 +437,36 @@ func isLoggedIn(r http.Request) bool {
 		return false
 	}
 	return true
+}
+
+func isValidRedirectURL(redirectURL string) bool {
+	if redirectURL == "" {
+		return false
+	}
+
+	parsed, err := url.Parse(redirectURL)
+	if err != nil {
+		return false
+	}
+
+	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
+		return false
+	}
+
+	return true
+}
+
+func deleteSession(rw http.ResponseWriter, r *http.Request) {
+	c, err := r.Cookie(middleware.UserSessionCookieName)
+	if err == nil {
+		c.Expires = time.Unix(0, 0)
+		c.MaxAge = -1
+		http.SetCookie(rw, c)
+	}
+	c, err = r.Cookie(middleware.LoginRedirectCookieName)
+	if err == nil {
+		c.Expires = time.Unix(0, 0)
+		c.MaxAge = -1
+		http.SetCookie(rw, c)
+	}
 }

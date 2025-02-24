@@ -102,7 +102,9 @@ func main() {
 			}
 		}()
 	}
-
+	// the user session store should be dependent on if auth is enabled or not.  Shouldn't be able to create, read, or write a store
+	// if auth is disabled.
+	middleware.InitStore(appConfig.OauthConfig.SessionKey)
 	authMiddleware, err := middleware.NewAuthMiddleware(ctx, *appConfig.OauthConfig)
 
 	// start serving the app
@@ -141,7 +143,8 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, *authMiddleware); err != nil {
+			err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, *authMiddleware)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}

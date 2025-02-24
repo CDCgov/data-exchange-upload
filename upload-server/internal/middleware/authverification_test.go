@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/gorilla/securecookie"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -22,23 +23,29 @@ import (
 var privateKey *rsa.PrivateKey
 var publicKey rsa.PublicKey
 
+const sessionKey = "testing"
+
 // setup struct for individual test case
 type testCase struct {
 	name                     string
 	issuerURL                string
-	route                    string
 	authEnabled              bool // flag to test when auth enabled/disabled
 	authHeader               string
-	sessionCookie            *http.Cookie
+	requestCookie            *http.Cookie
+	userSession              *UserSessionData
+	requiredScopes           string // "" for no required scopes
+	route                    string
 	expectStatus             int    // expected HTTP status code in response
 	expectMesg               string // expected error response body message
 	expectNext               bool   // false = has error response in middleware, true = passes on to next handler
 	expectedRedirectLocation string
-	requiredScopes           string // "" for no required scopes
+	expectedUserSession      *UserSessionData
+	//expectedLoginRedirectLocation string
 }
 
 // tests the VerifyOAuthTokenMiddleware for multiple cases
 func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
+	InitStore("testing")
 	// init RSA keys for signing and verification
 	err := initKeys()
 	if err != nil {
@@ -54,10 +61,10 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 
 	// create VALID mock token w/ +1-hour expire offset
 	mockTokenValid, _ := createMockJWT(issuerURL, 1, "")
-	mockValidSessionCookie := &http.Cookie{
-		Name:  UserSessionCookieName,
-		Value: mockTokenValid,
-	}
+	//mockValidSessionCookie := &http.Cookie{
+	//	Name:  UserSessionCookieName,
+	//	Value: mockTokenValid,
+	//}
 	// create mock token by concat a Z to make an invalid signature
 	mockTokenInvalidSignature := mockTokenValid + "Z"
 
@@ -163,7 +170,8 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			expectMesg:     "",
 			expectNext:     true,
 			requiredScopes: "",
-			sessionCookie:  mockValidSessionCookie,
+			userSession:    &UserSessionData{Token: mockTokenValid},
+			//sessionCookie:  mockValidSessionCookie,
 		},
 		// RequiredScopes related tests
 		{
@@ -206,7 +214,6 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 
 // test case function
 func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
-
 	t.Run(tc.name, func(t *testing.T) {
 		ctx := context.Background()
 		// create handler for middleware
@@ -235,12 +242,28 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 		if tc.authHeader != "" {
 			req.Header.Set("Authorization", tc.authHeader)
 		}
-		if tc.sessionCookie != nil {
-			req.AddCookie(tc.sessionCookie)
-		}
+
+		//if tc.sessionCookie != nil {
+		//	req.AddCookie(tc.sessionCookie)
+		//}
 
 		// record the response
 		rec := httptest.NewRecorder()
+
+		if tc.userSession != nil {
+			us, err := GetUserSession(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = us.SetToken(req, rec, tc.userSession.Token, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = us.SetRedirect(req, rec, tc.userSession.Redirect)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 
 		// serve the request using the middleware
 		middlewareHandler.ServeHTTP(rec, req)
@@ -263,6 +286,7 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 }
 
 func TestUserSessionMiddleware_TestCases(t *testing.T) {
+	InitStore(sessionKey)
 	err := initKeys()
 	if err != nil {
 		t.Fatalf("failed to initialize keys: %v", err)
@@ -277,14 +301,14 @@ func TestUserSessionMiddleware_TestCases(t *testing.T) {
 		Value: mockTokenValid,
 	}
 	mockTokenExpired, _ := createMockJWT(issuerURL, -1, "")
-	mockSessionWithExpiredToken := &http.Cookie{
-		Name:  UserSessionCookieName,
-		Value: mockTokenExpired,
-	}
-	mockSessionWithBadCookieName := &http.Cookie{
-		Name:  "bogus",
-		Value: mockTokenValid,
-	}
+	//mockSessionWithExpiredToken := &http.Cookie{
+	//	Name:  UserSessionCookieName,
+	//	Value: mockTokenExpired,
+	//}
+	//mockSessionWithBadCookieName := &http.Cookie{
+	//	Name:  "bogus",
+	//	Value: mockTokenValid,
+	//}
 
 	testCases := []testCase{
 		{
@@ -296,61 +320,65 @@ func TestUserSessionMiddleware_TestCases(t *testing.T) {
 			expectNext:   true,
 		},
 		{
-			name:          "Valid Session Cookie",
-			issuerURL:     issuerURL,
-			authEnabled:   true,
-			sessionCookie: mockValidSessionCookie,
-			expectStatus:  http.StatusOK,
-			expectMesg:    "",
-			expectNext:    true,
+			name:        "Valid Session Cookie",
+			issuerURL:   issuerURL,
+			authEnabled: true,
+			//requestCookie: mockValidSessionCookie,
+			userSession:  &UserSessionData{Token: mockTokenValid},
+			expectStatus: http.StatusOK,
+			expectMesg:   "",
+			expectNext:   true,
 		},
 		{
-			name:                     "Missing Session Cookie",
+			name:                     "No User Session",
 			issuerURL:                issuerURL,
 			authEnabled:              true,
 			expectStatus:             http.StatusSeeOther,
 			expectNext:               false,
 			expectedRedirectLocation: "/login",
+			expectedUserSession:      &UserSessionData{Redirect: "/"},
 		},
 		{
-			name:                     "Expired Token",
-			issuerURL:                issuerURL,
-			authEnabled:              true,
-			sessionCookie:            mockSessionWithExpiredToken,
+			name:        "Expired Token",
+			issuerURL:   issuerURL,
+			authEnabled: true,
+			userSession: &UserSessionData{Token: mockTokenExpired},
+			//sessionCookie:            mockSessionWithExpiredToken,
 			expectStatus:             http.StatusSeeOther,
 			expectNext:               false,
 			expectedRedirectLocation: "/login",
 		},
 		{
-			name:                     "Invalid Cookie Name",
+			name:                     "Forged Cookie With Valid Token",
 			issuerURL:                issuerURL,
 			authEnabled:              true,
-			sessionCookie:            mockSessionWithBadCookieName,
+			requestCookie:            mockValidSessionCookie,
 			expectStatus:             http.StatusSeeOther,
 			expectNext:               false,
 			expectedRedirectLocation: "/login",
+			expectedUserSession:      &UserSessionData{Redirect: "/"},
 		},
 		{
 			name:                     "Redirect to Other Page",
 			issuerURL:                issuerURL,
 			authEnabled:              true,
-			sessionCookie:            mockSessionWithExpiredToken,
+			route:                    "/status/1234",
 			expectStatus:             http.StatusSeeOther,
 			expectMesg:               "",
 			expectNext:               false,
-			route:                    "/status/1234",
-			expectedRedirectLocation: "/login?redirect=/status/1234",
+			expectedRedirectLocation: "/login",
+			expectedUserSession:      &UserSessionData{Redirect: "/status/1234"},
 		},
 		{
 			name:                     "Redirect with Query Params",
 			issuerURL:                issuerURL,
 			authEnabled:              true,
-			sessionCookie:            mockSessionWithExpiredToken,
+			route:                    "/manifest?data_stream=test&data_stream_route=test",
 			expectStatus:             http.StatusSeeOther,
 			expectMesg:               "",
 			expectNext:               false,
-			route:                    "/manifest?data_stream=test&data_stream_route=test",
-			expectedRedirectLocation: "/login?redirect=/manifest?data_stream=test&data_stream_route=test",
+			expectedRedirectLocation: "/login",
+			expectedUserSession:      &UserSessionData{Redirect: "/manifest?data_stream=test&data_stream_route=test"},
 		},
 	}
 
@@ -380,10 +408,26 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 		defer ts.Close()
 
 		req := httptest.NewRequest(http.MethodGet, ts.URL+tc.route, nil)
-		if tc.sessionCookie != nil {
-			req.AddCookie(tc.sessionCookie)
-		}
 		resp := httptest.NewRecorder()
+		if tc.requestCookie != nil {
+			req.AddCookie(tc.requestCookie)
+		}
+
+		if tc.userSession != nil {
+			us, err := GetUserSession(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = us.SetToken(req, resp, tc.userSession.Token, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = us.SetRedirect(req, resp, tc.userSession.Redirect)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
 		handler.ServeHTTP(resp, req)
 
 		if resp.Code != tc.expectStatus {
@@ -395,16 +439,55 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 		}
 
 		if tc.expectedRedirectLocation != "" {
-			redirectUrl, err := resp.Result().Location()
+			var redirectUrl *url.URL
+			redirectUrl, err = resp.Result().Location()
 			if err != nil {
 				t.Error(err)
 			}
-			decoded, err := url.QueryUnescape(redirectUrl.String())
-			if err != nil {
-				t.Error(err)
+
+			if redirectUrl != nil && tc.expectedRedirectLocation != redirectUrl.String() {
+				t.Errorf("expected redirect to %s, got %s", tc.expectedRedirectLocation, redirectUrl.String())
 			}
-			if tc.expectedRedirectLocation != decoded {
-				t.Errorf("expected redirect to %s, got %s", tc.expectedRedirectLocation, decoded)
+
+			//loginRedirectUrl := ""
+			//for _, c := range resp.Result().Cookies() {
+			//	if c.Name == LoginRedirectCookieName {
+			//		loginRedirectUrl = c.Value
+			//	}
+			//}
+			//if tc.expectedLoginRedirectLocation != loginRedirectUrl {
+			//	t.Errorf("expected post login redirect to %s, got %s", tc.expectedLoginRedirectLocation, loginRedirectUrl)
+			//}
+		}
+
+		if tc.expectedUserSession != nil {
+			// get encoded cookie from request
+			var sessCookie *http.Cookie
+			for _, c := range resp.Result().Cookies() {
+				if c.Name == UserSessionCookieName {
+					sessCookie = c
+					break
+				}
+			}
+			if sessCookie == nil {
+				t.Error("expected session cookie but got nil")
+			}
+
+			// decode cookie using testing key
+			val := make(map[any]any)
+			err = securecookie.DecodeMulti(UserSessionCookieName, sessCookie.Value, &val, securecookie.CodecsFromPairs([]byte(sessionKey))...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if token, ok := val["token"].(string); ok {
+				if !strings.Contains(token, tc.expectedUserSession.Token) {
+					t.Errorf("expected cookie to have token %s; cookie: %s", tc.expectedUserSession.Token, token)
+				}
+			}
+			if redirect, ok := val["redirect"].(string); ok {
+				if !strings.Contains(redirect, tc.expectedUserSession.Token) {
+					t.Errorf("expected cookie to have token %s; cookie: %s", tc.expectedUserSession.Token, redirect)
+				}
 			}
 		}
 	})
