@@ -126,7 +126,7 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) (*http.Server, error) {
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) *http.Server {
 	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
@@ -139,7 +139,7 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 		Addr:    addr,
 		Handler: secureRouter,
 	}
-	return s, nil
+	return s
 }
 
 func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) *mux.Router {
@@ -407,10 +407,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 var DefaultServer *http.Server
 
 func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authMiddleware middleware.AuthMiddleware) error {
-	DefaultServer, err := NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
-	if err != nil {
-		return err
-	}
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
 
 	return DefaultServer.ListenAndServe()
 }
