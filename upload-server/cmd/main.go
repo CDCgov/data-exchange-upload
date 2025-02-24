@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"log/slog"
 	"net/http"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
@@ -146,7 +147,8 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, authMiddleware); err != nil {
+			err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, authMiddleware)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}
