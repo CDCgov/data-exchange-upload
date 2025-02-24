@@ -574,6 +574,7 @@ func TestMain(m *testing.M) {
 		testWaitGroup.Done()
 	}()
 
+	middleware.InitStore("testing")
 	authMiddleware, err := middleware.NewAuthMiddleware(testContext, *appConfig.OauthConfig)
 	if err != nil {
 		log.Fatal(err)

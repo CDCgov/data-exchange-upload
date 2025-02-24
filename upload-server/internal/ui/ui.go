@@ -7,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/session"
-	"github.com/gorilla/sessions"
 	"io"
 	"net/http"
 	"net/url"
@@ -190,21 +188,34 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		sess, _ := session.Store().Get(r, middleware.UserSessionCookieName)
-		sess.Options = &sessions.Options{
-			Path:     "/",
-			MaxAge:   int(claims.Expiry),
-			Secure:   true,
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		}
-		sess.Values["token"] = token
-		err = sess.Save(r, rw)
+		us, err := middleware.GetUserSession(r)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
 
-		redirect := sess.Values["redirect"]
+		err = us.SetToken(r, rw, token, int(claims.Expiry))
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+
+		//err = session.CreateUserSession(r, rw, token, redirect)
+
+		//sess, _ := session.Store().Get(r, middleware.UserSessionCookieName)
+		//sess.Options = &sessions.Options{
+		//	Path:     "/",
+		//	MaxAge:   int(claims.Expiry),
+		//	Secure:   true,
+		//	HttpOnly: true,
+		//	SameSite: http.SameSiteLaxMode,
+		//}
+		//sess.Values["token"] = token
+		//err = sess.Save(r, rw)
+		//if err != nil {
+		//	http.Error(rw, err.Error(), http.StatusInternalServerError)
+		//}
+
+		redirect := us.Data().Redirect
+		//redirect := sess.Values["redirect"]
 
 		//http.SetCookie(rw, &http.Cookie{
 		//	Name:     middleware.UserSessionCookieName,
@@ -216,8 +227,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		//	HttpOnly: true,
 		//	SameSite: http.SameSiteLaxMode,
 		//})
-		if redirect != nil {
-			http.Redirect(rw, r, redirect.(string), http.StatusFound)
+		if redirect != "" {
+			http.Redirect(rw, r, redirect, http.StatusFound)
 		} else {
 			http.Redirect(rw, r, "/", http.StatusFound)
 		}

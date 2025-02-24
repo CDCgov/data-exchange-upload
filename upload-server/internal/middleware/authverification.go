@@ -9,8 +9,6 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/session"
-	"github.com/gorilla/sessions"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 )
@@ -85,8 +83,14 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 		token, err := getAuthToken(r.Header)
 		if err != nil {
 			if errors.Is(err, ErrNoAuthHeader) {
-				// fallback to cookies
-				token = getAuthTokenFromCookies(*r)
+				// fallback to session cookies
+				us, err := GetUserSession(r)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusUnauthorized)
+					return
+				}
+				token = us.Data().Token
+				//token = getAuthTokenFromCookies(*r)
 			} else {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
@@ -132,16 +136,21 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 			return
 		}
 
-		sess, _ := session.Store().Get(r, UserSessionCookieName)
-		token := sess.Values["token"]
-		if token == nil {
-			loginRedirect(sess, w, r)
-			return
+		us, err := GetUserSession(r)
+		if err != nil {
+			loginRedirect(*us, r, w)
 		}
 
-		_, err := a.validator.ValidateJWT(r.Context(), token.(string))
+		//sess, _ := session.Store().Get(r, UserSessionCookieName)
+		token := us.Data().Token
+		//if token == nil {
+		//	loginRedirect(sess, w, r)
+		//	return
+		//}
+
+		_, err = a.validator.ValidateJWT(r.Context(), token)
 		if err != nil {
-			loginRedirect(sess, w, r)
+			loginRedirect(*us, r, w)
 			return
 		}
 
@@ -153,15 +162,24 @@ func (a AuthMiddleware) Validator() oauth.Validator {
 	return a.validator
 }
 
-func loginRedirect(sess *sessions.Session, w http.ResponseWriter, r *http.Request) {
-	if sess != nil {
-		v := r.URL.Path
-		if r.URL.RawQuery != "" {
-			v += "?" + r.URL.RawQuery
-		}
-		sess.Values["redirect"] = v
+func loginRedirect(userSess UserSession, r *http.Request, w http.ResponseWriter) {
+	//if sess != nil {
+	//	v := r.URL.Path
+	//	if r.URL.RawQuery != "" {
+	//		v += "?" + r.URL.RawQuery
+	//	}
+	//	sess.Values["redirect"] = v
+	//}
+	//sess.Save(r, w)
+
+	v := r.URL.Path
+	if r.URL.RawQuery != "" {
+		v += "?" + r.URL.RawQuery
 	}
-	sess.Save(r, w)
+	err := userSess.SetRedirect(r, w, v)
+	if err != nil {
+		slog.Error("error setting user session redirect", "error", err)
+	}
 
 	//http.SetCookie(w, &http.Cookie{
 	//	Name:     LoginRedirectCookieName,
@@ -192,13 +210,13 @@ func getAuthToken(headers http.Header) (string, error) {
 	return authHeader[len("Bearer "):], nil
 }
 
-func getAuthTokenFromCookies(r http.Request) string {
-	c, err := r.Cookie(UserSessionCookieName)
-	if err != nil && errors.Is(err, http.ErrNoCookie) {
-		return ""
-	}
-	return c.Value
-}
+//func getAuthTokenFromCookies(r http.Request) string {
+//	c, err := r.Cookie(UserSessionCookieName)
+//	if err != nil && errors.Is(err, http.ErrNoCookie) {
+//		return ""
+//	}
+//	return c.Value
+//}
 
 //func redirectSanitized(path string, code int, w http.ResponseWriter, r *http.Request) {
 //	redirectURL := path

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/session"
 	"log/slog"
 	"net/http"
 	"os"
@@ -103,7 +102,9 @@ func main() {
 			}
 		}()
 	}
-	session.Init()
+	// the user session store should be dependent on if auth is enabled or not.  Shouldn't be able to create, read, or write a store
+	// if auth is disabled.
+	middleware.InitStore(appConfig.OauthConfig.SessionKey)
 	authMiddleware, err := middleware.NewAuthMiddleware(ctx, *appConfig.OauthConfig)
 	if err != nil {
 		slog.Error("error starting app, error initialize auth middleware", "error", err)
