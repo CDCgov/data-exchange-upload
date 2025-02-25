@@ -30,7 +30,7 @@ type Locker interface {
 }
 
 // New returns a configured TUSD handler as-is with official implementation
-func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath string) (*tusd.Handler, error) {
+func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath string, enableCORS bool) (*tusd.Handler, error) {
 	if slogerxexp.DefaultLogger != nil {
 		logger = slogerxexp.DefaultLogger
 	}
@@ -62,11 +62,11 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 		RespectForwardedHeaders: true,
 		DisableDownload:         true,
 		Cors: &tusd.CorsConfig{
-			Disable:          false,
+			Disable:          !enableCORS,
 			AllowCredentials: true,
 			AllowOrigin:      regexp.MustCompile(".*"),
-			AllowHeaders:     "Authorization, Origin, X-Requested-With, X-Request-ID, X-HTTP-Method-Override, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat, Upload-Incomplete, Upload-Complete, Upload-Draft-Interop-Version",
-			ExposeHeaders:    "Authorization, Origin, X-Requested-With, X-Request-ID, X-HTTP-Method-Override, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat, Upload-Incomplete, Upload-Complete, Upload-Draft-Interop-Version",
+			AllowHeaders:     "Authorization, Origin, X-Requested-With, X-Request-ID, X-HTTP-Method-Override, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat, Upload-Incomplete, Upload-Complete, Upload-Draft-Interop-Version, Location, Tus-Version, Tus-Max-Size, Tus-Extension",
+			ExposeHeaders:    "Authorization, Origin, X-Requested-With, X-Request-ID, X-HTTP-Method-Override, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat, Upload-Incomplete, Upload-Complete, Upload-Draft-Interop-Version, Location, Tus-Version, Tus-Max-Size, Tus-Extension",
 			AllowMethods:     "POST, HEAD, PATCH, OPTIONS, GET, DELETE",
 			MaxAge:           "86400",
 		},
