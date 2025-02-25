@@ -104,9 +104,12 @@ func main() {
 	}
 
 	authMiddleware, err := middleware.NewAuthMiddleware(ctx, *appConfig.OauthConfig)
-
+	if err != nil {
+		slog.Error("error starting app, error initialize auth middleware", "error", err)
+		os.Exit(appMainExitCode)
+	}
 	// start serving the app
-	handler, err := cli.Serve(ctx, appConfig, *authMiddleware)
+	handler, err := cli.Serve(ctx, appConfig, authMiddleware)
 	if err != nil {
 		slog.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
@@ -141,7 +144,7 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, *authMiddleware); err != nil {
+			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, authMiddleware); err != nil {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}
