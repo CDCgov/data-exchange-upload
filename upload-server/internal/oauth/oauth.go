@@ -3,7 +3,10 @@ package oauth
 import (
 	"context"
 	"errors"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/coreos/go-oidc/v3/oidc"
+	"net/http"
 	"slices"
 	"strings"
 )
@@ -18,6 +21,7 @@ type Claims struct {
 }
 
 type Validator interface {
+	health.Checkable
 	ValidateJWT(ctx context.Context, token string) (Claims, error)
 }
 
@@ -26,8 +30,14 @@ type PassthroughValidator struct{}
 func (v PassthroughValidator) ValidateJWT(_ context.Context, _ string) (Claims, error) {
 	return Claims{}, nil
 }
+func (v PassthroughValidator) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "no-op oauth validator"
+	rsp.Status = models.STATUS_UP
 
-func NewOAuthValidator(ctx context.Context, issuerUrl string, requiredScopes string) (*OAuthValidator, error) {
+	return rsp
+}
+
+func NewOAuthValidator(issuerUrl string, requiredScopes string) (*OAuthValidator, error) {
 	var scopes []string
 	if requiredScopes != "" {
 		scopes = strings.Split(requiredScopes, " ")
@@ -72,6 +82,32 @@ func (v OAuthValidator) ValidateJWT(ctx context.Context, token string) (Claims, 
 	}
 
 	return claims, nil
+}
+
+func (v OAuthValidator) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+	rsp.Service = "oauth validator " + v.IssuerUrl
+	rsp.Status = models.STATUS_UP
+
+	wellKnown := strings.TrimSuffix(v.IssuerUrl, "/") + "/.well-known/openid-configuration"
+	req, err := http.NewRequest("GET", wellKnown, nil)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+		return rsp
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = err.Error()
+		return rsp
+	}
+	if resp.StatusCode != http.StatusOK {
+		rsp.Status = models.STATUS_DOWN
+		rsp.HealthIssue = "well-known response status " + resp.Status
+		return rsp
+	}
+
+	return rsp
 }
 
 func hasRequiredScopes(actualScopes, requiredScopes []string) bool {
