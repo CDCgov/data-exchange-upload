@@ -107,6 +107,9 @@ func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader
 	_, err = client.UploadStream(ctx, r, &azblob.UploadStreamOptions{
 		Metadata: storeaz.PointerizeMetadata(m),
 	})
+	if err != nil {
+		return "", err
+	}
 
 	decodedUrl, err := url.QueryUnescape(client.URL())
 	if err != nil {
