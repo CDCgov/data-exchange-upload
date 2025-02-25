@@ -38,24 +38,32 @@ test.describe('Upload API Auth UI Elements', () => {
 test.describe('Upload API Auth', () => {
     let token: any
     let expiredToken: any
+    let scopesToken: any
 
     test.beforeAll(async ({ request }) => {
         const res = await request.get('http://localhost:3000/token')
         const json = await res.json()
         token = json.access_token
 
-
         const resExpired = await request.get('http://localhost:3000/token-expired')
         const jsonExpired = await resExpired.json()
         expiredToken = jsonExpired.access_token
+
+        const resScopes = await request.get('http://localhost:3000/token-scopes')
+        const jsonScopes = await resScopes.json()
+        scopesToken = jsonScopes.access_token
     })
     
-    test('logs in with a valid token through the login page', async ({ page }) => {
+    test('logs in with a valid token through the login page', async ({ browser, page }) => {
         await page.goto('/')  
         await page.getByRole('textbox', { name: "Authentication Token *" }).fill(token)
         await page.getByRole('button', { name: 'Login' }).click()
         await expect(page.getByRole('heading', { name: 'Welcome to DEX Upload' })).toBeVisible()
         await expect(page.getByText("Start the upload process by entering a data stream and route.")).toBeVisible()
+        const cookies = await browser.contexts()[0].cookies()
+        const cookie = cookies.find(({ name }) =>  name === "phdo_auth_token" )
+        expect(cookie).not.toBeUndefined()
+        expect(cookie?.value).toEqual(token)
     })
 
     test('cannot log in with an invalid token through the login page', async ({ page }) => {
@@ -69,6 +77,14 @@ test.describe('Upload API Auth', () => {
     test('cannot log in with an expired token through the login page', async ({ page }) => { 
         await page.goto('/')  
         await page.getByRole('textbox', { name: "Authentication Token *" }).fill(expiredToken)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await expect(page.url()).toContain("/login")
+        await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
+    })
+
+    test('cannot log in with invalid scopes on token through the login page', async ({ page }) => {
+        await page.goto('/')  
+        await page.getByRole('textbox', { name: "Authentication Token *" }).fill(scopesToken)
         await page.getByRole('button', { name: 'Login' }).click()
         await expect(page.url()).toContain("/login")
         await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
@@ -110,7 +126,6 @@ test.describe('Upload API Auth', () => {
         await page.goto('/');
         await expect(page.url()).toContain("/login")
         await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
-
     })
 
     test('cannot log in with an invalid cookie token', async ({browser}) => {
@@ -130,8 +145,6 @@ test.describe('Upload API Auth', () => {
         await page.goto('/');
         await expect(page.url()).toContain("/login")
         await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
-
     })
-    
 })
 

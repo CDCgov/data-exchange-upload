@@ -54,8 +54,8 @@ function generateKeys() {
             {
                 kty: keyDetails.kty,
                 kid: crypto.randomUUID(),
-                n: base64url.encode(Buffer.from(keyDetails.n, 'base64')), // Convert base64 to base64url
-                e: base64url.encode(Buffer.from(keyDetails.e, 'base64'))  // Convert base64 to base64url
+                n: base64url.encode(Buffer.from(keyDetails.n, 'base64')),
+                e: base64url.encode(Buffer.from(keyDetails.e, 'base64'))
             }
         ]
     };
@@ -98,6 +98,23 @@ app.get('/token', (req, res) => {
 app.get('/token-expired', (req, res) => {
     const invalidPayload = { ...validPayload }
     invalidPayload.exp = Math.floor(Date.now() / 1000) - 1
+
+    // Find the key ID from JWKS
+    const keyId = jwks.keys[0].kid;
+
+    // Sign JWT using the private RSA key
+    const token = jwt.sign(invalidPayload, privateKeyPem, {
+        algorithm: "RS256",
+        keyid: keyId
+    });
+
+    res.json({ access_token: token, token_type: "Bearer", expires_in: 3600 });
+});
+
+
+app.get('/token-scopes', (req, res) => {
+    const invalidPayload = { ...validPayload }
+    invalidPayload.scope = "test:scope3 test:scope4"
 
     // Find the key ID from JWKS
     const keyId = jwks.keys[0].kid;
