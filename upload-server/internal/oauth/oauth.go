@@ -33,15 +33,9 @@ func NewOAuthValidator(ctx context.Context, issuerUrl string, requiredScopes str
 		scopes = strings.Split(requiredScopes, " ")
 	}
 
-	provider, err := oidc.NewProvider(ctx, issuerUrl)
-	if err != nil {
-		return nil, err
-	}
-
 	return &OAuthValidator{
 		IssuerUrl:      issuerUrl,
 		RequiredScopes: scopes,
-		provider:       provider,
 	}, nil
 }
 
@@ -53,6 +47,14 @@ type OAuthValidator struct {
 
 func (v OAuthValidator) ValidateJWT(ctx context.Context, token string) (Claims, error) {
 	var claims Claims
+
+	if v.provider == nil {
+		p, err := oidc.NewProvider(ctx, v.IssuerUrl)
+		if err != nil {
+			return claims, err
+		}
+		v.provider = p
+	}
 	verifier := v.provider.Verifier(&oidc.Config{SkipClientIDCheck: true})
 	idToken, err := verifier.Verify(ctx, token)
 	if err != nil {
