@@ -63,7 +63,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
 
 	if err != nil {
-		slog.Error("failed to deliver file", "error", err)
+		slog.Error("failed to deliver file", "target", uri, "error", err)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
 			Message: err.Error(),
