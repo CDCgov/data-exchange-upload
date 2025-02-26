@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const crypto = require('crypto');
@@ -5,7 +6,8 @@ const jwt = require('jsonwebtoken');
 const base64url = require('base64url');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.MOCK_AUTH_PORT || 3000;
+const BASE_URL = `${process.env.MOCK_AUTH_BASE_URL}:${PORT}` || `http://localhost:${PORT}`;
 
 app.use(cors());
 app.use(express.json());
@@ -13,15 +15,14 @@ app.use(express.json());
 let jwks = { keys: [] };
 let privateKeyPem = "";
 
-
 const validPayload = {
     sub: "1234567890",
     name: "JOHN DOE",
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 3600, // 1-hour expiration
-    iss: "http://localhost:3000",
+    iss: `${BASE_URL}`,
     aud: [
-        "http://localhost:3000/*"
+        `${BASE_URL}/*`
     ],
     jti: crypto.randomUUID(),
     email: "testemail@nowhere",
@@ -32,7 +33,7 @@ const validPayload = {
     given_name: "JOHN",
     preferred_name: "JOHN",
     scope: "test:scope1 test:scope2",
-    jku: "http://localhost:3000/openid/connect/jwks.json"
+    jku: `${BASE_URL}/openid/connect/jwks.json`
 };
 
 // Function to generate RSA key pair and JWKS
@@ -69,10 +70,10 @@ generateKeys(); // Generate RSA keys at startup
 // OpenID Configuration Endpoint
 app.get('/.well-known/openid-configuration', (req, res) => {
     res.json({
-        issuer: "http://localhost:3000",
-        authorization_endpoint: "http://localhost:3000/oauth2/authorize",
-        token_endpoint: "http://localhost:3000/oauth2/token",
-        jwks_uri: "http://localhost:3000/oauth2/jwks",
+        issuer: `${BASE_URL}`,
+        authorization_endpoint: `${BASE_URL}/oauth2/authorize`,
+        token_endpoint: `${BASE_URL}/oauth2/token`,
+        jwks_uri: `${BASE_URL}/oauth2/jwks`,
     });
 });
 
@@ -129,5 +130,5 @@ app.get('/token-scopes', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Mock OpenID server running at http://localhost:${PORT}`);
+    console.log(`Mock OpenID server running at ${BASE_URL}`);
 });
