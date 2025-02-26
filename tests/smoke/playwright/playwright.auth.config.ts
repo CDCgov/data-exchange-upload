@@ -84,7 +84,7 @@ const config: PlaywrightTestConfig = {
 
   webServer: {
     cwd: "./resources/mock-auth-server",
-    command: 'node server.js',
+    command: 'npm install && node server.js',
     url: 'http://localhost:3000/token',
     reuseExistingServer: !process.env.CI,
     stdout: 'ignore',
