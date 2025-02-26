@@ -2,15 +2,13 @@ package handlertusd
 
 import (
 	"errors"
-	"golang.org/x/exp/slog"
-	"os"
-	"regexp"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
 	"github.com/prometheus/client_golang/prometheus"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/prometheuscollector"
+	"golang.org/x/exp/slog"
+	"os"
 ) // .import
 
 var logger *slog.Logger
@@ -30,7 +28,7 @@ type Locker interface {
 }
 
 // New returns a configured TUSD handler as-is with official implementation
-func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath string, enableCORS bool) (*tusd.Handler, error) {
+func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath string) (*tusd.Handler, error) {
 	if slogerxexp.DefaultLogger != nil {
 		logger = slogerxexp.DefaultLogger
 	}
@@ -51,6 +49,8 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 	// ------------------------------------------------------------------
 	//  handler, set with respective local or cloud values
 	// ------------------------------------------------------------------
+	corsConfig := tusd.DefaultCorsConfig
+	corsConfig.AllowCredentials = true
 
 	// Create a new HTTP handler for the tusd server by providing a configuration.
 	// The StoreComposer property must be set to allow the handler to function.
@@ -61,15 +61,7 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 		Logger:                  slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})),
 		RespectForwardedHeaders: true,
 		DisableDownload:         true,
-		Cors: &tusd.CorsConfig{
-			Disable:          !enableCORS,
-			AllowCredentials: true,
-			AllowOrigin:      regexp.MustCompile(".*"),
-			AllowHeaders:     "Authorization, Origin, X-Requested-With, X-Request-ID, X-HTTP-Method-Override, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat, Upload-Incomplete, Upload-Complete, Upload-Draft-Interop-Version, Location, Tus-Version, Tus-Max-Size, Tus-Extension",
-			ExposeHeaders:    "Authorization, Origin, X-Requested-With, X-Request-ID, X-HTTP-Method-Override, Content-Type, Upload-Length, Upload-Offset, Tus-Resumable, Upload-Metadata, Upload-Defer-Length, Upload-Concat, Upload-Incomplete, Upload-Complete, Upload-Draft-Interop-Version, Location, Tus-Version, Tus-Max-Size, Tus-Extension",
-			AllowMethods:     "POST, HEAD, PATCH, OPTIONS, GET, DELETE",
-			MaxAge:           "86400",
-		},
+		Cors:                    &corsConfig,
 	}, hooksHandler, []hooks.HookType{hooks.HookPreCreate, hooks.HookPostCreate, hooks.HookPostReceive, hooks.HookPreFinish, hooks.HookPostFinish, hooks.HookPostTerminate}) // .handler
 	if err != nil {
 		logger.Error("error start tusd handler", "error", err)

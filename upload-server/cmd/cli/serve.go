@@ -75,7 +75,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, authMiddleware *m
 	hookHandler.Register(hooks.HookPreFinish, manifestMetrics.Hook, metrics.ActiveUploadDecHook)
 
 	// initialize tusd handler
-	handlerTusd, err := handlertusd.New(store, locker, hookHandler, appConfig.TusdHandlerBasePath, appConfig.OauthConfig.AuthEnabled)
+	handlerTusd, err := handlertusd.New(store, locker, hookHandler, appConfig.TusdHandlerBasePath)
 	if err != nil {
 		logger.Error("error starting tusd handler: ", "error", err)
 		return nil, err
