@@ -103,7 +103,7 @@ func main() {
 		}()
 	}
 
-	authMiddleware, err := middleware.NewAuthMiddleware(*appConfig.OauthConfig)
+	authMiddleware, err := middleware.NewAuthMiddleware(ctx, *appConfig.OauthConfig)
 	if err != nil {
 		slog.Error("error starting app, error initialize auth middleware", "error", err)
 		os.Exit(appMainExitCode)

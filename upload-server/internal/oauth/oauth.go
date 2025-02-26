@@ -6,7 +6,9 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/coreos/go-oidc/v3/oidc"
+	"log/slog"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
 )
@@ -37,15 +39,26 @@ func (v PassthroughValidator) Health(_ context.Context) (rsp models.ServiceHealt
 	return rsp
 }
 
-func NewOAuthValidator(issuerUrl string, requiredScopes string) (*OAuthValidator, error) {
+func NewOAuthValidator(ctx context.Context, issuerUrl string, requiredScopes string) (*OAuthValidator, error) {
 	var scopes []string
 	if requiredScopes != "" {
 		scopes = strings.Split(requiredScopes, " ")
 	}
 
+	p, err := oidc.NewProvider(ctx, issuerUrl)
+	if err != nil {
+		var urlErr *url.Error
+		if errors.As(err, &urlErr) {
+			slog.Error("failed to reach oidc provider " + issuerUrl)
+		} else {
+			return nil, err
+		}
+	}
+
 	return &OAuthValidator{
 		IssuerUrl:      issuerUrl,
 		RequiredScopes: scopes,
+		provider:       p,
 	}, nil
 }
 
@@ -55,16 +68,16 @@ type OAuthValidator struct {
 	provider       *oidc.Provider
 }
 
-func (v OAuthValidator) ValidateJWT(ctx context.Context, token string) (Claims, error) {
-	var claims Claims
-
+func (v *OAuthValidator) ValidateJWT(ctx context.Context, token string) (Claims, error) {
 	if v.provider == nil {
 		p, err := oidc.NewProvider(ctx, v.IssuerUrl)
 		if err != nil {
-			return claims, err
+			return Claims{}, err
 		}
 		v.provider = p
 	}
+	var claims Claims
+
 	verifier := v.provider.Verifier(&oidc.Config{SkipClientIDCheck: true})
 	idToken, err := verifier.Verify(ctx, token)
 	if err != nil {
@@ -84,7 +97,7 @@ func (v OAuthValidator) ValidateJWT(ctx context.Context, token string) (Claims, 
 	return claims, nil
 }
 
-func (v OAuthValidator) Health(_ context.Context) (rsp models.ServiceHealthResp) {
+func (v *OAuthValidator) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "oauth validator " + v.IssuerUrl
 	rsp.Status = models.STATUS_UP
 

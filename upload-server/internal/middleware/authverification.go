@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -42,11 +43,11 @@ func NewHTTPError(code int, msg string) *HTTPError {
 	return &HTTPError{Code: code, Msg: msg}
 }
 
-func NewAuthMiddleware(config appconfig.OauthConfig) (*AuthMiddleware, error) {
+func NewAuthMiddleware(ctx context.Context, config appconfig.OauthConfig) (*AuthMiddleware, error) {
 	var validator oauth.Validator = oauth.PassthroughValidator{}
 	if config.AuthEnabled {
 		var err error
-		validator, err = oauth.NewOAuthValidator(config.IssuerUrl, config.RequiredScopes)
+		validator, err = oauth.NewOAuthValidator(ctx, config.IssuerUrl, config.RequiredScopes)
 		if err != nil {
 			slog.Error("error initializing oauth validator", "error", err)
 			return nil, err
