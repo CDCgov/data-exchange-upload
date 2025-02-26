@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -214,7 +215,7 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		middleware, err := NewAuthMiddleware(appconfig.OauthConfig{
+		middleware, err := NewAuthMiddleware(context.Background(), appconfig.OauthConfig{
 			AuthEnabled:    tc.authEnabled,
 			IssuerUrl:      tc.issuerURL,
 			RequiredScopes: tc.requiredScopes,
@@ -365,7 +366,7 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		middleware, err := NewAuthMiddleware(appconfig.OauthConfig{
+		middleware, err := NewAuthMiddleware(context.Background(), appconfig.OauthConfig{
 			AuthEnabled:    tc.authEnabled,
 			IssuerUrl:      tc.issuerURL,
 			RequiredScopes: tc.requiredScopes,
