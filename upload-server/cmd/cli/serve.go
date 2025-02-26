@@ -17,7 +17,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig, authMiddleware middleware.AuthMiddleware) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, authMiddleware *middleware.AuthMiddleware) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}

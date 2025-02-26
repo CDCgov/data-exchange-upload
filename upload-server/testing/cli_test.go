@@ -579,7 +579,7 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	serveHandler, err := cli.Serve(testContext, appConfig, *authMiddleware)
+	serveHandler, err := cli.Serve(testContext, appConfig, authMiddleware)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -587,7 +587,7 @@ func TestMain(m *testing.M) {
 	ts = httptest.NewServer(serveHandler)
 
 	// Start ui server
-	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, *authMiddleware)
+	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, authMiddleware)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()

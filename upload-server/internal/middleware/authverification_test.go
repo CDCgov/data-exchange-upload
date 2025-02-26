@@ -208,7 +208,6 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 
 	t.Run(tc.name, func(t *testing.T) {
-		ctx := context.Background()
 		// create handler for middleware
 		hasBeenCalled := false
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -216,7 +215,7 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		middleware, err := NewAuthMiddleware(ctx, appconfig.OauthConfig{
+		middleware, err := NewAuthMiddleware(context.Background(), appconfig.OauthConfig{
 			AuthEnabled:    tc.authEnabled,
 			IssuerUrl:      tc.issuerURL,
 			RequiredScopes: tc.requiredScopes,

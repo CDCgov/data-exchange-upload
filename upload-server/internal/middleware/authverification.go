@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -45,12 +46,16 @@ func NewHTTPError(code int, msg string) *HTTPError {
 func NewAuthMiddleware(ctx context.Context, config appconfig.OauthConfig) (*AuthMiddleware, error) {
 	var validator oauth.Validator = oauth.PassthroughValidator{}
 	if config.AuthEnabled {
+		if config.IssuerUrl == "" {
+			return nil, errors.New("no issuer url provided")
+		}
 		var err error
 		validator, err = oauth.NewOAuthValidator(ctx, config.IssuerUrl, config.RequiredScopes)
 		if err != nil {
 			slog.Error("error initializing oauth validator", "error", err)
 			return nil, err
 		}
+		health.Register(validator)
 	}
 
 	return &AuthMiddleware{
