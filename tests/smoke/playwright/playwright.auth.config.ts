@@ -80,7 +80,16 @@ const config: PlaywrightTestConfig = {
       use: { ...devices['Desktop Chrome'] }
     }
     // More projects can be configured here
-  ]
+  ],
+
+  webServer: {
+    cwd: "./resources/mock-auth-server",
+    command: 'node server.js',
+    url: 'http://localhost:3000/token',
+    reuseExistingServer: !process.env.CI,
+    stdout: 'ignore',
+    stderr: 'pipe',
+  },
 };
 
 export default config;
