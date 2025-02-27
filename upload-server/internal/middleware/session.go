@@ -12,10 +12,6 @@ func InitStore(key string) {
 	store = sessions.NewCookieStore([]byte(key))
 }
 
-//func Store() sessions.Store {
-//	return store
-//}
-
 type UserSessionData struct {
 	Token    string
 	Redirect string
@@ -63,5 +59,9 @@ func (s *UserSession) SetToken(r *http.Request, w http.ResponseWriter, token str
 }
 func (s *UserSession) SetRedirect(r *http.Request, w http.ResponseWriter, redirect string) error {
 	s.session.Values["redirect"] = redirect
+	return s.session.Save(r, w)
+}
+func (s *UserSession) Delete(r *http.Request, w http.ResponseWriter) error {
+	s.session.Options.MaxAge = -1
 	return s.session.Save(r, w)
 }
