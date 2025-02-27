@@ -4,6 +4,7 @@ import {
     getFileSelection,
   } from '../resources/test-utils';
   
+const cookieName = "phdo_session"
 
 test.describe('Upload API Auth UI Elements', () => {
     const pages = [
@@ -28,7 +29,7 @@ test.describe('Upload API Auth UI Elements', () => {
             expectedRedirect: "?redirect=/status/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
         }
     ]
-    pages.forEach(({ pageName, path, expectedRedirect }) => {
+    pages.forEach(({ pageName, path }) => {
         test(`requires a token for ${pageName}`, async ({ page, baseURL }) => {
             await page.goto(path)
 
@@ -36,8 +37,7 @@ test.describe('Upload API Auth UI Elements', () => {
             await expect(page.getByRole('textbox', {name: "Authentication Token *"})).toBeVisible()
             await expect(page.getByRole('button', {name: "Login"})).toBeVisible()
             
-            await expect(page.url()).toBe(`${baseURL}/login${expectedRedirect}`)
-            
+            expect(page.url()).toBe(`${baseURL}/login`)
         })
 
     })
@@ -72,9 +72,8 @@ test.describe('Upload API Auth', () => {
         await expect(page.getByRole('heading', { name: 'Welcome to DEX Upload' })).toBeVisible({timeout: 12000})
         await expect(page.getByText("Start the upload process by entering a data stream and route.")).toBeVisible()
         const cookies = await browser.contexts()[0].cookies()
-        const cookie = cookies.find(({ name }) =>  name === "phdo_auth_token" )
+        const cookie = cookies.find(({ name }) =>  name === cookieName )
         expect(cookie).not.toBeUndefined()
-        expect(cookie?.value).toEqual(token)
     })
 
     test('cannot log in with an invalid token through the login page', async ({ page }) => {
@@ -101,9 +100,9 @@ test.describe('Upload API Auth', () => {
         await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
     })
     
-    test('logs in with a valid cookie token', async ({ browser }) => {
+    test('cannot log in with a forged cookie', async ({ browser }) => {
         const cookies = [{
-            name: "phdo_auth_token",
+            name: cookieName,
             value: token,
             domain: cookieDomain,
             path: "/",
@@ -116,13 +115,13 @@ test.describe('Upload API Auth', () => {
         context.addCookies(cookies)
         const page = await context.newPage();
         await page.goto('/');
-        await expect(page.getByRole('heading', { name: 'Welcome to DEX Upload' })).toBeVisible()
-        await expect(page.getByText("Start the upload process by entering a data stream and route.")).toBeVisible()
+        await expect(page.url()).toContain("/login")
+        await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
     })
 
     test('cannot log in with an expired cookie token', async ({browser}) => {
         const cookies = [{
-            name: "phdo_auth_token",
+            name: cookieName,
             value: token,
             domain: cookieDomain,
             path: "/",
@@ -141,7 +140,7 @@ test.describe('Upload API Auth', () => {
 
     test('cannot log in with an invalid cookie token', async ({browser}) => {
         const cookies = [{
-            name: "phdo_auth_token",
+            name: cookieName,
             value: "badtoken",
             domain: cookieDomain,
             path: "/",
@@ -155,30 +154,6 @@ test.describe('Upload API Auth', () => {
         const page = await context.newPage();
         await page.goto('/');
         await expect(page.url()).toContain("/login")
-        await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
-    })
-
-    test('can log out after logging in', async ({ browser }) => {
-        const cookies = [{
-            name: "phdo_auth_token",
-            value: token,
-            domain: cookieDomain,
-            path: "/",
-            expires: Math.floor(Date.now() / 1000) + 3600,
-            httpOnly: true,
-            secure: false,
-            sameSite: "Lax" as const
-        }]
-        const context = await browser.newContext();
-        context.addCookies(cookies)
-        const page = await context.newPage();
-        await page.goto('/');
-        await expect(page.getByRole('heading', { name: 'Welcome to DEX Upload' })).toBeVisible()
-        await expect(page.getByText("Start the upload process by entering a data stream and route.")).toBeVisible()
-        const logoutButton = page.getByRole('link', {name: "Logout"})
-        await expect(logoutButton).toBeVisible()
-        await logoutButton.click()
-        await page.goto('/');
         await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
     })
 
@@ -205,6 +180,12 @@ test.describe('Upload API Auth', () => {
         await fileChooser.setFiles(fileSelection);
 
         await expect(page.getByText('Upload Status: Complete')).toBeVisible({ timeout: 20000 });
+
+        const logoutButton = page.getByRole('link', {name: "Logout"})
+        await expect(logoutButton).toBeVisible()
+        await logoutButton.click()
+        await page.goto('/');
+        await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
     })
 })
 
