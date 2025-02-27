@@ -147,5 +147,29 @@ test.describe('Upload API Auth', () => {
         await expect(page.url()).toContain("/login")
         await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
     })
+
+    test('can log out after logging in', async ({ browser }) => {
+        const cookies = [{
+            name: "phdo_auth_token",
+            value: token,
+            domain: cookieDomain,
+            path: "/",
+            expires: Math.floor(Date.now() / 1000) + 3600,
+            httpOnly: true,
+            secure: false,
+            sameSite: "Lax" as const
+        }]
+        const context = await browser.newContext();
+        context.addCookies(cookies)
+        const page = await context.newPage();
+        await page.goto('/');
+        await expect(page.getByRole('heading', { name: 'Welcome to DEX Upload' })).toBeVisible()
+        await expect(page.getByText("Start the upload process by entering a data stream and route.")).toBeVisible()
+        const logoutButton = page.getByRole('link', {name: "Logout"})
+        await expect(logoutButton).toBeVisible()
+        await logoutButton.click()
+        await page.goto('/');
+        await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
+    })
 })
 
