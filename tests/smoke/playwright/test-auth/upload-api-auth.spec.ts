@@ -16,6 +16,11 @@ test.describe('Upload API Auth UI Elements', () => {
             pageName: "manifest page",
             path: "/manifest?data_stream_id=dextesting&data_stream_route=testevent1",
             expectedRedirect: "?redirect=/manifest?data_stream_id%3Ddextesting%26data_stream_route%3Dtestevent1"
+        },
+        {
+            pageName: "status page",
+            path: "/status/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+            expectedRedirect: "?redirect=/status/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
         }
     ]
     pages.forEach(({ pageName, path, expectedRedirect }) => {
