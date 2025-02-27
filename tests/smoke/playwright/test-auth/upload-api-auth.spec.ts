@@ -1,6 +1,4 @@
 import { expect, test, request, BrowserContext, Cookie} from '@playwright/test';
-import { CookieOptions } from 'express';
-
 
 test.describe('Upload API Auth UI Elements', () => {
     const pages = [
@@ -40,6 +38,8 @@ test.describe('Upload API Auth', () => {
     let expiredToken: any
     let scopesToken: any
 
+    const cookieDomain = process.env.SERVER_URL !== undefined ? new URL(process.env.SERVER_URL).hostname : "localhost"
+
     test.beforeAll(async ({ request }) => {
         const res = await request.get('http://localhost:3000/token')
         const json = await res.json()
@@ -55,7 +55,6 @@ test.describe('Upload API Auth', () => {
     })
     
     test('logs in with a valid token through the login page', async ({ browser, page }) => {
-        console.log(token)
         await page.goto('/')  
         await page.getByRole('textbox', { name: "Authentication Token *" }).fill(token)
         await page.getByRole('button', { name: 'Login' }).click()
@@ -93,15 +92,14 @@ test.describe('Upload API Auth', () => {
     })
     
     test('logs in with a valid cookie token', async ({ browser }) => {
-        console.log(token)
         const cookies = [{
             name: "phdo_auth_token",
             value: token,
-            domain: "localhost",
+            domain: cookieDomain,
             path: "/",
             expires: Math.floor(Date.now() / 1000) + 3600,
             httpOnly: true,
-            secure: true,
+            secure: false,
             sameSite: "Lax" as const
         }]
         const context = await browser.newContext();
@@ -116,11 +114,11 @@ test.describe('Upload API Auth', () => {
         const cookies = [{
             name: "phdo_auth_token",
             value: token,
-            domain: "localhost",
+            domain: cookieDomain,
             path: "/",
             expires: Math.floor(Date.now() / 1000) - 1,
             httpOnly: true,
-            secure: true,
+            secure:  false,
             sameSite: "Lax" as const
         }]
         const context = await browser.newContext();
@@ -135,11 +133,11 @@ test.describe('Upload API Auth', () => {
         const cookies = [{
             name: "phdo_auth_token",
             value: "badtoken",
-            domain: "localhost",
+            domain: cookieDomain,
             path: "/",
             expires: Math.floor(Date.now() / 1000) + 3600,
             httpOnly: true,
-            secure: true,
+            secure: false,
             sameSite: "Lax" as const
         }]
         const context = await browser.newContext();

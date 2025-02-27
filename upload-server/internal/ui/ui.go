@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
@@ -206,7 +207,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			Path:     "/",
 			Expires:  time.Unix(claims.Expiry, 0),
 			MaxAge:   int(claims.Expiry),
-			Secure:   true,
+			Secure:   appconfig.LoadedConfig.Environment != "DEV",
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
 		})
