@@ -87,7 +87,7 @@ const config: PlaywrightTestConfig = {
     command: 'npm install && node server.js',
     url: 'http://localhost:3000/token',
     reuseExistingServer: !process.env.CI,
-    stdout: 'ignore',
+    stdout: 'pipe',
     stderr: 'pipe',
   },
 };

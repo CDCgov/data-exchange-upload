@@ -6,14 +6,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
@@ -194,6 +196,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		claims, err := authMiddleware.Validator().ValidateJWT(r.Context(), token)
 		if err != nil {
 			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			slog.Error("failed login attempt", "error", err)
 			return
 		}
 

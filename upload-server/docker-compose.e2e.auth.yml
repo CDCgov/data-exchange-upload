@@ -1,0 +1,49 @@
+networks:
+  e2e-fs-network:
+
+services:
+  upload-server:
+    image: golang:alpine
+    container_name: upload-server-fs
+    volumes:
+      - .:/code
+      - ../upload-configs:/upload-configs
+    working_dir: /code
+    environment:
+      - UI_SERVER_EXTERNAL_HOST=upload-server-fs:8080
+      - UI_SERVER_INTERNAL_HOST=upload-server-fs:8080
+      - UPLOAD_CONFIG_PATH=/upload-configs
+      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/file_destinations.yml
+      - OAUTH_AUTH_ENABLED=true
+      - OAUTH_ISSUER_URL=http://playwright-fs:3000
+      - OAUTH_REQUIRED_SCOPES=test:scope1 test:scope2
+    command: /bin/sh -c "./run-server.sh"
+    networks:
+      - e2e-fs-network
+    ports:
+      - 8080:8080
+      - 8081:8081
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.48.0-noble
+    container_name: playwright-fs
+    volumes:
+      - ../tests/smoke/playwright:/playwright
+      - /playwright/node_modules
+    working_dir: /playwright
+    environment:
+      - CI
+      - SERVER_URL=http://upload-server-fs:8080
+      - UI_URL=http://upload-server-fs:8081
+      - TEST_REPORTS_DIR=/playwright/test-reports
+      - HTML_REPORT_DIR=${HTML_REPORT_DIR:-fs-html}
+      - JSON_REPORT_FILE=${JSON_REPORT_FILE:-fs-report.json}
+      - SUMMARY_JSON_REPORT_FILE=${SUMMARY_JSON_REPORT_FILE:-fs-summary.json}
+      - TEST_TITLE=${TEST_TITLE:-E2E FS Tests}
+      - MOCK_AUTH_BASE_URL=http://playwright-fs
+      - MOCK_AUTH_PORT=3000
+    command: npm run test-auth:docker
+    networks:
+      - e2e-fs-network
+    ports: 
+      - 3000:3000
+

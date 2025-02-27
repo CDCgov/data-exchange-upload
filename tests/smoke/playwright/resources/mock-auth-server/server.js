@@ -33,7 +33,7 @@ const validPayload = {
     given_name: "JOHN",
     preferred_name: "JOHN",
     scope: "test:scope1 test:scope2",
-    jku: `${BASE_URL}/openid/connect/jwks.json`
+    jku: `${BASE_URL}/oauth2/jwks`
 };
 
 // Function to generate RSA key pair and JWKS

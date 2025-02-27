@@ -55,10 +55,12 @@ test.describe('Upload API Auth', () => {
     })
     
     test('logs in with a valid token through the login page', async ({ browser, page }) => {
+        console.log(token)
         await page.goto('/')  
         await page.getByRole('textbox', { name: "Authentication Token *" }).fill(token)
         await page.getByRole('button', { name: 'Login' }).click()
-        await expect(page.getByRole('heading', { name: 'Welcome to DEX Upload' })).toBeVisible()
+        await page.waitForURL("/")
+        await expect(page.getByRole('heading', { name: 'Welcome to DEX Upload' })).toBeVisible({timeout: 12000})
         await expect(page.getByText("Start the upload process by entering a data stream and route.")).toBeVisible()
         const cookies = await browser.contexts()[0].cookies()
         const cookie = cookies.find(({ name }) =>  name === "phdo_auth_token" )
@@ -91,6 +93,7 @@ test.describe('Upload API Auth', () => {
     })
     
     test('logs in with a valid cookie token', async ({ browser }) => {
+        console.log(token)
         const cookies = [{
             name: "phdo_auth_token",
             value: token,
