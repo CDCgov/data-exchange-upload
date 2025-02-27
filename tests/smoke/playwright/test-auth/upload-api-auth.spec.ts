@@ -5,30 +5,29 @@ import {
   } from '../resources/test-utils';
   
 const cookieName = "phdo_session"
+const pages = [
+    {
+        pageName: "root UI page",
+        path: "/",
+        expectedRedirect: ""
+    },
+    {
+        pageName: "login page",
+        path: "/login",
+        expectedRedirect: ""
+    },
+    {
+        pageName: "manifest page",
+        path: "/manifest?data_stream_id=dextesting&data_stream_route=testevent1",
+        expectedRedirect: "/manifest?data_stream_id=dextesting&data_stream_route=testevent1"
+    },
+    {
+        pageName: "status page",
+        path: "/status/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    }
+]
 
 test.describe('Upload API Auth UI Elements', () => {
-    const pages = [
-        {
-            pageName: "root UI page",
-            path: "/",
-            expectedRedirect: ""
-        },
-        {
-            pageName: "login page",
-            path: "/login",
-            expectedRedirect: ""
-        },
-        {
-            pageName: "manifest page",
-            path: "/manifest?data_stream_id=dextesting&data_stream_route=testevent1",
-            expectedRedirect: "?redirect=/manifest?data_stream_id%3Ddextesting%26data_stream_route%3Dtestevent1"
-        },
-        {
-            pageName: "status page",
-            path: "/status/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-            expectedRedirect: "?redirect=/status/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-        }
-    ]
     pages.forEach(({ pageName, path }) => {
         test(`requires a token for ${pageName}`, async ({ page, baseURL }) => {
             await page.goto(path)
@@ -62,6 +61,28 @@ test.describe('Upload API Auth', () => {
         const resScopes = await request.get('http://localhost:3000/token-scopes')
         const jsonScopes = await resScopes.json()
         scopesToken = jsonScopes.access_token
+    })
+
+    test.describe('redirect', () => {
+        pages.filter(p => p.expectedRedirect != undefined).forEach(({ pageName, path, expectedRedirect }) => {
+            test(`redirects to ${pageName}`, async ({ page, baseURL, browser }) => {
+                await page.goto(path)
+    
+                await expect(page.getByRole('heading', {name: "Welcome to PHDO Upload Login"})).toBeVisible()
+                await expect(page.getByRole('textbox', {name: "Authentication Token *"})).toBeVisible()
+                await expect(page.getByRole('button', {name: "Login"})).toBeVisible()
+                
+                expect(page.url()).toBe(`${baseURL}/login`)
+
+                await page.getByRole('textbox', { name: "Authentication Token *" }).fill(token)
+                await page.getByRole('button', { name: 'Login' }).click()
+                await page.waitForURL(expectedRedirect)
+                const cookies = await browser.contexts()[0].cookies()
+                const cookie = cookies.find(({ name }) =>  name === cookieName )
+                expect(cookie).not.toBeUndefined()
+            })
+    
+        })
     })
     
     test('logs in with a valid token through the login page', async ({ browser, page }) => {
