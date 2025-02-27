@@ -38,6 +38,9 @@ jobs:
           - title: 'E2E AWS -> Azure Tests'
             name: 'aws-to-azure'
             compose: './docker-compose.e2e.minio-azurite.yml'
+          - title: 'E2E Auth Tests'
+            name: 'auth'
+            compose: './docker-compose.e2e.auth.yml'
     name: ${{ matrix.title }}
     runs-on: ubuntu-latest
     continue-on-error: true
