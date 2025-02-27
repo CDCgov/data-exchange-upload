@@ -141,12 +141,7 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 			loginRedirect(*us, r, w)
 		}
 
-		//sess, _ := session.Store().Get(r, UserSessionCookieName)
 		token := us.Data().Token
-		//if token == nil {
-		//	loginRedirect(sess, w, r)
-		//	return
-		//}
 
 		_, err = a.validator.ValidateJWT(r.Context(), token)
 		if err != nil {
@@ -163,15 +158,6 @@ func (a AuthMiddleware) Validator() oauth.Validator {
 }
 
 func loginRedirect(userSess UserSession, r *http.Request, w http.ResponseWriter) {
-	//if sess != nil {
-	//	v := r.URL.Path
-	//	if r.URL.RawQuery != "" {
-	//		v += "?" + r.URL.RawQuery
-	//	}
-	//	sess.Values["redirect"] = v
-	//}
-	//sess.Save(r, w)
-
 	v := r.URL.Path
 	if r.URL.RawQuery != "" {
 		v += "?" + r.URL.RawQuery
@@ -180,15 +166,6 @@ func loginRedirect(userSess UserSession, r *http.Request, w http.ResponseWriter)
 	if err != nil {
 		slog.Error("error setting user session redirect", "error", err)
 	}
-
-	//http.SetCookie(w, &http.Cookie{
-	//	Name:     LoginRedirectCookieName,
-	//	Value:    v,
-	//	Path:     "/oauth_callback",
-	//	Secure:   true,
-	//	HttpOnly: true,
-	//	SameSite: http.SameSiteStrictMode,
-	//})
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
@@ -209,100 +186,3 @@ func getAuthToken(headers http.Header) (string, error) {
 
 	return authHeader[len("Bearer "):], nil
 }
-
-//func getAuthTokenFromCookies(r http.Request) string {
-//	c, err := r.Cookie(UserSessionCookieName)
-//	if err != nil && errors.Is(err, http.ErrNoCookie) {
-//		return ""
-//	}
-//	return c.Value
-//}
-
-//func redirectSanitized(path string, code int, w http.ResponseWriter, r *http.Request) {
-//	redirectURL := path
-//	if redirectURL == "" {
-//		// default to home page
-//		redirectURL = "/"
-//	}
-//	// build target URL
-//	targetURL := r.URL.Path
-//	if r.URL.RawQuery != "" {
-//		// append incoming query params
-//		targetURL += "?" + r.URL.RawQuery
-//	}
-//
-//	if targetURL != "" {
-//		redirectURL += "?redirect=" + url.QueryEscape(targetURL)
-//	}
-//
-//	if isValidRedirectURL(redirectURL) {
-//		http.Redirect(w, r, redirectURL, code)
-//		return
-//	}
-//	http.Error(w, "invalid redirect url", http.StatusBadRequest)
-//}
-
-//func sanitizeRedirectPath(path string, r http.Request) string {
-//	sanitized := path
-//
-//	//append redirect query
-//	var redirectQuery string
-//	redirectPath := r.URL.Path
-//	if r.URL.RawQuery != "" {
-//		redirectPath += "?" + r.URL.RawQuery
-//	}
-//	sanitizedRedirect := sanitizeRedirectUrl(redirectPath)
-//	if sanitizedRedirect != "/" {
-//		redirectQuery = "?redirect=" + sanitizedRedirect
-//	}
-//
-//	sanitized += redirectQuery
-//
-//	return sanitized
-//}
-
-//func isValidRedirectURL(redirectURL string) bool {
-//	if redirectURL == "" {
-//		return false
-//	}
-//
-//	parsed, err := url.Parse(redirectURL)
-//	if err != nil {
-//		return false
-//	}
-//
-//	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
-//		return false
-//	}
-//
-//	return true
-//}
-
-//func sanitizeRedirectUrl(redirectURL string) string {
-//	sanitized := "/"
-//
-//	if redirectURL == "" {
-//		return sanitized
-//	}
-//
-//	parsed, err := url.Parse(redirectURL)
-//	if err != nil {
-//		return sanitized
-//	}
-//
-//	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
-//		return sanitized
-//	}
-//
-//	//for _, p := range protectedUIRoutes {
-//	//	if strings.HasPrefix(parsed.Path, p) {
-//	//		sanitized = parsed.Path
-//	//		if parsed.RawQuery != "" {
-//	//			sanitized += "?" + url.QueryEscape(parsed.RawQuery)
-//	//		}
-//	//		return sanitized
-//	//	}
-//	//}
-//
-//	return sanitized
-//}
