@@ -15,8 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
