@@ -1,4 +1,9 @@
-import { expect, test, request, BrowserContext, Cookie} from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import {
+    SMALL_FILENAME,
+    getFileSelection,
+  } from '../resources/test-utils';
+  
 
 test.describe('Upload API Auth UI Elements', () => {
     const pages = [
@@ -175,6 +180,31 @@ test.describe('Upload API Auth', () => {
         await logoutButton.click()
         await page.goto('/');
         await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
+    })
+
+    test('can log in and perform an upload', async ({ page }) => {
+        const dataStream = "dextesting"
+        const route = "testevent1"
+        const fileSelection = getFileSelection(SMALL_FILENAME);
+
+        await page.goto(`/`);
+        await page.getByRole('textbox', { name: "Authentication Token *" }).fill(token)
+        await page.getByRole('button', { name: 'Login' }).click()
+        await page.getByLabel('Data Stream', { exact: true }).fill(dataStream);
+        await page.getByLabel('Data Stream Route').fill(route);
+        await page.getByRole('button', { name: /next/i }).click();
+        const textBoxes = await page.getByRole('textbox').all();
+        for (const textbox of textBoxes) {
+        await textbox.fill('Test');
+        }
+        await page.getByRole('button', { name: /next/i }).click();
+
+        const fileChooserPromise = page.waitForEvent('filechooser');
+        await page.getByRole('button', { name: 'Browse Files' }).click();
+        const fileChooser = await fileChooserPromise;
+        await fileChooser.setFiles(fileSelection);
+
+        await expect(page.getByText('Upload Status: Complete')).toBeVisible({ timeout: 20000 });
     })
 })
 

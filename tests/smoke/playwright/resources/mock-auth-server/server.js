@@ -7,7 +7,8 @@ const base64url = require('base64url');
 
 const app = express();
 const PORT = process.env.MOCK_AUTH_PORT || 3000;
-const BASE_URL = `${process.env.MOCK_AUTH_BASE_URL}:${PORT}` || `http://localhost:${PORT}`;
+const HOST = process.env.MOCK_AUTH_BASE_URL || "http://localhost";
+const BASE_URL = `${HOST}:${PORT}`;
 
 app.use(cors());
 app.use(express.json());
