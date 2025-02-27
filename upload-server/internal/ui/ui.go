@@ -166,7 +166,16 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		}
 	})
 	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
-		deleteSession(rw, r)
+		sess, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = sess.Delete(r, rw)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
@@ -428,19 +437,4 @@ func isValidRedirectURL(redirectURL string) bool {
 	}
 
 	return true
-}
-
-func deleteSession(rw http.ResponseWriter, r *http.Request) {
-	c, err := r.Cookie(middleware.UserSessionCookieName)
-	if err == nil {
-		c.Expires = time.Unix(0, 0)
-		c.MaxAge = -1
-		http.SetCookie(rw, c)
-	}
-	c, err = r.Cookie(middleware.LoginRedirectCookieName)
-	if err == nil {
-		c.Expires = time.Unix(0, 0)
-		c.MaxAge = -1
-		http.SetCookie(rw, c)
-	}
 }
