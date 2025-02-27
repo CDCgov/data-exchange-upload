@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"io"
 	"log"
 	"net/http"
@@ -19,6 +18,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -545,6 +546,7 @@ func TestMain(m *testing.M) {
 		IssuerUrl:        "",
 		RequiredScopes:   "",
 		IntrospectionUrl: "",
+		SessionKey:       "testing",
 	}
 	appConfig := appconfig.AppConfig{
 		UploadConfigPath:      "../../upload-configs/",
@@ -574,7 +576,7 @@ func TestMain(m *testing.M) {
 		testWaitGroup.Done()
 	}()
 
-	middleware.InitStore("testing")
+	middleware.InitStore(oauthConfig)
 	authMiddleware, err := middleware.NewAuthMiddleware(testContext, *appConfig.OauthConfig)
 	if err != nil {
 		log.Fatal(err)

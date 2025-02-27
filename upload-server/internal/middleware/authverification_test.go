@@ -6,8 +6,6 @@ import (
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/gorilla/securecookie"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +13,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/gorilla/securecookie"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -45,7 +46,6 @@ type testCase struct {
 
 // tests the VerifyOAuthTokenMiddleware for multiple cases
 func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
-	InitStore("testing")
 	// init RSA keys for signing and verification
 	err := initKeys()
 	if err != nil {
@@ -215,6 +215,16 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 // test case function
 func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 	t.Run(tc.name, func(t *testing.T) {
+		authConfig := appconfig.OauthConfig{
+			AuthEnabled:    tc.authEnabled,
+			IssuerUrl:      tc.issuerURL,
+			RequiredScopes: tc.requiredScopes,
+			SessionKey:     "testing",
+		}
+		err := InitStore(authConfig)
+		if err != nil {
+			t.Fatal(err)
+		}
 		// create handler for middleware
 		hasBeenCalled := false
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -222,11 +232,7 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		middleware, err := NewAuthMiddleware(context.Background(), appconfig.OauthConfig{
-			AuthEnabled:    tc.authEnabled,
-			IssuerUrl:      tc.issuerURL,
-			RequiredScopes: tc.requiredScopes,
-		})
+		middleware, err := NewAuthMiddleware(context.Background(), authConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -285,7 +291,6 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 }
 
 func TestUserSessionMiddleware_TestCases(t *testing.T) {
-	InitStore(sessionKey)
 	err := initKeys()
 	if err != nil {
 		t.Fatalf("failed to initialize keys: %v", err)
@@ -300,14 +305,6 @@ func TestUserSessionMiddleware_TestCases(t *testing.T) {
 		Value: mockTokenValid,
 	}
 	mockTokenExpired, _ := createMockJWT(issuerURL, -1, "")
-	//mockSessionWithExpiredToken := &http.Cookie{
-	//	Name:  UserSessionCookieName,
-	//	Value: mockTokenExpired,
-	//}
-	//mockSessionWithBadCookieName := &http.Cookie{
-	//	Name:  "bogus",
-	//	Value: mockTokenValid,
-	//}
 
 	testCases := []testCase{
 		{
@@ -319,10 +316,9 @@ func TestUserSessionMiddleware_TestCases(t *testing.T) {
 			expectNext:   true,
 		},
 		{
-			name:        "Valid Session Cookie",
-			issuerURL:   issuerURL,
-			authEnabled: true,
-			//requestCookie: mockValidSessionCookie,
+			name:         "Valid Session Cookie",
+			issuerURL:    issuerURL,
+			authEnabled:  true,
 			userSession:  &UserSessionData{Token: mockTokenValid},
 			expectStatus: http.StatusOK,
 			expectMesg:   "",
@@ -338,11 +334,10 @@ func TestUserSessionMiddleware_TestCases(t *testing.T) {
 			expectedUserSession:      &UserSessionData{Redirect: "/"},
 		},
 		{
-			name:        "Expired Token",
-			issuerURL:   issuerURL,
-			authEnabled: true,
-			userSession: &UserSessionData{Token: mockTokenExpired},
-			//sessionCookie:            mockSessionWithExpiredToken,
+			name:                     "Expired Token",
+			issuerURL:                issuerURL,
+			authEnabled:              true,
+			userSession:              &UserSessionData{Token: mockTokenExpired},
 			expectStatus:             http.StatusSeeOther,
 			expectNext:               false,
 			expectedRedirectLocation: "/login",
@@ -388,17 +383,21 @@ func TestUserSessionMiddleware_TestCases(t *testing.T) {
 
 func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 	t.Run(tc.name, func(t *testing.T) {
+		authConfig := appconfig.OauthConfig{
+			AuthEnabled:    tc.authEnabled,
+			IssuerUrl:      tc.issuerURL,
+			RequiredScopes: tc.requiredScopes,
+			SessionKey:     "testing",
+		}
+		InitStore(authConfig)
+
 		hasBeenCalled := false
 		nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			hasBeenCalled = true
 			w.WriteHeader(http.StatusOK)
 		})
 
-		middleware, err := NewAuthMiddleware(context.Background(), appconfig.OauthConfig{
-			AuthEnabled:    tc.authEnabled,
-			IssuerUrl:      tc.issuerURL,
-			RequiredScopes: tc.requiredScopes,
-		})
+		middleware, err := NewAuthMiddleware(context.Background(), authConfig)
 		if err != nil {
 			t.Fatal(err)
 		}
