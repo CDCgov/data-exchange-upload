@@ -170,14 +170,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
-		//redirect := r.URL.Query().Get("redirect")
-		//rc, err := r.Cookie(middleware.LoginRedirectCookieName)
-		//if err == nil {
-		//	if isValidRedirectURL(rc.Value) {
-		//		redirect = rc.Value
-		//	}
-		//}
-
 		token := r.FormValue("token")
 
 		if token == "" {
@@ -202,35 +194,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
 
-		//err = session.CreateUserSession(r, rw, token, redirect)
-
-		//sess, _ := session.Store().Get(r, middleware.UserSessionCookieName)
-		//sess.Options = &sessions.Options{
-		//	Path:     "/",
-		//	MaxAge:   int(claims.Expiry),
-		//	Secure:   true,
-		//	HttpOnly: true,
-		//	SameSite: http.SameSiteLaxMode,
-		//}
-		//sess.Values["token"] = token
-		//err = sess.Save(r, rw)
-		//if err != nil {
-		//	http.Error(rw, err.Error(), http.StatusInternalServerError)
-		//}
-
 		redirect := us.Data().Redirect
-		//redirect := sess.Values["redirect"]
-
-		//http.SetCookie(rw, &http.Cookie{
-		//	Name:     middleware.UserSessionCookieName,
-		//	Value:    token,
-		//	Path:     "/",
-		//	Expires:  time.Unix(claims.Expiry, 0),
-		//	MaxAge:   int(claims.Expiry),
-		//	Secure:   true,
-		//	HttpOnly: true,
-		//	SameSite: http.SameSiteLaxMode,
-		//})
 		if redirect != "" {
 			http.Redirect(rw, r, redirect, http.StatusFound)
 		} else {
@@ -294,9 +258,12 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		req.Header.Set("Upload-Defer-Length", "1")
 		req.Header.Set("Tus-Resumable", "1.0.0")
 
-		if c, err := r.Cookie(middleware.UserSessionCookieName); !errors.Is(err, http.ErrNoCookie) {
-			req.AddCookie(c)
+		sess, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		req.Header.Set("Authorization", "Bearer "+sess.Data().Token)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -340,9 +307,12 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		if c, err := r.Cookie(middleware.UserSessionCookieName); !errors.Is(err, http.ErrNoCookie) {
-			req.AddCookie(c)
+		sess, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		req.Header.Set("Authorization", "Bearer "+sess.Data().Token)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {

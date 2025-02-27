@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"github.com/gorilla/sessions"
 	"net/http"
+
+	"github.com/gorilla/sessions"
 )
 
 var store sessions.Store
@@ -64,26 +65,3 @@ func (s *UserSession) SetRedirect(r *http.Request, w http.ResponseWriter, redire
 	s.session.Values["redirect"] = redirect
 	return s.session.Save(r, w)
 }
-
-//func CreateUserSession(r *http.Request, w http.ResponseWriter, data UserSession, expiry int) error {
-//	s, err := store.Get(r, middleware.UserSessionCookieName)
-//	if err != nil {
-//		return err
-//	}
-//	s.Options = &sessions.Options{
-//		Path:     "/",
-//		MaxAge:   expiry,
-//		Secure:   true,
-//		HttpOnly: true,
-//		SameSite: http.SameSiteLaxMode,
-//	}
-//	s.Values["token"] = data.token
-//	s.Values["redirect"] = data.redirect
-//
-//	err = s.Save(r, w)
-//	if err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
