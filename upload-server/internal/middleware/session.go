@@ -1,15 +1,21 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/gorilla/sessions"
 )
 
 var store sessions.Store
 
-func InitStore(key string) {
-	store = sessions.NewCookieStore([]byte(key))
+func InitStore(config appconfig.OauthConfig) error {
+	if config.AuthEnabled && config.SessionKey == "" {
+		return errors.New("no session key provided")
+	}
+	store = sessions.NewCookieStore([]byte(config.SessionKey))
+	return nil
 }
 
 type UserSessionData struct {

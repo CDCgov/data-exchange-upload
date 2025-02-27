@@ -193,7 +193,7 @@ type OauthConfig struct {
 	IntrospectionUrl string `env:"INTROSPECTION_URL"`
 	IssuerUrl        string `env:"ISSUER_URL"`
 	RequiredScopes   string `env:"REQUIRED_SCOPES"`
-	SessionKey       string `env:"SESSION_KEY, default=default"`
+	SessionKey       string `env:"SESSION_KEY"`
 }
 
 func (azc *AzureStorageConfig) Check() error {

@@ -105,7 +105,11 @@ func main() {
 	}
 	// the user session store should be dependent on if auth is enabled or not.  Shouldn't be able to create, read, or write a store
 	// if auth is disabled.
-	middleware.InitStore(appConfig.OauthConfig.SessionKey)
+	err = middleware.InitStore(*appConfig.OauthConfig)
+	if err != nil {
+		slog.Error("error starting app, error initialize session store", "error", err)
+		os.Exit(appMainExitCode)
+	}
 	authMiddleware, err := middleware.NewAuthMiddleware(ctx, *appConfig.OauthConfig)
 	if err != nil {
 		slog.Error("error starting app, error initialize auth middleware", "error", err)
