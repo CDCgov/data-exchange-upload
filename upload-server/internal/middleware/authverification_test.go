@@ -41,7 +41,6 @@ type testCase struct {
 	expectNext               bool   // false = has error response in middleware, true = passes on to next handler
 	expectedRedirectLocation string
 	expectedUserSession      *UserSessionData
-	//expectedLoginRedirectLocation string
 }
 
 // tests the VerifyOAuthTokenMiddleware for multiple cases
@@ -61,10 +60,6 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 
 	// create VALID mock token w/ +1-hour expire offset
 	mockTokenValid, _ := createMockJWT(issuerURL, 1, "")
-	//mockValidSessionCookie := &http.Cookie{
-	//	Name:  UserSessionCookieName,
-	//	Value: mockTokenValid,
-	//}
 	// create mock token by concat a Z to make an invalid signature
 	mockTokenInvalidSignature := mockTokenValid + "Z"
 
@@ -171,7 +166,6 @@ func TestVerifyOAuthTokenMiddleware_TestCases(t *testing.T) {
 			expectNext:     true,
 			requiredScopes: "",
 			userSession:    &UserSessionData{Token: mockTokenValid},
-			//sessionCookie:  mockValidSessionCookie,
 		},
 		// RequiredScopes related tests
 		{
@@ -247,10 +241,6 @@ func runOAuthTokenVerificationTestCase(t *testing.T, tc testCase) {
 		if tc.authHeader != "" {
 			req.Header.Set("Authorization", tc.authHeader)
 		}
-
-		//if tc.sessionCookie != nil {
-		//	req.AddCookie(tc.sessionCookie)
-		//}
 
 		// record the response
 		rec := httptest.NewRecorder()
@@ -446,16 +436,6 @@ func runUserSessionMiddlewareTestCase(t *testing.T, tc testCase) {
 			if redirectUrl != nil && tc.expectedRedirectLocation != redirectUrl.String() {
 				t.Errorf("expected redirect to %s, got %s", tc.expectedRedirectLocation, redirectUrl.String())
 			}
-
-			//loginRedirectUrl := ""
-			//for _, c := range resp.Result().Cookies() {
-			//	if c.Name == LoginRedirectCookieName {
-			//		loginRedirectUrl = c.Value
-			//	}
-			//}
-			//if tc.expectedLoginRedirectLocation != loginRedirectUrl {
-			//	t.Errorf("expected post login redirect to %s, got %s", tc.expectedLoginRedirectLocation, loginRedirectUrl)
-			//}
 		}
 
 		if tc.expectedUserSession != nil {
