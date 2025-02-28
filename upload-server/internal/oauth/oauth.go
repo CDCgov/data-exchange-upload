@@ -3,14 +3,15 @@ package oauth
 import (
 	"context"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
 	"strings"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"github.com/coreos/go-oidc/v3/oidc"
 )
 
 var ErrTokenVerificationFailed = errors.New("failed to verify token")

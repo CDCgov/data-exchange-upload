@@ -15,8 +15,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 
@@ -98,8 +100,8 @@ var uploadTemplate = generateTemplate("upload.html", true)
 
 type LoginTemplateData struct {
 	AuthFailed bool
-	Redirect   string
 	CsrfToken  string
+	LoginBtn   components.LinkBtn
 }
 
 type IndexTemplateData struct {
@@ -127,8 +129,8 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) *http.Server {
-	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware, authConfig appconfig.OauthConfig) *http.Server {
+	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware, authConfig)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
@@ -143,7 +145,7 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 	return s
 }
 
-func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) *mux.Router {
+func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware, authConfig appconfig.OauthConfig) *mux.Router {
 	router := mux.NewRouter()
 	protectedRouter := router.PathPrefix("/").Subrouter()
 	protectedRouter.Use(authMiddleware.VerifyUserSession)
@@ -154,9 +156,26 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			authFailed = false
 		}
 
+		href, err := url.Parse(authConfig.AuthorizationUrl)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		q := href.Query()
+		q.Set("response_type", "code")
+		q.Set("client_id", authConfig.ClientId)
+		q.Set("redirect_uri", authConfig.RedirectUrl)
+		q.Set("scope", "openid email")
+
+		href.RawQuery = q.Encode()
+
 		err = loginTemplate.Execute(rw, &LoginTemplateData{
 			AuthFailed: authFailed,
 			CsrfToken:  csrf.Token(r),
+			LoginBtn: components.LinkBtn{
+				Href: href.String(),
+				Text: "Login with SAMS",
+			},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -177,8 +196,42 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
-		token := r.FormValue("token")
+		authCode := r.URL.Query().Get("code")
+		// Exchange auth code for JWT
+		tokenURL := authConfig.TokenUrl
+		body := url.Values{
+			"grant_type":    {"authorization_code"},
+			"code":          {authCode},
+			"client_id":     {authConfig.ClientId},
+			"client_secret": {authConfig.ClientSecret},
+			"redirect_uri":  {authConfig.RedirectUrl},
+		}
+		req, err := http.NewRequest("POST", tokenURL, strings.NewReader(body.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		if err != nil {
+			slog.Error("error creating token request", "error", err)
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			return
+		}
 
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			slog.Error("error fetching token from provider", "error", err)
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		var tokenResp models.TokenResponse
+		err = json.NewDecoder(resp.Body).Decode(&tokenResp)
+		if err != nil {
+			slog.Error("error decoding token response", "error", err)
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			return
+		}
+		defer resp.Body.Close()
+
+		token := tokenResp.AccessToken
+		slog.Info("token response", "response", resp.StatusCode)
 		if token == "" {
 			http.Redirect(rw, r, "/login", http.StatusSeeOther)
 			return
@@ -208,7 +261,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		} else {
 			http.Redirect(rw, r, "/", http.StatusFound)
 		}
-	}).Methods("POST")
+	}).Methods("GET")
 	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
@@ -388,8 +441,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) error {
-	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
+func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware, authConfig appconfig.OauthConfig) error {
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware, authConfig)
 
 	return DefaultServer.ListenAndServe()
 }

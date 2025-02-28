@@ -192,9 +192,14 @@ type OauthConfig struct {
 	AuthEnabled      bool   `env:"AUTH_ENABLED, default=false"`
 	IntrospectionUrl string `env:"INTROSPECTION_URL"`
 	IssuerUrl        string `env:"ISSUER_URL"`
+	AuthorizationUrl string `env:"AUTHORIZATION_URL"`
+	TokenUrl         string `env:"TOKEN_URL"`
+	RedirectUrl      string `env:"REDIRECT_URL"`
 	RequiredScopes   string `env:"REQUIRED_SCOPES"`
 	SessionKey       string `env:"SESSION_KEY"`
 	SessionSecure    bool   `env:"SESSION_SECURE, default=true"`
+	ClientId         string `env:"CLIENT_ID"`
+	ClientSecret     string `env:"CLIENT_SECRET"`
 }
 
 func (azc *AzureStorageConfig) Check() error {
