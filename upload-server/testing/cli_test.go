@@ -590,7 +590,7 @@ func TestMain(m *testing.M) {
 	ts = httptest.NewServer(serveHandler)
 
 	// Start ui server
-	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, authMiddleware)
+	uiHandler := ui.GetRouter(ts.URL+appConfig.TusdHandlerBasePath, ts.URL+appConfig.TusdHandlerInfoPath, ts.URL+appConfig.TusdHandlerBasePath, authMiddleware, *appConfig.OauthConfig)
 	testUIServer = httptest.NewServer(uiHandler)
 
 	testRes := m.Run()
