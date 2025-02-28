@@ -216,6 +216,7 @@ test.describe('Upload API Auth', () => {
         const logoutButton = page.getByRole('link', {name: "Logout"})
         await expect(logoutButton).toBeVisible()
         await logoutButton.click()
+        await page.goto(`/`);
         await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
     })
 })
