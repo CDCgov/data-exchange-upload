@@ -1,4 +1,4 @@
-FROM docker.io/library/golang:1.22.1-alpine AS builder
+FROM docker.io/library/golang:1.23-alpine AS builder
 
 ARG REPO="cdcgov/data-exchange-upload"
 ARG LATEST_RELEASE_VERSION="unspecified"

@@ -15,10 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 
@@ -129,7 +127,7 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) (*http.Server, error) {
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) *http.Server {
 	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
@@ -142,7 +140,7 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 		Addr:    addr,
 		Handler: secureRouter,
 	}
-	return s, nil
+	return s
 }
 
 func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) *mux.Router {
@@ -151,7 +149,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	protectedRouter.Use(authMiddleware.VerifyUserSession)
 
 	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
-		redirect := r.URL.Query().Get("redirect")
 		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
 		if err != nil {
 			authFailed = false
@@ -159,7 +156,6 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 		err = loginTemplate.Execute(rw, &LoginTemplateData{
 			AuthFailed: authFailed,
-			Redirect:   redirect,
 			CsrfToken:  csrf.Token(r),
 		})
 		if err != nil {
@@ -168,25 +164,19 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		}
 	})
 	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie(middleware.UserSessionCookieName)
+		sess, err := middleware.GetUserSession(r)
 		if err != nil {
-			http.Redirect(rw, r, "/login", http.StatusFound)
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		c.Expires = time.Unix(0, 0)
-		c.MaxAge = -1
-		http.SetCookie(rw, c)
-
+		err = sess.Delete(r, rw)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		http.Redirect(rw, r, "/login", http.StatusFound)
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
-		redirect := r.URL.Query().Get("redirect")
-		if redirect == "" {
-			redirect = "/"
-		}
-		if !strings.HasPrefix(redirect, "/") {
-			redirect = "/" + redirect
-		}
 		token := r.FormValue("token")
 
 		if token == "" {
@@ -201,17 +191,23 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		http.SetCookie(rw, &http.Cookie{
-			Name:     middleware.UserSessionCookieName,
-			Value:    token,
-			Path:     "/",
-			Expires:  time.Unix(claims.Expiry, 0),
-			MaxAge:   int(claims.Expiry),
-			Secure:   appconfig.LoadedConfig.Environment != "DEV",
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		})
-		http.Redirect(rw, r, redirect, http.StatusFound)
+		us, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+
+		exp := time.Unix(claims.Expiry, 0).Sub(time.Now())
+		err = us.SetToken(r, rw, token, int(exp.Seconds()))
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+
+		redirect := us.Data().Redirect
+		if redirect != "" {
+			http.Redirect(rw, r, redirect, http.StatusFound)
+		} else {
+			http.Redirect(rw, r, "/", http.StatusFound)
+		}
 	}).Methods("POST")
 	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
@@ -270,9 +266,12 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		req.Header.Set("Upload-Defer-Length", "1")
 		req.Header.Set("Tus-Resumable", "1.0.0")
 
-		if c, err := r.Cookie(middleware.UserSessionCookieName); !errors.Is(err, http.ErrNoCookie) {
-			req.AddCookie(c)
+		sess, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		req.Header.Set("Authorization", "Bearer "+sess.Data().Token)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -316,9 +315,12 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 
-		if c, err := r.Cookie(middleware.UserSessionCookieName); !errors.Is(err, http.ErrNoCookie) {
-			req.AddCookie(c)
+		sess, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
 		}
+		req.Header.Set("Authorization", "Bearer "+sess.Data().Token)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -387,10 +389,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 var DefaultServer *http.Server
 
 func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) error {
-	DefaultServer, err := NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
-	if err != nil {
-		return err
-	}
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
 
 	return DefaultServer.ListenAndServe()
 }
@@ -419,5 +418,22 @@ func isLoggedIn(r http.Request) bool {
 	if err != nil && errors.Is(err, http.ErrNoCookie) {
 		return false
 	}
+	return true
+}
+
+func isValidRedirectURL(redirectURL string) bool {
+	if redirectURL == "" {
+		return false
+	}
+
+	parsed, err := url.Parse(redirectURL)
+	if err != nil {
+		return false
+	}
+
+	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
+		return false
+	}
+
 	return true
 }

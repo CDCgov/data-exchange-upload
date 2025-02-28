@@ -1,6 +1,8 @@
 module github.com/cdcgov/data-exchange-upload/upload-server
 
-go 1.22.1
+go 1.23
+
+toolchain go1.23.2
 
 require (
 	github.com/tus/tusd/v2 v2.4.0
@@ -34,6 +36,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
+	github.com/gorilla/sessions v1.4.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
