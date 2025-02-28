@@ -3,12 +3,12 @@ package middleware
 import (
 	"context"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 )
@@ -17,9 +17,8 @@ var ErrNoAuthHeader = errors.New("authorization header missing")
 var ErrAuthHeaderInvalidFormat = errors.New("authorization header format is invalid")
 var ErrTokenNotFound = errors.New("authorization token not found")
 
-const UserSessionCookieName = "phdo_auth_token"
-
-var protectedUIRoutes = [...]string{"/", "/manifest", "/upload", "/status"}
+const UserSessionCookieName = "phdo_session"
+const LoginRedirectCookieName = "login_redirect"
 
 type Claims struct {
 	Scopes string `json:"scope"`
@@ -84,8 +83,14 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 		token, err := getAuthToken(r.Header)
 		if err != nil {
 			if errors.Is(err, ErrNoAuthHeader) {
-				// fallback to cookies
-				token = getAuthTokenFromCookies(*r)
+				// fallback to session cookies
+				us, err := GetUserSession(r)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusUnauthorized)
+					return
+				}
+				token = us.Data().Token
+				//token = getAuthTokenFromCookies(*r)
 			} else {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
@@ -131,26 +136,16 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 			return
 		}
 
-		var redirectQuery string
-		redirectPath := r.URL.Path
-		if r.URL.RawQuery != "" {
-			redirectPath += "?" + r.URL.RawQuery
-		}
-		sanitizedRedirect := sanitizeRedirectUrl(redirectPath)
-		if sanitizedRedirect != "/" {
-			redirectQuery = "?redirect=" + sanitizedRedirect
-		}
-
-		token, err := r.Cookie(UserSessionCookieName)
-
+		us, err := GetUserSession(r)
 		if err != nil {
-			http.Redirect(w, r, "/login"+redirectQuery, http.StatusSeeOther)
-			return
+			loginRedirect(*us, r, w)
 		}
 
-		_, err = a.validator.ValidateJWT(r.Context(), token.Value)
+		token := us.Data().Token
+
+		_, err = a.validator.ValidateJWT(r.Context(), token)
 		if err != nil {
-			http.Redirect(w, r, "/login"+redirectQuery, http.StatusSeeOther)
+			loginRedirect(*us, r, w)
 			return
 		}
 
@@ -160,6 +155,18 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 
 func (a AuthMiddleware) Validator() oauth.Validator {
 	return a.validator
+}
+
+func loginRedirect(userSess UserSession, r *http.Request, w http.ResponseWriter) {
+	v := r.URL.Path
+	if r.URL.RawQuery != "" {
+		v += "?" + r.URL.RawQuery
+	}
+	err := userSess.SetRedirect(r, w, v)
+	if err != nil {
+		slog.Error("error setting user session redirect", "error", err)
+	}
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
 func validateOpaqueToken() error {
@@ -178,41 +185,4 @@ func getAuthToken(headers http.Header) (string, error) {
 	}
 
 	return authHeader[len("Bearer "):], nil
-}
-
-func getAuthTokenFromCookies(r http.Request) string {
-	c, err := r.Cookie(UserSessionCookieName)
-	if err != nil && errors.Is(err, http.ErrNoCookie) {
-		return ""
-	}
-	return c.Value
-}
-
-func sanitizeRedirectUrl(redirectURL string) string {
-	sanitized := "/"
-
-	if redirectURL == "" {
-		return sanitized
-	}
-
-	parsed, err := url.Parse(redirectURL)
-	if err != nil {
-		return sanitized
-	}
-
-	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
-		return sanitized
-	}
-
-	for _, p := range protectedUIRoutes {
-		if strings.HasPrefix(parsed.Path, p) {
-			sanitized = parsed.Path
-			if parsed.RawQuery != "" {
-				sanitized += "?" + url.QueryEscape(parsed.RawQuery)
-			}
-			return sanitized
-		}
-	}
-
-	return sanitized
 }

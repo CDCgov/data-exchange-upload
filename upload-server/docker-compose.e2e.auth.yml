@@ -17,6 +17,8 @@ services:
       - OAUTH_AUTH_ENABLED=true
       - OAUTH_ISSUER_URL=http://playwright-fs:3000
       - OAUTH_REQUIRED_SCOPES=test:scope1 test:scope2
+      - OAUTH_SESSION_KEY=1234
+      - OAUTH_SESSION_SECURE=false
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-fs-network
