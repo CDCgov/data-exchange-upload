@@ -6,17 +6,44 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"slices"
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
 	"github.com/coreos/go-oidc/v3/oidc"
+	"gopkg.in/yaml.v3"
 )
 
 var ErrTokenVerificationFailed = errors.New("failed to verify token")
 var ErrTokenClaimsFailed = errors.New("failed to parse token claims")
 var ErrTokenScopesMismatch = errors.New("one or more required scopes not found")
+
+type Config struct {
+	Providers map[string]Provider `yaml:"providers"`
+}
+
+type Provider struct {
+	Name             string `yaml:"name"`
+	IssuerURL        string `yaml:"issuerUrl"`
+	AuthorizationURL string `yaml:"authorizationUrl"`
+	TokenURL         string `yaml:"tokenUrl"`
+	ClientID         string `yaml:"clientId"`
+	ClientSecret     string `yaml:"clientSecret"`
+}
+
+func UnmarshalOAuthConfig(body string) (*Config, error) {
+	confStr := os.ExpandEnv(body)
+	c := &Config{}
+
+	err := yaml.Unmarshal([]byte(confStr), &c)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
 
 type Claims struct {
 	Expiry int64  `json:"exp"`

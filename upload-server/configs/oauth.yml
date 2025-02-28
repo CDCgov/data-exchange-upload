@@ -1,0 +1,10 @@
+version: 1.0
+
+providers:
+  sams:
+    name: SAMS
+    issuerUrl: $SAMS_ISSUER_URL
+    authorizationUrl: $SAMS_AUTHORIZATION_URL
+    tokenUrl: $SAMS_TOKEN_URL
+    clientId: $SAMS_CLIENT_ID
+    clientSecret: $SAMS_CLIENT_SECRET
