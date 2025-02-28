@@ -208,5 +208,15 @@ test.describe('Upload API Auth', () => {
         await page.goto('/');
         await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
     })
+
+    test('can log out after logging in', async ({ page, browser }) => {
+        await page.goto(`/`);
+        await page.getByRole('textbox', { name: "Authentication Token *" }).fill(token)
+        await page.getByRole('button', { name: 'Login' }).click()
+        const logoutButton = page.getByRole('link', {name: "Logout"})
+        await expect(logoutButton).toBeVisible()
+        await logoutButton.click()
+        await expect(page.getByText("Welcome to PHDO Upload Login")).toBeVisible()
+    })
 })
 
