@@ -9,14 +9,13 @@ import (
 )
 
 var store sessions.Store
-var defaultSessionOptions *sessions.Options
 
 func InitStore(config appconfig.OauthConfig) error {
 	if config.AuthEnabled && config.SessionKey == "" {
 		return errors.New("no session key provided")
 	}
 	store = sessions.NewCookieStore([]byte(config.SessionKey))
-	defaultSessionOptions = &sessions.Options{
+	store.(*sessions.CookieStore).Options = &sessions.Options{
 		Path:     "/",
 		Secure:   config.SessionSecure,
 		HttpOnly: true,
@@ -38,10 +37,6 @@ func GetUserSession(r *http.Request) (*UserSession, error) {
 	s, err := store.Get(r, UserSessionCookieName)
 	if err != nil {
 		return &UserSession{s}, err
-	}
-	if s.IsNew {
-		// set security flags for newly created session
-		s.Options = defaultSessionOptions
 	}
 
 	return &UserSession{s}, nil

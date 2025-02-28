@@ -196,7 +196,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
 
-		err = us.SetToken(r, rw, token, int(claims.Expiry))
+		exp := time.Unix(claims.Expiry, 0).Sub(time.Now())
+		err = us.SetToken(r, rw, token, int(exp.Seconds()))
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 		}
