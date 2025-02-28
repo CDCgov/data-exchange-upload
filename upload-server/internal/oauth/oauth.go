@@ -20,6 +20,8 @@ var ErrTokenVerificationFailed = errors.New("failed to verify token")
 var ErrTokenClaimsFailed = errors.New("failed to parse token claims")
 var ErrTokenScopesMismatch = errors.New("one or more required scopes not found")
 
+var Providers map[string]Provider
+
 type Config struct {
 	Providers map[string]Provider `yaml:"providers"`
 }
@@ -31,6 +33,10 @@ type Provider struct {
 	TokenURL         string `yaml:"tokenUrl"`
 	ClientID         string `yaml:"clientId"`
 	ClientSecret     string `yaml:"clientSecret"`
+}
+
+func (p Provider) LogValue() slog.Value {
+	return slog.StringValue(p.Name)
 }
 
 func UnmarshalOAuthConfig(body string) (*Config, error) {
