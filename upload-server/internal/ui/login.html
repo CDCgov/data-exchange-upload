@@ -13,9 +13,11 @@
             <h3 class="warning">Authentication failed, try again!</h3>
             {{ end }}
             <h1>Welcome to PHDO Upload Login</h1>
+            {{ range .OauthLoginBtns }}
             <div>
-                {{template "linkbtn" .LoginBtn}}
+                {{template "linkbtn" .}}
             </div>
+            {{ end }}
         </main>
     </body>
 </html>

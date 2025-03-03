@@ -19,6 +19,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 
@@ -99,9 +100,9 @@ var manifestTemplate = generateTemplate("manifest.html", true)
 var uploadTemplate = generateTemplate("upload.html", true)
 
 type LoginTemplateData struct {
-	AuthFailed bool
-	CsrfToken  string
-	LoginBtn   components.LinkBtn
+	AuthFailed     bool
+	CsrfToken      string
+	OauthLoginBtns []components.LinkBtn
 }
 
 type IndexTemplateData struct {
@@ -156,26 +157,33 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			authFailed = false
 		}
 
-		href, err := url.Parse(authConfig.AuthorizationUrl)
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		q := href.Query()
-		q.Set("response_type", "code")
-		q.Set("client_id", authConfig.ClientId)
-		q.Set("redirect_uri", authConfig.RedirectUrl)
-		q.Set("scope", "openid email")
+		// get all of our oauth providers
+		var oauthBtns []components.LinkBtn
+		if oauth.Providers != nil {
+			for _, p := range oauth.Providers {
+				href, err := url.Parse(p.AuthorizationURL)
+				if err != nil {
+					slog.Error("failed to build login button", "provider", p)
+					continue
+				}
+				q := href.Query()
+				q.Set("response_type", "code")
+				q.Set("client_id", p.ClientID)
+				q.Set("scope", "openid email")
+				q.Set("redirect_uri", authConfig.RedirectUrl)
+				href.RawQuery = q.Encode()
 
-		href.RawQuery = q.Encode()
+				oauthBtns = append(oauthBtns, components.LinkBtn{
+					Href: href.String(),
+					Text: "Login with " + p.Name,
+				})
+			}
+		}
 
 		err = loginTemplate.Execute(rw, &LoginTemplateData{
-			AuthFailed: authFailed,
-			CsrfToken:  csrf.Token(r),
-			LoginBtn: components.LinkBtn{
-				Href: href.String(),
-				Text: "Login with SAMS",
-			},
+			AuthFailed:     authFailed,
+			CsrfToken:      csrf.Token(r),
+			OauthLoginBtns: oauthBtns,
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
