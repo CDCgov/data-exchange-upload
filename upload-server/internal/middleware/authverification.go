@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/oauth"
 )
@@ -43,29 +42,30 @@ func NewHTTPError(code int, msg string) *HTTPError {
 }
 
 func NewAuthMiddleware(ctx context.Context, config appconfig.OauthConfig) (*AuthMiddleware, error) {
-	var validator oauth.Validator = oauth.PassthroughValidator{}
-	if config.AuthEnabled {
-		if config.IssuerUrl == "" {
-			return nil, errors.New("no issuer url provided")
-		}
-		var err error
-		validator, err = oauth.NewOAuthValidator(ctx, config.IssuerUrl, config.RequiredScopes)
-		if err != nil {
-			slog.Error("error initializing oauth validator", "error", err)
-			return nil, err
-		}
-		health.Register(validator)
-	}
+	// var validator oauth.Validator = oauth.PassthroughValidator{}
+	// if config.AuthEnabled {
+	// 	if config.IssuerUrl == "" {
+	// 		return nil, errors.New("no issuer url provided")
+	// 	}
+	// 	var err error
+	// 	validator, err = oauth.NewOAuthValidator(ctx, config.IssuerUrl, config.RequiredScopes)
+	// 	if err != nil {
+	// 		slog.Error("error initializing oauth validator", "error", err)
+	// 		return nil, err
+	// 	}
+	// 	health.Register(validator)
+	// }
 
 	return &AuthMiddleware{
 		authEnabled: config.AuthEnabled,
-		validator:   validator,
+		// validator:   validator,
 	}, nil
 }
 
 type AuthMiddleware struct {
 	authEnabled bool
-	validator   oauth.Validator
+	// validator   oauth.Validator
+	// providers    []oauth.Provider
 }
 
 func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handler {
@@ -90,7 +90,6 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 					return
 				}
 				token = us.Data().Token
-				//token = getAuthTokenFromCookies(*r)
 			} else {
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
@@ -102,7 +101,8 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 		}
 		if strings.Count(token, ".") == 2 {
 			// Token is JWT, validate using oidc verifier
-			_, err = a.validator.ValidateJWT(r.Context(), token)
+			// _, err = a.validator.ValidateJWT(r.Context(), token)
+			_, err := oauth.VerifyToken(r.Context(), token)
 			if err != nil {
 				if errors.Is(err, oauth.ErrTokenVerificationFailed) || errors.Is(err, oauth.ErrTokenClaimsFailed) {
 					err = errors.Join(err, NewHTTPError(http.StatusUnauthorized, err.Error()))
@@ -143,7 +143,8 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 
 		token := us.Data().Token
 
-		_, err = a.validator.ValidateJWT(r.Context(), token)
+		// _, err = a.validator.ValidateJWT(r.Context(), token)
+		_, err = oauth.VerifyToken(r.Context(), token)
 		if err != nil {
 			loginRedirect(*us, r, w)
 			return
@@ -153,9 +154,9 @@ func (a AuthMiddleware) VerifyUserSession(next http.Handler) http.Handler {
 	})
 }
 
-func (a AuthMiddleware) Validator() oauth.Validator {
-	return a.validator
-}
+// func (a AuthMiddleware) Validator() oauth.Validator {
+// 	return a.validator
+// }
 
 func loginRedirect(userSess UserSession, r *http.Request, w http.ResponseWriter) {
 	v := r.URL.Path

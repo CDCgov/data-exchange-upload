@@ -205,16 +205,16 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 	})
 	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
 		authCode := r.URL.Query().Get("code")
+		provider := oauth.Providers["sams"]
 		// Exchange auth code for JWT
-		tokenURL := authConfig.TokenUrl
 		body := url.Values{
 			"grant_type":    {"authorization_code"},
 			"code":          {authCode},
-			"client_id":     {authConfig.ClientId},
-			"client_secret": {authConfig.ClientSecret},
+			"client_id":     {provider.ClientID},
+			"client_secret": {provider.ClientSecret},
 			"redirect_uri":  {authConfig.RedirectUrl},
 		}
-		req, err := http.NewRequest("POST", tokenURL, strings.NewReader(body.Encode()))
+		req, err := http.NewRequest("POST", provider.TokenURL, strings.NewReader(body.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		if err != nil {
 			slog.Error("error creating token request", "error", err)
@@ -244,8 +244,9 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Redirect(rw, r, "/login", http.StatusSeeOther)
 			return
 		}
-
-		claims, err := authMiddleware.Validator().ValidateJWT(r.Context(), token)
+		slog.Info("token", "token", token)
+		// claims, err := authMiddleware.Validator().ValidateJWT(r.Context(), token)
+		claims, err := oauth.VerifyToken(r.Context(), token)
 		if err != nil {
 			http.Redirect(rw, r, "/login", http.StatusSeeOther)
 			slog.Error("failed login attempt", "error", err)
