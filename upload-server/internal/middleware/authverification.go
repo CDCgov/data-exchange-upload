@@ -88,9 +88,8 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 				if err != nil {
 					slog.Error("error getting user session", "error", err)
 					http.Error(w, err.Error(), http.StatusUnauthorized)
-					return
 				}
-				slog.Debug("session data", "data", us.Data())
+				slog.Info("session data", "data", us.Data())
 				token = us.Data().Token
 			} else {
 				slog.Error("error getting token from header", "error", err)
@@ -186,6 +185,6 @@ func getAuthToken(headers http.Header) (string, error) {
 	if len(authHeader) < len("Bearer ") {
 		return "", ErrAuthHeaderInvalidFormat
 	}
-	slog.Debug("auth header", "header", headers.Get("Authorization"))
+	slog.Info("auth header", "header", headers.Get("Authorization"))
 	return authHeader[len("Bearer "):], nil
 }
