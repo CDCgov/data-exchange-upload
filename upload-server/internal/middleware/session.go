@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
@@ -43,6 +44,7 @@ func GetUserSession(r *http.Request) (*UserSession, error) {
 }
 
 func (s *UserSession) Data() UserSessionData {
+	slog.Info("session values", "values", s.session.Values)
 	token, ok := s.session.Values["token"].(string)
 	if !ok {
 		token = ""
