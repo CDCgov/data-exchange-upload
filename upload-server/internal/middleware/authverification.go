@@ -186,6 +186,6 @@ func getAuthToken(headers http.Header) (string, error) {
 	if len(authHeader) < len("Bearer ") {
 		return "", ErrAuthHeaderInvalidFormat
 	}
-
+	slog.Debug("auth header", "header", headers.Get("Authorization"))
 	return authHeader[len("Bearer "):], nil
 }
