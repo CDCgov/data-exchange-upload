@@ -86,17 +86,18 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 				// fallback to session cookies
 				us, err := GetUserSession(r)
 				if err != nil {
+					slog.Error("error getting user session", "error", err)
 					http.Error(w, err.Error(), http.StatusUnauthorized)
-					return
 				}
 				token = us.Data().Token
-				//token = getAuthTokenFromCookies(*r)
 			} else {
+				slog.Error("error getting token from header", "error", err)
 				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 		}
 		if token == "" {
+			slog.Error("token not found")
 			http.Error(w, ErrTokenNotFound.Error(), http.StatusUnauthorized)
 			return
 		}
@@ -183,6 +184,5 @@ func getAuthToken(headers http.Header) (string, error) {
 	if len(authHeader) < len("Bearer ") {
 		return "", ErrAuthHeaderInvalidFormat
 	}
-
 	return authHeader[len("Bearer "):], nil
 }

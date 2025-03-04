@@ -14,13 +14,17 @@ func InitStore(config appconfig.OauthConfig) error {
 	if config.AuthEnabled && config.SessionKey == "" {
 		return errors.New("no session key provided")
 	}
-	store = sessions.NewCookieStore([]byte(config.SessionKey))
-	store.(*sessions.CookieStore).Options = &sessions.Options{
+	opts := &sessions.Options{
 		Path:     "/",
 		Secure:   config.SessionSecure,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	}
+	if config.SessionDomain != "" {
+		opts.Domain = config.SessionDomain
+	}
+	store = sessions.NewCookieStore([]byte(config.SessionKey))
+	store.(*sessions.CookieStore).Options = opts
 	return nil
 }
 
