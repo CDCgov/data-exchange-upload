@@ -195,6 +195,7 @@ type OauthConfig struct {
 	RequiredScopes   string `env:"REQUIRED_SCOPES"`
 	SessionKey       string `env:"SESSION_KEY"`
 	SessionSecure    bool   `env:"SESSION_SECURE, default=true"`
+	SessionDomain    string `env:"SESSION_DOMAIN"`
 }
 
 func (azc *AzureStorageConfig) Check() error {

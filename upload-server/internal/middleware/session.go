@@ -21,7 +21,7 @@ func InitStore(config appconfig.OauthConfig) error {
 		Secure:   config.SessionSecure,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Domain:   "ocio-eks-dev-ede.cdc.gov",
+		Domain:   "cdc.gov",
 	}
 	return nil
 }
