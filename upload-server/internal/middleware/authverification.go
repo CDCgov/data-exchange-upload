@@ -90,6 +90,7 @@ func (a AuthMiddleware) VerifyOAuthTokenMiddleware(next http.Handler) http.Handl
 					http.Error(w, err.Error(), http.StatusUnauthorized)
 					return
 				}
+				slog.Debug("session data", "data", us.Data())
 				token = us.Data().Token
 			} else {
 				slog.Error("error getting token from header", "error", err)

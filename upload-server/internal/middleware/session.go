@@ -44,7 +44,7 @@ func GetUserSession(r *http.Request) (*UserSession, error) {
 }
 
 func (s *UserSession) Data() UserSessionData {
-	slog.Info("session", "token", s.session.Values["token"])
+	slog.Debug("session", "token", s.session.Values["token"])
 	token, ok := s.session.Values["token"].(string)
 	if !ok {
 		token = ""
