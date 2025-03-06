@@ -15,16 +15,14 @@ OAUTH_AUTH_ENABLED=true            # Enable or disable OAuth token verification
 OAUTH_ISSUER_URL=https://issuer.url # URL of the token issuer
 OAUTH_REQUIRED_SCOPES="scope1 scope2" # Space-separated list of required scopes
 OAUTH_INTROSPECTION_URL=https://introspection.url # (for opaque tokens)
+OAUTH_SESSION_KEY=123abc... # 32 byte or longer random string that is used to hash user session cookies
+OAUTH_SESSION_DOMAIN=mydomain.com # sets the Domain setting of the user session cookie.  Useful if the UI and Upload servers live on different subdomains.
 ```
 
 Then you must create an instance of the AuthHandler struct
 
 ```go
-authMiddleware := middleware.AuthMiddleware{
-  AuthEnabled:    appConfig.OauthConfig.AuthEnabled,
-  IssuerUrl:      appConfig.OauthConfig.IssuerUrl,
-  RequiredScopes: appConfig.OauthConfig.RequiredScopes,
- }
+authMiddleware := NewAuthMiddleware(ctx, appConfig.OauthConfig)
 ```
 
 ### Usage
@@ -59,3 +57,15 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
     return router
 }
 ```
+
+## User Session Cookies
+This program uses the gorilla/sessions package to instantate and manage user sessions.  Sessions are stored in browser cookies.  These sessions hold access tokens as well as redirect URLs for end users, and are used to protect certain pages of the front end user interface that should only be accessed by an authenticated user.  In addition, it is used to set Authorization headers in requests to the upload server.  The following UX and security features are also implemented:
+
+1. Cookie hashing using a secret key.  This ensures browsers can only send cookies created by the server.
+2. Secure and HTTPOnly enabled by default.  This prevents cookies from getting leaked due to XSS and sent unencrypted.
+3. Cookie expires at the same time as their JWT.
+4. Automatic user redirect.  Unauthenticated users are redirected to the login page when trying to access a protected page, and then automatically redirected to their original destination once logged in.
+
+The following are known security risks and future improvements:
+
+1. Proper "login with provider" buttons as opposed to inputting a raw JWT
