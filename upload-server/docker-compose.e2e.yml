@@ -18,7 +18,7 @@ services:
     networks:
       - e2e-fs-network
   playwright:
-    image: mcr.microsoft.com/playwright:v1.48.0-focal
+    image: mcr.microsoft.com/playwright:v1.51.0-noble
     container_name: playwright-fs
     volumes:
       - ../tests/smoke/playwright:/playwright

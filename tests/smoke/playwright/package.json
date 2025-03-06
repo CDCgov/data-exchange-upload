@@ -10,7 +10,7 @@
     "test:ui": "npx playwright test --ui",
     "test:auth": "npx playwright test -c playwright.auth.config.ts",
     "test-auth:docker": "npm install; npm run wait; npm run test:auth",
-    "test:docker": "npm install; npm run wait; npm run test",
+    "test:docker": "npm ci; npx playwright install --with-deps; npm run wait; npm run test",
     "merge-reports": "npx ts-node merge-html-reports",
     "prettier": "prettier --write \"**/*.{js,jsx,cjs,ts,tsx,css,md,json}\" --config \".prettierrc\""
   },
