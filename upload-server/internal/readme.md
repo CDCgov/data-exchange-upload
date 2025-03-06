@@ -61,11 +61,13 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 ## User Session Cookies
 This program uses the gorilla/sessions package to instantate and manage user sessions.  Sessions are stored in browser cookies.  These sessions hold access tokens as well as redirect URLs for end users, and are used to protect certain pages of the front end user interface that should only be accessed by an authenticated user.  In addition, it is used to set Authorization headers in requests to the upload server.  The following UX and security features are also implemented:
 
-1. Cookie hashing using a secret key.  This ensures browsers can only send cookies created by the server.
+1. Cookie hashing using a secret key.  This ensures server only accepts cookies created by the server.
 2. Secure and HTTPOnly enabled by default.  This prevents cookies from getting leaked due to XSS and sent unencrypted.
 3. Cookie expires at the same time as their JWT.
 4. Automatic user redirect.  Unauthenticated users are redirected to the login page when trying to access a protected page, and then automatically redirected to their original destination once logged in.
 
 The following are known security risks and future improvements:
 
-1. Proper "login with provider" buttons as opposed to inputting a raw JWT
+1. CSRF: user session cookie can still be intercepted and replayed by bad actor.
+2. Cookie domain setting sets cdc.gov domain.  This allows cookies to be sent to any cdc.gov subdomain, when it should only go to the server itself.
+2. Proper "login with provider" buttons as opposed to inputting a raw JWT
