@@ -48,7 +48,7 @@ go run ./... -h
 
 ## Usage Examples:
 
-### **Basic Smoke Test (Default)**
+### **Basic Upload Test With Delivery Check (Default)**
 Run a basic test to verify the tool's setup with minimal configuration or for a very basic test of the upload server.
 
 ```bash
@@ -57,7 +57,7 @@ go run ./... -load=1
 
 This command uploads a single 5MB file to the local (default) upload server endpoint.
 
-### **Basic Smoke Test (Alternate)**
+### **Providing an Upload Endpoint URL**
 Run a basic test to verify the tool's setup with minimal configuration or for a very basic test of the upload server at a specified endpoint.
 
 ```bash
@@ -83,3 +83,20 @@ go run ./... -load=10 -size=50 -url=https://upload-api.server:8080/files -report
 ```
 
 This command uploads 10 files, each 50MB in size, and sends the test results to the report server.
+
+## Smoke Testing:
+### Minimal Command for Public URL
+
+```bash
+go run ./... -load=1 -url=https://api.cdc.gov/upload -info-url=https://api.cdc.gov/upload/info -sams-url=https://api.cdc.gov/upload/oauth -username=*** -password=***
+```
+
+**Note that the `info-url` flag is required when testing against the public URL due to the `/upload` path prefix.**
+
+### Minimal Command for Internal URL (AWS EKS Ingress)
+
+```bash
+go run ./... -load=1 -url=https://upload.phdo-eks-prd.cdc.gov/files -sams-url=https://api.cdc.gov/upload/oauth -username=*** -password=***
+```
+
+**Note that SAMS credentials are required for testing gainst the internal URL since JWT authentication is now enabled in all environments.**
