@@ -89,6 +89,19 @@ go run ./... -load=10 -size=50 -url=https://upload-api.server:8080/files -report
 This command uploads 10 files, each 50MB in size, and sends the test results to the report server.
 
 ## Smoke Testing:
+The following commands are useful for performing smoke tests against deployed environments.  The following URLs can be used to test both from public internet and internal to CDC network:
+
+| URL               | Environment| Public/Internal |
+|-------------------|------------|-----------------|
+| https://apidev.cdc.gov/upload | dev | Public |
+| https://uploaddev.ocio-eks-dev-ede.cdc.gov/files | dev | Internal |
+| https://apitst.cdc.gov/upload | tst | Public |
+| https://upload.phdo-eks-test.cdc.gov/files | tst | Internal |
+| https://apistg.cdc.gov/upload | stg | Public |
+| https://upload.phdo-eks-stg.cdc.gov/files | stg | Internal |
+| https://api.cdc.gov/upload | prd | Public |
+| https://upload.phdo-eks-prd.cdc.gov/files | prd | Internal |
+
 ### Minimal Command for Public URL
 
 ```bash
