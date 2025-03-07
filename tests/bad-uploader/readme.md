@@ -9,6 +9,10 @@ sizes.
 - Verbose test result reporting
 - Run with or without auth
 
+## Setup:
+- Install Golang 1.22 or later
+- Obtain SAMS SYS credentials and get your SYS user added to the DEX API activity in both SAMS Staging and Production environments
+
 ## Configuration Options:
 
 The tool provides several command-line flags to customize the testing environment. Below is a list of key configuration options:
@@ -100,3 +104,4 @@ go run ./... -load=1 -url=https://upload.phdo-eks-prd.cdc.gov/files -sams-url=ht
 ```
 
 **Note that SAMS credentials are required for testing gainst the internal URL since JWT authentication is now enabled in all environments.**
+**Note that these commands can only be run from within the CDC network.**
