@@ -4,7 +4,8 @@
 
 - package location: `upload-server/internal/middleware/authverification.go`
 
-This middleware provides OAuth 2.0 token verification for incoming requests. It currently supports JWT tokens with the plan to add support for opaque tokens. You can use it to protect either your entire router or individual routes.
+This middleware provides OAuth 2.0 token verification for incoming requests. It currently supports JWT tokens with the plan to add support for opaque tokens. You can use it to protect either your entire router or individual routes.  It first
+tries to read the token from the Authorization request header.  If it doesn't find it there, it will fall back to checking for a user session cookie.
 
 ### Configuration
 
