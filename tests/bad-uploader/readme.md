@@ -21,6 +21,11 @@ The tool provides several command-line flags to customize the testing environmen
 | `-duration`        | Specifies the duration of the test (e.g., `30s`, `5m`).                     |
 | `-url`             | URL of the API endpoint to test (default: local server).                    |
 | `-reports-url`     | URL to send test reports to, if needed.                                     |
+| `-sams-url`        | URL of the SAMS oauth token endpoint used to fetch an auth token.                                     |
+| `-username`        | SAMS SYS account username.                                     |
+| `-password`        | SAMS SYS account password.                                     |
+| `-info-url`        | Optional used to overwrite the endpoint used to fetch upload and delivery info.  Defaults to {url}/info.                                     |
+| `-v`               | Enable verbose logging.                                     |
 
 ### Default Values:
 
