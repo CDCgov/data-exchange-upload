@@ -205,14 +205,6 @@ Uses the same authentication defined for the [S3 bucket](#s3-storage-configs)
 | `EHDI_S3_ENDPOINT`    | Yes      | None          | s3-compatible storage endpoint URL for EHDI delivery storage, must start with `http` or `https` |
 | `EHDI_S3_BUCKET_NAME` | Yes      | None          | Bucket name for EHDI delivery storage                                                           |
 
-### EICR Delivery Target
-
-#### Local File System EICR Directory
-
-| Variable Name       | Required | Default Value    | Description                                            |
-|---------------------|----------|------------------|--------------------------------------------------------|
-| `LOCAL_EICR_FOLDER` | No       | `./uploads/eicr` | Relative file system path to the EICR target directory |
-
 ### NCIRD Delivery Target
 
 #### Local File System NCIRD Directory
