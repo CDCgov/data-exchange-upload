@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	neturl "net/url"
 	"sync"
@@ -29,7 +30,7 @@ type SAMSToken struct {
 	Resource     []string `json:"resource"`
 }
 
-func (sts *SAMSTokenSource) Token() (*oauth2.Token, error) {
+func (sts *SAMSTokenSource) Token() (tok *oauth2.Token, err error) {
 	sts.lock.Lock()
 	defer sts.lock.Unlock()
 
@@ -38,7 +39,12 @@ func (sts *SAMSTokenSource) Token() (*oauth2.Token, error) {
 	}
 
 	tStart := time.Now()
-	defer func(tStart time.Time) { fmt.Println("Auth took ", time.Since(tStart).Seconds(), " seconds") }(tStart)
+	defer func(tStart time.Time) {
+		fmt.Println("Auth took ", time.Since(tStart).Seconds(), " seconds")
+		if err != nil {
+			slog.Error("failed to get auth token", "error", err)
+		}
+	}(tStart)
 
 	body := neturl.Values{
 		"username": []string{sts.username},
@@ -67,5 +73,6 @@ func (sts *SAMSTokenSource) Token() (*oauth2.Token, error) {
 		RefreshToken: t.RefreshToken,
 		Expiry:       time.Now().Add(time.Duration(t.ExpiresIn) * time.Second),
 	}
+	tok = sts.token
 	return sts.token, nil
 }

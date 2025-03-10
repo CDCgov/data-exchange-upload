@@ -83,10 +83,11 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 					// return a specific error and/or check result.  Specific error can have check specific info like upload id and reports
 					err := WithRetry(checkTimeout, r.testCase, uid, check.DoCase)
 					if err != nil {
-						slog.Error("failed post upload check", "error", err, "test case", r.testCase)
+						slog.Error("failed post upload check", "error", err, "test case", r.testCase, "upload ID", uid)
 						logErrors(err, uid)
 						errs = errors.Join(errs, err)
 					} else {
+						slog.Info("Pass", "upload ID", uid)
 						check.OnSuccess()
 					}
 				}(r, check)
