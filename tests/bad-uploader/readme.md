@@ -91,16 +91,12 @@ This command uploads 10 files, each 50MB in size, and sends the test results to 
 ## Smoke Testing:
 The following commands are useful for performing smoke tests against deployed environments.  The following URLs can be used to test both from public internet and internal to CDC network:
 
-| URL               | Environment| Public/Internal |
-|-------------------|------------|-----------------|
-| https://apidev.cdc.gov/upload | dev | Public |
-| https://uploaddev.ocio-eks-dev-ede.cdc.gov/files | dev | Internal |
-| https://apitst.cdc.gov/upload | tst | Public |
-| https://upload.phdo-eks-test.cdc.gov/files | tst | Internal |
-| https://apistg.cdc.gov/upload | stg | Public |
-| https://upload.phdo-eks-stg.cdc.gov/files | stg | Internal |
-| https://api.cdc.gov/upload | prd | Public |
-| https://upload.phdo-eks-prd.cdc.gov/files | prd | Internal |
+| URL               | Environment|
+|-------------------|------------|
+| https://apidev.cdc.gov/upload | dev |
+| https://apitst.cdc.gov/upload | tst |
+| https://apistg.cdc.gov/upload | stg |
+| https://api.cdc.gov/upload | prd |
 
 ### Minimal Command for Public URL
 
