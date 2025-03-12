@@ -2,7 +2,12 @@
     "status": "UP",
     "services": [
         {
-            "service": "Tus storage S3 Bucket ede-dataexchange-dev",
+            "service": "SNS - arn:aws:sns:us-east-1:038155355288:dev-psapi-topic",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Tus storage S3 Bucket phdo-upload-server-dev",
             "status": "UP",
             "health_issue": "None reported"
         },
@@ -12,7 +17,7 @@
             "health_issue": "None reported"
         },
         {
-            "service": "Azure deliver target eicr",
+            "service": "Azure deliver target edav",
             "status": "UP",
             "health_issue": ""
         },
@@ -22,17 +27,7 @@
             "health_issue": ""
         },
         {
-            "service": "Azure deliver target edav",
-            "status": "UP",
-            "health_issue": ""
-        },
-        {
-            "service": "Azure deliver target ehdi",
-            "status": "UP",
-            "health_issue": ""
-        },
-        {
-            "service": "S3 source ede-dataexchange-dev",
+            "service": "S3 source phdo-upload-server-dev",
             "status": "UP",
             "health_issue": ""
         }

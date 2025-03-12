@@ -2,15 +2,13 @@ package handlertusd
 
 import (
 	"errors"
-	"os"
-
-	"golang.org/x/exp/slog"
-
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
 	"github.com/prometheus/client_golang/prometheus"
 	tusd "github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/prometheuscollector"
+	"golang.org/x/exp/slog"
+	"os"
 ) // .import
 
 var logger *slog.Logger
@@ -51,6 +49,8 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 	// ------------------------------------------------------------------
 	//  handler, set with respective local or cloud values
 	// ------------------------------------------------------------------
+	corsConfig := tusd.DefaultCorsConfig
+	corsConfig.AllowCredentials = true
 
 	// Create a new HTTP handler for the tusd server by providing a configuration.
 	// The StoreComposer property must be set to allow the handler to function.
@@ -61,6 +61,7 @@ func New(store Store, locker Locker, hooksHandler hooks.HookHandler, basePath st
 		Logger:                  slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})),
 		RespectForwardedHeaders: true,
 		DisableDownload:         true,
+		Cors:                    &corsConfig,
 	}, hooksHandler, []hooks.HookType{hooks.HookPreCreate, hooks.HookPostCreate, hooks.HookPostReceive, hooks.HookPreFinish, hooks.HookPostFinish, hooks.HookPostTerminate}) // .handler
 	if err != nil {
 		logger.Error("error start tusd handler", "error", err)

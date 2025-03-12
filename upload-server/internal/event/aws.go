@@ -116,7 +116,7 @@ func (s SNSPublisher[T]) Publish(ctx context.Context, e T) error {
 		Message:  &m,
 		TopicArn: &s.TopicArn,
 	})
-	slog.Info("SNS event publish response", "response", result, "event", e)
+	slog.Info("SNS event publish response", "response", result, "event", e, "uploadId", e.Identifier())
 	return err
 }
 

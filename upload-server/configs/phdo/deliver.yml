@@ -9,22 +9,6 @@ targets:
     tenant_id: $EDAV_TENANT_ID
     client_id: $EDAV_CLIENT_ID
     client_secret: $EDAV_CLIENT_SECRET
-  ehdi:
-    name: ehdi
-    type: az-blob
-    endpoint: $EHDI_ENDPOINT
-    container_name: $EHDI_CHECKPOINT_CONTAINER_NAME
-    tenant_id: $EHDI_TENANT_ID
-    client_id: $EHDI_CLIENT_ID
-    client_secret: $EHDI_CLIENT_SECRET
-  eicr:
-    name: eicr
-    type: az-blob
-    endpoint: $EICR_ENDPOINT
-    container_name: $EICR_CHECKPOINT_CONTAINER_NAME
-    tenant_id: $EICR_TENANT_ID
-    client_id: $EICR_CLIENT_ID
-    client_secret: $EICR_CLIENT_SECRET
   ncird:
     name: ncird
     type: az-blob
@@ -40,16 +24,6 @@ routing_groups:
     delivery_targets:
       - name: edav
         path_template: "{{.DataStreamID}}-{{.DataStreamRoute}}/{{.Filename}}"
-  - data_stream_id: ehdi
-    data_stream_route: csv
-    delivery_targets:
-      - name: ehdi
-        path_template: $EHDI_PATH_TEMPLATE
-  - data_stream_id: eicr
-    data_stream_route: fhir
-    delivery_targets:
-      - name: eicr
-        path_template: $EICR_PATH_TEMPLATE
   - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:

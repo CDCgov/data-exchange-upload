@@ -4,15 +4,19 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 
@@ -29,7 +33,7 @@ import (
 
 // content holds our static web server content.
 //
-//go:embed assets/* components/* index.html manifest.html upload.html
+//go:embed assets/* components/* index.html manifest.html upload.html login.html
 var content embed.FS
 
 func FixNames(name string) string {
@@ -80,7 +84,7 @@ var usefulFuncs = template.FuncMap{
 }
 
 func generateTemplate(templatePath string, useFuncs bool) *template.Template {
-	var templatePaths = []string{templatePath, "components/navbar.html", "components/newuploadbtn.html"}
+	var templatePaths = []string{templatePath, "components/navbar.html", "components/linkbtn.html"}
 	if useFuncs {
 		return template.Must(template.New(templatePath).Funcs(usefulFuncs).ParseFS(content, templatePaths...))
 	}
@@ -88,8 +92,19 @@ func generateTemplate(templatePath string, useFuncs bool) *template.Template {
 }
 
 var indexTemplate = generateTemplate("index.html", false)
+var loginTemplate = generateTemplate("login.html", false)
 var manifestTemplate = generateTemplate("manifest.html", true)
 var uploadTemplate = generateTemplate("upload.html", true)
+
+type LoginTemplateData struct {
+	AuthFailed bool
+	Redirect   string
+	CsrfToken  string
+}
+
+type IndexTemplateData struct {
+	Navbar components.Navbar
+}
 
 type ManifestTemplateData struct {
 	DataStream      string
@@ -97,6 +112,8 @@ type ManifestTemplateData struct {
 	MetadataFields  []validation.FieldConfig
 	Navbar          components.Navbar
 	CsrfToken       string
+	AuthEnabled     bool
+	AuthFailed      bool
 }
 
 type UploadTemplateData struct {
@@ -105,13 +122,13 @@ type UploadTemplateData struct {
 	UploadStatus   string
 	Info           info.InfoResponse
 	Navbar         components.Navbar
-	NewUploadBtn   components.NewUploadBtn
+	NewUploadBtn   components.LinkBtn
 }
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string) *http.Server {
-	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl)
+func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) *http.Server {
+	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
 	secureRouter := csrf.Protect(
 		[]byte(csrfToken),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
@@ -126,9 +143,73 @@ func NewServer(port string, csrfToken string, externalUploadUrl string, external
 	return s
 }
 
-func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string) *mux.Router {
+func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter := router.PathPrefix("/").Subrouter()
+	protectedRouter.Use(authMiddleware.VerifyUserSession)
+
+	router.HandleFunc("/login", func(rw http.ResponseWriter, r *http.Request) {
+		authFailed, err := strconv.ParseBool(r.FormValue("auth_failed"))
+		if err != nil {
+			authFailed = false
+		}
+
+		err = loginTemplate.Execute(rw, &LoginTemplateData{
+			AuthFailed: authFailed,
+			CsrfToken:  csrf.Token(r),
+		})
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	})
+	router.HandleFunc("/logout", func(rw http.ResponseWriter, r *http.Request) {
+		sess, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		err = sess.Delete(r, rw)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		http.Redirect(rw, r, "/login", http.StatusFound)
+	})
+	router.HandleFunc("/oauth_callback", func(rw http.ResponseWriter, r *http.Request) {
+		token := r.FormValue("token")
+
+		if token == "" {
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			return
+		}
+
+		claims, err := authMiddleware.Validator().ValidateJWT(r.Context(), token)
+		if err != nil {
+			http.Redirect(rw, r, "/login", http.StatusSeeOther)
+			slog.Error("failed login attempt", "error", err)
+			return
+		}
+
+		us, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+
+		exp := time.Unix(claims.Expiry, 0).Sub(time.Now())
+		err = us.SetToken(r, rw, token, int(exp.Seconds()))
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
+
+		redirect := us.Data().Redirect
+		if redirect != "" {
+			http.Redirect(rw, r, redirect, http.StatusFound)
+		} else {
+			http.Redirect(rw, r, "/", http.StatusFound)
+		}
+	}).Methods("POST")
+	protectedRouter.HandleFunc("/manifest", func(rw http.ResponseWriter, r *http.Request) {
 		dataStream := r.FormValue("data_stream_id")
 		dataStreamRoute := r.FormValue("data_stream_route")
 
@@ -147,7 +228,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			DataStream:      dataStream,
 			DataStreamRoute: dataStreamRoute,
 			MetadataFields:  filterMetadataFields(config),
-			Navbar:          components.NewNavbar(false),
+			Navbar:          components.NewNavbar(false, isLoggedIn(*r)),
 			CsrfToken:       csrf.Token(r),
 		})
 		if err != nil {
@@ -155,7 +236,7 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			return
 		}
 	})
-	router.HandleFunc("/upload", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/upload", func(rw http.ResponseWriter, r *http.Request) {
 		// Tell the tus server we want to start an upload
 		// turn form values into map[string]string
 		err := r.ParseForm()
@@ -185,11 +266,21 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 		req.Header.Set("Upload-Defer-Length", "1")
 		req.Header.Set("Tus-Resumable", "1.0.0")
 
+		sess, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		req.Header.Set("Authorization", "Bearer "+sess.Data().Token)
+
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// TODO handle status unauthorized
+
 		if resp.StatusCode != http.StatusCreated {
 			// Failed to init upload.  Forward response from tus.
 			var respMsg []byte
@@ -201,12 +292,13 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, string(respMsg), resp.StatusCode)
 			return
 		}
+
 		uuid := resp.Header.Get("Location")
 		uuid = filepath.Base(uuid)
 
 		http.Redirect(rw, r, fmt.Sprintf("/status/%s", uuid), http.StatusFound)
 	}).Methods("POST")
-	router.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
+	protectedRouter.HandleFunc("/status/{upload_id}", func(rw http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		id := vars["upload_id"]
 
@@ -222,6 +314,13 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		sess, err := middleware.GetUserSession(r)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		req.Header.Set("Authorization", "Bearer "+sess.Data().Token)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -264,16 +363,18 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 			UploadUrl:      uploadDestinationUrl,
 			Info:           fileInfo,
 			UploadStatus:   fileInfo.UploadStatus.Status,
-			Navbar:         components.NewNavbar(true),
-			NewUploadBtn:   components.NewUploadBtn{},
+			Navbar:         components.NewNavbar(true, isLoggedIn(*r)),
+			NewUploadBtn:   components.LinkBtn{Href: "/", Text: "Upload New File"},
 		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	})
-	router.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
-		err := indexTemplate.Execute(rw, nil)
+	protectedRouter.HandleFunc("/", func(rw http.ResponseWriter, r *http.Request) {
+		err := indexTemplate.Execute(rw, &IndexTemplateData{
+			Navbar: components.NewNavbar(false, isLoggedIn(*r)),
+		})
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
 			return
@@ -287,8 +388,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string) error {
-	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl)
+func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) error {
+	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
 
 	return DefaultServer.ListenAndServe()
 }
@@ -310,4 +411,29 @@ func filterMetadataFields(config *validation.ManifestConfig) []validation.FieldC
 	}
 
 	return fields
+}
+
+func isLoggedIn(r http.Request) bool {
+	_, err := r.Cookie(middleware.UserSessionCookieName)
+	if err != nil && errors.Is(err, http.ErrNoCookie) {
+		return false
+	}
+	return true
+}
+
+func isValidRedirectURL(redirectURL string) bool {
+	if redirectURL == "" {
+		return false
+	}
+
+	parsed, err := url.Parse(redirectURL)
+	if err != nil {
+		return false
+	}
+
+	if parsed.IsAbs() || !strings.HasPrefix(parsed.Path, "/") {
+		return false
+	}
+
+	return true
 }

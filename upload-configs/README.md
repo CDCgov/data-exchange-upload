@@ -1,122 +1,103 @@
 # Upload Configuration
 
 ## Overview
-As files are copied into the DEX and EDAV storage accounts, various programs may have different requirements on what metadata field is used for the `filename`, whether the `filename` is guaranteed unique by adding a dynamic suffix, the subfolder structure the files are placed in the container, etc.
+In order to establish observability and accommodate program-specific requirements, the PHDO upload service utilizes configuration files that define expected metadata values that accompany uploads and determine file delivery logistics. <br/>
 
-To make these settings configurable we have "upload configurations", available for each combination of `destination_id` and `ext_event`.
+Each data stream and file type "route" has a configuration file defined. Fields and values defined in these files are utilized by the PHDO upload service to validate metadata for accuracy and to deliver files to targets in a manner expected by receiving CDC programs.
 
-## Details
-A JSON file format is used to setup the upload configurations.  The JSON files reside in a container on the DEX storage and is used by the bulk file upload function app.
+## Configuration File Format
+Data stream metadata configurations are saved in a JSON file format and reside in cloud storage for utilization by upload services.
 
-### JSON File Format
-
-`metadata_config` and `copy_config` are two main objects in the JSON file. 
-
+### Configuration Objects
 | Field | Type | Description | 
 | --- | --- | --- |
-| metadata_config | object | Object containing information about common and use-case specific metadata fields for a given use-case |
-| copy_config | object | Object containing information about how and where a file is to be copied to for a given use-case |
+| metadata_config | object | Object containing metadata fields and field requirements utilized. This object contains an array of object fields, representing common and custom metadata fields.  |
+| copy_config | object | Object containing file delivery information. |
 
-
-
-metadata_config
+### Object Fields - *metadata_config*
 | Field | Type | Description | 
 | --- | --- | --- |
-| version | string | Version number representing the metadata version.  Ex: 1.0, 2.0 |
-| fields | array | Array of objects for each common and use-case specific metadata field |
+| field_name | string | The key name of the field. |
+| required | array | Determines requirement status of the field. |
+| allowed_values | array | Determines specific values that are accepted; `null` values indicate that any values are accepted.  |
+| description | string | Describes the purpose of the field. |
 
-
-
-metadata <em>fields</em>
+### Object Fields - *copy_config*
 | Field | Type | Description | 
 | --- | --- | --- |
-| field_name | string | The key name of the field |
-| required | array | Whether or not the field is required for the given use-case |
-| description | string | Description of the purpose of the field |
-| compat_field_name | string | Name of the previous-version compatible field name |
+| filename_suffix | string | Optional field that determines if the filename delivered will have the PHDO upload-id appended to it. |
+| folder_structure | string enum | Required field that determines how the file is organized in the destination delivery target. Valid values are `date_YYYY`, `date_YYYY_MM`, `date_YYYY_MM_DD`, `date_YYYY_MM_DD_HH`, and `root`. |
+| path_template | string | Optional field that determines to where files are delivered. Values align to paths specific to defined targets. |
+| targets | array of strings | Required field that determines to where files are delivered. Values must align to a value in a delivery configuration yml file. |
 
-
-copy_config
-| Field | Type | Description | 
-| --- | --- | --- |
-| folder_structure | string enum | Determines how the file is organized in the destination storage account.  Valid values are “date_YYYY_MM_DD”  and “root” |
-| targets | array of strings | Determines where the file copies to, either EDAV or routing |
-
-
-Example 1:
+### Sample Configuration
 ```json
 {
 	"metadata_config": {
-		"version": "1.0",
 		"fields": [
 			{
-				"field_name": "meta_ext_objectkey",
+				"field_name": "data_stream_id",
 				"required": true,
-				"description": "This field is used to track back to the source objectid.",
-				"compat_field_name": null
+				"allowed_values": [
+					"allowed_value_1","allowed_value_2"
+				],
+				"description": "Data stream identifier; the highest taxonomical designation for a given collection of data to be uploaded."
 			},
 			{
-				"field_name": "meta_ext_filename",
+				"field_name": "data_stream_route",
 				"required": true,
-				"description": "The name of the file submitted.",
-				"compat_field_name": null
+				"allowed_values": [
+					"allowed_value_1","allowed_value_2"
+				],				
+				"description": "Second level taxonomical designation for a given collection of data to be uploaded. This value is typically designated to reference a particular file format type."
 			},
 			{
-				"field_name": "meta_ext_file_timestamp",
+				"field_name": "sender_id",
 				"required": true,
-				"description": "The timestamp on the source for file last modified.",
-				"compat_field_name": null
+				"allowed_values": [
+					"allowed_value_1","allowed_value_2"
+				],				
+				"description": "Identifier for the submitter of the data."
 			},
 			{
-				"field_name": "meta_username",
+				"field_name": "data_producer_id",
 				"required": true,
-				"description": "Username of user or system name who submitted the file.",
-				"compat_field_name": null
+				"allowed_values": [
+					"allowed_value_1","allowed_value_2"
+				],				
+				"description": "Identifier for the producer of the submitted data."
 			},
 			{
-				"field_name": "meta_ext_filestatus",
+				"field_name": "jurisdiction",
 				"required": true,
-				"description": "The file status in the source system.",
-				"compat_field_name": null
+				"allowed_values": [
+					"allowed_value_1","allowed_value_2"
+				],				
+				"description": "Geographical location of the submitted data."
 			},
 			{
-				"field_name": "meta_ext_uploadid",
+				"field_name": "received_filename",
 				"required": true,
-				"description": "The uploadid in the system source.",
-				"compat_field_name": null
+				"allowed_values": null,				
+				"description": "The name of the file uploaded by the sender."
 			},
 			{
-				"field_name": "meta_program",
-				"required": false,
-				"description": "The program source.",
-				"compat_field_name": null
-			},
-			{
-				"field_name": "meta_ext_source",
+				"field_name": "custom_metadata_field_example",
 				"required": true,
-				"description": "The source system.",
-				"compat_field_name": null
-			},
-			{
-				"field_name": "meta_organization",
-				"required": true,
-				"description": "The organization from the source system.",
-				"compat_field_name": null
+				"allowed_values": [
+					"allowed_value_1","allowed_value_2"
+				],				
+				"description": "Optional custom metadata fields can be added as necessary."
 			}
 		]
 	},
 	"copy_config": {
+		"filename_suffix": "upload_id",
 		"folder_structure": "date_YYYY_MM_DD",
+		"path_template": "${EXAMPLE_PATH_TEMPLATE}",
 		"targets": [
-			"routing"
+			"edav"
 		]
 	}
 }
 ```
-In this example, note the `compat_field_name` is null for all metadata fields in V1. 
-
-## Setup Steps
-
-1. Create a file for the `data_stream_id` and `data_stream_route` with the format: ```{data_stream_id}-{data_stream_route}.json```. For example, "```ndlp-routineImmunization.json```".
-2. Connect to the DEX storage account for the environment.
-3. Upload the file to the DEX container, ```upload-configs```.

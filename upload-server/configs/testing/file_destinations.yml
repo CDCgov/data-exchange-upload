@@ -5,14 +5,6 @@ targets:
     name: edav
     type: file
     path: ./uploads/edav
-  ehdi:
-    name: ehdi
-    type: file
-    path: ./uploads/ehdi
-  eicr:
-    name: eicr
-    type: file
-    path: ./uploads/eicr
   ncird:
     name: ncird
     type: file
@@ -24,14 +16,6 @@ routing_groups:
     delivery_targets:
       - name: edav
         path_template: '{{.DataStreamID}}/{{.DataStreamRoute}}/{{.Filename}}'
-  - data_stream_id: ehdi
-    data_stream_route: csv
-    delivery_targets:
-      - name: ehdi
-  - data_stream_id: eicr
-    data_stream_route: fhir
-    delivery_targets:
-      - name: eicr
   - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv
     delivery_targets:
