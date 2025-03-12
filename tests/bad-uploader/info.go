@@ -101,7 +101,8 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 				Expected: "SUCCESS",
 				Actual:   delivery.Status,
 			}, &ErrFatalAssertion{
-				msg: "unexpected delivery status",
+				msg:      "unexpected delivery status",
+				uploadId: uploadId,
 			})
 		}
 
@@ -110,7 +111,8 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 				Expected: c.ExpectedDeliveryTargets,
 				Actual:   delivery.Name,
 			}, &ErrFatalAssertion{
-				msg: "unexpected delivery target",
+				msg:      "unexpected delivery target",
+				uploadId: uploadId,
 			})
 		}
 	}
