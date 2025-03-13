@@ -69,6 +69,7 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 	for r := range o {
 		if r != nil {
 			uid := path.Base(r.url)
+			slog.Info("upload complete", "upload ID", uid)
 			limit := time.Duration(r.testCase.TimeLimit)
 			if limit == 0*time.Second {
 				limit = 11 * time.Second

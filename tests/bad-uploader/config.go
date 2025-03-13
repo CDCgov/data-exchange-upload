@@ -52,6 +52,7 @@ var (
 
 	duration time.Duration
 	conf     *config
+	timeout  time.Duration
 )
 
 type JSONVar map[string]string
@@ -222,6 +223,7 @@ func init() {
 	flag.DurationVar(&duration, "duration", 0, "the duration to run load for.")
 	flag.StringVar(&patchURL, "patch-url", "", "Override the base url to use to upload the file itself after upload creation.")
 	flag.BoolVar(&cases.random, "random", false, "Randomly select the next test case to run, only affects anything if multiple test cases are used.")
+	flag.DurationVar(&timeout, "timeout", time.Duration(30*time.Second), "The amount of time to wait for a successful delivery before calling it failed.  Format: {number}{s|m|h}. Example: 5s for 5 seconds.")
 	flag.Parse()
 	chunk = chunk * 1024 * 1024
 	size = size * 1024 * 1024
@@ -239,7 +241,7 @@ func init() {
 			Chunk:                   chunk,
 			Size:                    size,
 			Manifest:                manifest,
-			TimeLimit:               Duration(10 * time.Second),
+			TimeLimit:               Duration(timeout),
 			ExpectedDeliveryTargets: manifestTargets,
 		}
 		if templatePath != "" {
@@ -249,6 +251,11 @@ func init() {
 	}
 	if !flagset["case-dir"] {
 		cases.cases = []TestCase{testcase}
+	}
+	if flagset["timeout"] {
+		for _, c := range cases.cases {
+			c.TimeLimit = Duration(timeout)
+		}
 	}
 	if !flagset["info-url"] {
 		serverUrl, _ := path.Split(url)
