@@ -41,7 +41,7 @@ func main() {
 	err = ValidateResults(ctx, o)
 	testResult.TotalDuration = time.Since(tStart)
 	PrintFinalReport(err)
-
+	exitError(err)
 }
 
 func StartWorkers(c <-chan TestCase) <-chan *Result {
@@ -69,6 +69,7 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 	for r := range o {
 		if r != nil {
 			uid := path.Base(r.url)
+			slog.Info("upload complete", "upload ID", uid)
 			limit := time.Duration(r.testCase.TimeLimit)
 			if limit == 0*time.Second {
 				limit = 11 * time.Second
@@ -83,10 +84,11 @@ func ValidateResults(ctx context.Context, o <-chan *Result) error {
 					// return a specific error and/or check result.  Specific error can have check specific info like upload id and reports
 					err := WithRetry(checkTimeout, r.testCase, uid, check.DoCase)
 					if err != nil {
-						slog.Error("failed post upload check", "error", err, "test case", r.testCase)
+						slog.Error("failed post upload check", "error", err, "test case", r.testCase, "upload ID", uid)
 						logErrors(err, uid)
 						errs = errors.Join(errs, err)
 					} else {
+						slog.Info("Pass", "upload ID", uid)
 						check.OnSuccess()
 					}
 				}(r, check)
@@ -139,8 +141,9 @@ func worker(c <-chan TestCase, o chan<- *Result, conf *config) {
 		res, err := runTest(e, conf)
 		if err != nil {
 			slog.Error("ERROR: ", "error", err, "case", e)
+		} else {
+			atomic.AddInt32(&testResult.SuccessfulUploads, 1)
 		}
-		atomic.AddInt32(&testResult.SuccessfulUploads, 1)
 		o <- res
 	}
 }
@@ -173,5 +176,14 @@ func logErrors(err error, uploadId string) {
 	defer f.Close()
 	if _, e = f.WriteString(err.Error()); e != nil {
 		panic(e)
+	}
+}
+
+func exitError(validationErrors error) {
+	unsuccessfulUploads := load > 0 && testResult.SuccessfulUploads < int32(load)
+	unsuccessfulDeliveries := testResult.SuccessfulDeliveries < testResult.SuccessfulUploads
+	if validationErrors != nil || unsuccessfulUploads || unsuccessfulDeliveries {
+		fmt.Println("FAILED")
+		os.Exit(1)
 	}
 }

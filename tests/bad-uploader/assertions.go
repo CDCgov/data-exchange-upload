@@ -23,19 +23,21 @@ func (e *ErrAssertion) Error() string {
 }
 
 type ErrFatalAssertion struct {
-	msg string
+	msg      string
+	uploadId string
 }
 
 func (e *ErrFatalAssertion) Error() string {
-	return e.msg
+	return fmt.Sprintf("fatal assertion for upload %s; %s", e.uploadId, e.msg)
 }
 
 type ErrAssertionTimeout struct {
-	Limit Duration
+	Limit    Duration
+	UploadId string
 }
 
 func (e *ErrAssertionTimeout) Error() string {
-	return fmt.Sprintf("failed to pass assertion after %.2f seconds", (time.Duration(e.Limit)).Seconds())
+	return fmt.Sprintf("upload %s failed to pass assertion after %.2f seconds", e.UploadId, (time.Duration(e.Limit)).Seconds())
 }
 
 var PostUploadChecks []Checker
@@ -97,7 +99,8 @@ func WithRetry(timeout context.Context, c TestCase, uploadId string, checker Che
 			return err
 		case <-timeout.Done():
 			return errors.Join(assertionError, &ErrAssertionTimeout{
-				Limit: c.TimeLimit,
+				Limit:    c.TimeLimit,
+				UploadId: uploadId,
 			})
 		}
 	}

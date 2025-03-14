@@ -31,6 +31,15 @@ UPLOAD_URL=""
 PS_API_URL=""
 ```
 
+#### Optional Environment Variables
+
+These are optional variables that can be set that are utilized by some tests in the suite
+
+
+| Variable           | Used In                            | Purpose
+| ------------------ | ---------------------------------- | -------
+| `UPLOAD_INFO_WAIT` | `upload-api-info-endpoint.spec.ts` | Sets the wait timeout for checking the upload INFO endpoint for validation
+
 ## Usage
 
 To run the script, use `npm run build` and `npm test` . You should get console output similar to

@@ -140,6 +140,8 @@ type SNSConfig struct {
 type SQSConfig struct {
 	EventArn    string `env:"EVENT_ARN"`
 	MaxMessages int    `env:"MAX_MESSAGES"`
+	TopicArn    string `env:"TOPIC_ARN"`
+	MaxRetries  int    `env:"MAX_RETRIES"`
 }
 
 type AzureStorageConfig struct {
@@ -191,6 +193,9 @@ type OauthConfig struct {
 	IntrospectionUrl string `env:"INTROSPECTION_URL"`
 	IssuerUrl        string `env:"ISSUER_URL"`
 	RequiredScopes   string `env:"REQUIRED_SCOPES"`
+	SessionKey       string `env:"SESSION_KEY"`
+	SessionSecure    bool   `env:"SESSION_SECURE, default=true"`
+	SessionDomain    string `env:"SESSION_DOMAIN"`
 }
 
 func (azc *AzureStorageConfig) Check() error {

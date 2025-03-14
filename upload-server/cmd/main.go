@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
@@ -106,9 +108,20 @@ func main() {
 			}
 		}()
 	}
-
+	// the user session store should be dependent on if auth is enabled or not.  Shouldn't be able to create, read, or write a store
+	// if auth is disabled.
+	err = middleware.InitStore(*appConfig.OauthConfig)
+	if err != nil {
+		slog.Error("error starting app, error initialize session store", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	authMiddleware, err := middleware.NewAuthMiddleware(ctx, *appConfig.OauthConfig)
+	if err != nil {
+		slog.Error("error starting app, error initialize auth middleware", "error", err)
+		os.Exit(appMainExitCode)
+	}
 	// start serving the app
-	handler, err := cli.Serve(ctx, appConfig)
+	handler, err := cli.Serve(ctx, appConfig, authMiddleware)
 	if err != nil {
 		slog.Error("error starting app, error initialize dex handler", "error", err)
 		os.Exit(appMainExitCode)
@@ -144,7 +157,8 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl); err != nil {
+			err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, authMiddleware)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
 			}

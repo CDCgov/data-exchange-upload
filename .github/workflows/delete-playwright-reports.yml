@@ -1,13 +1,8 @@
 # Copied from https://dev.to/ysfaran/how-to-use-playwright-with-github-actions-and-github-pages-4gdl
-name: Delete
+name: Delete Playwright Report for Branch
 
 on:
   delete:
-
-# ensures that currently running Playwright workflow of deleted branch gets cancelled
-concurrency:
-  group: ${{ github.event.ref }}
-  cancel-in-progress: true
 
 jobs:
   delete_reports:
@@ -15,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Contains all reports for deleted branch
-      BRANCH_REPORTS_DIR: playwright-reports/${{ github.event.ref }}
+      BRANCH_NAME: ${{ github.event.ref }}
     steps:
       - name: Checkout GitHub Pages Branch
         uses: actions/checkout@v4
@@ -26,20 +21,25 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      - name: Check for workflow reports
-        run: |
-          if [ -z "$(ls -A $BRANCH_REPORTS_DIR)" ]; then
-            echo "BRANCH_REPORTS_EXIST="false"" >> $GITHUB_ENV
-          else
-            echo "BRANCH_REPORTS_EXIST="true"" >> $GITHUB_ENV
-          fi
-      - name: Delete reports from repo for branch
-        if: ${{ env.BRANCH_REPORTS_EXIST == 'true' && github.event.ref_type == 'branch' }}
+      - name: Delete Reports for Branch
+        if: ${{ github.event.ref_type == 'branch' }}
         timeout-minutes: 3
+        working-directory: playwright-reports/
         run: |
-          cd $BRANCH_REPORTS_DIR/..
+          # Normalize the branch name to convert '/' to '_' so it doesn't create extra subdirectories
+          branch=${{ env.BRANCH_NAME }}
+          norm_branch=(${branch//\//_})
 
-          rm -rf ${{ github.event.ref }}
-          git add .
-          git commit -m "workflow: remove all reports for branch ${{ github.event.ref }}"
-          git push
+          echo "Branch: $branch"
+          echo "Directory: $norm_branch"
+
+          if [[ -d $norm_branch ]]; then
+            rm -rf $norm_branch
+            git add .
+            git commit -m "workflow: remove all reports for branch $BRANCH_NAME"
+            git pull origin gh-pages --rebase -s recursive -X ours
+            git push
+            echo "Deleted Playwright Reports for $branch from GitHub Pages" >> "$GITHUB_STEP_SUMMARY"
+          else 
+            echo "Could not find Playwright Reports for $branch to delete" >> "$GITHUB_STEP_SUMMARY"
+          fi

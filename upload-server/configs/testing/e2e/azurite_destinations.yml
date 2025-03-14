@@ -8,20 +8,6 @@ targets:
     storage_account: 'devstoreaccount1'
     storage_key: $AZURITE_KEY
     container_name: edav
-  ehdi:
-    name: ehdi
-    type: az-blob
-    endpoint: 'http://azurite:10000/devstoreaccount1'
-    storage_account: 'devstoreaccount1'
-    storage_key: $AZURITE_KEY
-    container_name: ehdi
-  eicr:
-    name: eicr
-    type: az-blob
-    endpoint: 'http://azurite:10000/devstoreaccount1'
-    storage_account: 'devstoreaccount1'
-    storage_key: $AZURITE_KEY
-    container_name: eicr
   ncird:
     name: ncird
     type: az-blob
@@ -34,16 +20,6 @@ routing_groups:
     data_stream_route: localsequencefile
     delivery_targets:
       - name: edav
-        path_template: '{{.Filename}}_{{.UploadId}}'
-  - data_stream_id: ehdi
-    data_stream_route: csv
-    delivery_targets:
-      - name: ehdi
-        path_template: '{{.Filename}}_{{.UploadId}}'
-  - data_stream_id: eicr
-    data_stream_route: fhir
-    delivery_targets:
-      - name: eicr
         path_template: '{{.Filename}}_{{.UploadId}}'
   - data_stream_id: covid-all-monthly-vaccination
     data_stream_route: csv

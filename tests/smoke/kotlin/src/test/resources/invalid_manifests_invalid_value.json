@@ -31,48 +31,6 @@
   },
   {
     "manifest": {
-      "data_stream_id": "ehdi",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "RI",
-      "data_producer_id": "RI-PHA",
-      "sender_id": "blah"
-    }
-  },
-  {
-    "manifest": {
-      "data_stream_id": "ehdi",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "RI",
-      "data_producer_id": "blah",
-      "sender_id": "RI-PHA"
-    }
-  },
-  {
-    "manifest": {
-      "data_stream_id": "ehdi",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "blah",
-      "data_producer_id": "RI-PHA",
-      "sender_id": "RI-PHA"
-    }
-  },
-  {
-    "manifest": {
-      "data_stream_id": "eicr",
-      "data_stream_route": "fhir",
-      "sender_id": "blah",
-      "data_producer_id": "test-producer-id",
-      "jurisdiction": "test-jurisdiction",
-      "received_filename": "dex-smoke-test",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_file_timestamp": "test-file-timestamp"
-    }
-  },
-  {
-    "manifest": {
       "data_stream_id": "influenza-vaccination",
       "data_stream_route": "csv",
       "received_filename": "dex-smoke-test",

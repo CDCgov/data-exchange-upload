@@ -68,7 +68,9 @@ func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertu
 		store.ObjectPrefix = appConfig.TusUploadPrefix
 
 		logger.Info("using S3 bucket", "bucket", appConfig.S3Connection.BucketName)
-		return store, hc, nil
+		return &stores3.S3Store{
+			Store: store,
+		}, hc, nil
 	}
 
 	// Create a new FileStore instance which is responsible for

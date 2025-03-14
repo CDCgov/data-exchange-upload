@@ -59,8 +59,9 @@ class FileCopy {
 
         val currentDateTime = ZonedDateTime.now(TimeZone.getTimeZone("GMT").toZoneId())
         uploadInfo.deliveries?.forEach { delivery ->
-            Assert.assertEquals(delivery.status, "SUCCESS") // remove the assertion above?
-            val actualLocation = URLDecoder.decode(delivery.location, StandardCharsets.UTF_8.toString())
+            Assert.assertEquals(delivery.status, "SUCCESS") 
+            val encodedLocation = delivery.location.replace("+", "%2B")  // encode the + symbol in the location to properly decode it below
+            val actualLocation = URLDecoder.decode(encodedLocation, StandardCharsets.UTF_8.toString()) // decode date and + symbol in the location path
             val pattern = case.deliveryTargets?.find{ it.name == delivery.name}?.pathTemplate?.get(EnvConfig.ENVIRONMENT)
             val expectedLocation = pattern
                 ?.replace("{dataStream}", case.manifest["data_stream_id"].toString())

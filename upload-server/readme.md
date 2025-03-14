@@ -16,6 +16,7 @@ The DEX Upload API is built on the [tus](https://tus.io) open protocol, which pr
 - Upload multiple files in parallel
 - Configurable authN/authZ middleware
 - Support for distributed file locking to enable horizontal scaling
+- User authentication and scope enforcement with JWTs
 
 ## Folder Structure
 
@@ -615,6 +616,41 @@ programs:
         type: file
         path: /my/uploads/target2
 ```
+
+### Configuring Processing Status API Integration
+
+Upload server is capable of being run locally with the [Processing Status API](https://github.com/CDCgov/data-exchange-processing-status) to integrate features from that service into the Upload end to end flow.  Setting this up allows for the capability of integrataing reporting structures into the bigger Upload workflow.  The Processing Status API repository will need to be cloned locally to access its features for integration. This setup currently assumes that the repositories live adjacent to each other on the local filesystem.
+
+#### Build Processing Status Report Sink
+
+PStatus report sink needs to be built so your container system gets an image with the changes. To do this run the following from the `pstatus-report-sink-ktor directory`.
+
+For building the client for Podman:
+```
+./gradlew jibDockerBuild -Djib.dockerClient.executable=$(which podman)
+```
+
+For building the client for Docker:
+```
+./gradlew jibDockerBuild
+```
+
+This will create a local container that can be used by the following steps.
+
+From the `upload-server` directory in the Upload Server repository run the following command to built a system using both Upload and PS API.
+
+> [!NOTE]
+> In order to avoid port colissions, set the environment variable `SINK_PORT` to a value other than `8080`.  Suggested port: `8082`
+
+```
+podman-compose -f docker-compose.yml -f docker-compose.localstack.yml -f ../../data-exchange-processing-status/docker-compose.yml -f compose.pstatus.yml up -d
+```
+
+This will set up the system so that:
+- Upload API is available locally on port `8080`
+- Upload UI is available locally on port `8081`
+- PS API GraphQL endpoint is available locally on `8090`
+
 
 ## Testing
 

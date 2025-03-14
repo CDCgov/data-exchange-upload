@@ -4,9 +4,14 @@
   <div class="nav-container">
     <nav role="navigation" id="nav">
       <a href="/"> <img src="/assets/dex_logo.svg" alt="DEX logo" /> Upload </a>
-      {{if .ShouldShowActions}}
-        {{template "newuploadbtn" .NewUploadBtn}}
-      {{end}}
+      <div class="nav-actions-container">
+        {{if .ShouldShowActions}}
+          {{template "linkbtn" .NewUploadBtn}}
+        {{end}}
+        {{if .ShouldShowLogout}}
+          {{template "linkbtn" .LogoutBtn}}
+        {{end}}
+      </div>
     </nav>
   </div>
 </div>
