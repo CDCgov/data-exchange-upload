@@ -104,16 +104,19 @@ func (ad *AzureDestination) Upload(ctx context.Context, path string, r io.Reader
 	}
 	client := c.NewBlockBlobClient(path)
 
+	decodedUrl, err := url.QueryUnescape(client.URL())
+	if err != nil {
+		return client.URL(), err
+	}
+
 	_, err = client.UploadStream(ctx, r, &azblob.UploadStreamOptions{
 		Metadata: storeaz.PointerizeMetadata(m),
 	})
-
-	decodedUrl, err := url.QueryUnescape(client.URL())
 	if err != nil {
-		return "", err
+		return decodedUrl, err
 	}
 
-	return decodedUrl, err
+	return decodedUrl, nil
 }
 
 func (ad *AzureDestination) Health(ctx context.Context) (rsp models.ServiceHealthResp) {

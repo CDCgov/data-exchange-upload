@@ -2,6 +2,7 @@ package postprocessing
 
 import (
 	"context"
+	"log/slog"
 
 	"fmt"
 
@@ -34,7 +35,7 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 			if err := evt.FileReadyPublisher.Publish(ctx, e); err != nil {
 				return resp, err
 			}
-			logger.Info("published event", "event", e)
+			slog.Info("published event", "event", e, "uploadId", id)
 		}
 		return resp, nil
 	}

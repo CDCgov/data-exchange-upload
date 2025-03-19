@@ -17,7 +17,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/memorylocker"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, authMiddleware *middleware.AuthMiddleware) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
@@ -72,7 +72,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		return nil, err
 	}
 	hookHandler.Register(hooks.HookPostCreate, metrics.ActiveUploadIncHook)
-	hookHandler.Register(hooks.HookPreFinish, manifestMetrics.Hook, metrics.ActiveUploadDecHook)
+	hookHandler.Register(hooks.HookPreFinish, manifestMetrics.Hook, metrics.ActiveUploadDecHook, metrics.UploadSpeedsHook)
 
 	// initialize tusd handler
 	handlerTusd, err := handlertusd.New(store, locker, hookHandler, appConfig.TusdHandlerBasePath)
@@ -85,12 +85,6 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 	// --------------------------------------------------------------
 	// 	TUSD handler
 	// --------------------------------------------------------------
-
-	authMiddleware := middleware.AuthMiddleware{
-		AuthEnabled:    appConfig.OauthConfig.AuthEnabled,
-		IssuerUrl:      appConfig.OauthConfig.IssuerUrl,
-		RequiredScopes: appConfig.OauthConfig.RequiredScopes,
-	}
 
 	// Route for TUSD to start listening on and accept http request
 	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)

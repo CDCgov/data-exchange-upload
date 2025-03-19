@@ -16,6 +16,7 @@ The DEX Upload API is built on the [tus](https://tus.io) open protocol, which pr
 - Upload multiple files in parallel
 - Configurable authN/authZ middleware
 - Support for distributed file locking to enable horizontal scaling
+- User authentication and scope enforcement with JWTs
 
 ## Folder Structure
 

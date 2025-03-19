@@ -2,12 +2,22 @@ package components
 
 type Navbar struct {
 	ShouldShowActions bool
-	NewUploadBtn      NewUploadBtn
+	ShouldShowLogout  bool
+	NewUploadBtn      LinkBtn
+	LogoutBtn         LinkBtn
 }
 
-func NewNavbar(ShouldShowActions bool) Navbar {
+func NewNavbar(shouldShowActions bool, shouldShowLogout bool) Navbar {
 	return Navbar{
-		ShouldShowActions: ShouldShowActions,
-		NewUploadBtn:      NewUploadBtn{},
+		ShouldShowActions: shouldShowActions,
+		ShouldShowLogout:  shouldShowLogout,
+		NewUploadBtn: LinkBtn{
+			Href: "/",
+			Text: "Upload New File",
+		},
+		LogoutBtn: LinkBtn{
+			Href: "/logout",
+			Text: "Logout",
+		},
 	}
 }

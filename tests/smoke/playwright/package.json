@@ -8,12 +8,15 @@
     "wait": "./wait-for-it.sh ${UI_URL:-http://localhost:8081}",
     "test": "npx playwright test",
     "test:ui": "npx playwright test --ui",
+    "test:auth": "npx playwright test -c playwright.auth.config.ts",
+    "test-auth:docker": "npm install; npm run wait; npm run test:auth",
     "test:docker": "npm install; npm run wait; npm run test",
     "merge-reports": "npx ts-node merge-html-reports",
     "prettier": "prettier --write \"**/*.{js,jsx,cjs,ts,tsx,css,md,json}\" --config \".prettierrc\""
   },
   "dependencies": {
     "dotenv": "^16.4.5",
+    "express": "^4.21.2",
     "tus-js-client": "latest",
     "uuid": "^9.0.1"
   },
