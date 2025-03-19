@@ -3,11 +3,11 @@ package event
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -107,22 +107,20 @@ func (s SNSPublisher[T]) Publish(ctx context.Context, e T) error {
 	}
 
 	var b bytes.Buffer
-	encoder := base64.NewEncoder(base64.StdEncoding, &b)
-	jsonEncoder := json.NewEncoder(encoder)
+	jsonEncoder := json.NewEncoder(&b)
 	if err := jsonEncoder.Encode(e); err != nil {
 		return err
 	}
-	encoder.Close()
 	m := b.String()
 	result, err := c.Publish(ctx, &sns.PublishInput{
 		Message:  &m,
 		TopicArn: &s.TopicArn,
 	})
-	slog.Info("SNS event publish response", "response", result, "event", e)
+	slog.Info("SNS event publish response", "response", result, "event", e, "uploadId", e.Identifier())
 	return err
 }
 
-func NewSQSSubscriber[T Identifiable](ctx context.Context, queueArn string, batchMax int) (*SQSSubscriber[T], error) {
+func NewSQSSubscriber[T Identifiable](ctx context.Context, queueArn string, batchMax int, retryMax int) (*SQSSubscriber[T], error) {
 	if !arn.IsARN(queueArn) {
 		return nil, ErrInvalidARN
 	}
@@ -134,8 +132,21 @@ func NewSQSSubscriber[T Identifiable](ctx context.Context, queueArn string, batc
 		Max: batchMax,
 		ARN: queueArn,
 	}
-	if err := s.queue(ctx, qa.Resource); err != nil {
-		return s, err
+
+	s.QueueURL, err = s.queue(ctx, qa.Resource)
+	if err != nil {
+		s.QueueURL, err = s.createQueue(ctx, qa.Resource)
+		if err != nil {
+			return s, err
+		}
+		if err := s.setUpDeadletterQueue(ctx, qa.Resource, retryMax); err != nil {
+			return s, err
+		}
+	}
+
+	arn := GetQueueArn(&s.QueueURL)
+	if *arn != s.ARN {
+		return s, fmt.Errorf("failed to get or create the correct queue arn, given arn: %s arn: %s url: %s", s.ARN, *arn, s.QueueURL)
 	}
 
 	return s, nil
@@ -167,27 +178,81 @@ func (s *SQSSubscriber[T]) Health(ctx context.Context) (rsp models.ServiceHealth
 	return rsp
 }
 
-func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) error {
+func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) (string, error) {
 	client, err := s.Client(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	rsp, err := client.GetQueueUrl(ctx, &sqs.GetQueueUrlInput{
 		QueueName: aws.String(name),
 	})
 	if err != nil {
-		rsp, e := client.CreateQueue(ctx, &sqs.CreateQueueInput{
-			QueueName: aws.String(name),
-			Tags:      tags,
-		})
-		if e != nil {
-			return errors.Join(e, err)
-		}
-		s.QueueURL = *rsp.QueueUrl
-		return nil
+		return "", err
 	}
-	s.QueueURL = *rsp.QueueUrl
+	return *rsp.QueueUrl, nil
+}
+
+func (s *SQSSubscriber[T]) createQueue(ctx context.Context, name string) (string, error) {
+	client, err := s.Client(ctx)
+	if err != nil {
+		return "", err
+	}
+	rsp, e := client.CreateQueue(ctx, &sqs.CreateQueueInput{
+		QueueName: aws.String(name),
+		Tags:      tags,
+	})
+	if e != nil {
+		return "", e
+	}
+	return *rsp.QueueUrl, nil
+}
+
+func (s *SQSSubscriber[T]) setUpDeadletterQueue(ctx context.Context, name string, retryMax int) error {
+	client, err := s.Client(ctx)
+	if err != nil {
+		return err
+	}
+
+	rsp, err := client.CreateQueue(ctx, &sqs.CreateQueueInput{
+		QueueName: aws.String(fmt.Sprintf("dl-queue-%s", name)),
+		Tags:      tags,
+	})
+	if err != nil {
+		return err
+	}
+	dlQueueARN := GetQueueArn(rsp.QueueUrl)
+
+	policy := map[string]string{
+		"deadLetterTargetArn": *dlQueueARN,
+		"maxReceiveCount":     fmt.Sprintf("%d", retryMax),
+	}
+
+	b, err := json.Marshal(policy)
+	if err != nil {
+		return err
+	}
+
+	// snippet-start:[sqs.go.dead_letter_queue.set_attributes]
+	if _, err := client.SetQueueAttributes(ctx, &sqs.SetQueueAttributesInput{
+		QueueUrl: aws.String(s.QueueURL),
+		Attributes: map[string]string{
+			"RedrivePolicy": string(b),
+		},
+	}); err != nil {
+		return err
+	}
 	return nil
+}
+
+func GetQueueArn(queueURL *string) *string {
+	// snippet-start:[sqs.go.get_queue_url.arn]
+	parts := strings.Split(*queueURL, "/")
+	subParts := strings.Split(parts[2], ".")
+
+	arn := "arn:aws:" + subParts[0] + ":" + subParts[1] + ":" + parts[3] + ":" + parts[4]
+	// snippet-end:[sqs.go.get_queue_url.arn]
+
+	return &arn
 }
 
 func (s *SQSSubscriber[T]) Subscribe(ctx context.Context, topicArn string) error {
@@ -215,6 +280,9 @@ func (s *SQSSubscriber[T]) Subscribe(ctx context.Context, topicArn string) error
 		Protocol: aws.String("sqs"),
 		TopicArn: aws.String(topicArn),
 		Endpoint: aws.String(s.ARN),
+		Attributes: map[string]string{
+			"RawMessageDelivery": "true",
+		},
 	}); err != nil {
 		return err
 	}
@@ -280,7 +348,7 @@ func (s *SQSSubscriber[T]) getBatch(ctx context.Context, max int) ([]types.Messa
 		WaitTimeSeconds:     1,
 		VisibilityTimeout:   int32(DefaultMessageVisibility),
 	})
-	slog.Info("Got response", "rsp", rsp)
+	slog.Debug("Got sqs receive message response", "rsp", rsp)
 	if err != nil {
 		return nil, err
 	}
@@ -318,14 +386,7 @@ func (s *SQSSubscriber[T]) decodeEvent(message *types.Message) (T, error) {
 	var e T
 	id := *message.MessageId
 	body := *message.Body
-	snsMessage := map[string]string{}
-	if err := json.Unmarshal([]byte(body), &snsMessage); err != nil {
-		return e, err
-	}
-	b := bytes.NewBuffer([]byte(snsMessage["Message"]))
-	decoder := base64.NewDecoder(base64.StdEncoding, b)
-	jsonDecoder := json.NewDecoder(decoder)
-	if err := jsonDecoder.Decode(&e); err != nil {
+	if err := json.Unmarshal([]byte(body), &e); err != nil {
 		return e, err
 	}
 	e.SetIdentifier(id)

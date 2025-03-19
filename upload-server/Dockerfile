@@ -1,4 +1,4 @@
-FROM docker.io/library/golang:1.22.1-alpine AS builder
+FROM docker.io/library/golang:1.23-alpine AS builder
 
 ARG REPO="cdcgov/data-exchange-upload"
 ARG LATEST_RELEASE_VERSION="unspecified"
@@ -26,7 +26,7 @@ WORKDIR /app
 
 COPY --from=builder /app/dextusd .
 RUN mkdir -p ./configs/local
-COPY --from=builder /app/configs/local/deliver.yml ./configs/local/deliver.yml
+COPY --from=builder /app/configs/phdo/deliver.yml ./configs/local/deliver.yml
 
 # Create the 'app' user and group
 RUN addgroup -S app && adduser -S -G app app

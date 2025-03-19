@@ -59,7 +59,7 @@ class ProcStat {
             )
             .header("Content-Type", "application/json")
             .log().all()
-            .post("pstatus/graphql-service/graphql")
+            .post("graphql")
 
         val jsonResponse = response.asString()
         log.debug("Received response: $jsonResponse")

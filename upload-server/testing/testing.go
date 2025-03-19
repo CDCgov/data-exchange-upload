@@ -64,37 +64,6 @@ var Cases = map[string]testCase{
 			{},
 		},
 	},
-	"eicr bad (missing things)": {
-		tus.Metadata{
-			"data_stream_id":    "eicr",
-			"data_stream_route": "fhir",
-			"sender_id":         "APHL",
-			"original_filename": "test",
-			"message_type":      "bad",
-		},
-		tus.ClientError{
-			Code: 400,
-		},
-		[]info.FileDeliveryStatus{
-			{},
-		},
-	},
-	"eicr good": {
-		tus.Metadata{
-			"data_stream_id":          "eicr",
-			"data_stream_route":       "fhir",
-			"data_producer_id":        "test",
-			"sender_id":               "APHL",
-			"received_filename":       "test",
-			"jurisdiction":            "test",
-			"meta_ext_objectkey":      "test",
-			"meta_ext_file_timestamp": "test",
-		},
-		nil,
-		[]info.FileDeliveryStatus{
-			{},
-		},
-	},
 }
 
 func RunTusTestCase(url string, testFile string, c testCase) (string, error) {

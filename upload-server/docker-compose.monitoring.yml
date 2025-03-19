@@ -21,3 +21,18 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=grafana
     volumes:
       - ./configs/local/grafana/provisioning:/etc/grafana/provisioning
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    ports:
+      - 3100:3100
+    volumes:
+      - ./configs/local/loki/loki.yml:/etc/loki/loki.yml 
+    command: -config.file=/etc/loki/loki.yml
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./configs/local/promtail/promtail.yml:/etc/promtail/promtail.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/promtail.yml

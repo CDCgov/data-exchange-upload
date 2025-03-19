@@ -58,6 +58,8 @@ OAuth token verification is used to secure the `/files/` and `/info/` UPLOAD API
 | `OAUTH_AUTH_ENABLED`      | Yes      | `false`       | Enable or disable OAuth token verification           |
 | `OAUTH_ISSUER_URL`        | Yes      | None          | URL of the OAuth token issuer                        |
 | `OAUTH_REQUIRED_SCOPES`   | Yes      | None          | Space-separated list of required scopes              |
+| `OAUTH_SESSION_KEY`       | Yes      | None          | Unique value to be used to hash a user session cookie.  Recommended to be at least 32 bytes long.  **Value is sensative and should not be checked into source control.**              |
+| `OAUTH_SESSION_DOMAIN`    | No       | None          | Value used to set the Domain setting of the user session cookie.  Useful when the server and UI are on different subdomains.              |
 | `OAUTH_INTROSPECTION_URL` | No       | None          | URL for OAuth introspection (used for opaque tokens) |
 
 ## Upload Location Configs
@@ -202,35 +204,6 @@ Uses the same authentication defined for the [S3 bucket](#s3-storage-configs)
 |-----------------------|----------|---------------|-------------------------------------------------------------------------------------------------|
 | `EHDI_S3_ENDPOINT`    | Yes      | None          | s3-compatible storage endpoint URL for EHDI delivery storage, must start with `http` or `https` |
 | `EHDI_S3_BUCKET_NAME` | Yes      | None          | Bucket name for EHDI delivery storage                                                           |
-
-### EICR Delivery Target
-
-#### Local File System EICR Directory
-
-| Variable Name       | Required | Default Value    | Description                                            |
-|---------------------|----------|------------------|--------------------------------------------------------|
-| `LOCAL_EICR_FOLDER` | No       | `./uploads/eicr` | Relative file system path to the EICR target directory |
-
-#### Azure EICR Container
-
-| Variable Name                    | Required | Default Value     | Description                                                         |
-|----------------------------------|----------|-------------------|---------------------------------------------------------------------|
-| `EICR_STORAGE_ACCOUNT`           | Yes      | None              | Azure EICR delivery storage account name                            |
-| `EICR_STORAGE_KEY`               | Yes      | None              | Azure EICR delivery storage account private access key or SAS token |
-| `EICR_ENDPOINT`                  | Yes      | None              | Azure EICR delivery storage endpoint URL                            |
-| `EICR_CHECKPOINT_CONTAINER_NAME` | No       | `eicr-checkpoint` | Container name for EICR delivery storage checkpoint data            |
-| `EICR_TENANT_ID`                 | No       | None              | EICR delivery account service principal tenant id                   |
-| `EICR_CLIENT_ID`                 | No       | None              | EICR delivery account service principal client id                   |
-| `EICR_CLIENT_SECRET`             | No       | None              | EICR delivery account service principal client secret               |
-
-#### S3 EICR Bucket
-
-Uses the same authentication defined for the [S3 bucket](#s3-storage-configs)
-
-| Variable Name         | Required | Default Value | Description                                                                                     |
-|-----------------------|----------|---------------|-------------------------------------------------------------------------------------------------|
-| `EICR_S3_ENDPOINT`    | Yes      | None          | S3-compatible storage endpoint URL for EICR delivery storage, must start with `http` or `https` |
-| `EICR_S3_BUCKET_NAME` | Yes      | None          | Bucket name for EICR delivery storage                                                           |
 
 ### NCIRD Delivery Target
 

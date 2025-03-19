@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	neturl "net/url"
-	"path"
 	"slices"
 	"sync/atomic"
 )
@@ -43,8 +42,7 @@ type InfoChecker struct {
 }
 
 func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) error {
-	serverUrl, _ := path.Split(url)
-	infoUrl, err := neturl.JoinPath(serverUrl, "info", uploadId)
+	infoUrl, err := neturl.JoinPath(infoUrl, uploadId)
 	if err != nil {
 		return err
 	}
@@ -103,7 +101,8 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 				Expected: "SUCCESS",
 				Actual:   delivery.Status,
 			}, &ErrFatalAssertion{
-				msg: "unexpected delivery status",
+				msg:      "unexpected delivery status",
+				uploadId: uploadId,
 			})
 		}
 
@@ -112,7 +111,8 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 				Expected: c.ExpectedDeliveryTargets,
 				Actual:   delivery.Name,
 			}, &ErrFatalAssertion{
-				msg: "unexpected delivery target",
+				msg:      "unexpected delivery target",
+				uploadId: uploadId,
 			})
 		}
 	}

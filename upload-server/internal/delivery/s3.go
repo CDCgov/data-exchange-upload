@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
@@ -28,9 +27,7 @@ type S3Source struct {
 	Prefix     string
 }
 
-func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) {
-	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
-	id := strings.Split(path, "+")[0]
+func (ss *S3Source) Reader(ctx context.Context, id string) (io.Reader, error) {
 	srcFileName := ss.Prefix + "/" + id
 	downloader := manager.NewDownloader(ss.FromClient)
 	downloader.Concurrency = 1
@@ -52,10 +49,8 @@ func (ss *S3Source) Reader(ctx context.Context, path string) (io.Reader, error) 
 	return r, nil
 }
 
-func (ss *S3Source) GetMetadata(ctx context.Context, tuid string) (map[string]string, error) {
+func (ss *S3Source) GetMetadata(ctx context.Context, id string) (map[string]string, error) {
 	// Get the object from S3
-	// Temp workaround for getting the real upload ID without the hash.  See https://github.com/tus/tusd/pull/1167
-	id := strings.Split(tuid, "+")[0]
 	srcFilename := ss.Prefix + "/" + id
 	output, err := ss.FromClient.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(ss.BucketName),
