@@ -51,8 +51,13 @@ func init() {
 }
 
 func main() {
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	var mainWaitGroup sync.WaitGroup
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	tpShutdown, err := cli.InitTracerProvider(ctx)
+	if err != nil {
+		slog.Error("error starting app, error starting tracing", "error", err)
+		os.Exit(appMainExitCode)
+	}
 
 	appConfig, err := appconfig.ParseConfig(ctx)
 	if err != nil {
@@ -97,7 +102,7 @@ func main() {
 		}
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := subscriber.Listen(ctx, postprocessing.ProcessFileReadyEvent); err != nil {
+			if err := subscriber.Listen(ctx, cli.TracingProcessor(postprocessing.ProcessFileReadyEvent)); err != nil {
 				cancelFunc()
 				slog.Error("Listener failed", "error", err)
 			}
@@ -126,11 +131,12 @@ func main() {
 	// ------------------------------------------------------------------
 	// Start http custom server
 	// ------------------------------------------------------------------
+
 	httpServer := http.Server{
 
 		Addr: ":" + appConfig.ServerPort,
 
-		Handler: metrics.TrackHTTP(handler),
+		Handler: cli.AddUploadIDContext(cli.TracingMiddleware(metrics.TrackHTTP(handler))),
 		// etc...
 
 	} // .httpServer
@@ -178,6 +184,7 @@ func main() {
 	defer httpShutdownCancelFunc()
 	httpServer.Shutdown(httpShutdownCtx)
 	ui.Close(httpShutdownCtx)
+	tpShutdown(httpShutdownCtx)
 
 	mainWaitGroup.Wait()
 
