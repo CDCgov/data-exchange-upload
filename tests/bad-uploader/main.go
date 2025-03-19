@@ -15,6 +15,7 @@ import (
 type LoadTestResult struct {
 	SuccessfulUploads    int32
 	SuccessfulDeliveries int32
+	DeliveryDurations    []time.Duration
 	SuccessfulEventSets  int32
 	TotalDuration        time.Duration
 }
@@ -133,6 +134,7 @@ Files delivered: %d/%d
 	}
 
 	fmt.Printf("Duration: %f seconds\r\n", testResult.TotalDuration.Seconds())
+	printDeliveryMetrics()
 	fmt.Println("**********************************")
 }
 
@@ -162,6 +164,29 @@ func printValidationErrors(errs error) {
 			printValidationErrors(err)
 		}
 	}
+}
+
+func printDeliveryMetrics() {
+	if len(testResult.DeliveryDurations) == 0 {
+		return
+	}
+
+	var min, max, sum, avg time.Duration
+	for _, dur := range testResult.DeliveryDurations {
+		if min == 0 || dur < min {
+			min = dur
+		}
+		if dur > max {
+			max = dur
+		}
+		sum += dur
+	}
+
+	avg = time.Duration(int64(sum) / int64(len(testResult.DeliveryDurations)))
+
+	fmt.Printf("Average delivery duration: %s\n", avg)
+	fmt.Printf("Max delivery duration: %s\n", max)
+	fmt.Printf("Min delivery duration: %s\n", min)
 }
 
 func logErrors(err error, uploadId string) {
