@@ -1,0 +1,22 @@
+services:
+  minio:
+    image: quay.io/minio/minio
+    hostname: minio
+    ports:
+      - 8000:8000
+      - 8001:8001
+    command: server /data --console-address :8001 --address :8000
+    volumes:
+      - ./configs/local/minio:/data
+  upload-server:
+    environment:
+      - S3_ENDPOINT=http://minio:8000
+      - S3_BUCKET_NAME=test-bucket
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - DEX_MANIFEST_CONFIG_FOLDER_NAME=upload-configs
+      - DEX_DELIVERY_CONFIG_FILE
+    depends_on:
+      - minio
+      - cache

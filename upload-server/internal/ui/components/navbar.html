@@ -1,0 +1,18 @@
+{{define "navbar"}}
+<div>
+  <a class="skip-main" href="#main" tabindex="0">Skip to main content</a>
+  <div class="nav-container">
+    <nav role="navigation" id="nav">
+      <a href="/"> <img src="/assets/dex_logo.svg" alt="DEX logo" /> Upload </a>
+      <div class="nav-actions-container">
+        {{if .ShouldShowActions}}
+          {{template "linkbtn" .NewUploadBtn}}
+        {{end}}
+        {{if .ShouldShowLogout}}
+          {{template "linkbtn" .LogoutBtn}}
+        {{end}}
+      </div>
+    </nav>
+  </div>
+</div>
+{{end}}

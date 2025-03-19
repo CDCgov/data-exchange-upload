@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/models"
+
 	"github.com/go-redsync/redsync/v4"
 	"github.com/go-redsync/redsync/v4/redis/goredis/v9"
 	"github.com/redis/go-redis/v9"
@@ -27,30 +29,71 @@ func WithLogger(logger *slog.Logger) LockerOption {
 	}
 }
 
+func WithMutexCreator(uri string) (LockerOption, error) {
+	connection, err := redis.ParseURL(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	rsm := &RedSyncMutex{
+		conn: connection,
+	}
+
+	return func(l *RedisLocker) {
+		l.CreateMutex = rsm.CreateMutex
+	}, nil
+}
+
 func New(uri string, lockerOptions ...LockerOption) (*RedisLocker, error) {
+	defaultCreator, err := WithMutexCreator(uri)
+	if err != nil {
+		return nil, err
+	}
+	defaultOpts := []LockerOption{
+		WithLogger(slog.Default()), defaultCreator,
+	}
+
 	connection, err := redis.ParseURL(uri)
 	if err != nil {
 		return nil, err
 	}
 	client := redis.NewClient(connection)
+
 	if res := client.Ping(context.Background()); res.Err() != nil {
 		return nil, res.Err()
 	}
-	rs := redsync.New(goredis.NewPool(client))
 
 	locker := &RedisLocker{
-		rs:    rs,
 		redis: client,
 	}
+
+	for _, option := range defaultOpts {
+		option(locker)
+	}
+
 	for _, option := range lockerOptions {
 		option(locker)
 	}
-	//defaults
-	if locker.logger == nil {
-		locker.logger = slog.Default()
+
+	if locker.CreateMutex == nil || locker.logger == nil {
+		return nil, fmt.Errorf("missing required properties for locker %v", *locker)
 	}
 
 	return locker, nil
+}
+
+type RedSyncMutex struct {
+	rs   *redsync.Redsync
+	conn *redis.Options
+}
+
+func (rsm *RedSyncMutex) CreateMutex(id string) MutexLock {
+	// Recreate client if the pool lost connection.
+	if rsm.rs == nil {
+		client := redis.NewClient(rsm.conn)
+		rsm.rs = redsync.New(goredis.NewPool(client))
+	}
+	return rsm.rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
 }
 
 type LockExchange interface {
@@ -103,10 +146,18 @@ func (e *RedisLockExchange) Release(ctx context.Context, id string) error {
 	return res.Err()
 }
 
+type MutexLock interface {
+	TryLockContext(context.Context) error
+	ExtendContext(context.Context) (bool, error)
+	UnlockContext(context.Context) (bool, error)
+	Until() time.Time
+}
+
 type RedisLocker struct {
-	rs     *redsync.Redsync
-	redis  *redis.Client
-	logger *slog.Logger
+	//rs          *redsync.Redsync
+	CreateMutex func(id string) MutexLock
+	redis       *redis.Client
+	logger      *slog.Logger
 }
 
 func (locker *RedisLocker) UseIn(composer *handler.StoreComposer) {
@@ -114,20 +165,40 @@ func (locker *RedisLocker) UseIn(composer *handler.StoreComposer) {
 }
 
 func (locker *RedisLocker) NewLock(id string) (handler.Lock, error) {
-	mutex := locker.rs.NewMutex(id, redsync.WithExpiry(LockExpiry))
+	mutex := locker.CreateMutex(id)
 	return &redisLock{
 		id:    id,
 		mutex: mutex,
 		exchange: &RedisLockExchange{
 			client: locker.redis,
 		},
-		logger: locker.logger.With("upload_id", id),
+		logger: locker.logger.With("uploadId", id),
 	}, nil
+}
+
+func (locker *RedisLocker) Health(_ context.Context) models.ServiceHealthResp {
+	var shr models.ServiceHealthResp
+	shr.Service = models.REDIS_LOCKER
+
+	// Ping redis service
+	client := locker.redis
+	if res := client.Ping(context.Background()); res.Err() != nil {
+		return models.ServiceHealthResp{
+			Service:     models.REDIS_LOCKER,
+			Status:      models.STATUS_DOWN,
+			HealthIssue: res.Err().Error(),
+		}
+	}
+
+	// all good
+	shr.Status = models.STATUS_UP
+	shr.HealthIssue = models.HEALTH_ISSUE_NONE
+	return shr
 }
 
 type redisLock struct {
 	id       string
-	mutex    *redsync.Mutex
+	mutex    MutexLock
 	ctx      context.Context
 	cancel   func()
 	exchange BidirectionalLockExchange
@@ -135,7 +206,7 @@ type redisLock struct {
 }
 
 func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
-	l.logger.Info("locking upload", "id", l.id)
+	l.logger.Debug("locking upload")
 	if err := l.requestLock(ctx); err != nil {
 		return err
 	}
@@ -148,7 +219,7 @@ func (l *redisLock) Lock(ctx context.Context, releaseRequested func()) error {
 			}
 		}
 	}()
-	l.logger.Info("locked upload", "id", l.id)
+	l.logger.Debug("locked upload")
 	return nil
 }
 
@@ -182,7 +253,7 @@ func (l *redisLock) requestLock(ctx context.Context) error {
 	errs = errors.Join(errs, err)
 	select {
 	case <-c:
-		l.logger.Info("notified of lock release", "id", l.id)
+		l.logger.Debug("notified of lock release")
 		return l.aquireLock(ctx)
 	case <-ctx.Done():
 		return errors.Join(errs, handler.ErrLockTimeout)
@@ -194,22 +265,22 @@ func (l *redisLock) keepAlive(ctx context.Context) error {
 	for {
 		select {
 		case <-time.After(time.Until(l.mutex.Until()) / 2):
-			l.logger.Info("extend lock attempt started", "time", time.Now())
+			l.logger.Debug("extend lock attempt started", "time", time.Now())
 			_, err := l.mutex.ExtendContext(ctx)
 			if err != nil {
 				l.logger.Error("failed to extend lock", "time", time.Now(), "error", err)
 				return err
 			}
-			l.logger.Info("lock extended", "time", time.Now())
+			l.logger.Debug("lock extended", "time", time.Now())
 		case <-ctx.Done():
-			l.logger.Info("lock was closed")
+			l.logger.Debug("lock was closed")
 			return nil
 		}
 	}
 }
 
 func (l *redisLock) Unlock() error {
-	l.logger.Info("unlocking upload")
+	l.logger.Debug("unlocking upload")
 	if l.cancel != nil {
 		defer l.cancel()
 	}
@@ -217,7 +288,7 @@ func (l *redisLock) Unlock() error {
 	if !b {
 		l.logger.Error("failed to release lock", "err", err)
 	}
-	l.logger.Info("notifying of lock release")
+	l.logger.Debug("notifying of lock release")
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	if e := l.exchange.Release(ctx, l.id); e != nil {

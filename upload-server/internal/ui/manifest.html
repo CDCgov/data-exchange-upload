@@ -1,0 +1,50 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/x-icon" href="/assets/dex_logo.svg" />
+    <link rel="stylesheet" type="text/css" href="/assets/index.css">
+    <title>Manifest</title>
+  </head>
+  <body>
+    {{template "navbar" .Navbar}}
+    <main id="main" class="upload-container">
+      <h1>Please fill in the sender manifest form for your file</h1>
+      <p> * indicates a required field </p>
+      <div class="form-container">
+        <form method="POST" action="/upload">
+          {{range .MetadataFields}}
+            <div class="input-container">
+              <label for="{{.FieldName}}">
+                {{FixNames .FieldName}} {{if .Required}}*{{end}}
+              </label>
+              {{if not .AllowedValues}}
+                {{ if .Required }}
+                  <input type="text" id="{{.FieldName}}" name="{{.FieldName}}" required/>
+                {{ else }}
+                  <input type="text" id="{{.FieldName}}" name="{{.FieldName}}" />
+                {{ end }}
+              {{ else }}
+                <select id="{{.FieldName}}" name="{{.FieldName}}">
+                  {{range .AllowedValues}}
+                    <option value="{{.}}">{{.}}</option>
+                  {{end}}
+                </select>
+              {{ end }}
+            </div>
+          {{end}}
+          <div class="hidden">
+            <input type="hidden" id="data_stream_id" name="data_stream_id" value="{{.DataStream}}" />
+            <input type="hidden" id="data_stream_route" name="data_stream_route" value="{{.DataStreamRoute}}" />
+            <input type="hidden" name="gorilla.csrf.Token" value="{{.CsrfToken}}" />
+          </div>
+          <div class="submit-button">
+            <button type="submit">Next</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>

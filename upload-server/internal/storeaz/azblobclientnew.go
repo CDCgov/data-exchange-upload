@@ -2,34 +2,48 @@ package storeaz
 
 import (
 	"errors"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"os"
+	"fmt"
 	"strings"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 ) // .import
 
 var (
 	tusPrefix                        = "Tus storage"
-	routerPrefix                     = "Router storage"
-	edavPrefix                       = "Edav storage"
 	errStorageNameEmpty              = errors.New("error storage name from app config is empty")
 	errStorageKeyEmpty               = errors.New("error storage key from app config is empty")
 	errStorageContainerEndpointEmpty = errors.New("error storage container endpoint from app config is empty")
 ) // .var
 
-// NewTusAzBlobClient returns a azure blob client
-func NewBlobClient(conf appconfig.AzureStorageConfig) (*azblob.Client, error) {
+type Credentials struct {
+	StorageName       string
+	StorageKey        string
+	TenantId          string
+	ClientId          string
+	ClientSecret      string
+	ContainerEndpoint string
+}
 
-	return newAzBlobClient(
-		conf.StorageName,
-		conf.StorageKey,
-		conf.ContainerEndpoint)
+// NewTusAzBlobClient returns a azure blob client
+func NewBlobClient(conf Credentials) (*azblob.Client, error) {
+	if canUseStorageKey(conf) {
+		return newAzBlobClient(
+			conf.StorageName,
+			conf.StorageKey,
+			conf.ContainerEndpoint)
+	}
+
+	if canUseServicePrinciple(conf) {
+		return newAzBlobClientByServicePrinciple(conf)
+	}
+
+	return nil, errors.New("not enough information given to connect to storage account " + conf.StorageName)
 } // .NewTusAzBlobClient
 
-func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string) (*container.Client, error) {
+func NewContainerClient(conf Credentials, containerName string) (*container.Client, error) {
 	if canUseStorageKey(conf) {
 		return newAzContainerClient(
 			conf.StorageName,
@@ -38,15 +52,15 @@ func NewContainerClient(conf appconfig.AzureStorageConfig, containerName string)
 			containerName)
 	}
 
-	if canUseServicePrinciple() {
+	if canUseServicePrinciple(conf) {
 		return newContainerClientByServicePrinciple(conf, containerName)
 	}
 
-	return nil, errors.New("not enough information given to connect to container " + containerName)
+	return nil, errors.New(fmt.Sprintf("not enough information given to connect to account %s and container %s", conf.ContainerEndpoint, containerName))
 }
 
-func newContainerClientByServicePrinciple(conf appconfig.AzureStorageConfig, containerName string) (*container.Client, error) {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+func newContainerClientByServicePrinciple(conf Credentials, containerName string) (*container.Client, error) {
+	cred, err := azidentity.NewClientSecretCredential(conf.TenantId, conf.ClientId, conf.ClientSecret, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -97,10 +111,23 @@ func newAzBlobClient(azStorageName, azStorageKey, azContainerEndpoint string) (*
 	return client, nil
 } // .newAzBlobClient
 
-func canUseStorageKey(conf appconfig.AzureStorageConfig) bool {
+func newAzBlobClientByServicePrinciple(conf Credentials) (*azblob.Client, error) {
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, err
+	}
+	client, err := azblob.NewClient(conf.ContainerEndpoint, cred, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return client, nil
+}
+
+func canUseStorageKey(conf Credentials) bool {
 	return conf.StorageKey != ""
 }
 
-func canUseServicePrinciple() bool {
-	return os.Getenv("AZURE_CLIENT_ID") != "" && os.Getenv("AZURE_CLIENT_SECRET") != "" && os.Getenv("AZURE_TENANT_ID") != ""
+func canUseServicePrinciple(conf Credentials) bool {
+	return conf.TenantId != "" && conf.ClientId != "" && conf.ClientSecret != ""
 }

@@ -8,28 +8,26 @@ import (
 )
 
 type ManifestConfig struct {
-	Metadata             MetadataConfig `json:"metadata_config"`
-	Copy                 CopyConfig     `json:"copy_config"`
-	CompatConfigFilename string         `json:"compat_config_filename"`
+	Metadata MetadataConfig `json:"metadata_config"`
+	Copy     CopyConfig     `json:"copy_config"`
 }
 
 type MetadataConfig struct {
-	Version string        `json:"version"`
-	Fields  []FieldConfig `json:"fields"`
+	Fields []FieldConfig `json:"fields"`
 }
 
 type CopyConfig struct {
 	FilenameSuffix  string   `json:"filename_suffix"`
 	FolderStructure string   `json:"folder_structure"`
+	PathTemplate    string   `json:"path_template"`
 	Targets         []string `json:"targets"`
 }
 
 type FieldConfig struct {
-	FieldName       string   `json:"field_name"`
-	Required        bool     `json:"required"`
-	Description     string   `json:"description"`
-	AllowedValues   []string `json:"allowed_values"`
-	CompatFieldName string   `json:"compat_field_name"`
+	FieldName     string   `json:"field_name"`
+	Required      bool     `json:"required"`
+	Description   string   `json:"description"`
+	AllowedValues []string `json:"allowed_values"`
 }
 
 func validFileName(value string) error {

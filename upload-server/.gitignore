@@ -2,11 +2,7 @@
 
 # local uploads folders
 uploads/*
-!uploads/readme.md
-
-!uploads/uploads_a
-uploads/uploads_a/*
-!uploads/uploads_a/readme.md
+cmd/tests/*
 
 # ref: https://raw.githubusercontent.com/github/gitignore/main/Go.gitignore
 

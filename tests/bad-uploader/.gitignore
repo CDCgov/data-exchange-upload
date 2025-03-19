@@ -1,1 +1,4 @@
 bad-uploader
+bad-uploader.exe
+*.reports
+output/

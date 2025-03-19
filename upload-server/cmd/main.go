@@ -3,41 +3,33 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/serverdex"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/slogerxexp"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/cmd/cli"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/joho/godotenv"
 ) // .import
 
 const appMainExitCode = 1
 
-var (
-	appConfig appconfig.AppConfig
-	logger    *slog.Logger
-)
-
-// NOTE: this large init file may be an antipattern.
-// A main reason for it is to enable to cross cutting logging aspect.
-// If another way is found to manage that this should be moved to main.
 func init() {
-	ctx := context.Background()
-
-	buildInfo, _ := debug.ReadBuildInfo()
-	logInfo := []any{"buildInfo.Main.Path", buildInfo.Main.Path}
-	slog.With(logInfo...)
 	// ------------------------------------------------------------------
 	// parse and load cli flags
 	// ------------------------------------------------------------------
@@ -45,7 +37,7 @@ func init() {
 		if err := cli.ParseFlags(); err != nil {
 			slog.Error("error starting app, error parsing cli flags", "error", err)
 			os.Exit(appMainExitCode)
-		} // .if
+		}
 	}
 
 	if cli.Flags.AppConfigPath != "" {
@@ -56,95 +48,138 @@ func init() {
 		} // .if
 	}
 
-	// ------------------------------------------------------------------
-	// parse and load config from os exported
-	// ------------------------------------------------------------------
-	var err error
-	appConfig, err = appconfig.ParseConfig(ctx)
-	if err != nil {
-		slog.Error("error starting app, error parsing app config", "error", err)
-		os.Exit(appMainExitCode)
-	} // .if
-
-	// ------------------------------------------------------------------
-	// configure app custom logging
-	// ------------------------------------------------------------------
-	logInfo = append(logInfo, "pkg", "main")
-	logger = cli.AppLogger(appConfig).With(logInfo...)
-	sloger.SetDefaultLogger(logger)
-
-	explogger := cli.ExpAppLogger(appConfig).With(logInfo...)
-	slogerxexp.SetDefaultLogger(explogger)
-
 }
 
 func main() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	var mainWaitGroup sync.WaitGroup
 
-	logger.Info("starting app")
-
-	// Pub Sub
-	event.InitFileReadyChannel()
-	defer event.CloseFileReadyChannel()
-	mainWaitGroup.Add(1)
-	subscriber := cli.MakeEventSubscriber(appConfig)
-	go func() {
-		cli.SubscribeToEvents(ctx, subscriber)
-		mainWaitGroup.Done()
-	}()
-
-	// start serving the app
-	_, err := cli.Serve(ctx, appConfig)
+	appConfig, err := appconfig.ParseConfig(ctx)
 	if err != nil {
-		logger.Error("error starting app, error initialize dex handler", "error", err)
-		os.Exit(appMainExitCode)
-	}
-
-	logger.Info("http handlers ready")
-	// ------------------------------------------------------------------
-	// create dex server, includes dex handler
-	// ------------------------------------------------------------------
-	serverDex, err := serverdex.New(appConfig)
-	if err != nil {
-		logger.Error("error starting app, error initialize dex server", "error", err)
+		slog.Error("error starting app, error parsing app config", "error", err)
 		os.Exit(appMainExitCode)
 	} // .if
 
-	logger.Info("http server ready")
+	sloger.SetDefaultLogger(cli.AppLogger(appConfig))
+	slog.SetDefault(sloger.DefaultLogger)
+	slogerxexp.SetDefaultLogger(cli.ExpAppLogger(appConfig))
+	slog.Info("starting app")
 
+	// Pub Sub
+	event.MaxRetries = appConfig.EventMaxRetryCount
+	// initialize event reporter
+	if err := cli.InitReporters(ctx, appConfig); err != nil {
+		slog.Error("error creating reporters", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	defer reports.CloseAll()
+
+	event.InitFileReadyChannel()
+	defer event.CloseFileReadyChannel()
+
+	if err := cli.InitFileReadyPublisher(ctx, appConfig); err != nil {
+		slog.Error("error creating file ready publisher", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	defer event.FileReadyPublisher.Close()
+
+	mainWaitGroup.Add(appConfig.ListenerWorkers)
+	for range appConfig.ListenerWorkers {
+		subscriber, err := cli.NewEventSubscriber[*event.FileReady](ctx, appConfig)
+		if err != nil {
+			slog.Error("error subscribing to file ready", "error", err)
+			os.Exit(appMainExitCode)
+		}
+		if sc, ok := subscriber.(interface {
+			Close() error
+		}); ok {
+			defer sc.Close()
+		}
+		go func() {
+			defer mainWaitGroup.Done()
+			if err := subscriber.Listen(ctx, postprocessing.ProcessFileReadyEvent); err != nil {
+				cancelFunc()
+				slog.Error("Listener failed", "error", err)
+			}
+		}()
+	}
+	// the user session store should be dependent on if auth is enabled or not.  Shouldn't be able to create, read, or write a store
+	// if auth is disabled.
+	err = middleware.InitStore(*appConfig.OauthConfig)
+	if err != nil {
+		slog.Error("error starting app, error initialize session store", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	authMiddleware, err := middleware.NewAuthMiddleware(ctx, *appConfig.OauthConfig)
+	if err != nil {
+		slog.Error("error starting app, error initialize auth middleware", "error", err)
+		os.Exit(appMainExitCode)
+	}
+	// start serving the app
+	handler, err := cli.Serve(ctx, appConfig, authMiddleware)
+	if err != nil {
+		slog.Error("error starting app, error initialize dex handler", "error", err)
+		os.Exit(appMainExitCode)
+	}
+
+	slog.Info("http handlers ready")
 	// ------------------------------------------------------------------
 	// Start http custom server
 	// ------------------------------------------------------------------
-	httpServer := serverDex.HttpServer()
+	httpServer := http.Server{
+
+		Addr: ":" + appConfig.ServerPort,
+
+		Handler: metrics.TrackHTTP(handler),
+		// etc...
+
+	} // .httpServer
 
 	mainWaitGroup.Add(1)
 	go func() {
 		err := httpServer.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("error starting app, error starting http server", "error", err, "port", appConfig.ServerPort)
+			slog.Error("error starting app, error starting http server", "error", err, "port", appConfig.ServerPort)
 			os.Exit(appMainExitCode)
 		} // .if
 		mainWaitGroup.Done()
 	}() // .go
 
-	logger.Info("started http server with tusd and dex handlers", "port", appConfig.ServerPort)
+	slog.Info("started http server with tusd and dex handlers", "port", appConfig.ServerPort)
+
+	if appConfig.UIPort != "" {
+		mainWaitGroup.Add(1)
+		go func() {
+			defer mainWaitGroup.Done()
+			err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, authMiddleware)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				slog.Error("failed to start ui", "error", err)
+				os.Exit(appMainExitCode)
+			}
+		}()
+
+		slog.Info("Started ui server", "port", appConfig.UIPort)
+	}
 
 	// ------------------------------------------------------------------
 	// 	Block for Exit, server above is on goroutine
 	// ------------------------------------------------------------------
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
-	<-sigint
-	cancelFunc()
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt, syscall.SIGTERM)
+		<-sigint
+		cancelFunc()
+	}()
+	<-ctx.Done()
 	// ------------------------------------------------------------------
 	// close other connections, if needed
 	// ------------------------------------------------------------------
 	httpShutdownCtx, httpShutdownCancelFunc := context.WithTimeout(context.Background(), 5*time.Second)
 	defer httpShutdownCancelFunc()
 	httpServer.Shutdown(httpShutdownCtx)
+	ui.Close(httpShutdownCtx)
 
 	mainWaitGroup.Wait()
 
-	logger.Info("closing server by os signal", "port", appConfig.ServerPort)
+	slog.Info("closing server by os signal", "port", appConfig.ServerPort)
 } // .main

@@ -22,8 +22,8 @@ const (
 	DEX_INGEST_DATE_TIME_KEY_NAME = "dex_ingest_datetime"
 
 	TARGET_DEX_ROUTER = "dex_routing"
-	TARGET_DEX_EDAV   = "dex_edav"
 
-	EVENT_UPLOAD_ID = "event.Upload.ID"
-	TGUID_KEY       = "tguid"
+	EVENT_UPLOAD_ID           = "event.Upload.ID"
+	TGUID_KEY                 = "tguid"
+	TUS_STORAGE_HEALTH_PREFIX = "Tus storage"
 ) // .const

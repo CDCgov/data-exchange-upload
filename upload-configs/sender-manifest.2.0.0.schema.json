@@ -1,0 +1,47 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://github.com/CDCgov/data-exchange-upload/upload-configs/sender-manifest",
+    "title": "Public Health Data Operations (PHDO) Sender Manifest",
+    "description": "Schema utilized for metadata that accompanies file uploads.",
+    "version": "2.0.0",
+    "type": "object",
+    "required": [ 
+        "data_stream_id", 
+        "data_stream_route", 
+        "sender_id", 
+        "data_producer_id", 
+        "jurisdiction", 
+        "received_filename"
+    ],
+    "properties": {
+        "data_stream_id": {
+            "type": "string",
+            "description": "Data stream identifier; the highest taxonomical designation for a given collection of data to be uploaded."
+        },
+        "data_stream_route": {
+            "type": "string",
+            "description": "Second level taxonomical designation for a given collection of data to be uploaded. This value is typically designated to reference a particular file format type."
+        },
+        "sender_id": {
+            "type": "array",            
+            "description": "Identifier for the submitter of the data."
+        },
+        "data_producer_id": {
+            "type": "array",
+            "description": "Identifier for the producer of the submitted data."
+        },
+        "jurisdiction": {
+            "type": "array",
+            "description": "Geographical location of the submitted data."
+        },
+        "received_filename": {
+            "type": "string",
+            "description": "The name of the file uploaded by the sender."
+        },
+        "custom_metadata_field": {
+            "type": "string, array, or number",
+            "description": "Optional custom metadata fields can be added as necessary."
+        }
+    }
+
+}

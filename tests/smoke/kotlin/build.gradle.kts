@@ -33,6 +33,7 @@ dependencies {
     testImplementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.9")
     testImplementation("io.rest-assured:rest-assured:5.4.0")
     testImplementation("joda-time:joda-time:2.12.7")
+    testImplementation("org.slf4j:slf4j-simple:1.6.1")
 }
 
 tasks.test {
@@ -41,8 +42,8 @@ tasks.test {
 
     useTestNG {
         // This is needed otherwise System.getProperty returns null for the custom properties.
-        if (project.hasProperty("useCases")) {
-            systemProperties["useCases"] = project.properties["useCases"]
+        if (project.hasProperty("manifestFilter")) {
+            systemProperties["manifestFilter"] = project.properties["manifestFilter"]
         }
     }
 }

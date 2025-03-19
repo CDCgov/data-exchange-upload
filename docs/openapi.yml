@@ -2,58 +2,57 @@ openapi: 3.0.1
 info:
   title: Swagger definition of the tusd / Data Exchange Upload API.
   description: Swagger definition of the tusd / Data Exchange Upload API.
-  version: "1.1"
+  version: "1.2"
   contact:
-    email: tpz7@cdc.gov
+    email: knu1@cdc.gov
 servers:
-  - url: 'https://apidev.cdc.gov'
+  - url: "https://apidev.cdc.gov"
     description: Development server
-  - url: 'https://apistg.cdc.gov'
+  - url: "https://apitst.cdc.gov"
+    description: Test server
+  - url: "https://apistg.cdc.gov"
     description: Staging server
-  - url: 'https://api.cdc.gov'
+  - url: "https://api.cdc.gov"
     description: Production server
 
 paths:
   /oauth:
     get:
       summary: This GET request goes to SAMS to validate a supplied token by the client.
-      description:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: JSON object describing the provided auth token.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Oauth-Token-Validation'
-        
+                $ref: "#/components/schemas/Oauth-Token-Validation"
+
     post:
       summary: This POST request goes to SAMS to obtain a session token for authentication.
-      description:
       requestBody:
         content:
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Oauth-Form'
+              $ref: "#/components/schemas/Oauth-Form"
       responses:
-        '200':
+        "200":
           description: JSON object containing the new auth token.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Oauth-Token-Grant'
-        '400':
+                $ref: "#/components/schemas/Oauth-Token-Grant"
+        "400":
           description: Bad Request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SAMS-Error'
-                    
+                $ref: "#/components/schemas/SAMS-Error"
+
   /oauth/refresh:
     post:
       summary: This POST request goes to SAMS to generate a valid refresh token.
-      description:
       parameters:
         - name: Content-Type
           in: header
@@ -73,19 +72,19 @@ paths:
                   type: string
                   description: Refresh token given by SAMS in the oauth grant response.
       responses:
-        '200':
-            description: JSON object containing the new auth token.
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/Oauth-Token-Grant'
-        '400':
+        "200":
+          description: JSON object containing the new auth token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Oauth-Token-Grant"
+        "400":
           description: Bad Request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SAMS-Error'
-        
+                $ref: "#/components/schemas/SAMS-Error"
+
   /upload:
     get:
       summary: tusd Heartbeat
@@ -93,76 +92,82 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: Success
-    
+
     post:
-      summary: An empty POST request is used to create a new upload resource. The
+      summary:
+        An empty POST request is used to create a new upload resource. The
         Upload-Length header indicates the size of the entire upload in bytes.
-        If the Creation With Upload extension is available, the Client MAY include 
+        If the Creation With Upload extension is available, the Client MAY include
         parts of the upload in the initial Creation request
-      description: Endpoint for the Creation extension. Modified by the Creation With
+      description:
+        Endpoint for the Creation extension. Modified by the Creation With
         Upload extension.
       security:
         - bearerAuth: []
       parameters:
-      - name: Content-Length
-        in: header
-        description: Must be 0 for creation extension. May be a positive number for
-          Creation With Upload extension.
-        schema:
-          type: integer
-      - name: Upload-Length
-        in: header
-        schema:
-          $ref: "#/components/schemas/Upload-Length"
-      - name: Tus-Resumable
-        in: header
-        schema:
-          $ref: "#/components/schemas/Tus-Resumable"
-      - name: Upload-Metadata
-        in: header
-        description: Added by the Creation extension. The Upload-Metadata request
-          and response header MUST consist of one or more comma-separated key-value
-          pairs. The key and value MUST be separated by a space. The key MUST NOT
-          contain spaces and commas and MUST NOT be empty. The key SHOULD be ASCII
-          encoded and the value MUST be Base64 encoded. All keys MUST be unique. The
-          value MAY be empty. In these cases, the space, which would normally separate
-          the key and the value, MAY be left out. Since metadata can contain arbitrary
-          binary values, Servers SHOULD carefully validate metadata values or sanitize
-          them before using them as header values to avoid header smuggling.
-        schema:
-          type: string
-      - name: Upload-Concat
-        in: header
-        description: Added by the Concatenation extension. The Upload-Concat request
-          and response header MUST be set in both partial and final upload creation
-          requests. It indicates whether the upload is either a partial or final upload.
-          If the upload is a partial one, the header value MUST be partial. In the
-          case of a final upload, its value MUST be final followed by a semicolon
-          and a space-separated list of partial upload URLs that will be concatenated.
-          The partial uploads URLs MAY be absolute or relative and MUST NOT contain
-          spaces as defined in RFC 3986.
-        schema:
-          type: string
-      - name: Upload-Defer-Length
-        in: header
-        description: Added by the Creation Defer Length extension. The Upload-Defer-Length
-          request and response header indicates that the size of the upload is not
-          known currently and will be transferred later. Its value MUST be 1. If the
-          length of an upload is not deferred, this header MUST be omitted.
-        schema:
-          type: integer
-          enum:
-          - 1
-      - name: Upload-Offset
-        in: header
-        schema:
-          $ref: "#/components/schemas/Upload-Offset"
-      - name: Upload-Checksum
-        in: header
-        schema:
-          $ref: "#/components/schemas/Upload-Checksum"
+        - name: Content-Length
+          in: header
+          description:
+            Must be 0 for creation extension. May be a positive number for
+            Creation With Upload extension.
+          schema:
+            type: integer
+        - name: Upload-Length
+          in: header
+          schema:
+            $ref: "#/components/schemas/Upload-Length"
+        - name: Tus-Resumable
+          in: header
+          schema:
+            $ref: "#/components/schemas/Tus-Resumable"
+        - name: Upload-Metadata
+          in: header
+          description:
+            Added by the Creation extension. The Upload-Metadata request
+            and response header MUST consist of one or more comma-separated key-value
+            pairs. The key and value MUST be separated by a space. The key MUST NOT
+            contain spaces and commas and MUST NOT be empty. The key SHOULD be ASCII
+            encoded and the value MUST be Base64 encoded. All keys MUST be unique. The
+            value MAY be empty. In these cases, the space, which would normally separate
+            the key and the value, MAY be left out. Since metadata can contain arbitrary
+            binary values, Servers SHOULD carefully validate metadata values or sanitize
+            them before using them as header values to avoid header smuggling.
+          schema:
+            type: string
+        - name: Upload-Concat
+          in: header
+          description:
+            Added by the Concatenation extension. The Upload-Concat request
+            and response header MUST be set in both partial and final upload creation
+            requests. It indicates whether the upload is either a partial or final upload.
+            If the upload is a partial one, the header value MUST be partial. In the
+            case of a final upload, its value MUST be final followed by a semicolon
+            and a space-separated list of partial upload URLs that will be concatenated.
+            The partial uploads URLs MAY be absolute or relative and MUST NOT contain
+            spaces as defined in RFC 3986.
+          schema:
+            type: string
+        - name: Upload-Defer-Length
+          in: header
+          description:
+            Added by the Creation Defer Length extension. The Upload-Defer-Length
+            request and response header indicates that the size of the upload is not
+            known currently and will be transferred later. Its value MUST be 1. If the
+            length of an upload is not deferred, this header MUST be omitted.
+          schema:
+            type: integer
+            enum:
+              - 1
+        - name: Upload-Offset
+          in: header
+          schema:
+            $ref: "#/components/schemas/Upload-Offset"
+        - name: Upload-Checksum
+          in: header
+          schema:
+            $ref: "#/components/schemas/Upload-Checksum"
       requestBody:
         description: (Possibly partial) content of the file. Required if Content-Length > 0.
         required: false
@@ -172,7 +177,7 @@ paths:
               type: string
               format: binary
       responses:
-        '201':
+        "201":
           description: Created
           headers:
             Tus-Resumable:
@@ -182,7 +187,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Upload-Offset"
             Upload-Expires:
-              description: Added by the Creation With Upload Extension in combination
+              description:
+                Added by the Creation With Upload Extension in combination
                 with the expiration extension. The Upload-Expires response header
                 indicates the time after which the unfinished upload expires. A Server
                 MAY wish to remove incomplete uploads after a given period of time
@@ -204,15 +210,16 @@ paths:
               description: Url of the created resource.
               schema:
                 type: string
-        '400':
-          description: Added by the Creation With Upload Extension in combination
+        "400":
+          description:
+            Added by the Creation With Upload Extension in combination
             with the checksum extension. The checksum algorithm is not supported by
             the server
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '412':
+        "412":
           description: Precondition Failed
           headers:
             Tus-Resumable:
@@ -221,23 +228,26 @@ paths:
             Tus-Version:
               schema:
                 $ref: "#/components/schemas/Tus-Version"
-        '413':
-          description: If the length of the upload exceeds the maximum, which MAY
+        "413":
+          description:
+            If the length of the upload exceeds the maximum, which MAY
             be specified using the Tus-Max-Size header, the Server MUST respond with
             the 413 Request Entity Too Large status.
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '415':
-          description: Added by the Creation With Upload Extension. Content-Type was
+        "415":
+          description:
+            Added by the Creation With Upload Extension. Content-Type was
             not application/offset+octet-stream
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '460':
-          description: Added by the Creation With Upload Extension in combination
+        "460":
+          description:
+            Added by the Creation With Upload Extension in combination
             with the checksum extension. Checksums mismatch
           headers:
             Tus-Resumable:
@@ -245,12 +255,13 @@ paths:
                 $ref: "#/components/schemas/Tus-Resumable"
     options:
       summary: Request to gather information about the Server's current configuration
-      description: An OPTIONS request MAY be used to gather information about the
+      description:
+        An OPTIONS request MAY be used to gather information about the
         Server's current configuration. A successful response indicated by the 204
         No Content or 200 OK status MUST contain the Tus-Version header. It MAY include
         the Tus-Extension and Tus-Max-Size headers.
       responses:
-        '200':
+        "200":
           description: Success
           headers:
             Tus-Resumable:
@@ -268,7 +279,7 @@ paths:
             Tus-Extension:
               schema:
                 $ref: "#/components/schemas/Tus-Extension"
-        '204':
+        "204":
           description: Success
           headers:
             Tus-Resumable:
@@ -289,31 +300,32 @@ paths:
   /upload/{tguid}:
     delete:
       summary: Added by the Termination extension.
-      description: When receiving a DELETE request for an existing upload the Server
+      description:
+        When receiving a DELETE request for an existing upload the Server
         SHOULD free associated resources and MUST respond with the 204 No Content
         status confirming that the upload was terminated. For all future requests
         to this URL, the Server SHOULD respond with the 404 Not Found or 410 Gone
         status.
       operationId: FilesDelete
       parameters:
-      - name: tguid
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: Tus-Resumable
-        in: header
-        required: true
-        schema:
-          $ref: "#/components/schemas/Tus-Resumable"
+        - name: tguid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Tus-Resumable
+          in: header
+          required: true
+          schema:
+            $ref: "#/components/schemas/Tus-Resumable"
       responses:
-        '204':
+        "204":
           description: Upload was terminated
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '412':
+        "412":
           description: Precondition Failed
           headers:
             Tus-Resumable:
@@ -329,18 +341,18 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-      - name: tguid
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: Tus-Resumable
-        in: header
-        required: true
-        schema:
-          $ref: "#/components/schemas/Tus-Resumable"
+        - name: tguid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Tus-Resumable
+          in: header
+          required: true
+          schema:
+            $ref: "#/components/schemas/Tus-Resumable"
       responses:
-        '200':
+        "200":
           description: Returns offset
           headers:
             Tus-Resumable:
@@ -350,38 +362,41 @@ paths:
               schema:
                 type: string
                 enum:
-                - no-store
+                  - no-store
             Upload-Offset:
               schema:
                 $ref: "#/components/schemas/Upload-Offset"
             Upload-Length:
               schema:
                 $ref: "#/components/schemas/Upload-Length"
-        '403':
-          description: If the resource is not found, the Server SHOULD return either
+        "403":
+          description:
+            If the resource is not found, the Server SHOULD return either
             the 404 Not Found, 410 Gone or 403 Forbidden status without the Upload-Offset
             header.
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '404':
-          description: If the resource is not found, the Server SHOULD return either
+        "404":
+          description:
+            If the resource is not found, the Server SHOULD return either
             the 404 Not Found, 410 Gone or 403 Forbidden status without the Upload-Offset
             header.
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '410':
-          description: If the resource is not found, the Server SHOULD return either
+        "410":
+          description:
+            If the resource is not found, the Server SHOULD return either
             the 404 Not Found, 410 Gone or 403 Forbidden status without the Upload-Offset
             header.
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '412':
+        "412":
           description: Precondition Failed
           headers:
             Tus-Resumable:
@@ -392,39 +407,40 @@ paths:
                 $ref: "#/components/schemas/Tus-Version"
     patch:
       summary: Used to resume the upload
-      description: 'The Server SHOULD accept PATCH requests against any upload URL
+      description:
+        "The Server SHOULD accept PATCH requests against any upload URL
         and apply the bytes contained in the message at the given offset specified
         by the Upload-Offset header. All PATCH requests MUST use Content-Type: application/offset+octet-stream,
-        otherwise the server SHOULD return a 415 Unsupported Media Type status.'
+        otherwise the server SHOULD return a 415 Unsupported Media Type status."
       operationId: FilePatch
       security:
         - bearerAuth: []
       parameters:
-      - name: tguid
-        in: path
-        required: true
-        schema:
-          type: string
-      - name: Tus-Resumable
-        in: header
-        required: true
-        schema:
-          $ref: "#/components/schemas/Tus-Resumable"
-      - name: Content-Length
-        in: header
-        description: Length of the body of this request
-        required: true
-        schema:
-          type: integer
-      - name: Upload-Offset
-        in: header
-        required: true
-        schema:
-          $ref: "#/components/schemas/Upload-Offset"
-      - name: Upload-Checksum
-        in: header
-        schema:
-          $ref: "#/components/schemas/Upload-Checksum"
+        - name: tguid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: Tus-Resumable
+          in: header
+          required: true
+          schema:
+            $ref: "#/components/schemas/Tus-Resumable"
+        - name: Content-Length
+          in: header
+          description: Length of the body of this request
+          required: true
+          schema:
+            type: integer
+        - name: Upload-Offset
+          in: header
+          required: true
+          schema:
+            $ref: "#/components/schemas/Upload-Offset"
+        - name: Upload-Checksum
+          in: header
+          schema:
+            $ref: "#/components/schemas/Upload-Checksum"
       requestBody:
         description: Remaining (possibly partial) content of the file. Required if Content-Length > 0.
         required: false
@@ -434,7 +450,7 @@ paths:
               type: string
               format: binary
       responses:
-        '204':
+        "204":
           description: Upload offset was updated
           headers:
             Tus-Resumable:
@@ -444,7 +460,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
             Upload-Expires:
-              description: Added by the expiration extension. The Upload-Expires response
+              description:
+                Added by the expiration extension. The Upload-Expires response
                 header indicates the time after which the unfinished upload expires.
                 A Server MAY wish to remove incomplete uploads after a given period
                 of time to prevent abandoned uploads from taking up extra storage.
@@ -461,28 +478,30 @@ paths:
                 Upload-Expires header MUST be in RFC 7231 datetime format.
               schema:
                 type: string
-        '400':
-          description: Added by the checksum extension. The checksum algorithm is
+        "400":
+          description:
+            Added by the checksum extension. The checksum algorithm is
             not supported by the server
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '403':
-          description: In the concatenation extension, the Server MUST respond with
+        "403":
+          description:
+            In the concatenation extension, the Server MUST respond with
             the 403 Forbidden status to PATCH requests against a final upload URL
             and MUST NOT modify the final or its partial uploads.
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '404':
+        "404":
           description: PATCH request against a non-existent resource
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '409':
+        "409":
           description: PATCH request with Upload-Offset unequal to the offset of the resource on the server. The Upload-Offset header's value MUST be equal to the current offset of the resource.
           headers:
             Tus-Resumable:
@@ -503,24 +522,55 @@ paths:
             Tus-Version:
               schema:
                 $ref: "#/components/schemas/Tus-Version"
-        '415':
+        "415":
           description: Content-Type was not application/offset+octet-stream
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
-        '460':
+        "460":
           description: Added by the checksum extension. Checksums mismatch
           headers:
             Tus-Resumable:
               schema:
                 $ref: "#/components/schemas/Tus-Resumable"
 
+  /upload/info/{tguid}:
+    get:
+      summary: Gets information about a file that was uploaded.
+      parameters:
+        - in: path
+          name: tguid
+          schema:
+            type: string
+          required: true
+          description: UUID given to the file that was uploaded by the TUS server.
+      responses:
+        200:
+          description: JSON object containing the upload file info.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Info-Response"
+        404:
+          description: Info file or upload file not found.
+
+  /upload/health:
+    get:
+      summary: Gets the health status of the Upload API to determine of the service is up, down, or degraded.
+      responses:
+        200:
+          description: JSON object containing health status and list of dependent services with their respected health statuses.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health-Response"
+
 components:
   securitySchemes:
-      bearerAuth:
-        type: http
-        scheme: bearer
+    bearerAuth:
+      type: http
+      scheme: bearer
   schemas:
     Oauth-Token-Validation:
       type: object
@@ -540,16 +590,16 @@ components:
         token_type:
           type: string
           description: The Oauth token type.
-        expires_in: 
+        expires_in:
           type: integer
           description: Duration in seconds when the token will expire.
         refresh_token:
           type: string
           description: Token used to get a new auth token when it expires.
-        scope: 
+        scope:
           type: string
           description: Authorization scopes associated with this auth token.
-        resource: 
+        resource:
           type: array
           description: List of resources this token has access to.
     Oauth-Form:
@@ -580,7 +630,7 @@ components:
     Tus-Resumable:
       type: string
       enum:
-      - 1.0.0
+        - 1.0.0
       description: Protocol version
     Tus-Version:
       description: The Tus-Version response header MUST be a comma-separated
@@ -600,7 +650,8 @@ components:
         limit.
       type: integer
     Upload-Length:
-      description: The Upload-Length request and response header indicates the size
+      description:
+        The Upload-Length request and response header indicates the size
         of the entire upload in bytes. The value MUST be a non-negative integer.
         In the concatenation extension, the Client MUST NOT include the Upload-Length
         header in the final upload creation
@@ -618,10 +669,118 @@ components:
       type: string
     Upload-Checksum:
       description: Added by the checksum extension. The Upload-Checksum request
-          header contains information about the checksum of the current body payload.
-          The header MUST consist of the name of the used checksum algorithm and the
-          Base64 encoded checksum separated by a space.
+        header contains information about the checksum of the current body payload.
+        The header MUST consist of the name of the used checksum algorithm and the
+        Base64 encoded checksum separated by a space.
       type: string
+    Info-Response:
+      type: object
+      properties:
+        manifest:
+          type: object
+          description: Set of key-value pairs that were attached to the file during upload.
+          properties:
+            upload_id:
+              type: string
+              description: Unique identifier of the uploaded file assigned by the API.
+            dex_ingest_datetime:
+              type: string
+              description: Timestamp of the API's first interaction with the uploaded file, rounded to the nearest nanosecond (0.000000001).
+            version:
+              type: string
+              description: The version of the sender manifest utilized for the uploaded file.
+            data_stream_id:
+              type: string
+              description: Identifier for the data stream of the uploaded file.
+            data_stream_route:
+              type: string
+              description: Identifier for the route of the data stream of the uploaded file.
+            sender_id:
+              type: string
+              description: Identifier for the sender of the uploaded file.
+            data_producer_id:
+              type: string
+              description: Identifier for the producer of the uploaded file.
+            jurisdiction:
+              type: string
+              description: Identifier for the jurisdiction pertaining to the uploaded file.
+            received_filename:
+              type: string
+              description: The name of the original uploaded file.
+            custom_metadata:
+              type: string
+              description: Data stream specific metadata fields; varies per data stream.
+        file_info:
+          type: object
+          description: Information about the file that was uploaded.
+          properties:
+            size_bytes:
+              type: integer
+              description: Current size of the file in bytes.
+            updated_at:
+              type: string
+              description: Timestamp of the most recent time the file was changed, rounded to the nearest second increment as the assigned target delivery storage location rounds (e.g., rounded to the nearest second when delivered to Azure or AWS cloud storage).
+        upload_status:
+          type: object
+          description: Information about the status of the file upload.
+          properties:
+            status:
+              type: string
+              description: Current status of the file upload.
+              enum:
+                - Initiated
+                - In Progress
+                - Complete
+            chunk_received_at:
+              type: string
+              description: Timestamp that the most recent upload chunk was received, rounded to the nearest tenth of a microsecond (0.0000001).
+        deliveries:
+          type: array
+          description: Information about the file destination delivery to target locations.
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+                description: Status of the file destination delivery.
+              name:
+                type: string
+                description: Name of the file destination delivery target.
+              location:
+                type: string
+                description: Location path of the file destination delivery target.
+              delivered_at:
+                type: string
+                description: Timestamp of the file delivery to the target destination location, rounded to the nearest nanosecond (0.000000001).
+              issues:
+                type: object
+                description: Details issues encountered with file destination delivery.
+    Health-Response:
+      type: object
+      properties:
+        status:
+          type: string
+          description: UP, DOWN, or DEGRADED
+        services:
+          type: array
+          description: List of dependent services and their health status.
+          items:
+            type: object
+            properties:
+              schema:
+                $ref: "#/components/schemas/Health-Response-Item"
+    Health-Response-Item:
+      type: object
+      properties:
+        status:
+          type: string
+          description: UP, DOWN, or DEGRADED.
+        service:
+          type: string
+          description: Name of the service.
+        health_issue:
+          type: string
+          description: Message containing more details as to the issue with the service.  Provided when the status is not UP.
 
 security:
   - {}

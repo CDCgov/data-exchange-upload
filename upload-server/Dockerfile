@@ -1,23 +1,41 @@
-FROM docker.io/library/golang:1.22.1-alpine AS builder
+FROM docker.io/library/golang:1.23-alpine AS builder
 
-WORKDIR /app 
+ARG REPO="cdcgov/data-exchange-upload"
+ARG LATEST_RELEASE_VERSION="unspecified"
+ARG GIT_SHORT_SHA="unspecified"
 
-COPY go.mod go.sum ./ 
+# Create the 'app' user and group, and a working directory for the app
+RUN addgroup -S -g 101 app && adduser -S -u 100 -G app app
+RUN mkdir /app && chown app:app /app
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
 
 RUN go mod download
 
 COPY . .
 
-RUN go build -o ./dextusd ./cmd/main.go
+RUN go build -ldflags "-X github.com/cdcgov/data-exchange-upload/upload-server/internal/version.GitRepo=${REPO}  \
+    -X github.com/cdcgov/data-exchange-upload/upload-server/internal/version.LatestReleaseVersion=${LATEST_RELEASE_VERSION} \
+    -X github.com/cdcgov/data-exchange-upload/upload-server/internal/version.GitShortSha=${GIT_SHORT_SHA}" -o ./dextusd ./cmd/main.go
 
-#
+FROM docker.io/library/alpine:3.20.2
 
-FROM alpine:latest 
-
-WORKDIR /app 
+WORKDIR /app
 
 COPY --from=builder /app/dextusd .
+RUN mkdir -p ./configs/local
+COPY --from=builder /app/configs/phdo/deliver.yml ./configs/local/deliver.yml
+
+# Create the 'app' user and group
+RUN addgroup -S app && adduser -S -G app app
+
+# Ensure the app user owns the binary
+RUN chown app:app ./dextusd
+
+# Switch to the non-root 'app' user
+USER app
 
 EXPOSE 8080
-
-CMD ["./dextusd"]
+CMD [ "./dextusd" ]

@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] 2025-3-6
+- All upload requests are authenticated now with JWT bearer tokens, including PATCH requests.
+- OIDC configuration and public key caching for SAMS identity provider.
+- User session cookie for Upload UI Console
+- MVP login UX with JWT token submittion
+
+## [2.6.4] 2025-2-25
+- Hotfix to prevent overwriting of Azure upload stream errors
+
+## [2.6.2] 2025-2-14
+- EHDI configuration removal
+- Auto creation of deadletter queue for SQS
+- Url decoding for Azure client fix
+
+## [2.6.1] 2024-11-19
+- Delivery configuration addition
+- Info endpoint delivery name fix
+- Info endpoint timestamp precision fix
+- Delivery date folder partitioning fix
+- Delivery target clean up
+- Upload configuration clean up
+
+## [2.5.0] 2024-09-26
+- Direct file delivery to CDC Program storage
+- Agnostic subfolder delivery path template implementation
+- NDLP configuration addition
+
+## [2.4.1] 2024-09-20
+- Delivery status addition to the /info endpoint
+- In-memory event system stability improvements
+
+## [2.3.0] 2024-08-21
+- Embedding of file post processing and delivery capabilities into the upload tus service
+- v2 PS API reports for improved observability
+- Decommission of Upload API function app, Event Hub, and Event Grid
+
+## [2.2.3] 2024-07-30
+- Sender manifest configuration updates
+- Global reporting timestamp update to Universal Time Zone (UTC) settings
+- Metadata verification error response update to return DEX Upload ID (tguid)
+- Internal API Version endpoint addition
+
 ## [2.2.0] 2024-06-24
 - Improved reliability of horizontal scaling via a custom file locking mechanism that uses an external Redis cache.
 

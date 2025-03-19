@@ -1,0 +1,35 @@
+{
+    "status": "UP",
+    "services": [
+        {
+            "service": "SNS - arn:aws:sns:us-east-1:767828728573:phdo-psapi-tst-topic",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Tus storage S3 Bucket phdo-upload-tst",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Redis Locker",
+            "status": "UP",
+            "health_issue": "None reported"
+        },
+        {
+            "service": "Azure deliver target edav",
+            "status": "UP",
+            "health_issue": ""
+        },
+        {
+            "service": "Azure deliver target ncird",
+            "status": "UP",
+            "health_issue": ""
+        },
+        {
+            "service": "S3 source phdo-upload-tst",
+            "status": "UP",
+            "health_issue": ""
+        }
+    ]
+}

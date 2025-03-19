@@ -1,0 +1,1510 @@
+"""
+Indicates an Input Object is a OneOf Input Object.
+"""
+directive @oneOf on INPUT_OBJECT
+
+"""
+Aggregate report counts
+"""
+type AggregateReportCounts {
+  """
+  Page summary for the counts provided
+  """
+  summary: PageSummary
+
+  """
+  List of the report counts
+  """
+  uploads: [ReportCounts!]
+}
+
+enum Aggregation {
+  """
+  Single
+  """
+  SINGLE
+
+  """
+  Batch
+  """
+  BATCH
+}
+
+type CosmosDb implements HealthCheckSystem {
+  service: String!
+
+  """
+  Service health issues
+  """
+  healthIssues: String
+
+  """
+  Status of the dependency
+  """
+  status: String!
+}
+
+"""
+Structure containing the count details
+"""
+type CountsDetails {
+  """
+  Count of files
+  """
+  counts: Long!
+
+  """
+  If a file failed to upload, this contains a list of reasons why it may have failed and the count for each reason type
+  """
+  reasons: JSON
+}
+
+"""
+Input type for tags
+"""
+input DataInput {
+  """
+  Tag key
+  """
+  key: String!
+
+  """
+  Tag value
+  """
+  value: String!
+}
+
+"""
+A slightly refined version of RFC-3339 compliant DateTime Scalar
+"""
+scalar DateTime
+
+"""
+Collection of duplicate uploaded filenames found
+"""
+type DuplicateFilenameCounts {
+  """
+  Filename of the file that is duplicated.
+  """
+  filename: String
+
+  """
+  Total number of times the duplicate filename was found, which will always be 2 or more.
+  """
+  totalCount: Long!
+}
+
+"""
+HL7v2 message counts using a direct and indirect counting method
+"""
+type HL7DirectIndirectMessageCounts {
+  """
+  The direct counting method is a sum of all the receiver.number_of_messages in the HL7 debatch reports
+  """
+  directCounts: Long
+
+  """
+  The indirect counting method is a sum of all the redacted reports
+  """
+  indirectCounts: Long
+
+  """
+  Total time to run the query in milliseconds
+  """
+  queryTimeMillis: Long
+}
+
+"""
+HL7v2 invalid message counts using a direct and indirect counting method
+"""
+type HL7InvalidMessageCounts {
+  """
+  The invalid message direct counting method is a sum of the redacted messages that were not propagated and the structure validator reports that are invalid
+  """
+  invalidMessageDirectCounts: Long
+
+  """
+  The invalid message indirect counting method is the total of the HL7-JSON-Lake-Transformer that are not present or HL7-JSON-Lake-Transformer < Structure-Validator
+  """
+  invalidMessageIndirectCounts: Long
+
+  """
+  Total time to run the query in milliseconds
+  """
+  queryTimeMillis: Long
+}
+
+"""
+Counts the number of HL7v2 structures that are invalid for the provided parameters
+"""
+type HL7InvalidStructureValidationCounts {
+  """
+  Count of HL7v2 messages with an invalid structure
+  """
+  counts: Long
+
+  """
+  Total time to run the query in milliseconds
+  """
+  queryTimeMillis: Long
+}
+
+type HealthCheck {
+  """
+  Status of the service dependencies
+  """
+  dependencyHealthChecks: [HealthCheckSystem!]!
+
+  """
+  Overall status of the service
+  """
+  status: String
+
+  """
+  Total time it took to evaluate the health of the service and its dependencies
+  """
+  totalChecksDuration: String
+}
+
+interface HealthCheckSystem {
+  """
+  Service health issues
+  """
+  healthIssues: String
+
+  """
+  Name of the service
+  """
+  service: String!
+
+  """
+  Status of the dependency
+  """
+  status: String!
+}
+
+"""
+Contains Report issues.
+"""
+type Issue {
+  """
+  Issue level
+  """
+  level: Level
+
+  """
+  Issue message
+  """
+  message: String
+}
+
+"""
+Input type for issues
+"""
+input IssueInput {
+  """
+  Issue code
+  """
+  code: String
+
+  """
+  Issue description
+  """
+  description: String
+}
+
+"""
+A JSON scalar
+"""
+scalar JSON
+
+enum Level {
+  """
+  Error
+  """
+  ERROR
+
+  """
+  Warning
+  """
+  WARNING
+}
+
+scalar Long
+
+"""
+Report metadata containing the disposition type, message identifier, index, aggregation of whether Single or Batch and the filename
+"""
+type MessageMetadata {
+  """
+  Single or Batch message
+  """
+  aggregation: Aggregation
+
+  """
+  MessageHash value
+  """
+  messageHash: String
+
+  """
+  Message Index
+  """
+  messageIndex: Int
+
+  """
+  Unique Identifier for that message
+  """
+  messageUUID: String
+}
+
+"""
+Input type for message metadata
+"""
+input MessageMetadataInput {
+  """
+  Single or Batch message
+  """
+  aggregation: Aggregation
+
+  """
+  MessageHash value
+  """
+  messageHash: String
+
+  """
+  Message Index
+  """
+  messageIndex: Int
+
+  """
+  Unique Identifier for that message
+  """
+  messageUUID: String
+}
+
+type Mutation {
+  """
+  Subscribe Email Notifications
+  """
+  subscribeEmail(
+    dataStreamId: String!
+    dataStreamRoute: String!
+    email: String!
+    stageName: String!
+    statusType: String!
+  ): SubscriptionResult!
+
+  """
+  Subscribe Webhook Notifications
+  """
+  subscribeWebhook(
+    dataStreamId: String!
+    dataStreamRoute: String!
+    email: String!
+    stageName: String!
+    statusType: String!
+  ): SubscriptionResult!
+
+  """
+  Unsubscribe Email Notifications
+  """
+  unsubscribeEmail(subscriptionId: String!): SubscriptionResult!
+
+  """
+  Unsubscribe Webhook Notifications
+  """
+  unsubscribeWebhook(subscriptionId: String!): SubscriptionResult!
+
+  """
+  Subscribe data stream top errors lets you subscribe to get notifications for top data stream errors and its frequency during an upload
+  """
+  subscribeDataStreamTopErrorsNotification(
+    dataStreamId: String!
+    dataStreamRoute: String!
+    jurisdiction: String!
+    daysToRun: [String!]!
+    timeToRun: String!
+    deliveryReference: String!
+  ): NotificationSubscriptionResult!
+
+  """
+  UnSubscribe data stream top errors lets you unsubscribe from getting notifications for top data stream errors and its frequency during an upload
+  """
+  unsubscribesDataStreamTopErrorsNotification(
+    subscriptionId: String!
+  ): NotificationSubscriptionResult!
+
+  """
+  Subscribe Deadline Check lets you get notifications when an upload from jurisdictions has not happened by 12pm
+  """
+  subscribeDeadlineCheck(
+    dataStreamId: String!
+    dataStreamRoute: String!
+    jurisdiction: String!
+    daysToRun: [String!]!
+    timeToRun: String!
+    deliveryReference: String!
+  ): NotificationSubscriptionResult!
+
+  """
+  UnSubscribe Deadline Check lets you unsubscribe from getting notifications when an upload from jurisdictions has not happened by 12pm
+  """
+  unsubscribeDeadlineCheck(
+    subscriptionId: String!
+  ): NotificationSubscriptionResult!
+
+  """
+  Subscribe upload errors lets you get notifications when there are errors in an upload
+  """
+  subscribeUploadErrorsNotification(
+    dataStreamId: String!
+    dataStreamRoute: String!
+    jurisdiction: String!
+    daysToRun: [String!]!
+    timeToRun: String!
+    deliveryReference: String!
+  ): NotificationSubscriptionResult!
+
+  """
+  UnSubscribe upload errors lets you unsubscribe from getting notifications when there are errors during an upload
+  """
+  unsubscribeUploadErrorsNotification(
+    subscriptionId: String!
+  ): NotificationSubscriptionResult!
+
+  """
+  Create upload
+  """
+  upsertReport(
+    """
+    *Report Input* to be created or updated:
+    """
+    input: ReportInput!
+
+    """
+    *Action*: Can be one of the following values
+    `create`: Create new report
+    `replace`: Replace existing report
+    """
+    action: String!
+  ): Report
+}
+
+type NotificationSubscriptionResult {
+  deliveryReference: String!
+  message: String
+  subscriptionId: String
+}
+
+"""
+Page summary for a response to a query
+"""
+type PageSummary {
+  """
+  List of all the jurisdictions in the entire dataset matching the search criteria, not just this page.
+  """
+  jurisdictions: [String!]!
+
+  """
+  Total number of pages for the page size given
+  """
+  numberOfPages: Int!
+
+  """
+  Page number provided in the response
+  """
+  pageNumber: Int!
+
+  """
+  Page size of the items in the response matching the search criteria
+  """
+  pageSize: Int!
+
+  """
+  List of all the senderIds in the entire dataset matching the search criteria, not just this page.
+  """
+  senderIds: [String!]!
+
+  """
+  Total number of items that can be provided matching the search criteria
+  """
+  totalItems: Int!
+}
+
+"""
+Collection of undelivered uploads found
+"""
+type PendingUploadCounts {
+  """
+  Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
+  """
+  pendingUploads: [UndeliveredUpload!]!
+
+  """
+  Total number of undelivered uploads.
+  """
+  totalCount: Long!
+}
+
+"""
+Provides file processing counts
+"""
+type ProcessingCounts {
+  """
+  Status counts for the files found matching the search criteria
+  """
+  statusCounts: StatusCounts!
+
+  """
+  Total number of files found matching the search criteria
+  """
+  totalCounts: Long!
+}
+
+type Query {
+  getHealth: HealthCheck!
+
+  """
+  Returns all the reports associated with the provided upload ID.
+  """
+  getReports(
+    """
+    Upload ID to retrieve all the reports for.
+    """
+    uploadId: String!
+
+    """
+    Optional field to specify the field reports should be sorted by.  Available fields for sorting are: [`timestamp`].
+    """
+    reportsSortedBy: String
+
+    """
+    Optional sort order.  When `reportsSortedBy` is provided, the available options are `Ascending` or `Descending`, which defaults to `Ascending` if not provided.
+    """
+    sortOrder: SortOrder
+  ): [Report!]!
+
+  """
+  Returns the submission details for the provided upload ID.
+  """
+  getSubmissionDetails(
+    """
+    Upload ID to retrieve the submission details for.
+    """
+    uploadId: String!
+
+    """
+    Optional field to specify the field reports should be sorted by.  Available fields for sorting are: [`timestamp`].
+    """
+    reportsSortedBy: String
+
+    """
+    Optional sort order.  When `reportsSortedBy` is provided, the available options are `Ascending` or `Descending`, which defaults to `Ascending` if not provided.
+    """
+    sortOrder: SortOrder
+  ): SubmissionDetails!
+
+  """
+  Return list of reports based on ReportSearchParameters options
+  """
+  searchReports(params: ReportSearchParametersInput!): [Report!]!
+
+  """
+  Returns HL7v2 message counts using both a direct and an indirect counting method for the provided parameters
+  """
+  hl7DirectIndirectMessageCounts(
+    """
+    Data stream ID
+    """
+    dataStreamId: String!
+
+    """
+    Data stream route
+    """
+    dataStreamRoute: String!
+
+    """
+    Start date of the included data.  dateStart or daysInterval is required.
+    """
+    dateStart: String
+
+    """
+    End date of the search.  If not specified then all data up to now is included.
+    """
+    dateEnd: String
+
+    """
+    Number of days to include in the search before today.  If 0, then search for today only.
+    """
+    daysInterval: Int
+  ): HL7DirectIndirectMessageCounts!
+
+  """
+  Returns HL7v2 invalid message counts using both a direct and an indirect counting method for the provided parameters
+  """
+  hl7InvalidMessageCounts(
+    """
+    Data stream ID
+    """
+    dataStreamId: String!
+
+    """
+    Data stream route
+    """
+    dataStreamRoute: String!
+
+    """
+    Start date of the included data.  dateStart or daysInterval is required.
+    """
+    dateStart: String
+
+    """
+    End date of the search.  If not specified then all data up to now is included.
+    """
+    dateEnd: String
+
+    """
+    Number of days to include in the search before today.  If 0, then search for today only.
+    """
+    daysInterval: Int
+  ): HL7InvalidMessageCounts!
+
+  """
+  Returns HL7v2 invalid structure counts for the provided parameters
+  """
+  hl7InvalidStructureValidationCounts(
+    """
+    Data stream ID
+    """
+    dataStreamId: String!
+
+    """
+    Data stream route
+    """
+    dataStreamRoute: String!
+
+    """
+    Start date of the included data.  dateStart or daysInterval is required.
+    """
+    dateStart: String
+
+    """
+    End date of the search.  If not specified then all data up to now is included.
+    """
+    dateEnd: String
+
+    """
+    Number of days to include in the search before today.  If 0, then search for today only.
+    """
+    daysInterval: Int
+  ): HL7InvalidStructureValidationCounts!
+
+  """
+  Returns processing counts for the provided parameters
+  """
+  processingCounts(
+    """
+    Data stream ID
+    """
+    dataStreamId: String!
+
+    """
+    Data stream route
+    """
+    dataStreamRoute: String!
+
+    """
+    Start date of the included data.  dateStart or daysInterval is required.
+    """
+    dateStart: String
+
+    """
+    End date of the search.  If not specified then all data up to now is included.
+    """
+    dateEnd: String
+
+    """
+    Number of days to include in the search before today.  If 0, then search for today only.
+    """
+    daysInterval: Int
+  ): ProcessingCounts!
+
+  """
+  Returns detailed counts within each stage for each matching upload with the provided parameters
+  """
+  reportCountsWithParams(
+    """
+    Data stream ID
+    """
+    dataStreamId: String!
+
+    """
+    Data stream route
+    """
+    dataStreamRoute: String!
+
+    """
+    Start date of the included data.  dateStart or daysInterval is required.
+    """
+    dateStart: String
+
+    """
+    End date of the search.  If not specified then all data up to now is included.
+    """
+    dateEnd: String
+
+    """
+    Number of days to include in the search before today.  If 0, then search for today only.
+    """
+    daysInterval: Int
+    pageSize: Int
+    pageNumber: Int
+  ): AggregateReportCounts!
+
+  """
+  Returns detailed counts within each stage for the provided uploadId
+  """
+  reportCountsWithUploadId(
+    """
+    Upload ID
+    """
+    uploadId: String!
+  ): ReportCounts
+
+  """
+  Returns rolled up counts by stage for the provided parameters
+  """
+  rollupCountsByStage(
+    """
+    Data stream ID
+    """
+    dataStreamId: String!
+
+    """
+    Data stream route
+    """
+    dataStreamRoute: String!
+
+    """
+    Start date of the included data.  dateStart or daysInterval is required.
+    """
+    dateStart: String
+
+    """
+    End date of the search.  If not specified then all data up to now is included.
+    """
+    dateEnd: String
+
+    """
+    Number of days to include in the search before today.  If 0, then search for today only.
+    """
+    daysInterval: Int
+  ): [StageCounts!]!
+
+  """
+  Return all the dead-letter reports associated with the provided datastreamId, datastreamroute and timestamp date range
+  """
+  getDeadLetterReportsByDataStream(
+    dataStreamId: String!
+    dataStreamRoute: String!
+    startDate: String
+    endDate: String
+    daysInterval: Int
+  ): [ReportDeadLetter!]!
+
+  """
+  Return all the dead-letter reports associated with the provided uploadId
+  """
+  getDeadLetterReportsByUploadId(uploadId: String!): [ReportDeadLetter!]!
+
+  """
+  Return count of dead-letter reports associated with the provided datastreamId, (optional) datastreamroute and timestamp date range
+  """
+  getDeadLetterReportsCountByDataStream(
+    dataStreamId: String!
+    dataStreamRoute: String
+    startDate: String
+    endDate: String
+    daysInterval: Int
+  ): Int!
+
+  """
+  Return list of dead-letter reports based on ReportSearchParameters options
+  """
+  searchDeadLetterReports(
+    params: ReportDeadLetterSearchParametersInput!
+  ): [ReportDeadLetter!]!
+
+  """
+  Return various uploads statistics
+  """
+  getUploadStats(
+    """
+    Data stream ID
+    """
+    dataStreamId: String!
+
+    """
+    Data stream route
+    """
+    dataStreamRoute: String!
+
+    """
+    Start date of the included data.  dateStart or daysInterval is required.
+    """
+    dateStart: String
+
+    """
+    End date of the search.  If not specified then all data up to now is included.
+    """
+    dateEnd: String
+
+    """
+    Number of days to include in the search before today.  If 0, then search for today only.
+    """
+    daysInterval: Int
+  ): UploadStats!
+
+  """
+  Get the upload statuses for the given filter, sort, and pagination criteria
+  """
+  getUploads(
+    """
+    *Data Stream Id* Search by the provided Data Stream Id:
+    """
+    dataStreamId: String!
+
+    """
+    *Data Stream Route* Search by the provided Data Stream Route:
+    """
+    dataStreamRoute: String
+
+    """
+    *Start Date* is a Date Time value(Use ISO 8601 format: YYYY-MM-DDThhmmssZ). Sets the start date for the search results :
+    """
+    dateStart: String
+
+    """
+    *End Date* is a Date Time value(Use ISO 8601 format: YYYY-MM-DDThhmmssZ). Sets the end date for the search results :
+    """
+    dateEnd: String
+
+    """
+    *Page Size* is the number of results to be fetched per page:
+    """
+    pageSize: Int!
+
+    """
+    *Page Number* is specified to fetch the results associated with the respective page number:
+    """
+    pageNumber: Int!
+
+    """
+    *Sort By* can be specified as any one of the following values:
+    `fileName`: Sort By the fileName
+    `date`: Sort By the date
+    `dataStreamId`: Sort By the dataStreamId
+    `dataStreamRoute`: Sort By the dataStreamRoute
+    `status`: Sort By the status
+    If a value is provided that is not supported then a bad request response is returned.
+    """
+    sortBy: String
+
+    """
+    *Sort Order* can be specified as any one of the following values:
+    `asc`: Ascending order
+    `desc`: Descending order
+    If a value is provided that is not supported then a bad request response is returned.
+    """
+    sortOrder: String
+
+    """
+    *File Name* Search by the provided File Name:
+    """
+    fileName: String
+  ): UploadsStatus!
+}
+
+"""
+Contains Report content.
+"""
+type Report {
+  """
+  Content of the report.  If the report is JSON then the content will be shown as JSON.  Otherwise, the content is a base64 encoded string.
+  """
+  content: JSON
+
+  """
+  Indicates the content type of the content; e.g. JSON, XML
+  """
+  contentType: String
+
+  """
+  data
+  """
+  data: JSON
+
+  """
+  DataProducerId stated in the report; set to null if not applicable
+  """
+  dataProducerId: String
+
+  """
+  Data stream ID
+  """
+  dataStreamId: String
+
+  """
+  Data stream route
+  """
+  dataStreamRoute: String
+
+  """
+  Date/time of when the upload was first ingested into the data-exchange
+  """
+  dexIngestDateTime: DateTime
+
+  """
+  Identifier of the report recorded by the database
+  """
+  id: String
+
+  """
+  Jurisdiction report belongs to; set to null if not applicable
+  """
+  jurisdiction: String
+
+  """
+  Message metadata
+  """
+  messageMetadata: MessageMetadata
+
+  """
+  Unique report identifier
+  """
+  reportId: String
+
+  """
+  SenderId this report belongs to; set to null if not applicable
+  """
+  senderId: String
+
+  """
+  Stage info
+  """
+  stageInfo: StageInfo
+
+  """
+  tags
+  """
+  tags: JSON
+
+  """
+  Datestamp the report was recorded in the database
+  """
+  timestamp: DateTime
+
+  """
+  Upload identifier this report belongs to
+  """
+  uploadId: String
+}
+
+"""
+Report counts for a given upload
+"""
+type ReportCounts {
+  """
+  Data stream ID
+  """
+  dataStreamId: String
+
+  """
+  Data stream route
+  """
+  dataStreamRoute: String
+
+  """
+  Processing stages this upload went through
+  """
+  stages: JSON!
+
+  """
+  Earliest timestamp associated with this upload
+  """
+  timestamp: DateTime
+
+  """
+  Upload ID of the report counts
+  """
+  uploadId: String
+}
+
+"""
+Contains Report DeadLetter content.
+"""
+type ReportDeadLetter {
+  """
+  Content of the report.  If the report is JSON then the content will be shown as JSON.  Otherwise, the content is a base64 encoded string.
+  """
+  content: JSON
+
+  """
+  Indicates the content type of the content; e.g. JSON, XML
+  """
+  contentType: String
+
+  """
+  Optional data associated with this report
+  """
+  data: JSON
+
+  """
+  DataProducerId stated in the report; set to null if not applicable
+  """
+  dataProducerId: String
+
+  """
+  Data stream ID
+  """
+  dataStreamId: String
+
+  """
+  Data stream route
+  """
+  dataStreamRoute: String
+
+  """
+  List of reasons the report was sent to dead-letter
+  """
+  deadLetterReasons: [String!]
+
+  """
+  Date/time of when the upload was first ingested into the data-exchange
+  """
+  dexIngestDateTime: DateTime
+
+  """
+  Disposition type of the report
+  """
+  dispositionType: String
+
+  """
+  Identifier of the report recorded by the database
+  """
+  id: String
+
+  """
+  Jurisdiction report belongs to; set to null if not applicable
+  """
+  jurisdiction: String
+
+  """
+  Metadata for the message (if applicable) associated with this report
+  """
+  messageMetadata: MessageMetadata
+
+  """
+  Unique report identifier
+  """
+  reportId: String
+
+  """
+  SenderId this report belongs to; set to null if not applicable
+  """
+  senderId: String
+
+  """
+  Describes the stage that is providing this report
+  """
+  stageInfo: StageInfo
+
+  """
+  Optional tag(s) associated with this report
+  """
+  tags: JSON
+
+  """
+  Date/time of when the report was recorded in the database
+  """
+  timestamp: DateTime
+
+  """
+  Upload identifier this report belongs to
+  """
+  uploadId: String
+
+  """
+  Schemas used to validate the report
+  """
+  validationSchemas: [String!]
+}
+
+"""
+Parameters for searching for reports
+"""
+input ReportDeadLetterSearchParametersInput {
+  """
+  Array of report IDs to search for and retrieve
+  """
+  ids: [String!]!
+}
+
+"""
+Input type for creating or updating a report
+"""
+input ReportInput {
+  """
+  Content of the report. If the report is JSON then the content will be a map, otherwise, it will be a string
+  """
+  content: String
+
+  """
+  Indicates the content type of the content; e.g. JSON, XML
+  """
+  contentType: String
+
+  """
+  Data
+  """
+  data: [DataInput!]
+
+  """
+  Data Producer ID stated in the report; set to null if not applicable
+  """
+  dataProducerId: String
+
+  """
+  Data stream ID
+  """
+  dataStreamId: String
+
+  """
+  Data stream route
+  """
+  dataStreamRoute: String
+
+  """
+  Date/time of when the upload was first ingested into the data-exchange
+  """
+  dexIngestDateTime: DateTime
+
+  """
+  Identifier of the report recorded by the database
+  """
+  id: String
+
+  """
+  Jurisdiction report belongs to; set to null if not applicable
+  """
+  jurisdiction: String
+
+  """
+  Message metadata
+  """
+  messageMetadata: MessageMetadataInput
+
+  """
+  Unique report identifier
+  """
+  reportId: String
+
+  """
+  Sender ID this report belongs to; set to null if not applicable
+  """
+  senderId: String
+
+  """
+  Stage info
+  """
+  stageInfo: StageInfoInput
+
+  """
+  Tags
+  """
+  tags: [TagInput!]
+
+  """
+  Timestamp when the report was recorded in the database
+  """
+  timestamp: DateTime
+
+  """
+  Upload identifier this report belongs to
+  """
+  uploadId: String
+}
+
+"""
+Parameters for searching for reports
+"""
+input ReportSearchParametersInput {
+  """
+  Array of report IDs to search for and retrieve
+  """
+  ids: [String!]!
+}
+
+enum SortOrder {
+  Ascending
+  Descending
+}
+
+type StageCounts {
+  counts: Int
+  schema_name: String
+  schema_version: String
+  stageName: String
+}
+
+"""
+Contains information about report service, action, version and whether it was a success or failure and the processing start and end times
+"""
+type StageInfo {
+  """
+  Stage name a.k.a action
+  """
+  action: String
+
+  """
+  End processing time
+  """
+  endProcessingTime: DateTime
+
+  """
+  Issues array
+  """
+  issues: [Issue!]
+
+  """
+  Service
+  """
+  service: String
+
+  """
+  Start processing time
+  """
+  startProcessingTime: DateTime
+
+  """
+  Status- SUCCESS OR FAILURE
+  """
+  status: Status
+
+  """
+  Version
+  """
+  version: String
+}
+
+"""
+Input type for stage info
+"""
+input StageInfoInput {
+  """
+  Stage name a.k.a action
+  """
+  action: String
+
+  """
+  End processing time
+  """
+  endProcessingTime: DateTime
+
+  """
+  Issues array
+  """
+  issues: [IssueInput!]
+
+  """
+  Service
+  """
+  service: String
+
+  """
+  Start processing time
+  """
+  startProcessingTime: DateTime
+
+  """
+  Status- SUCCESS OR FAILURE
+  """
+  status: Status
+
+  """
+  Version
+  """
+  version: String
+}
+
+enum Status {
+  """
+  Success
+  """
+  SUCCESS
+
+  """
+  Failure
+  """
+  FAILURE
+}
+
+"""
+Counts by current state
+"""
+type StatusCounts {
+  """
+  Number of files that failed upload
+  """
+  failed: CountsDetails!
+
+  """
+  Number of files that were successfully uploaded
+  """
+  uploaded: CountsDetails!
+
+  """
+  Number of files in the process of uploading
+  """
+  uploading: CountsDetails!
+}
+
+"""
+Contains upload details
+"""
+type SubmissionDetails {
+  """
+  DataProducerId mentioned in the report
+  """
+  dataProducerId: String
+
+  """
+  DataStreamId in the report
+  """
+  dataStreamId: String
+
+  """
+  DataStreamRoute in the report
+  """
+  dataStreamRoute: String
+
+  """
+  Date/time of when the report was recorded in the database
+  """
+  dexIngestDateTime: DateTime
+
+  """
+  Locate first found report with service, 'upload' and action 'upload-status' for the given upload ID and report the filename.
+  """
+  filename: String
+
+  """
+  Jurisdiction stated in the report
+  """
+  jurisdiction: String
+
+  """
+  Find report with most recent timestamp for the upload ID and report the action.
+  """
+  lastAction: String
+
+  """
+  Find report with most recent timestamp for the upload ID and report the service.
+  """
+  lastService: String
+
+  """
+  Array of the raw reports provided for this upload ID.
+  """
+  reports: [Report!]
+
+  """
+  SenderId mentioned in the report
+  """
+  senderId: String
+
+  """
+  Rollup status [DELIVERED, FAILED, PROCESSING]
+  """
+  status: String
+
+  """
+  Upload Id of the report
+  """
+  uploadId: String
+}
+
+type SubscriptionResult {
+  message: String
+  status: Boolean
+  subscription_id: String
+  timestamp: Long
+}
+
+"""
+Input type for tags
+"""
+input TagInput {
+  """
+  Tag key
+  """
+  key: String!
+
+  """
+  Tag value
+  """
+  value: String!
+}
+
+"""
+Collection of undelivered found
+"""
+type UndeliveredUpload {
+  """
+  Filename of the file that is not delivered.
+  """
+  filename: String
+
+  """
+  UploadId of the file that is not delivered.
+  """
+  uploadId: String
+}
+
+"""
+Collection of undelivered uploads found
+"""
+type UndeliveredUploadCounts {
+  """
+  Total number of undelivered uploads.
+  """
+  totalCount: Long!
+
+  """
+  Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
+  """
+  undeliveredUploads: [UndeliveredUpload!]!
+}
+
+"""
+Collection of various uploads statistics
+"""
+type UploadStats {
+  """
+  Total number of uploads that were stopped by the upload api due to one or more issues with the metadata received.
+  """
+  badMetadataCount: Long!
+
+  """
+  Number of uploads that have been completed.  This means, not only did the upload start, but according to the upload status reports we have received 100% of the expected chunks.
+  """
+  completedUploadsCount: Long!
+
+  """
+  Provides a list of all the duplicate filenames that were uploaded and how many.
+  """
+  duplicateFilenames: [DuplicateFilenameCounts!]!
+
+
+  """
+  Provides a list of all the uploads that are pending. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
+  """
+  pendingUploads: PendingUploadCounts!
+
+  """
+  Provides a list of all the uploads that have not been delivered. This means, the upload started, but according to the upload status reports we did not receive 100% of the expected chunks.
+  """
+  undeliveredUploads: UndeliveredUploadCounts!
+
+  """
+  The total number of unique upload ids found for that day.  However, this does not mean that all those are successful uploads.  This will include any uploads that fail out due to retries on client side.
+  """
+  uniqueUploadIdsCount: Long!
+
+  """
+  Number of upload ids that made it past the metadata verify step; these are uploads that actually reported at least one status update.
+  """
+  uploadsWithStatusCount: Long!
+}
+
+type UploadStatus {
+  """
+  The size of the data already uploaded to the application for the corresponding uploadId
+  """
+  bytesUploaded: Long
+
+  """
+  The dataProducerId from which the file was sent
+  """
+  dataProducerId: String
+
+  """
+  The name of the file associated with the corresponding uploadId
+  """
+  fileName: String
+
+  """
+  The size of the file associated with the corresponding uploadId
+  """
+  fileSizeBytes: Long
+
+  """
+  A List of all the issues associated with the corresponding uploadId
+  """
+  issues: [String!]
+
+  """
+  The jurisdiction from which the file was sent
+  """
+  jurisdiction: String
+
+  """
+  A Map of all the metadata associated with the corresponding uploadId
+  """
+  metadata: JSON
+
+  """
+  Percentage complete for the corresponding uploadId
+  """
+  percentComplete: Float
+
+  """
+  The senderId of the unit/organization from which the file was sent
+  """
+  senderId: String
+
+  """
+  The status of upload for the corresponding uploadId
+  """
+  status: String
+
+  """
+  The amount of time it took for the respective uploadId
+  """
+  timeUploadingSec: Float
+
+  """
+  The timestamp value associated with the corresponding uploadId. Value is of type, OffsetDateTime
+  """
+  timestamp: DateTime
+
+  """
+  The uploadId
+  """
+  uploadId: String
+}
+
+"""
+Upload statuses for the provided parameters
+"""
+type UploadsStatus {
+  """
+  A list of all the Upload status items matching the Search Criteria
+  """
+  items: [UploadStatus!]!
+
+  """
+  Page summary for the upload statuses returned from the search
+  """
+  summary: PageSummary!
+}

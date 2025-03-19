@@ -5,3 +5,9 @@ type ServiceHealthResp struct {
 	Status      string `json:"status"`
 	HealthIssue string `json:"health_issue"`
 } // .ServiceHealthResp
+
+func (shr ServiceHealthResp) BuildErrorResponse(err error) ServiceHealthResp {
+	shr.Status = STATUS_DOWN
+	shr.HealthIssue = err.Error()
+	return shr
+}

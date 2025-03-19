@@ -1,176 +1,86 @@
 [
   {
-    "meta_ext_event": "testevent1",
-    "filename": "dex-smoke-test"
+    "manifest": {
+      "data_stream_id": "covid-all-monthly-vaccination",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    }
   },
   {
-    "meta_destination_id": "dextesting",
-    "filename": "dex-smoke-test"
+    "manifest": {
+      "data_stream_id": "influenza-vaccination",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    }
   },
   {
-    "meta_destination_id": "dextesting",
-    "meta_ext_event": "testevent1"
+    "manifest": {
+      "data_stream_id": "routine-immunization",
+      "data_stream_route": "other",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    }
   },
   {
-    "version": "2.0",
-    "data_stream_id": "celr",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "SMOKE",
-    "data_producer_id": "smoke-test-data-producer",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_file_timestamp": "test-timestamp",
-    "meta_ext_uploadid": "test-upload-id",
-    "meta_ext_source": "test-src",
-    "meta_ext_filestatus": "test-file-status"
+    "manifest": {
+      "data_stream_id": "rsv-prevention",
+      "data_stream_route": "csv",
+      "received_filename": "dex-smoke-test",
+      "jurisdiction": "XXA",
+      "data_producer_id": "XXA",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_submissionperiod": "smoke submission period",
+      "meta_ext_sourceversion": "V2022-12-31",
+      "meta_username": "test-username"
+    }
   },
   {
-    "version": "2.0",
-    "data_stream_id": "celr",
-    "data_stream_route": "hl7v2",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "SMOKE",
-    "data_producer_id": "smoke-test-data-producer",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_file_timestamp": "test-timestamp",
-    "meta_ext_uploadid": "test-upload-id",
-    "meta_ext_source": "test-src",
-    "meta_ext_filestatus": "test-file-status"
+    "manifest": {
+      "data_stream_id": "pulsenet",
+      "data_stream_route": "localsequencefile",
+      "received_filename": "dex-smoke-test",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction"
+    }
   },
   {
-    "version": "2.0",
-    "data_stream_id": "covid-all-monthly-vaccination",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "AKA",
-    "data_producer_id": "AKA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
+    "manifest": {
+      "data_stream_id": "dextesting",
+      "data_stream_route": "testevent1",
+      "received_filename": "dex-smoke-test",
+      "data_producer_id": "test-producer-id",
+      "jurisdiction": "test-jurisdiction"
+    }
   },
   {
-    "version": "2.0",
-    "data_stream_id": "covid-bridge-vaccination",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "AKA",
-    "data_producer_id": "AKA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "influenza-vaccination",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "AKA",
-    "data_producer_id": "AKA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "routine-immunization",
-    "data_stream_route": "other",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "AKA",
-    "data_producer_id": "AKA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "rsv-prevention",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "AKA",
-    "data_producer_id": "AKA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_submissionperiod": "smoke submission period",
-    "meta_ext_sourceversion": "V2022-12-31",
-    "meta_username": "test-username"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "ehdi",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "RI",
-    "data_producer_id": "RI-PHA",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_file_timestamp": "test-timestamp",
-    "meta_ext_uploadid": "test-upload-id",
-    "meta_ext_source": "test-src",
-    "meta_ext_filestatus": "test-file-status"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "nrss",
-    "data_stream_route": "csv",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction",
-    "received_filename": "dex-smoke-test"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "nrss",
-    "data_stream_route": "hl7v2",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction",
-    "received_filename": "dex-smoke-test",
-    "meta_ext_uploadid": "test-upload-id",
-    "meta_ext_filestatus": "test-file-status",
-    "meta_ext_file_timestamp": "test-file-timestamp",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_source": "smoke test source"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "eicr",
-    "data_stream_route": "fhir",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction",
-    "received_filename": "dex-smoke-test",
-    "meta_ext_objectkey": "test-obj-key",
-    "meta_ext_file_timestamp": "test-file-timestamp"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "ed3n",
-    "data_stream_route": "other",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "MA",
-    "data_producer_id": "MA-NBS",
-    "nbs_data_type": "MOLECULAR",
-    "specimen_id": "blood test specimen",
-    "patient_id": "",
-    "patient_race": "White",
-    "patient_ethnicity": "Hispanic",
-    "patient_sex": "M",
-    "instrument": "test instrument",
-    "variant_caller": "test variant caller"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "abcs",
-    "data_stream_route": "csv",
-    "received_filename": "dex-smoke-test",
-    "jurisdiction": "CA",
-    "data_producer_id": "CA-ABCs"
-  },
-  {
-    "version": "2.0",
-    "data_stream_id": "pulsenet",
-    "data_stream_route": "localsequencefile",
-    "received_filename": "dex-smoke-test",
-    "data_producer_id": "test-producer-id",
-    "jurisdiction": "test-jurisdiction"
+    "manifest": {
+      "data_stream_id": "generic-immunization",
+      "data_stream_route": "csv",
+      "data_producer_id": "XXA",
+      "jurisdiction": "XXA",
+      "received_filename": "dex-smoke-test",
+      "meta_ext_objectkey": "test-obj-key",
+      "meta_ext_file_timestamp": "test-file-timestamp",
+      "meta_username": "test-user",
+      "meta_ext_sourceversion": "V2024-09-04",
+      "meta_ext_submissionperiod": "test-submissionperiod"
+    }
   }
 ]

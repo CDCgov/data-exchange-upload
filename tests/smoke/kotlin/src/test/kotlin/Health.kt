@@ -1,32 +1,29 @@
 import dex.DexUploadClient
 import org.testng.Assert
-import org.testng.annotations.BeforeTest
 import org.testng.annotations.Test
 import util.Constants
 import util.EnvConfig
+import util.TestFile
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import model.HealthResponse
 
 @Test
 class Health {
     private val dexUploadClient = DexUploadClient(EnvConfig.UPLOAD_URL)
-    private lateinit var authToken: String
-
-    @BeforeTest(groups = [Constants.Groups.HEALTH_CHECK])
-    fun beforeTest() {
-        authToken = dexUploadClient.getToken(EnvConfig.SAMS_USERNAME, EnvConfig.SAMS_PASSWORD)
-    }
 
     @Test(groups = [Constants.Groups.HEALTH_CHECK])
     fun shouldGetHealthCheck() {
-        val expectedDependentServices = arrayOf("Azure Service Bus", "Tus storage", "Redis Locker")
-        val healthCheck = dexUploadClient.getHealth(authToken)
+        val mapper = jacksonObjectMapper()
+        val healthcheckFile = TestFile.getResourceFile(EnvConfig.HEALTHCHECK_CASE).readBytes()
+        val expectedHealthCheck : HealthResponse = mapper.readValue(healthcheckFile)
 
-        Assert.assertNotNull(healthCheck)
-        Assert.assertEquals(healthCheck.status, "UP")
-        Assert.assertEquals(healthCheck.services.size, expectedDependentServices.size, "Unexpected number of dependent services: ${healthCheck.services}")
+        val actualHealthCheck = dexUploadClient.getHealth()
+        
+        val actualHealthCheckServices = actualHealthCheck.services.sortedBy { it.service }
+        val expectedHealthCheckServices = expectedHealthCheck.services.sortedBy { it.service }
 
-        healthCheck.services.forEach {
-            Assert.assertTrue(expectedDependentServices.contains(it.service))
-            Assert.assertEquals(it.status, "UP")
-        }
+        Assert.assertEquals(actualHealthCheck.status, expectedHealthCheck.status, "Actual healthcheck status is not the same as the expected status")
+        Assert.assertEquals(actualHealthCheckServices, expectedHealthCheckServices, "Actual healthcheck services do not match expected services")
     }
 }

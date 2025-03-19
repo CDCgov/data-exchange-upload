@@ -1,18 +1,54 @@
 import { PlaywrightTestConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.UI_URL ?? 'http://localhost:8081';
+const testReportDir = process.env.TEST_REPORTS_DIR ?? './test-reports';
+const jsonReportFilename = `${testReportDir}/${process.env.JSON_REPORT_FILE ?? 'test-report.json'}`;
+const htmlReportLink = process.env.HTML_REPORT_DIR ?? 'html';
+const htmlReportDir = `${testReportDir}/${htmlReportLink}`;
+const summaryJsonReportFilename = `${testReportDir}/${process.env.SUMMARY_JSON_REPORT_FILE ?? 'summary-report.json'}`;
+const testTitle = process.env.TEST_TITLE ?? 'Playwright Test Report';
+
 const config: PlaywrightTestConfig = {
   // Specify the directory where your tests are located
   testDir: './test',
 
+  // Artifacts folder where screenshots, videos, and traces are stored.
+  outputDir: './test-output',
+
   // Use this to change the number of browsers/contexts to run in parallel
   // Setting this to 1 will run tests serially which can help if you're seeing issues with parallel execution
-  workers: 1,
+  // Opt out of parallel tests on CI.
+  workers: process.env.CI ? 1 : 4,
 
-  // Configure retries for flaky tests
+  // Fail the build on CI if you accidentally left test.only in the source code.
+  forbidOnly: !!process.env.CI,
+
+  // If a test fails, retry it additional 2 times
+  // Retry on CI only.
   retries: 0,
 
   // Configure test timeout
   timeout: 30000,
+
+  // Reporter to use
+  reporter: process.env.CI
+    ? [
+        ['github'],
+        ['html', { outputFolder: htmlReportDir, open: 'never' }],
+        [
+          './custom-reporter/index.ts',
+          {
+            title: testTitle,
+            htmlReportLink: `./${htmlReportLink}`,
+            outputFilename: summaryJsonReportFilename
+          }
+        ]
+      ]
+    : [
+        ['list', { printSteps: true }],
+        ['json', { outputFile: jsonReportFilename }],
+        ['html', { outputFolder: htmlReportDir, open: 'never' }]
+      ],
 
   // Specify browser to use
   use: {
@@ -21,11 +57,14 @@ const config: PlaywrightTestConfig = {
 
     // Specify browser launch options
     launchOptions: {
-      headless: true, // Set to false if you want to see the browser UI
+      headless: true // Set to false if you want to see the browser UI
     },
 
     // Specify viewport size
     viewport: { width: 1280, height: 720 },
+
+    // Specify the server url
+    baseURL
 
     // More options can be set here
   },
@@ -38,13 +77,10 @@ const config: PlaywrightTestConfig = {
   projects: [
     {
       name: 'Desktop Chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
+      use: { ...devices['Desktop Chrome'] }
+    }
     // More projects can be configured here
-  ],
-
-  // Configure reporter here. 'dot', 'list', 'junit', etc.
-  reporter: 'dot',
+  ]
 };
 
 export default config;

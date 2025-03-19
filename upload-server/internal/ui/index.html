@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="/assets/dex_logo.svg" />
+    <link rel="stylesheet" type="text/css" href="/assets/index.css" />
+    <title>DEX Upload</title>
+  </head>
+
+  <body>
+    {{template "navbar" .Navbar}}
+    <main id="main" class="upload-container">
+      <h1>Welcome to DEX Upload</h1>
+      <h2>Start the upload process by entering a data stream and route.</h2>
+      <div class="form-container">
+        <form method="GET" action="/manifest">
+          <div class="input-container">
+            <label for="data_stream_id">Data Stream</label>
+            <input type="text" id="data_stream_id" name="data_stream_id" required />
+          </div>
+          <div class="input-container">
+            <label for="data_stream_route">Data Stream Route</label>
+            <input
+              type="text"
+              id="data_stream_route"
+              name="data_stream_route"
+              required
+            />
+          </div>
+          <div class="submit-button">
+            <button type="submit">Next</button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>

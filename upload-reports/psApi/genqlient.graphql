@@ -1,0 +1,23 @@
+query GetUploadStats($datastream: String!, $route: String!, $dateStart: String, $dateEnd: String) {
+    getUploadStats(
+        dataStreamId: $datastream
+        dataStreamRoute: $route
+        dateStart: $dateStart
+        dateEnd: $dateEnd
+    )  {
+        completedUploadsCount
+        pendingUploads {
+            totalCount
+            pendingUploads {
+                filename
+                uploadId
+            }
+        }
+        undeliveredUploads {
+            totalCount
+            undeliveredUploads {
+                filename
+                uploadId
+            }
+        }
+    }}

@@ -6,6 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
+	"github.com/tus/tusd/v2/pkg/s3store"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
@@ -15,7 +18,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/filestore"
 )
 
-func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Checkable, error) {
+func GetDataStore(ctx context.Context, appConfig appconfig.AppConfig) (handlertusd.Store, health.Checkable, error) {
 	// ------------------------------------------------------------------
 	// Load Az dependencies, needed for the DEX handler paths
 	// ------------------------------------------------------------------
@@ -52,6 +55,23 @@ func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Chec
 		store.Container = appConfig.AzureUploadContainer
 		return store, hc, nil
 	} // .if
+	if appConfig.S3Connection != nil {
+		client, err := stores3.NewWithEndpoint(ctx, appConfig.S3Connection.Endpoint)
+		if err != nil {
+			return nil, nil, err
+		}
+		hc := &stores3.S3HealthCheck{
+			Client:     client,
+			BucketName: appConfig.S3Connection.BucketName,
+		}
+		store := s3store.New(appConfig.S3Connection.BucketName, client)
+		store.ObjectPrefix = appConfig.TusUploadPrefix
+
+		logger.Info("using S3 bucket", "bucket", appConfig.S3Connection.BucketName)
+		return &stores3.S3Store{
+			Store: store,
+		}, hc, nil
+	}
 
 	// Create a new FileStore instance which is responsible for
 	// storing the uploaded file on disk in the specified directory.
@@ -60,11 +80,10 @@ func GetDataStore(appConfig appconfig.AppConfig) (handlertusd.Store, health.Chec
 	// a remote FTP server, you can implement your own storage backend
 	// by implementing the tusd.DataStore interface.
 	path := appConfig.LocalFolderUploadsTus
-	path = filepath.Join(path, appConfig.TusUploadPrefix)
 
 	return filestore.FileStore{
-		Path: path,
-	}, &FileStoreHealthCheck{path: appConfig.LocalFolderUploadsTus}, nil // .store
+		Path: filepath.Join(path, appConfig.TusUploadPrefix),
+	}, &FileStoreHealthCheck{path: path}, nil // .store
 }
 
 type FileStoreHealthCheck struct {

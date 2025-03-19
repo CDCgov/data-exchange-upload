@@ -2,68 +2,55 @@ package cli
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
+	"fmt"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/postprocessing"
-	"sync"
 )
 
-func MakeEventSubscriber(appConfig appconfig.AppConfig) event.Subscribable {
-	var sub event.Subscribable
-	sub = &event.MemorySubscriber{}
+func NewEventSubscriber[T event.Identifiable](ctx context.Context, appConfig appconfig.AppConfig) (event.Subscribable[T], error) {
+	var sub event.Subscribable[T]
+	c, err := event.GetChannel[T]()
+	if err != nil {
+		return nil, err
+	}
+	sub = &event.MemorySubscriber[T]{
+		Chan: c,
+	}
+
+	if appConfig.SQSSubscriberConnection != nil {
+		arn := appConfig.SQSSubscriberConnection.EventArn
+		batchMax := appConfig.SQSSubscriberConnection.MaxMessages
+		if batchMax == 0 {
+			batchMax = event.MaxMessages
+		}
+		maxRetries := appConfig.SQSSubscriberConnection.MaxRetries
+		if maxRetries == 0 {
+			maxRetries = 5
+		}
+		s, err := event.NewSQSSubscriber[T](ctx, arn, batchMax, maxRetries)
+		if err != nil {
+			return s, err
+		}
+		topicARN := appConfig.SQSSubscriberConnection.TopicArn
+		if err := s.Subscribe(ctx, topicARN); err != nil {
+			return s, fmt.Errorf("arn: %s, %w", topicARN, err)
+		}
+		health.Register(s)
+		return s, nil
+
+	}
 
 	if appConfig.SubscriberConnection != nil {
-		cred := azcore.NewKeyCredential(appConfig.SubscriberConnection.AccessKey)
-		client, err := aznamespaces.NewReceiverClientWithSharedKeyCredential(appConfig.PublisherConnection.Endpoint, appConfig.PublisherConnection.Topic, appConfig.PublisherConnection.Subscription, cred, nil)
+		sub, err := event.NewAzureSubscriber[T](ctx, appConfig.SubscriberConnection.ConnectionString, appConfig.SubscriberConnection.Topic, appConfig.SubscriberConnection.Subscription, appConfig.SubscriberConnection.MaxMessages)
 		if err != nil {
-			logger.Error("failed to configure azure receiver", "error", err)
-		}
-		sub = &event.AzureSubscriber{
-			Client: client,
-			Config: *appConfig.SubscriberConnection,
+			return nil, err
 		}
 
 		health.Register(sub)
+		return sub, nil
 	}
 
-	return sub
-}
-
-func SubscribeToEvents(ctx context.Context, sub event.Subscribable) {
-	for {
-		var wg sync.WaitGroup
-		events, err := sub.GetBatch(ctx, 5)
-		if err != nil {
-			logger.Error("failed to get event batch", "error", err)
-			continue
-		}
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			for _, e := range events {
-				wg.Add(1)
-				go func(e event.FileReady) {
-					defer wg.Done()
-					err := postprocessing.ProcessFileReadyEvent(ctx, e)
-					if err != nil {
-						logger.Error("failed to process event", "event", e, "error", err)
-						sub.HandleError(ctx, e, err)
-						return
-					}
-					err = sub.HandleSuccess(ctx, e)
-					if err != nil {
-						logger.Error("failed to acknowledge event", "event", e, "error", err)
-						sub.HandleError(ctx, e, err)
-						return
-					}
-
-				}(e)
-			}
-			wg.Wait()
-		}
-	}
+	return sub, nil
 }

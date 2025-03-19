@@ -1,45 +1,41 @@
 package postprocessing
 
 import (
+	"context"
+	"log/slog"
+
+	"fmt"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	evt "github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func RouteAndDeliverHook(p evt.Publisher) func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
+func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
 	return func(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+		ctx := context.TODO()
 		id := event.Upload.ID
-		//put a message on a queue system
-		//the message should have the tuid and the manifest
-		//a deliverer writes the file with the manifest as the files metadata
-
-		// should eventually take a tuid and that's it
-		// why don't we just do this n times, once internal, once to edav, once to routing (whatever the number of targets is?)
-		var targets []string
 		meta := event.Upload.MetaData
 		if resp.ChangeFileInfo.MetaData != nil {
 			meta = resp.ChangeFileInfo.MetaData
 		}
 
-		// Load config from metadata.
-		path, err := metadata.GetConfigIdentifierByVersion(meta)
-		if err != nil {
-			return resp, err
+		routeGroup, ok := delivery.FindGroupFromMetadata(meta)
+		if !ok {
+			return resp, fmt.Errorf("no routing group found for metadata %+v", meta)
 		}
-		config, err := metadata.Cache.GetConfig(event.Context, path)
-		if err != nil {
-			return resp, err
-		}
-		targets = append(targets, config.Copy.Targets...)
 
-		for _, target := range targets {
-			e := evt.NewFileReadyEvent(id, meta, target)
-			err := p.Publish(event.Context, e)
+		for _, target := range routeGroup.DeliveryTargets {
+			path, err := delivery.GetDeliveredFilename(ctx, id, target.PathTemplate, meta)
 			if err != nil {
 				return resp, err
 			}
-			logger.Info("published event", "event", e)
+			e := evt.NewFileReadyEvent(id, meta, path, target.Name)
+			if err := evt.FileReadyPublisher.Publish(ctx, e); err != nil {
+				return resp, err
+			}
+			slog.Info("published event", "event", e, "uploadId", id)
 		}
 		return resp, nil
 	}

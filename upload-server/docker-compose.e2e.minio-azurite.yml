@@ -1,0 +1,60 @@
+networks:
+  e2e-minio-azurite-network:
+
+services:
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    hostname: azurite
+    networks:
+      - e2e-minio-azurite-network
+  minio:
+    image: quay.io/minio/minio
+    hostname: minio
+    volumes:
+      - ./configs/local/minio:/data
+    command: server /data --console-address :8001 --address :8000
+    networks:
+      - e2e-minio-azurite-network
+  upload-server:
+    image: golang:alpine
+    container_name: upload-server-minio-azurite
+    volumes:
+      - .:/code
+      - ../upload-configs:/upload-configs
+    working_dir: /code
+    environment:
+      - UI_SERVER_EXTERNAL_HOST=upload-server-minio-azurite:8080
+      - UI_SERVER_INTERNAL_HOST=upload-server-minio-azurite:8080
+      - S3_ENDPOINT=http://minio:8000
+      - S3_BUCKET_NAME=test-bucket
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=minioadmin
+      - AWS_SECRET_ACCESS_KEY=minioadmin
+      - DEX_MANIFEST_CONFIG_FOLDER_NAME=upload-configs
+      - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/azurite_destinations.yml
+      - AZURITE_KEY=${AZURITE_STORAGE_KEY}
+    command: /bin/sh -c "./run-server.sh"
+    networks:
+      - e2e-minio-azurite-network
+    depends_on:
+      - azurite
+      - minio
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.48.0-focal
+    container_name: playwright-minio-azurite
+    volumes:
+      - ../tests/smoke/playwright:/playwright
+      - /playwright/node_modules
+    working_dir: /playwright
+    environment:
+      - CI
+      - SERVER_URL=http://upload-server-minio-azurite:8080
+      - UI_URL=http://upload-server-minio-azurite:8081
+      - TEST_REPORTS_DIR=/playwright/test-reports
+      - HTML_REPORT_DIR=${HTML_REPORT_DIR:-aws-to-azure-html}
+      - JSON_REPORT_FILE=${JSON_REPORT_FILE:-aws-to-azure-report.json}
+      - SUMMARY_JSON_REPORT_FILE=${SUMMARY_JSON_REPORT_FILE:-aws-to-azure-summary.json}
+      - TEST_TITLE=${TEST_TITLE:-E2E AWS -> Azure Tests}
+    command: npm run test:docker
+    networks:
+      - e2e-minio-azurite-network

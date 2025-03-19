@@ -25,6 +25,7 @@ func (ph *PrebuiltHook) InvokeHook(req tusHooks.HookRequest) (res tusHooks.HookR
 	resp := tusHooks.HookResponse{}
 	for _, hf := range hookFuncs {
 		resp, err = hf(req.Event, resp)
+
 		// Return early if we got an error.
 		if err != nil {
 			return resp, err
@@ -43,5 +44,5 @@ func (ph *PrebuiltHook) Register(t tusHooks.HookType, hookFuncs ...HookHandlerFu
 	if ph.hookMapping == nil {
 		ph.hookMapping = map[tusHooks.HookType][]HookHandlerFunc{}
 	}
-	ph.hookMapping[t] = hookFuncs
+	ph.hookMapping[t] = append(ph.hookMapping[t], hookFuncs...)
 }

@@ -7,57 +7,21 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/info"
 	"github.com/eventials/go-tus"
 )
 
 type testCase struct {
-	metadata tus.Metadata
-	err      error
+	metadata   tus.Metadata
+	err        error
+	deliveries []info.FileDeliveryStatus
 }
 
 var Cases = map[string]testCase{
 	"good": {
 		tus.Metadata{
-			"meta_destination_id": "dextesting",
-			"meta_ext_event":      "testevent1",
-		},
-		nil,
-	},
-	"missing meta_destination_id": {
-		tus.Metadata{
-			"bad_key":        "dextesting",
-			"meta_ext_event": "testevent1",
-		},
-		tus.ClientError{
-			Code: 400,
-			Body: []byte("meta_destination_id not found in manifest"),
-		},
-	},
-	"missing meta_ext_event": {
-		tus.Metadata{
-			"meta_destination_id": "dextesting",
-			"bad_key":             "testevent1",
-		},
-		tus.ClientError{
-			Code: 400,
-			Body: []byte("meta_ext_event not found in manifest"),
-		},
-	},
-	"unkown meta_ext_event": {
-		tus.Metadata{
-			"meta_destination_id": "dextesting",
-			"meta_ext_event":      "nonsense",
-		},
-		tus.ClientError{
-			Code: 400,
-			Body: []byte("configuration not found"),
-		},
-	},
-	"v2 good": {
-		tus.Metadata{
-			"version":           "2.0",
 			"data_stream_id":    "dextesting",
 			"data_stream_route": "testevent1",
 			"sender_id":         "test",
@@ -66,59 +30,39 @@ var Cases = map[string]testCase{
 			"received_filename": "test",
 		},
 		nil,
-	},
-	"daart good": {
-		tus.Metadata{
-			"meta_destination_id":    "daart",
-			"meta_ext_event":         "hl7",
-			"original_filename":      "test",
-			"message_type":           "ELR",
-			"route":                  "DAART",
-			"reporting_jurisdiction": "test",
-		},
-		nil,
-	},
-	"daart bad": {
-		tus.Metadata{
-			"meta_destination_id":    "daart",
-			"meta_ext_event":         "hl7",
-			"original_filename":      "test",
-			"message_type":           "bad",
-			"reporting_jurisdiction": "test",
-			"route":                  "DAART",
-		},
-		tus.ClientError{
-			Code: 400,
+		[]info.FileDeliveryStatus{
+			{},
 		},
 	},
-	"daart v2 bad (missing things)": {
+	"bad missing data_stream_id": {
 		tus.Metadata{
-			"version":                "2.0",
-			"data_stream_id":         "daart",
-			"data_stream_route":      "hl7",
-			"sender_id":              "test",
-			"original_filename":      "test",
-			"message_type":           "bad",
-			"route":                  "DAART",
-			"reporting_jurisdiction": "test",
-		},
-		tus.ClientError{
-			Code: 400,
-		},
-	},
-	"daart v2 good": {
-		tus.Metadata{
-			"version":           "2.0",
-			"data_stream_id":    "daart",
-			"data_stream_route": "hl7",
-			"data_producer_id":  "test",
+			"data_stream_route": "testevent1",
 			"sender_id":         "test",
-			"received_filename": "test",
-			"message_type":      "ELR",
-			"route":             "DAART",
+			"data_producer_id":  "test",
 			"jurisdiction":      "test",
+			"received_filename": "test",
 		},
-		nil,
+		tus.ClientError{
+			Code: 400,
+		},
+		[]info.FileDeliveryStatus{
+			{},
+		},
+	},
+	"bad missing data_stream_route": {
+		tus.Metadata{
+			"data_stream_id":    "dextesting",
+			"sender_id":         "test",
+			"data_producer_id":  "test",
+			"jurisdiction":      "test",
+			"received_filename": "test",
+		},
+		tus.ClientError{
+			Code: 400,
+		},
+		[]info.FileDeliveryStatus{
+			{},
+		},
 	},
 }
 
@@ -174,6 +118,7 @@ func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
 
 		tuid = filepath.Base(uploader.Url())
 
+		time.Sleep(1 * time.Second)
 		// check the file
 		resp, err := http.Get(url + "/info/" + tuid)
 		if err != nil {
@@ -201,6 +146,10 @@ func RunTusTestCase(url string, testFile string, c testCase) (string, error) {
 		_, ok = infoJson.Manifest["dex_ingest_datetime"]
 		if !ok {
 			return "", fmt.Errorf("invalid file manifest: %s", infoJson.Manifest)
+		}
+
+		if len(infoJson.Deliveries) != len(c.deliveries) {
+			return "", fmt.Errorf("incorrect deliveries: %+v %+v", infoJson.Deliveries, c.deliveries)
 		}
 	}
 

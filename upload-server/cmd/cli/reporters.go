@@ -2,42 +2,40 @@ package cli
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	azurereporters "github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters/azure"
-	filereporters "github.com/cdcgov/data-exchange-upload/upload-server/internal/reporters/file"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"net"
-	"nhooyr.io/websocket"
 )
 
-func InitReporters(appConfig appconfig.AppConfig) error {
-	reports.DefaultReporter = &filereporters.FileReporter{
+func InitReporters(ctx context.Context, appConfig appconfig.AppConfig) error {
+
+	reports.Register(&event.FilePublisher[*reports.Report]{
 		Dir: appConfig.LocalReportsFolder,
+	})
+
+	if appConfig.SNSReporterConnection != nil {
+		r, err := event.NewSNSPublisher[*reports.Report](ctx, appConfig.SNSReporterConnection.EventArn)
+		if err != nil {
+			return err
+		}
+		reports.Register(r)
+		health.Register(r)
 	}
 
-	if appConfig.AzureConnection != nil && appConfig.ServiceBusConnectionString != "" {
-		// Standard boilerplate for a websocket handler.
-		newWebSocketConnFn := func(ctx context.Context, args azservicebus.NewWebSocketConnArgs) (net.Conn, error) {
-			opts := &websocket.DialOptions{Subprotocols: []string{"amqp"}}
-			wssConn, _, err := websocket.Dial(ctx, args.Host, opts)
-			if err != nil {
-				return nil, err
-			}
-
-			return websocket.NetConn(ctx, wssConn, websocket.MessageBinary), nil
+	if appConfig.ReporterConnection != nil && appConfig.ReporterConnection.ConnectionString != "" {
+		channel := appConfig.ReporterConnection.Queue
+		if channel == "" {
+			channel = appConfig.ReporterConnection.Topic
 		}
-		sbclient, err := azservicebus.NewClientFromConnectionString(appConfig.ServiceBusConnectionString, &azservicebus.ClientOptions{
-			NewWebSocketConn: newWebSocketConnFn, // Setting this option so messages are sent to port 443.
-		})
+		r, err := event.NewAzurePublisher[*reports.Report](ctx, appConfig.ReporterConnection.ConnectionString, channel)
 		if err != nil {
 			return err
 		}
 
-		reports.DefaultReporter = &azurereporters.ServiceBusReporter{
-			Client:    sbclient,
-			QueueName: appConfig.ReportQueueName,
-		}
+		reports.Register(r)
+		health.Register(r)
 	}
 
 	return nil

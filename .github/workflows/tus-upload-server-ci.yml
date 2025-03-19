@@ -1,10 +1,11 @@
-name: "CI - Upload Server"
+name: 'CI - Upload Server'
 
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - upload-server/**
+  push:
+    branches:
+      - main
 
 defaults:
   run:
@@ -14,7 +15,6 @@ jobs:
   unit-test:
     name: Unit Test
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
@@ -29,3 +29,33 @@ jobs:
         run: go tool cover -func=c.out
       - name: Build Check
         run: go build -o upload-server ./cmd/main.go
+  simulation-test:
+    name: Simulation Test
+    runs-on: ubuntu-latest
+    env:
+      AZURITE_STORAGE_KEY: ${{ secrets.AZURITE_STORAGE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install podman compose
+        run: pip3 install podman-compose
+      - name: Run Tests
+        run:
+          podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f
+          docker-compose.minio.yml -f docker-compose.localstack.yml -f docker-compose.testing.yml up
+          --exit-code-from upload-server
+      - name: Show coverage
+        run: go tool cover -func=c.out
+  e2e-tests:
+    uses: ./.github/workflows/e2e-tests.yml
+    with:
+      BRANCH_NAME: ${{ github.head_ref }}
+      RUN_ID: ${{ github.run_id }}
+      EVENT_TYPE: ${{ github.event_name }}
+    secrets: inherit
+  run-fortify-scan:
+    uses: ./.github/workflows/remote-cd-trigger-template.yml
+    with:
+      WORKFLOW: fortify.yml
+      REF: ${{ github.head_ref }}
+    secrets: inherit
+    if: github.event_name == 'pull_request'

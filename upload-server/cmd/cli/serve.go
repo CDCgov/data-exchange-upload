@@ -2,46 +2,35 @@ package cli
 
 import (
 	"context"
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	"github.com/Azure/azure-sdk-for-go/sdk/messaging/eventgrid/aznamespaces"
+	"net/http"
+	"strings"
+
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlerdex"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/redislockerhealth"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/sbhealth"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/redislocker"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tus/tusd/v2/pkg/hooks"
 	"github.com/tus/tusd/v2/pkg/memorylocker"
-	"net/http"
-	"strings"
 )
 
-func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, error) {
+func Serve(ctx context.Context, appConfig appconfig.AppConfig, authMiddleware *middleware.AuthMiddleware) (http.Handler, error) {
 	if sloger.DefaultLogger != nil {
 		logger = sloger.DefaultLogger
 	}
-	// initialize processing status health checker
-	sbHealth, err := sbhealth.New(appConfig)
-	if err != nil {
-		logger.Error("error initializing service bus health check", "error", err)
-	}
-	if sbHealth != nil {
-		health.Register(sbHealth)
-	}
 
 	// create and register data store
-	store, storeHealthCheck, err := GetDataStore(appConfig)
+	store, storeHealthCheck, err := GetDataStore(ctx, appConfig)
 	if err != nil {
 		logger.Error("error starting app, error configuring storage", "error", err)
 		return nil, err
 	} // .if
 	health.Register(storeHealthCheck)
 
-	uploadInfoHandler, err := GetUploadInfoHandler(&appConfig)
+	uploadInfoHandler, err := GetUploadInfoHandler(ctx, &appConfig)
 	if err != nil {
 		logger.Error("error configuring upload info handler: ", "error", err)
 		return nil, err
@@ -53,47 +42,37 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		var err error
 		locker, err = redislocker.New(appConfig.TusRedisLockURI, redislocker.WithLogger(logger))
 		if err != nil {
-			logger.Error("failed to configure Redis locker, defaulting to in-memory locker", "error", err)
+			logger.Error("failed to initialize Redis Locker", "error", err)
+			return nil, err
 		}
-
-		// configure redislocker health check
-		redisLockerHealth, err := redislockerhealth.New(appConfig.TusRedisLockURI)
-		if err != nil {
-			logger.Error("failed to configure Redis locker health check, skipping check", "error", err)
-		} else {
-			health.Register(redisLockerHealth)
-		}
+		health.Register(locker.(health.Checkable))
 	}
 
-	// initialize event reporter
-	err = InitReporters(appConfig)
+	manifestMetrics := metrics.NewManifestMetrics(
+		"upload_manifest_count",
+		"The count of uploads by certain keys in the manifiest",
+		appConfig.Metrics.LabelsFromManifest...)
+	setupMetrics(manifestMetrics.Counter)
 
-	var fileReadyPublisher event.Publisher
-	fileReadyPublisher = &event.MemoryPublisher{
-		Dir: appConfig.LocalEventsFolder,
+	// Must be called before hook handler
+	err = InitConfigCache(ctx, appConfig)
+	if err != nil {
+		return nil, err
 	}
 
-	if appConfig.PublisherConnection != nil {
-		cred := azcore.NewKeyCredential(appConfig.PublisherConnection.AccessKey)
-		client, err := aznamespaces.NewSenderClientWithSharedKeyCredential(appConfig.PublisherConnection.Endpoint, appConfig.PublisherConnection.Topic, cred, nil)
-		if err != nil {
-			logger.Error("failed to connect to azure event grid")
-		}
-
-		fileReadyPublisher = &event.AzurePublisher{
-			Client: client,
-			Config: *appConfig.PublisherConnection,
-		}
-
-		health.Register(fileReadyPublisher)
+	err = RegisterAllSourcesAndDestinations(ctx, appConfig)
+	if err != nil {
+		return nil, err
 	}
 
 	// get and initialize tusd hook handlers
-	hookHandler, err := GetHookHandler(ctx, appConfig, fileReadyPublisher)
+	hookHandler, err := GetHookHandler(appConfig)
 	if err != nil {
 		logger.Error("error configuring tusd handler: ", "error", err)
 		return nil, err
 	}
+	hookHandler.Register(hooks.HookPostCreate, metrics.ActiveUploadIncHook)
+	hookHandler.Register(hooks.HookPreFinish, manifestMetrics.Hook, metrics.ActiveUploadDecHook, metrics.UploadSpeedsHook)
 
 	// initialize tusd handler
 	handlerTusd, err := handlertusd.New(store, locker, hookHandler, appConfig.TusdHandlerBasePath)
@@ -102,28 +81,31 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig) (http.Handler, er
 		return nil, err
 	}
 
+	mux := &http.ServeMux{}
 	// --------------------------------------------------------------
 	// 	TUSD handler
 	// --------------------------------------------------------------
+
 	// Route for TUSD to start listening on and accept http request
 	logger.Info("hosting tus handler", "path", appConfig.TusdHandlerBasePath)
 	pathWithoutSlash := strings.TrimSuffix(appConfig.TusdHandlerBasePath, "/")
 	pathWithSlash := pathWithoutSlash + "/"
-	http.Handle(pathWithoutSlash, http.StripPrefix(pathWithoutSlash, handlerTusd))
-	http.Handle(pathWithSlash, http.StripPrefix(pathWithSlash, handlerTusd))
+	mux.Handle(pathWithoutSlash, authMiddleware.VerifyOAuthTokenMiddleware(http.StripPrefix(pathWithoutSlash, handlerTusd)))
+	mux.Handle(pathWithSlash, authMiddleware.VerifyOAuthTokenMiddleware(http.StripPrefix(pathWithSlash, handlerTusd)))
 
 	// initialize and route handler for DEX
-	handlerDex := handlerdex.New(appConfig)
-	http.Handle("/", handlerDex)
+	mux.Handle("/health", health.Handler())
 
 	// --------------------------------------------------------------
 	// 	Prometheus metrics handler for /metrics
 	// --------------------------------------------------------------
-	hooks.SetupHookMetrics()
-	http.Handle("/metrics", promhttp.Handler())
-	setupMetrics()
+	mux.Handle("/metrics", promhttp.Handler())
 
-	http.Handle("/info/{UploadID}", uploadInfoHandler)
+	mux.Handle("/info/{UploadID}", authMiddleware.VerifyOAuthTokenMiddleware(uploadInfoHandler))
+	mux.Handle("/version", &VersionHandler{})
+	mux.Handle("/route/{UploadID}", &Router{})
 
-	return http.DefaultServeMux, nil
+	mux.Handle("/{$}", appconfig.Handler())
+
+	return mux, nil
 }
