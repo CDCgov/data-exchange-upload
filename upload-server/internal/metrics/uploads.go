@@ -10,22 +10,23 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
+const MB = 1024 * 1024
+
 // todo this could also be a vec per datastream
 var ActiveUploads = prometheus.NewGauge(prometheus.GaugeOpts{
 	Name: "dex_server_active_uploads",
 	Help: "Current number of active uploads",
 }) // .metricsOpenConnections
 
-var UploadDurationSeconds = prometheus.NewHistogram(prometheus.HistogramOpts{
-	Name: "dex_server_upload_duration_seconds",
-	Help: "File upload duration distribution in seconds",
-	// TODO parameterize this with a helper function; can eventually be driven by config.
-	Buckets: []float64{0.01, 0.05, 0.1, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 180, 240, 300, 450, 600},
+var UploadSpeedsMegabytes = prometheus.NewHistogram(prometheus.HistogramOpts{
+	Name:    "dex_server_upload_speed_mb_per_second",
+	Help:    "File upload speed distribution in megabytes per seconds",
+	Buckets: prometheus.LinearBuckets(0, 5, 20),
 })
 
 var DefaultMetrics = []prometheus.Collector{
 	ActiveUploads,
-	UploadDurationSeconds,
+	UploadSpeedsMegabytes,
 }
 
 func ActiveUploadIncHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
@@ -37,7 +38,7 @@ func ActiveUploadDecHook(event handler.HookEvent, resp hooks.HookResponse) (hook
 	return resp, nil
 }
 
-func UploadDurationObserveHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func UploadSpeedsHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
@@ -45,6 +46,8 @@ func UploadDurationObserveHook(event handler.HookEvent, resp hooks.HookResponse)
 	if tuid == "" {
 		return resp, errors.New("no Upload ID defined")
 	}
+
+	size := event.Upload.Size
 
 	manifest := event.Upload.MetaData
 	start, ok := manifest["dex_ingest_datetime"]
@@ -60,8 +63,11 @@ func UploadDurationObserveHook(event handler.HookEvent, resp hooks.HookResponse)
 	}
 
 	duration := time.Since(startTime).Seconds()
-	slog.Info("observed upload duration", "duration", duration)
-	UploadDurationSeconds.Observe(duration)
+	if duration > 0 {
+		speed := float64(size) / duration
+		speedMB := speed / MB
+		UploadSpeedsMegabytes.Observe(speedMB)
+	}
 
 	return resp, nil
 }

@@ -72,7 +72,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, authMiddleware *m
 		return nil, err
 	}
 	hookHandler.Register(hooks.HookPostCreate, metrics.ActiveUploadIncHook)
-	hookHandler.Register(hooks.HookPreFinish, manifestMetrics.Hook, metrics.ActiveUploadDecHook, metrics.UploadDurationObserveHook)
+	hookHandler.Register(hooks.HookPreFinish, manifestMetrics.Hook, metrics.ActiveUploadDecHook, metrics.UploadSpeedsHook)
 
 	// initialize tusd handler
 	handlerTusd, err := handlertusd.New(store, locker, hookHandler, appConfig.TusdHandlerBasePath)
