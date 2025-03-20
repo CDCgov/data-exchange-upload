@@ -184,9 +184,9 @@ func printDeliveryMetrics() {
 
 	avg = time.Duration(int64(sum) / int64(len(testResult.DeliveryDurations)))
 
-	fmt.Printf("Average delivery duration: %s\n", avg)
-	fmt.Printf("Max delivery duration: %s\n", max)
-	fmt.Printf("Min delivery duration: %s\n", min)
+	fmt.Printf("Average delivery duration: %s\n", avg.Round(time.Millisecond))
+	fmt.Printf("Max delivery duration: %s\n", max.Round(time.Millisecond))
+	fmt.Printf("Min delivery duration: %s\n", min.Round(time.Millisecond))
 }
 
 func logErrors(err error, uploadId string) {
