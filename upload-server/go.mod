@@ -67,7 +67,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/eventials/go-tus v0.0.0-20220610120217-05d0564bb571
 	github.com/go-redsync/redsync/v4 v4.13.0
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/csrf v1.7.2
 	github.com/gorilla/mux v1.8.1
