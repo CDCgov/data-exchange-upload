@@ -19,9 +19,9 @@ var ActiveUploads = prometheus.NewGauge(prometheus.GaugeOpts{
 }) // .metricsOpenConnections
 
 var UploadSpeedsMegabytes = prometheus.NewHistogram(prometheus.HistogramOpts{
-	Name:    "dex_server_upload_speed_mb_per_second",
-	Help:    "File upload speed distribution in megabytes per seconds",
-	Buckets: []float64{0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000},
+	Name:    "dex_server_upload_speed_bytes_per_second",
+	Help:    "File upload speed distribution",
+	Buckets: prometheus.ExponentialBuckets(10, 2.5, 20),
 })
 
 var DefaultMetrics = []prometheus.Collector{
