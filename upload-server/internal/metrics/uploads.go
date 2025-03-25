@@ -65,8 +65,7 @@ func UploadSpeedsHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.H
 	duration := time.Since(startTime).Seconds()
 	if duration > 0 {
 		speed := float64(size) / duration
-		speedMB := speed / MB
-		UploadSpeedsMegabytes.Observe(speedMB)
+		UploadSpeedsMegabytes.Observe(speed)
 	}
 
 	return resp, nil
