@@ -18,15 +18,15 @@ var ActiveUploads = prometheus.NewGauge(prometheus.GaugeOpts{
 	Help: "Current number of active uploads",
 }) // .metricsOpenConnections
 
-var UploadSpeedsMegabytes = prometheus.NewHistogram(prometheus.HistogramOpts{
-	Name:    "dex_server_upload_speed_mb_per_second",
-	Help:    "File upload speed distribution in megabytes per seconds",
-	Buckets: prometheus.LinearBuckets(0, 5, 20),
+var UploadSpeeds = prometheus.NewHistogram(prometheus.HistogramOpts{
+	Name:    "dex_server_upload_speed_bytes_per_second",
+	Help:    "File upload speed distribution",
+	Buckets: prometheus.ExponentialBuckets(10, 2.5, 20),
 })
 
 var DefaultMetrics = []prometheus.Collector{
 	ActiveUploads,
-	UploadSpeedsMegabytes,
+	UploadSpeeds,
 }
 
 func ActiveUploadIncHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
@@ -65,8 +65,7 @@ func UploadSpeedsHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.H
 	duration := time.Since(startTime).Seconds()
 	if duration > 0 {
 		speed := float64(size) / duration
-		speedMB := speed / MB
-		UploadSpeedsMegabytes.Observe(speedMB)
+		UploadSpeeds.Observe(speed)
 	}
 
 	return resp, nil

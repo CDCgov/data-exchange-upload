@@ -10,6 +10,7 @@ import (
 	neturl "net/url"
 	"slices"
 	"sync/atomic"
+	"time"
 )
 
 type InfoResponse struct {
@@ -38,7 +39,9 @@ type Issue struct {
 }
 
 type InfoChecker struct {
-	Client *http.Client
+	Client           *http.Client
+	uploadComplete   time.Time
+	deliveryComplete time.Time
 }
 
 func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) error {
@@ -117,11 +120,24 @@ func (ic *InfoChecker) DoCase(ctx context.Context, c TestCase, uploadId string) 
 		}
 	}
 
+	ic.uploadComplete, err = time.Parse(time.RFC3339Nano, info.UploadStatus.LastChunkReceived)
+	if err != nil {
+		return errors.Join(&ErrFatalAssertion{"error parsing upload complete timestamp", uploadId}, err)
+	}
+	ic.deliveryComplete, err = time.Parse(time.RFC3339Nano, info.Deliveries[0].DeliveredAt)
+	if err != nil {
+		return errors.Join(&ErrFatalAssertion{"error parsing delivery complete timestamp", uploadId}, err)
+	}
+
 	return nil
 }
 
 func (ic *InfoChecker) OnSuccess() {
 	atomic.AddInt32(&testResult.SuccessfulDeliveries, 1)
+	if !ic.uploadComplete.IsZero() && !ic.deliveryComplete.IsZero() {
+		deliveryDuration := ic.deliveryComplete.Sub(ic.uploadComplete)
+		testResult.DeliveryDurations = append(testResult.DeliveryDurations, deliveryDuration)
+	}
 }
 
 func (ic *InfoChecker) OnFail() error {
