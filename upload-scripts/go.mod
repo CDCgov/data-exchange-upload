@@ -1,6 +1,7 @@
 module upload-scripts
 
 go 1.22.4
+
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.16.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0
