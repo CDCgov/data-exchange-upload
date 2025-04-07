@@ -8,6 +8,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	evt "github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
@@ -35,6 +36,7 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 			if err := evt.FileReadyPublisher.Publish(ctx, e); err != nil {
 				return resp, err
 			}
+			metrics.QueuedDeliveries.Inc()
 			slog.Info("published event", "event", e, "uploadId", id)
 		}
 		return resp, nil

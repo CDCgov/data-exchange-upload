@@ -8,6 +8,7 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 )
 
@@ -19,6 +20,8 @@ type PostProcessor struct {
 func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 
 	slog.Info("starting file copy", "uploadId", e.UploadId)
+
+	metrics.QueuedDeliveries.Dec()
 
 	rb := reports.NewBuilder[reports.FileCopyContent](
 		"1.0.0",

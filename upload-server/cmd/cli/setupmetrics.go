@@ -11,6 +11,6 @@ import (
 
 // NOTE: pull out manifestMetrics and the dependency on appconfig goes away
 func setupMetrics(m ...prometheus.Collector) {
-	metrics.RegisterMetrics(hooks.MetricsHookErrorsTotal, hooks.MetricsHookInvocationsTotal, metrics.HttpReqs, metrics.OpenConnections, metrics.ActiveUploads, metrics.UploadSpeeds)
+	metrics.RegisterMetrics(hooks.MetricsHookErrorsTotal, hooks.MetricsHookInvocationsTotal, metrics.HttpReqs, metrics.OpenConnections, metrics.ActiveUploads, metrics.UploadSpeeds, metrics.QueuedDeliveries)
 	metrics.RegisterMetrics(m...)
 } // setupMetrics
