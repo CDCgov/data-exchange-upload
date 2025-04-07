@@ -10,6 +10,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type PostProcessor struct {
@@ -20,8 +21,7 @@ type PostProcessor struct {
 func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 
 	slog.Info("starting file copy", "uploadId", e.UploadId)
-
-	metrics.QueuedDeliveries.Dec()
+	metrics.EventsCounter.With(prometheus.Labels{"type": "file-ready", "op": "dequeue"}).Inc()
 
 	rb := reports.NewBuilder[reports.FileCopyContent](
 		"1.0.0",
