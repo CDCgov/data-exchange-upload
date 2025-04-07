@@ -38,7 +38,7 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 				return resp, err
 			}
 
-			metrics.EventsCounter.With(prometheus.Labels{"type": "file-ready", "op": "enqueue"}).Inc()
+			metrics.EventsCounter.With(prometheus.Labels{"queue": "file-ready", "op": "enqueue"}).Inc()
 			slog.Info("published event", "event", e, "uploadId", id)
 		}
 		return resp, nil

@@ -63,6 +63,10 @@ func (ms *MemorySubscriber[T]) Health(_ context.Context) (rsp models.ServiceHeal
 	return rsp
 }
 
+func (ms *MemorySubscriber[T]) Length() int {
+	return len(ms.Chan)
+}
+
 type MemoryPublisher[T Identifiable] struct {
 	Chan chan T
 }

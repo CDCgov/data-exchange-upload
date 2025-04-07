@@ -74,6 +74,8 @@ func main() {
 	}
 	defer reports.CloseAll()
 
+	metrics.InitQueuePolling(ctx)
+
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
 
@@ -102,6 +104,7 @@ func main() {
 				slog.Error("Listener failed", "error", err)
 			}
 		}()
+		metrics.RegisterQueue("file-ready", subscriber)
 	}
 	// the user session store should be dependent on if auth is enabled or not.  Shouldn't be able to create, read, or write a store
 	// if auth is disabled.

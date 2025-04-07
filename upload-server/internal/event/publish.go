@@ -33,7 +33,6 @@ func (p Publishers[T]) Close() {
 	}
 }
 
-
 type Publisher[T Identifiable] interface {
 	Publish(ctx context.Context, event T) error
 }
