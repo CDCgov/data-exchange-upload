@@ -33,9 +33,9 @@ var DefaultPoller = QueuePoller{
 	done:     make(chan bool),
 }
 
-func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) chan bool {
+func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) {
 	if qp.t != nil {
-		return qp.done
+		return
 	}
 	qp.t = time.NewTicker(interval)
 	go func() {
@@ -61,8 +61,10 @@ func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) chan b
 			}
 		}
 	}()
+}
 
-	return qp.done
+func (qp *QueuePoller) Close() {
+	close(qp.done)
 }
 
 func RegisterQueue(name string, q any) {
