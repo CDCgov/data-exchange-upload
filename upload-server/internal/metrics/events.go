@@ -25,18 +25,19 @@ type Countable interface {
 type QueuePoller struct {
 	queueMap map[string]Countable
 	t        *time.Ticker
+	done     chan bool
 }
 
 var DefaultPoller = QueuePoller{
 	queueMap: make(map[string]Countable),
+	done:     make(chan bool),
 }
 
-func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) {
+func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) chan bool {
 	if qp.t != nil {
-		return
+		return qp.done
 	}
 	qp.t = time.NewTicker(interval)
-
 	go func() {
 		defer func() {
 			qp.t.Stop()
@@ -44,7 +45,7 @@ func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) {
 		}()
 		for {
 			select {
-			case <-ctx.Done():
+			case <-qp.done:
 				return
 			case <-qp.t.C:
 				for q, c := range qp.queueMap {
@@ -58,6 +59,8 @@ func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) {
 			}
 		}
 	}()
+
+	return qp.done
 }
 
 func RegisterQueue(name string, q any) {
