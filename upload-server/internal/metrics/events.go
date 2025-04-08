@@ -32,10 +32,16 @@ var DefaultPoller = QueuePoller{
 }
 
 func (qp *QueuePoller) Start(ctx context.Context) {
+	if qp.t != nil {
+		return
+	}
 	qp.t = time.NewTicker(500 * time.Millisecond)
 
 	go func() {
-		defer qp.t.Stop()
+		defer func() {
+			qp.t.Stop()
+			qp.t = nil
+		}()
 		for {
 			select {
 			case <-ctx.Done():
