@@ -200,3 +200,13 @@ func (as *AzureSubscriber[T]) Health(ctx context.Context) (rsp models.ServiceHea
 
 	return rsp
 }
+
+func (as *AzureSubscriber[T]) Length(ctx context.Context) (float64, error) {
+	var l float64
+	resp, err := as.AdminClient.GetSubscriptionRuntimeProperties(ctx, as.Topic, as.Subscription, nil)
+	if err != nil {
+		return l, nil
+	}
+	l = float64(resp.ActiveMessageCount)
+	return l, nil
+}
