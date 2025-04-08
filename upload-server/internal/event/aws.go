@@ -179,28 +179,28 @@ func (s *SQSSubscriber[T]) Health(ctx context.Context) (rsp models.ServiceHealth
 	return rsp
 }
 
-func (s *SQSSubscriber[T]) Length() int {
-	ctx := context.TODO()
+func (s *SQSSubscriber[T]) Length(ctx context.Context) (float64, error) {
+	var l float64
 	client, err := s.Client(ctx)
 	if err != nil {
-		return 0
+		return l, err
 	}
 	attr, err := client.GetQueueAttributes(ctx, &sqs.GetQueueAttributesInput{
 		QueueUrl:       aws.String(s.QueueURL),
 		AttributeNames: []types.QueueAttributeName{types.QueueAttributeNameApproximateNumberOfMessages},
 	})
 	if err != nil {
-		return 0
+		return l, err
 	}
 	n, ok := attr.Attributes[string(types.QueueAttributeNameApproximateNumberOfMessages)]
 	if !ok {
-		return 0
+		return l, errors.New("length attribute not found")
 	}
-	l, err := strconv.Atoi(n)
+	l, err = strconv.ParseFloat(n, 64)
 	if err != nil {
-		return 0
+		return l, err
 	}
-	return l
+	return l, nil
 }
 
 func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) (string, error) {

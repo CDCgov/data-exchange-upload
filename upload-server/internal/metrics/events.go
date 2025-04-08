@@ -19,7 +19,7 @@ var CurrentMessages = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 }, []string{"queue"})
 
 type Countable interface {
-	Length() int
+	Length(ctx context.Context) (float64, error)
 }
 
 type QueuePoller struct {
@@ -48,7 +48,12 @@ func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) {
 				return
 			case <-qp.t.C:
 				for q, c := range qp.queueMap {
-					CurrentMessages.With(prometheus.Labels{"queue": q}).Set(float64(c.Length()))
+					l, err := c.Length(ctx)
+					if err != nil {
+						slog.Warn("failed to get queue length", "queue", q, "reason", err)
+						continue
+					}
+					CurrentMessages.With(prometheus.Labels{"queue": q}).Set(l)
 				}
 			}
 		}
