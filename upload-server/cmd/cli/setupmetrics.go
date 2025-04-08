@@ -9,8 +9,7 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 ) // .import
 
-// NOTE: pull out manifestMetrics and the dependency on appconfig goes away
 func setupMetrics(m ...prometheus.Collector) {
-	metrics.RegisterMetrics(hooks.MetricsHookErrorsTotal, hooks.MetricsHookInvocationsTotal, metrics.HttpReqs, metrics.OpenConnections, metrics.ActiveUploads, metrics.UploadSpeeds, metrics.EventsCounter)
+	metrics.RegisterMetrics(hooks.MetricsHookErrorsTotal, hooks.MetricsHookInvocationsTotal, metrics.HttpReqs, metrics.OpenConnections, metrics.ActiveUploads, metrics.UploadSpeeds, metrics.EventsCounter, metrics.CurrentMessages)
 	metrics.RegisterMetrics(m...)
 } // setupMetrics

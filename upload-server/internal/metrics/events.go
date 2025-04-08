@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -44,7 +43,7 @@ func InitQueuePolling(ctx context.Context) {
 				return
 			case <-ticker.C:
 				for q, c := range DefaultQueues {
-					fmt.Printf("queue %s has length %d\n", q, c.Length())
+					CurrentMessages.With(prometheus.Labels{"queue": q}).Set(float64(c.Length()))
 				}
 			}
 		}
