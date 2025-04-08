@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"time"
 
@@ -176,6 +177,30 @@ func (s *SQSSubscriber[T]) Health(ctx context.Context) (rsp models.ServiceHealth
 		return rsp
 	}
 	return rsp
+}
+
+func (s *SQSSubscriber[T]) Length() int {
+	ctx := context.TODO()
+	client, err := s.Client(ctx)
+	if err != nil {
+		return 0
+	}
+	attr, err := client.GetQueueAttributes(ctx, &sqs.GetQueueAttributesInput{
+		QueueUrl:       aws.String(s.QueueURL),
+		AttributeNames: []types.QueueAttributeName{types.QueueAttributeNameApproximateNumberOfMessages},
+	})
+	if err != nil {
+		return 0
+	}
+	n, ok := attr.Attributes[string(types.QueueAttributeNameApproximateNumberOfMessages)]
+	if !ok {
+		return 0
+	}
+	l, err := strconv.Atoi(n)
+	if err != nil {
+		return 0
+	}
+	return l
 }
 
 func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) (string, error) {

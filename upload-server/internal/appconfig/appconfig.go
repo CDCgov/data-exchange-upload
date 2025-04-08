@@ -112,7 +112,7 @@ type AppConfig struct {
 
 type MetricsConfig struct {
 	LabelsFromManifest []string `env:"LABELS_FROM_MANIFEST, default=data_stream_id,data_stream_route,sender_id"`
-	PollIntervalMillis int      `env:"POLL_INTERVAL_MILLIS, default=500"`
+	PollIntervalMillis int      `env:"POLL_INTERVAL_MILLIS, default=1000"`
 }
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
