@@ -47,6 +47,8 @@ func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) chan b
 			select {
 			case <-qp.done:
 				return
+			case <-ctx.Done():
+				return
 			case <-qp.t.C:
 				for q, c := range qp.queueMap {
 					l, err := c.Length(ctx)
