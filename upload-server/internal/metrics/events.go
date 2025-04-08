@@ -22,30 +22,37 @@ type Countable interface {
 	Length() int
 }
 
-var DefaultQueues = make(map[string]Countable)
-
-func RegisterQueue(name string, q any) {
-	if c, ok := q.(Countable); ok {
-		DefaultQueues[name] = c
-	} else {
-		slog.Warn("metrics could not register queue", "queue", q)
-	}
+type QueuePoller struct {
+	queueMap map[string]Countable
+	t        *time.Ticker
 }
 
-func InitQueuePolling(ctx context.Context) {
-	ticker := time.NewTicker(500 * time.Millisecond)
+var DefaultPoller = QueuePoller{
+	queueMap: make(map[string]Countable),
+}
+
+func (qp *QueuePoller) Start(ctx context.Context) {
+	qp.t = time.NewTicker(500 * time.Millisecond)
 
 	go func() {
-		defer ticker.Stop()
+		defer qp.t.Stop()
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case <-ticker.C:
-				for q, c := range DefaultQueues {
+			case <-qp.t.C:
+				for q, c := range qp.queueMap {
 					CurrentMessages.With(prometheus.Labels{"queue": q}).Set(float64(c.Length()))
 				}
 			}
 		}
 	}()
+}
+
+func RegisterQueue(name string, q any) {
+	if c, ok := q.(Countable); ok {
+		DefaultPoller.queueMap[name] = c
+	} else {
+		slog.Warn("metrics could not register queue", "queue", q)
+	}
 }

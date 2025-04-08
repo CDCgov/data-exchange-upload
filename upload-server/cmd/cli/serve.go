@@ -52,7 +52,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, authMiddleware *m
 		"upload_manifest_count",
 		"The count of uploads by certain keys in the manifiest",
 		appConfig.Metrics.LabelsFromManifest...)
-	setupMetrics(manifestMetrics.Counter)
+	setupMetrics(ctx, manifestMetrics.Counter)
 
 	// Must be called before hook handler
 	err = InitConfigCache(ctx, appConfig)

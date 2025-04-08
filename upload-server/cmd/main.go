@@ -74,8 +74,6 @@ func main() {
 	}
 	defer reports.CloseAll()
 
-	metrics.InitQueuePolling(ctx)
-
 	event.InitFileReadyChannel()
 	defer event.CloseFileReadyChannel()
 
