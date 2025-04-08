@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/handlertusd"
@@ -52,7 +53,7 @@ func Serve(ctx context.Context, appConfig appconfig.AppConfig, authMiddleware *m
 		"upload_manifest_count",
 		"The count of uploads by certain keys in the manifiest",
 		appConfig.Metrics.LabelsFromManifest...)
-	setupMetrics(ctx, manifestMetrics.Counter)
+	setupMetrics(ctx, time.Duration(appConfig.Metrics.PollIntervalMillis)*time.Millisecond, manifestMetrics.Counter)
 
 	// Must be called before hook handler
 	err = InitConfigCache(ctx, appConfig)

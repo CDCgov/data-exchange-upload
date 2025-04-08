@@ -31,11 +31,11 @@ var DefaultPoller = QueuePoller{
 	queueMap: make(map[string]Countable),
 }
 
-func (qp *QueuePoller) Start(ctx context.Context) {
+func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) {
 	if qp.t != nil {
 		return
 	}
-	qp.t = time.NewTicker(500 * time.Millisecond)
+	qp.t = time.NewTicker(interval)
 
 	go func() {
 		defer func() {
