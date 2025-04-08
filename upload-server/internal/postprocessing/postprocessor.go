@@ -19,7 +19,9 @@ type PostProcessor struct {
 }
 
 func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
-
+	if e == nil || e.UploadId == "" {
+		return fmt.Errorf("malformed file ready event %+v", e)
+	}
 	slog.Info("starting file copy", "uploadId", e.UploadId)
 	metrics.EventsCounter.With(prometheus.Labels{"queue": "file-ready", "op": "dequeue"}).Inc()
 
