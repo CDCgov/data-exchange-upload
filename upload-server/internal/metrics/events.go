@@ -20,7 +20,7 @@ var Labels = struct {
 
 var EventsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name: "dex_server_events_total",
-	Help: "Number of file ready events that have been enqueued for files ready for delivery",
+	Help: "Number of events that have been created or handled by the server",
 }, []string{Labels.EventType, Labels.EventOp})
 
 var CurrentMessages = prometheus.NewGaugeVec(prometheus.GaugeOpts{
