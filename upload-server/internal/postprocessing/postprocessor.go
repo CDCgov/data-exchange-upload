@@ -76,7 +76,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 			Level:   reports.IssueLevelError,
 			Message: err.Error(),
 		})
-		metrics.EventsCounter.With(prometheus.Labels{"queue": "file-ready", "op": "failed"}).Inc()
+		metrics.EventsCounter.With(prometheus.Labels{metrics.Labels.EventType: e.Type(), metrics.Labels.EventOp: "failed"}).Inc()
 		return err
 	}
 	slog.Info("file delivered", "event", e, "uploadId", e.UploadId) // Is this necessary?
