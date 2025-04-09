@@ -76,6 +76,7 @@ func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) contex
 func RegisterQueue(url string, q any) {
 	if c, ok := q.(Countable); ok {
 		DefaultPoller.queueMap[url] = c
+		CurrentMessages.With(prometheus.Labels{Labels.QueueURL: url}).Set(0)
 	} else {
 		slog.Warn("metrics could not register queue", "queue", q)
 	}
