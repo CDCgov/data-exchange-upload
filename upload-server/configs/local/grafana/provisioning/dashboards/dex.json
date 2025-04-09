@@ -19,7 +19,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 122,
+  "id": 126,
   "links": [],
   "panels": [
     {
@@ -51,7 +51,7 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 5,
+        "w": 4,
         "x": 0,
         "y": 0
       },
@@ -116,8 +116,8 @@
       },
       "gridPos": {
         "h": 6,
-        "w": 5,
-        "x": 5,
+        "w": 4,
+        "x": 4,
         "y": 0
       },
       "id": 5,
@@ -163,6 +163,76 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "#EAB839",
+                "value": 500
+              },
+              {
+                "color": "red",
+                "value": 750
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "id": 7,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "pluginVersion": "11.5.1",
+      "targets": [
+        {
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "sum by(job) (go_goroutines{job=\"upload\"})",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        }
+      ],
+      "title": "Active Goroutines",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-datasource"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "fixedColor": "blue",
             "mode": "fixed"
           },
@@ -182,7 +252,7 @@
       "gridPos": {
         "h": 6,
         "w": 5,
-        "x": 10,
+        "x": 12,
         "y": 0
       },
       "id": 4,
@@ -250,7 +320,7 @@
       "gridPos": {
         "h": 6,
         "w": 5,
-        "x": 15,
+        "x": 17,
         "y": 0
       },
       "id": 2,
@@ -356,7 +426,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 10,
+        "w": 12,
         "x": 0,
         "y": 6
       },
@@ -456,7 +526,7 @@
       "gridPos": {
         "h": 8,
         "w": 10,
-        "x": 10,
+        "x": 12,
         "y": 6
       },
       "id": 6,
@@ -502,13 +572,13 @@
         "auto_count": 1,
         "auto_min": "10s",
         "current": {
-          "text": "$__auto",
-          "value": "$__auto"
+          "text": "1m",
+          "value": "1m"
         },
         "name": "timeRange",
         "options": [
           {
-            "selected": false,
+            "selected": true,
             "text": "1m",
             "value": "1m"
           },
@@ -572,6 +642,6 @@
   "timezone": "browser",
   "title": "PHDO Snapshot",
   "uid": "fegfnz34nnksga",
-  "version": 5,
+  "version": 2,
   "weekStart": ""
 }
