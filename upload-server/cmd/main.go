@@ -102,7 +102,7 @@ func main() {
 				slog.Error("Listener failed", "error", err)
 			}
 		}()
-		metrics.RegisterQueue("file-ready", subscriber)
+		metrics.RegisterQueue(subscriber.URL(), subscriber)
 	}
 
 	cancelPoll := metrics.DefaultPoller.Start(ctx, time.Duration(appConfig.Metrics.PollIntervalMillis)*time.Millisecond)

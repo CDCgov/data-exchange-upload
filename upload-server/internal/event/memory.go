@@ -67,6 +67,10 @@ func (ms *MemorySubscriber[T]) Length(_ context.Context) (float64, error) {
 	return float64(len(ms.Chan)), nil
 }
 
+func (ms *MemorySubscriber[T]) URL() string {
+	return "memory channel"
+}
+
 type MemoryPublisher[T Identifiable] struct {
 	Chan chan T
 }

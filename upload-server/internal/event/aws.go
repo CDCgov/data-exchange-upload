@@ -203,6 +203,10 @@ func (s *SQSSubscriber[T]) Length(ctx context.Context) (float64, error) {
 	return l, nil
 }
 
+func (s *SQSSubscriber[T]) URL() string {
+	return s.QueueURL
+}
+
 func (s *SQSSubscriber[T]) queue(ctx context.Context, name string) (string, error) {
 	client, err := s.Client(ctx)
 	if err != nil {

@@ -23,7 +23,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		return fmt.Errorf("malformed file ready event %+v", e)
 	}
 	slog.Info("starting file copy", "uploadId", e.UploadId)
-	metrics.EventsCounter.With(prometheus.Labels{"queue": "file-ready", "op": "dequeue"}).Inc()
+	metrics.EventsCounter.With(prometheus.Labels{metrics.Labels.EventType: e.Type(), metrics.Labels.EventOp: "subscribe"}).Inc()
 
 	rb := reports.NewBuilder[reports.FileCopyContent](
 		"1.0.0",
@@ -73,6 +73,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 			Level:   reports.IssueLevelError,
 			Message: err.Error(),
 		})
+		metrics.EventsCounter.With(prometheus.Labels{"queue": "file-ready", "op": "failed"}).Inc()
 		return err
 	}
 	slog.Info("file delivered", "event", e, "uploadId", e.UploadId) // Is this necessary?

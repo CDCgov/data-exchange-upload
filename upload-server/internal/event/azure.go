@@ -210,3 +210,7 @@ func (as *AzureSubscriber[T]) Length(ctx context.Context) (float64, error) {
 	l = float64(resp.ActiveMessageCount)
 	return l, nil
 }
+
+func (as *AzureSubscriber[T]) URL() string {
+	return as.Subscription
+}

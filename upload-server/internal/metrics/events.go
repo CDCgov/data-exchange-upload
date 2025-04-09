@@ -8,15 +8,25 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+var Labels = struct {
+	EventType string
+	EventOp   string
+	QueueURL  string
+}{
+	EventType: "type",
+	EventOp:   "op",
+	QueueURL:  "queue",
+}
+
 var EventsCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 	Name: "dex_server_events_total",
 	Help: "Number of file ready events that have been enqueued for files ready for delivery",
-}, []string{"queue", "op"})
+}, []string{Labels.EventType, Labels.EventOp})
 
 var CurrentMessages = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 	Name: "dex_server_queue_messages",
 	Help: "Current number of messages in an event queue",
-}, []string{"queue"})
+}, []string{Labels.QueueURL})
 
 type Countable interface {
 	Length(ctx context.Context) (float64, error)
@@ -54,7 +64,7 @@ func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) contex
 						slog.Warn("failed to get queue length", "queue", q, "reason", err)
 						continue
 					}
-					CurrentMessages.With(prometheus.Labels{"queue": q}).Set(l)
+					CurrentMessages.With(prometheus.Labels{Labels.QueueURL: q}).Set(l)
 				}
 			}
 		}
@@ -63,9 +73,9 @@ func (qp *QueuePoller) Start(ctx context.Context, interval time.Duration) contex
 	return cancel
 }
 
-func RegisterQueue(name string, q any) {
+func RegisterQueue(url string, q any) {
 	if c, ok := q.(Countable); ok {
-		DefaultPoller.queueMap[name] = c
+		DefaultPoller.queueMap[url] = c
 	} else {
 		slog.Warn("metrics could not register queue", "queue", q)
 	}
