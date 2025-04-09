@@ -65,7 +65,10 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
+
+	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Inc()
 	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
+	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Dec()
 
 	if err != nil {
 		slog.Error("failed to deliver file", "target", uri, "error", err)

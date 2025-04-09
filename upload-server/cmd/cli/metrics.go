@@ -10,7 +10,17 @@ import (
 ) // .import
 
 func setupMetrics(m ...prometheus.Collector) {
-	metrics.RegisterMetrics(hooks.MetricsHookErrorsTotal, hooks.MetricsHookInvocationsTotal, metrics.HttpReqs, metrics.OpenConnections, metrics.ActiveUploads, metrics.UploadSpeeds, metrics.EventsCounter, metrics.CurrentMessages)
+	metrics.RegisterMetrics(
+		hooks.MetricsHookErrorsTotal,
+		hooks.MetricsHookInvocationsTotal,
+		metrics.HttpReqs,
+		metrics.OpenConnections,
+		metrics.ActiveUploads,
+		metrics.UploadSpeeds,
+		metrics.EventsCounter,
+		metrics.CurrentMessages,
+		metrics.ActiveDeliveries,
+	)
 	metrics.RegisterMetrics(m...)
 
 	// metrics.DefaultPoller.Start(ctx, pollInterval)
