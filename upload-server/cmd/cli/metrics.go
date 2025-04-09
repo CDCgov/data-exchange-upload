@@ -20,6 +20,7 @@ func setupMetrics(m ...prometheus.Collector) {
 		metrics.EventsCounter,
 		metrics.CurrentMessages,
 		metrics.ActiveDeliveries,
+		metrics.DeliveryTotals,
 	)
 	metrics.RegisterMetrics(m...)
 

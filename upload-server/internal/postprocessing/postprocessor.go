@@ -67,6 +67,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	}
 
 	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Inc()
+	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": "started"}).Inc()
 	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
 	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Dec()
 
@@ -76,9 +77,10 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 			Level:   reports.IssueLevelError,
 			Message: err.Error(),
 		})
-		metrics.EventsCounter.With(prometheus.Labels{metrics.Labels.EventType: e.Type(), metrics.Labels.EventOp: "failed"}).Inc()
+		metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": "failed"}).Inc()
 		return err
 	}
+	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": "completed"}).Inc()
 	slog.Info("file delivered", "event", e, "uploadId", e.UploadId) // Is this necessary?
 
 	m, err := src.GetMetadata(ctx, e.UploadId)

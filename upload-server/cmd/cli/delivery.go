@@ -42,7 +42,9 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		if err := health.Register(t.Destination); err != nil {
 			slog.Error("failed to register destination", "destination", t)
 		}
+		// init delivery metrics
 		metrics.ActiveDeliveries.With(prometheus.Labels{"target": t.Name}).Set(0)
+		metrics.DeliveryTotals.With(prometheus.Labels{"target": t.Name, "result": "failure"}).Add(0)
 	}
 	slog.Info("registering destinations", "targets", delivery.Targets)
 
