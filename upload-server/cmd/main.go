@@ -102,7 +102,12 @@ func main() {
 				slog.Error("Listener failed", "error", err)
 			}
 		}()
+		metrics.RegisterQueue(subscriber.URL(), subscriber)
 	}
+
+	cancelPoll := metrics.DefaultPoller.Start(ctx, time.Duration(appConfig.Metrics.PollIntervalMillis)*time.Millisecond)
+	defer cancelPoll()
+
 	// the user session store should be dependent on if auth is enabled or not.  Shouldn't be able to create, read, or write a store
 	// if auth is disabled.
 	err = middleware.InitStore(*appConfig.OauthConfig)
