@@ -795,7 +795,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum(dex_server_deliveries_total{job=\"upload\", result=\"completed\"})",
+          "expr": "sum(increase(dex_server_deliveries_total{job=\"upload\", result=\"completed\"}[$timeRange]))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
