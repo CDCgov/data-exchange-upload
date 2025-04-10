@@ -1,0 +1,13 @@
+groups:
+  - name: MyRules
+    interval: 1m
+    rules:
+      - record: tusd_uploads_finished_timestamp_seconds
+        expr: |
+          (
+            (timestamp(increase(tusd_uploads_finished[1m]) > 0)) * 1000
+          )
+          or
+          (
+            tusd_uploads_finished_timestamp_seconds offset 1m
+          )

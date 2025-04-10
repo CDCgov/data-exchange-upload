@@ -432,11 +432,13 @@
         {
           "disableTextWrap": false,
           "editorMode": "code",
-          "expr": "timestamp(changes(tusd_uploads_finished[$__interval]) > 0) * 1000",
+          "exemplar": false,
+          "expr": "tusd_uploads_finished_timestamp_seconds",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
+          "instant": true,
           "legendFormat": "__auto",
-          "range": true,
+          "range": false,
           "refId": "A",
           "useBackend": false
         }
