@@ -390,6 +390,13 @@
           "color": {
             "mode": "fixed"
           },
+          "custom": {
+            "align": "left",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -398,35 +405,54 @@
                 "color": "green"
               }
             ]
-          },
-          "unit": "dateTimeFromNow"
+          }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Time"
+            },
+            "properties": [
+              {
+                "id": "custom.hidden",
+                "value": true
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "upload_manifest_count_timestamp_milliseconds"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dateTimeFromNow"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 4,
-        "w": 4,
+        "h": 7,
+        "w": 8,
         "x": 0,
         "y": 6
       },
       "id": 17,
       "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "enablePagination": true,
           "fields": "",
-          "values": false
+          "reducer": [
+            "sum"
+          ],
+          "show": false
         },
-        "showPercentChange": false,
-        "text": {},
-        "textMode": "auto",
-        "wideLayout": true
+        "showHeader": true
       },
       "pluginVersion": "11.6.0",
       "targets": [
@@ -446,73 +472,43 @@
         }
       ],
       "title": "Time Since Last Successful Upload",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus-datasource"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "fixed"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              }
-            ]
-          },
-          "unit": "dateTimeFromNow"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 2,
-        "w": 4,
-        "x": 4,
-        "y": 6
-      },
-      "id": 16,
-      "options": {
-        "colorMode": "value",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "auto",
-        "wideLayout": true
-      },
-      "pluginVersion": "11.6.0",
-      "targets": [
+      "transformations": [
         {
-          "disableTextWrap": false,
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "tusd_uploads_finished_timestamp_milliseconds",
-          "fullMetaSearch": false,
-          "includeNullMetadata": true,
-          "instant": true,
-          "legendFormat": "__auto",
-          "range": false,
-          "refId": "A",
-          "useBackend": false
+          "id": "labelsToFields",
+          "options": {
+            "keepLabels": [
+              "__name__",
+              "data_stream_id",
+              "data_stream_route",
+              "sender_id"
+            ],
+            "mode": "columns",
+            "valueLabel": "__name__"
+          }
+        },
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {},
+            "includeByName": {},
+            "indexByName": {
+              "Time": 0,
+              "data_stream_id": 1,
+              "data_stream_route": 2,
+              "sender_id": 3,
+              "upload_manifest_count_timestamp_milliseconds": 4
+            },
+            "renameByName": {
+              "upload_manifest_count_timestamp_milliseconds": "Time Since"
+            }
+          }
         }
       ],
-      "title": "Time Since Last Successful Upload",
-      "type": "stat"
+      "type": "table"
     },
     {
       "collapsed": false,
@@ -520,7 +516,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 13
       },
       "id": 8,
       "panels": [],
@@ -587,7 +583,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 11
+        "y": 14
       },
       "id": 5,
       "options": {
@@ -688,7 +684,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 11
+        "y": 14
       },
       "id": 1,
       "options": {
@@ -733,7 +729,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 19
+        "y": 22
       },
       "id": 9,
       "panels": [],
@@ -800,7 +796,7 @@
         "h": 6,
         "w": 8,
         "x": 0,
-        "y": 20
+        "y": 23
       },
       "id": 4,
       "options": {
@@ -900,7 +896,7 @@
         "h": 6,
         "w": 8,
         "x": 8,
-        "y": 20
+        "y": 23
       },
       "id": 15,
       "options": {
@@ -994,7 +990,7 @@
         "h": 6,
         "w": 8,
         "x": 16,
-        "y": 20
+        "y": 23
       },
       "id": 2,
       "options": {
@@ -1086,7 +1082,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 26
+        "y": 29
       },
       "id": 6,
       "options": {
@@ -1186,7 +1182,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 26
+        "y": 29
       },
       "id": 11,
       "options": {
