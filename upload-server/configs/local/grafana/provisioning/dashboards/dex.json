@@ -443,7 +443,7 @@
           "useBackend": false
         }
       ],
-      "title": "Tme Since Last Successful Upload",
+      "title": "Time Since Last Successful Upload",
       "type": "stat"
     },
     {
