@@ -460,7 +460,7 @@
           "disableTextWrap": false,
           "editorMode": "code",
           "exemplar": false,
-          "expr": "upload_manifest_count_timestamp_milliseconds{job=\"upload\"}",
+          "expr": "upload_manifest_count_timestamp_milliseconds",
           "format": "time_series",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
