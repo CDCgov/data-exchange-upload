@@ -136,11 +136,11 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
 		logger.Info("REPORT metadata-verify", "report", report)
-		reports.Publish(event.Context, report)
+		reports.Publish(ctx, report)
 		logger.Info("metadata-verify complete")
 	}()
 
-	if err := v.verify(event.Context, manifest); err != nil {
+	if err := v.verify(ctx, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
@@ -276,7 +276,7 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	}).Build()
 
 	logger.Info("REPORT metadata-transform", "report", report)
-	reports.Publish(event.Context, report)
+	reports.Publish(ctx, report)
 
 	logger.Info("metadata-transform complete")
 
