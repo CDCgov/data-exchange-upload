@@ -1,0 +1,13 @@
+groups:
+  - name: MyRules
+    interval: 1m
+    rules:
+      - record: upload_manifest_count_timestamp_milliseconds
+        expr: |
+          (
+            (timestamp(increase(upload_manifest_count[1m]) > 0)) * 1000
+          )
+          or
+          (
+            upload_manifest_count_timestamp_milliseconds offset 1m
+          )
