@@ -23,7 +23,7 @@ func (p Publishers[T]) Publish(ctx context.Context, e T) error {
 				continue
 			}
 			metrics.EventsCounter.With(prometheus.Labels{metrics.Labels.EventType: e.Type(), metrics.Labels.EventOp: "publish"}).Inc()
-			logger.Info("published event", "event", e, "uploadId", e.Identifier())
+			logger.Info("published event", "event", e)
 			break
 		}
 	}
