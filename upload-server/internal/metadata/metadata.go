@@ -112,7 +112,11 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
+	resp, err := WithLoggerSetup(&event, resp)
 	logger := sloger.GetLogger(event.Context)
+	if err != nil {
+		logger.Error("Logger setup failed", "err", err)
+	}
 
 	logger.Info("starting metadata-verify")
 	logger.Info("checking the sender manifest", "manifest", manifest)
@@ -238,12 +242,11 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	resp.ChangeFileInfo.ID = tuid
 
 	resp, err := WithLoggerSetup(&event, resp)
+	logger := sloger.GetLogger(event.Context)
 	if err != nil {
-		logger := sloger.GetLogger(event.Context)
 		logger.Error("Logger setup failed", "err", err)
 	}
 
-	logger := sloger.GetLogger(event.Context)
 	logger.Info("starting metadata-transform")
 
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
