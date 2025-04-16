@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/logutil"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
@@ -112,11 +113,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	resp, err := WithLoggerSetup(&event, resp)
-	logger := sloger.GetLogger(event.Context)
-	if err != nil {
-		logger.Error("Logger setup failed", "err", err)
-	}
+	logger, resp := logutil.WithLoggerSetup(&event, resp)
 
 	logger.Info("starting metadata-verify")
 	logger.Info("checking the sender manifest", "manifest", manifest)
@@ -241,11 +238,7 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
-	resp, err := WithLoggerSetup(&event, resp)
-	logger := sloger.GetLogger(event.Context)
-	if err != nil {
-		logger.Error("Logger setup failed", "err", err)
-	}
+	logger, resp := logutil.WithLoggerSetup(&event, resp)
 
 	logger.Info("starting metadata-transform")
 
@@ -278,17 +271,5 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	reports.Publish(event.Context, report)
 
 	logger.Info("metadata-transform complete")
-	return resp, nil
-}
-
-func WithLoggerSetup(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	if resp.ChangeFileInfo.ID == "" {
-		return resp, errors.New("upload ID is not set")
-	}
-	event.Context = sloger.SetUploadId(event.Context, resp.ChangeFileInfo.ID)
-	logger := sloger.GetLogger(event.Context)
-
-	logger.Info("Logger setup complete for upload ID", "upload_id", resp.ChangeFileInfo.ID)
-
 	return resp, nil
 }
