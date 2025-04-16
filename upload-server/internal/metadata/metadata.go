@@ -238,11 +238,12 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	resp.ChangeFileInfo.ID = tuid
 
 	resp, err := WithLoggerSetup(event, resp)
-	logger := sloger.GetLogger(event.Context)
 	if err != nil {
+		logger := sloger.GetLogger(event.Context)
 		logger.Error("Logger setup failed", "err", err)
 	}
 
+	logger := sloger.GetLogger(event.Context)
 	logger.Info("starting metadata-transform")
 
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
