@@ -112,8 +112,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	ctx := sloger.SetUploadId(event.Context, tuid)
-	logger := sloger.GetLogger(ctx)
+	logger := sloger.GetLogger(event.Context)
 
 	logger.Info("starting metadata-verify")
 	logger.Info("checking the sender manifest", "manifest", manifest)
@@ -136,11 +135,11 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
 		logger.Info("REPORT metadata-verify", "report", report)
-		reports.Publish(ctx, report)
+		reports.Publish(event.Context, report)
 		logger.Info("metadata-verify complete")
 	}()
 
-	if err := v.verify(ctx, manifest); err != nil {
+	if err := v.verify(event.Context, manifest); err != nil {
 		logger.Error("validation errors and warnings", "errors", err)
 
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
@@ -238,8 +237,11 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
-	ctx := sloger.SetUploadId(event.Context, tuid)
-	logger := sloger.GetLogger(ctx)
+	resp, err := WithLoggerSetup(event, resp)
+	logger := sloger.GetLogger(event.Context)
+	if err != nil {
+		logger.Error("Logger setup failed", "err", err)
+	}
 
 	logger.Info("starting metadata-transform")
 
@@ -262,23 +264,28 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 			ContentSchemaName:    reports.StageMetadataTransform,
 		},
 		Transforms: []reports.MetadataTransformContent{
-			{Action: "update",
-				Field: "ID",
-				Value: tuid}, {
-				Action: "append",
-				Field:  "dex_ingest_datetime",
-				Value:  timestamp,
-			}, {
-				Action: "append",
-				Field:  "upload_id",
-				Value:  tuid,
-			}},
+			{Action: "update", Field: "ID", Value: tuid},
+			{Action: "append", Field: "dex_ingest_datetime", Value: timestamp},
+			{Action: "append", Field: "upload_id", Value: tuid},
+		},
 	}).Build()
 
 	logger.Info("REPORT metadata-transform", "report", report)
-	reports.Publish(ctx, report)
+	reports.Publish(event.Context, report)
 
 	logger.Info("metadata-transform complete")
+	return resp, nil
+}
 
+func WithLoggerSetup(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	if resp.ChangeFileInfo.ID == "" {
+		return resp, errors.New("upload ID is not set")
+	}
+	ctx := sloger.SetUploadId(event.Context, resp.ChangeFileInfo.ID)
+	logger := sloger.GetLogger(ctx)
+
+	logger.Info("Logger setup complete for upload ID", "upload_id", resp.ChangeFileInfo.ID)
+
+	event.Context = ctx
 	return resp, nil
 }

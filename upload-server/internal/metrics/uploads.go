@@ -47,8 +47,7 @@ func UploadSpeedsHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.H
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	ctx := sloger.SetUploadId(event.Context, tuid)
-	logger := sloger.GetLogger(ctx)
+	logger := sloger.GetLogger(event.Context)
 
 	size := event.Upload.Size
 

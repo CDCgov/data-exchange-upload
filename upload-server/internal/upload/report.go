@@ -17,8 +17,7 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	ctx := sloger.SetUploadId(event.Context, uploadId)
-	logger := sloger.GetLogger(ctx)
+	logger := sloger.GetLogger(event.Context)
 
 	logger.Info("starting upload-status report")
 
@@ -39,7 +38,7 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	}).Build()
 
 	logger.Info("REPORT upload-status", "report", report)
-	reports.Publish(ctx, report)
+	reports.Publish(event.Context, report)
 
 	logger.Info("upload-status report complete")
 
@@ -52,8 +51,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
 
-	ctx := sloger.SetUploadId(event.Context, uploadId)
-	logger := sloger.GetLogger(ctx)
+	logger := sloger.GetLogger(event.Context)
 
 	logger.Info("starting upload-started report")
 
@@ -71,7 +69,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	}).Build()
 
 	logger.Info("REPORT upload-started", "report", report)
-	reports.Publish(ctx, report)
+	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
@@ -90,7 +88,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	}).Build()
 
 	logger.Info("REPORT upload-status", "report", report)
-	reports.Publish(ctx, report)
+	reports.Publish(event.Context, report)
 
 	logger.Info("upload-started report complete")
 
@@ -103,8 +101,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
 
-	ctx := sloger.SetUploadId(event.Context, uploadId)
-	logger := sloger.GetLogger(ctx)
+	logger := sloger.GetLogger(event.Context)
 
 	logger.Info("starting upload-completed report")
 
@@ -122,7 +119,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	}).Build()
 
 	logger.Info("REPORT upload-completed", "report", report)
-	reports.Publish(ctx, report)
+	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
@@ -141,7 +138,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	}).Build()
 
 	logger.Info("REPORT upload-status", "report", report)
-	reports.Publish(ctx, report)
+	reports.Publish(event.Context, report)
 
 	logger.Info("upload-completed report complete")
 	return resp, nil
