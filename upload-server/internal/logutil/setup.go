@@ -9,15 +9,18 @@ import (
 )
 
 func WithLoggerSetup(event *handler.HookEvent, resp hooks.HookResponse) (*slog.Logger, hooks.HookResponse) {
-	if resp.ChangeFileInfo.ID == "" {
+	if resp.ChangeFileInfo.ID != "" {
+		event.Context = sloger.SetUploadId(event.Context, resp.ChangeFileInfo.ID)
+	} else if event.Upload.ID != "" {
+		event.Context = sloger.SetUploadId(event.Context, event.Upload.ID)
+	} else {
 		logger := sloger.GetLogger(event.Context)
 		logger.Error("upload ID is not set")
 		return logger, resp
 	}
-	event.Context = sloger.SetUploadId(event.Context, resp.ChangeFileInfo.ID)
 	logger := sloger.GetLogger(event.Context)
 
-	logger.Info("Logger setup complete")
+	logger.Info("Logger setup with upload ID")
 
 	return logger, resp
 }
