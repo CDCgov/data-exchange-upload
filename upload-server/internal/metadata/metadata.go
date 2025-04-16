@@ -237,7 +237,7 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
-	resp, err := WithLoggerSetup(event, resp)
+	resp, err := WithLoggerSetup(&event, resp)
 	if err != nil {
 		logger := sloger.GetLogger(event.Context)
 		logger.Error("Logger setup failed", "err", err)
@@ -278,15 +278,14 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	return resp, nil
 }
 
-func WithLoggerSetup(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func WithLoggerSetup(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	if resp.ChangeFileInfo.ID == "" {
 		return resp, errors.New("upload ID is not set")
 	}
-	ctx := sloger.SetUploadId(event.Context, resp.ChangeFileInfo.ID)
-	logger := sloger.GetLogger(ctx)
+	event.Context = sloger.SetUploadId(event.Context, resp.ChangeFileInfo.ID)
+	logger := sloger.GetLogger(event.Context)
 
 	logger.Info("Logger setup complete for upload ID", "upload_id", resp.ChangeFileInfo.ID)
 
-	event.Context = ctx
 	return resp, nil
 }
