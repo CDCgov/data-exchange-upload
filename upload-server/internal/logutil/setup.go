@@ -1,7 +1,6 @@
 package logutil
 
 import (
-	"context"
 	"log/slog"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
@@ -21,11 +20,4 @@ func WithUploadIdLogger(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	slog.SetDefault(sloger.GetLogger(event.Context))
 	slog.Info("Logger setup with upload ID")
 	return resp, nil
-}
-
-func SetupLoggerWithContext(ctx context.Context, uploadId string) (context.Context, *slog.Logger) {
-	ctx = sloger.SetUploadId(ctx, uploadId)
-	logger := sloger.GetLogger(ctx)
-	logger.Info("Logger setup with upload ID")
-	return ctx, logger
 }
