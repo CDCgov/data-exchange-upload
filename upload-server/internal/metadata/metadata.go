@@ -17,7 +17,6 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
-	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/google/uuid"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
@@ -233,10 +232,8 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
-	event.Upload.ID = tuid
 
-	sloger.SetDefaultLogger(logutil.SetupLogger(&event, resp.ChangeFileInfo.ID))
-	slog.SetDefault(sloger.DefaultLogger)
+	slog.SetDefault(logutil.SetupLogger(&event, resp.ChangeFileInfo.ID))
 
 	slog.Info("starting metadata-transform")
 

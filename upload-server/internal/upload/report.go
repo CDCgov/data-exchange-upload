@@ -1,9 +1,9 @@
 package upload
 
 import (
+	"log/slog"
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/logutil"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/tus/tusd/v2/pkg/handler"
@@ -17,9 +17,7 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	logger := logutil.SetupLogger(&event, uploadId)
-
-	logger.Info("starting upload-status report")
+	slog.Info("starting upload-status report")
 
 	report := reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
@@ -37,10 +35,10 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 		Size:     uploadSize,
 	}).Build()
 
-	logger.Info("REPORT upload-status", "report", report)
+	slog.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
 
-	logger.Info("upload-status report complete")
+	slog.Info("upload-status report complete")
 
 	return resp, nil
 }
@@ -51,9 +49,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
 
-	logger := logutil.SetupLogger(&event, uploadId)
-
-	logger.Info("starting upload-started report")
+	slog.Info("starting upload-started report")
 
 	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
@@ -68,7 +64,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		Status: reports.StatusSuccess,
 	}).Build()
 
-	logger.Info("REPORT upload-started", "report", report)
+	slog.Info("REPORT upload-started", "report", report)
 	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
@@ -87,10 +83,10 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		Size:     uploadSize,
 	}).Build()
 
-	logger.Info("REPORT upload-status", "report", report)
+	slog.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
 
-	logger.Info("upload-started report complete")
+	slog.Info("upload-started report complete")
 
 	return resp, nil
 }
@@ -101,9 +97,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
 
-	logger := logutil.SetupLogger(&event, uploadId)
-
-	logger.Info("starting upload-completed report")
+	slog.Info("starting upload-completed report")
 
 	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
@@ -118,7 +112,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		Status: reports.StatusSuccess,
 	}).Build()
 
-	logger.Info("REPORT upload-completed", "report", report)
+	slog.Info("REPORT upload-completed", "report", report)
 	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
@@ -137,9 +131,9 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		Size:     uploadSize,
 	}).Build()
 
-	logger.Info("REPORT upload-status", "report", report)
+	slog.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
 
-	logger.Info("upload-completed report complete")
+	slog.Info("upload-completed report complete")
 	return resp, nil
 }
