@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -237,13 +238,14 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
+	event.Upload.ID = tuid
 
-	logger := logutil.SetupLogger(&event, resp.ChangeFileInfo.ID)
+	sloger.SetDefaultLogger(logutil.SetupLogger(&event, resp.ChangeFileInfo.ID))
 
-	logger.Info("starting metadata-transform")
+	slog.Info("starting metadata-transform")
 
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
-	logger.Info("adding global timestamp", "timestamp", timestamp)
+	slog.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
 	manifest["dex_ingest_datetime"] = timestamp
@@ -267,9 +269,9 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 		},
 	}).Build()
 
-	logger.Info("REPORT metadata-transform", "report", report)
+	slog.Info("REPORT metadata-transform", "report", report)
 	reports.Publish(event.Context, report)
 
-	logger.Info("metadata-transform complete")
+	slog.Info("metadata-transform complete")
 	return resp, nil
 }
