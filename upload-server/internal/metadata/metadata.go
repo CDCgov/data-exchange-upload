@@ -82,8 +82,6 @@ type SenderManifestVerification struct {
 }
 
 func (v *SenderManifestVerification) verify(ctx context.Context, manifest handler.MetaData) error {
-	logger := sloger.GetLogger(ctx)
-
 	path, err := NewFromManifest(manifest) //GetConfigIdentifierByVersion(manifest)
 	if err != nil {
 		return err
@@ -93,7 +91,7 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 		return err
 	}
 	config := c.Metadata
-	logger.Info("checking config", "config", config)
+	slog.Info("checking config", "config", config)
 
 	var errs error
 	for _, field := range config.Fields {
@@ -113,11 +111,8 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	if tuid == "" {
 		return resp, errors.New("no Upload ID defined")
 	}
-
-	logger := logutil.SetupLogger(&event, tuid)
-
-	logger.Info("starting metadata-verify")
-	logger.Info("checking the sender manifest", "manifest", manifest)
+	slog.Info("starting metadata-verify")
+	slog.Info("checking the sender manifest", "manifest", manifest)
 
 	rb := reports.NewBuilderWithManifest[reports.MetaDataVerifyContent](
 		"1.0.0",
@@ -136,13 +131,13 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
-		logger.Info("REPORT metadata-verify", "report", report)
+		slog.Info("REPORT metadata-verify", "report", report)
 		reports.Publish(event.Context, report)
-		logger.Info("metadata-verify complete")
+		slog.Info("metadata-verify complete")
 	}()
 
 	if err := v.verify(event.Context, manifest); err != nil {
-		logger.Error("validation errors and warnings", "errors", err)
+		slog.Error("validation errors and warnings", "errors", err)
 
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
