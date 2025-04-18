@@ -233,7 +233,7 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
-	slog.SetDefault(logutil.SetupLogger(&event, resp.ChangeFileInfo.ID))
+	slog.SetDefault(logutil.NewUploadIdLogger(&event, resp.ChangeFileInfo.ID))
 
 	slog.Info("starting metadata-transform")
 
