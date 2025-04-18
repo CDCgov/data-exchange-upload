@@ -3,9 +3,9 @@ package upload
 import (
 	"time"
 
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/logutil"
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
@@ -17,7 +17,7 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
 
-	logger := logutil.SetupLogger(&event, uploadId)
+	logger := sloger.GetLogger(event.Context)
 
 	logger.Info("starting upload-status report")
 
@@ -51,7 +51,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
 
-	logger := logutil.SetupLogger(&event, uploadId)
+	logger := sloger.GetLogger(event.Context)
 
 	logger.Info("starting upload-started report")
 
@@ -101,7 +101,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
 
-	logger := logutil.SetupLogger(&event, uploadId)
+	logger := sloger.GetLogger(event.Context)
 
 	logger.Info("starting upload-completed report")
 

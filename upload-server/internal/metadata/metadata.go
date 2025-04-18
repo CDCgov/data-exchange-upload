@@ -113,7 +113,7 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	logger := logutil.SetupLogger(&event, tuid)
+	logger := sloger.GetLogger(event.Context)
 
 	logger.Info("starting metadata-verify")
 	logger.Info("checking the sender manifest", "manifest", manifest)
