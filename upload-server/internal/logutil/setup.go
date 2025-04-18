@@ -8,12 +8,16 @@ import (
 	"github.com/tus/tusd/v2/pkg/handler"
 )
 
-func NewUploadIdLogger(event *handler.HookEvent, uploadId string) *slog.Logger {
-	// Create a new context for the event to avoid contamination
-	event.Context = context.Background()
+func SetupLogger(event *handler.HookEvent, uploadId string) *slog.Logger {
 	event.Context = sloger.SetUploadId(event.Context, uploadId)
 	logger := sloger.GetLogger(event.Context)
-	logger.Info("New logger with upload ID")
-
+	logger.Info("Logger setup with upload ID")
 	return logger
+}
+
+func SetupLoggerWithContext(ctx context.Context, uploadId string) (context.Context, *slog.Logger) {
+	ctx = sloger.SetUploadId(ctx, uploadId)
+	logger := sloger.GetLogger(ctx)
+	logger.Info("Logger setup with upload ID")
+	return ctx, logger
 }

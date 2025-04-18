@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,6 +16,7 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/google/uuid"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
@@ -81,6 +81,8 @@ type SenderManifestVerification struct {
 }
 
 func (v *SenderManifestVerification) verify(ctx context.Context, manifest handler.MetaData) error {
+	logger := sloger.GetLogger(ctx)
+
 	path, err := NewFromManifest(manifest) //GetConfigIdentifierByVersion(manifest)
 	if err != nil {
 		return err
@@ -90,7 +92,7 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 		return err
 	}
 	config := c.Metadata
-	slog.Info("checking config", "config", config)
+	logger.Info("checking config", "config", config)
 
 	var errs error
 	for _, field := range config.Fields {
@@ -110,8 +112,11 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	if tuid == "" {
 		return resp, errors.New("no Upload ID defined")
 	}
-	slog.Info("starting metadata-verify")
-	slog.Info("checking the sender manifest", "manifest", manifest)
+
+	logger := logutil.SetupLogger(&event, tuid)
+
+	logger.Info("starting metadata-verify")
+	logger.Info("checking the sender manifest", "manifest", manifest)
 
 	rb := reports.NewBuilderWithManifest[reports.MetaDataVerifyContent](
 		"1.0.0",
@@ -130,13 +135,13 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
-		slog.Info("REPORT metadata-verify", "report", report)
+		logger.Info("REPORT metadata-verify", "report", report)
 		reports.Publish(event.Context, report)
-		slog.Info("metadata-verify complete")
+		logger.Info("metadata-verify complete")
 	}()
 
 	if err := v.verify(event.Context, manifest); err != nil {
-		slog.Error("validation errors and warnings", "errors", err)
+		logger.Error("validation errors and warnings", "errors", err)
 
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
@@ -233,12 +238,12 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
-	slog.SetDefault(logutil.NewUploadIdLogger(&event, resp.ChangeFileInfo.ID))
+	logger := logutil.SetupLogger(&event, resp.ChangeFileInfo.ID)
 
-	slog.Info("starting metadata-transform")
+	logger.Info("starting metadata-transform")
 
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
-	slog.Info("adding global timestamp", "timestamp", timestamp)
+	logger.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
 	manifest["dex_ingest_datetime"] = timestamp
@@ -262,9 +267,9 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 		},
 	}).Build()
 
-	slog.Info("REPORT metadata-transform", "report", report)
+	logger.Info("REPORT metadata-transform", "report", report)
 	reports.Publish(event.Context, report)
 
-	slog.Info("metadata-transform complete")
+	logger.Info("metadata-transform complete")
 	return resp, nil
 }

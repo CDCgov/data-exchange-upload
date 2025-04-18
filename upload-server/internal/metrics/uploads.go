@@ -2,9 +2,9 @@ package metrics
 
 import (
 	"errors"
-	"log/slog"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -47,18 +47,20 @@ func UploadSpeedsHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.H
 		return resp, errors.New("no Upload ID defined")
 	}
 
+	logger := sloger.GetLogger(event.Context)
+
 	size := event.Upload.Size
 
 	manifest := event.Upload.MetaData
 	start, ok := manifest["dex_ingest_datetime"]
 	if !ok {
-		slog.Warn("unable to observe upload duration; no start time found in manifest")
+		logger.Warn("unable to observe upload duration; no start time found in manifest")
 		return resp, nil
 	}
 
 	startTime, err := time.Parse(time.RFC3339Nano, start)
 	if err != nil {
-		slog.Warn("unable to observe upload duration; unable to parse timestamp", "timestamp", start)
+		logger.Warn("unable to observe upload duration; unable to parse timestamp", "timestamp", start)
 		return resp, nil
 	}
 
