@@ -10,12 +10,10 @@ import (
 
 func SetupLogger(event *handler.HookEvent, uploadId string) *slog.Logger {
 	// Create a new context for the event to avoid contamination
-	event.Context = context.WithValue(context.Background(), "parentContext", event.Context)
+	event.Context = context.Background()
 	event.Context = sloger.SetUploadId(event.Context, uploadId)
 	logger := sloger.GetLogger(event.Context)
-
-	// Log the setup
-	logger.Info("Logger setup with upload ID", "uploadId", uploadId)
+	logger.Info("Logger setup with upload ID")
 
 	return logger
 }
