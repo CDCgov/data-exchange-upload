@@ -3,9 +3,6 @@ package sloger
 import (
 	"context"
 	"log/slog"
-
-	"github.com/tus/tusd/v2/pkg/handler"
-	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
 type contextKey string
@@ -39,25 +36,4 @@ func GetLogger(ctx context.Context) *slog.Logger {
 		return slog.Default()
 	}
 	return logger
-}
-
-func WithUploadIdContext(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	event.Context = SetUploadId(event.Context, event.Upload.ID)
-	return resp, nil
-}
-
-func Debug(ctx context.Context, msg string, args ...any) {
-	GetLogger(ctx).Debug(msg, args...)
-}
-
-func Info(ctx context.Context, msg string, args ...any) {
-	GetLogger(ctx).Info(msg, args...)
-}
-
-func Error(ctx context.Context, msg string, args ...any) {
-	GetLogger(ctx).Error(msg, args...)
-}
-
-func Warn(ctx context.Context, msg string, args ...any) {
-	GetLogger(ctx).Warn(msg, args...)
 }
