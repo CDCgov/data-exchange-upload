@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,9 +12,11 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/logutil"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/google/uuid"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
@@ -80,6 +81,8 @@ type SenderManifestVerification struct {
 }
 
 func (v *SenderManifestVerification) verify(ctx context.Context, manifest handler.MetaData) error {
+	logger := sloger.GetLogger(ctx)
+
 	path, err := NewFromManifest(manifest) //GetConfigIdentifierByVersion(manifest)
 	if err != nil {
 		return err
@@ -89,7 +92,7 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 		return err
 	}
 	config := c.Metadata
-	slog.Info("checking config", "config", config)
+	logger.Info("checking config", "config", config)
 
 	var errs error
 	for _, field := range config.Fields {
@@ -99,12 +102,10 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 	return errs
 }
 
-func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (v *SenderManifestVerification) Verify(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
 	tuid := event.Upload.ID
-
-	slog.Info("starting metadata-verify", "uploadId", tuid)
-	slog.Info("checking the sender manifest", "manifest", manifest, "uploadId", tuid)
+	logger := sloger.GetLogger(event.Context)
 
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
@@ -112,6 +113,9 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	if tuid == "" {
 		return resp, errors.New("no Upload ID defined")
 	}
+
+	logger.Info("starting metadata-verify")
+	logger.Info("checking the sender manifest", "manifest", manifest)
 
 	rb := reports.NewBuilderWithManifest[reports.MetaDataVerifyContent](
 		"1.0.0",
@@ -130,13 +134,13 @@ func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
-		slog.Info("REPORT metadata-verify", "report", report, "uploadId", report.UploadID)
+		logger.Info("REPORT metadata-verify", "report", report)
 		reports.Publish(event.Context, report)
-		slog.Info("metadata-verify complete", "uploadId", report.UploadID)
+		logger.Info("metadata-verify complete")
 	}()
 
 	if err := v.verify(event.Context, manifest); err != nil {
-		slog.Error("validation errors and warnings", "errors", err)
+		logger.Info("validation errors and warnings", "errors", err)
 
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
@@ -178,10 +182,10 @@ type AzureMetadataAppender struct {
 }
 
 type Appender interface {
-	Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error)
+	Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error)
 }
 
-func (fa *FileMetadataAppender) Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (fa *FileMetadataAppender) Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
@@ -205,7 +209,7 @@ func (fa *FileMetadataAppender) Append(event handler.HookEvent, resp hooks.HookR
 	return resp, nil
 }
 
-func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (aa *AzureMetadataAppender) Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
@@ -229,14 +233,16 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 	return resp, nil
 }
 
-func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func WithPreCreateManifestTransforms(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
-	slog.Info("starting metadata-transform", "uploadId", tuid)
+	logger := logutil.SetupLogger(event, resp.ChangeFileInfo.ID)
+
+	logger.Info("starting metadata-transform")
 
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
-	slog.Info("adding global timestamp", "timestamp", timestamp)
+	logger.Info("adding global timestamp", "timestamp", timestamp)
 
 	manifest := event.Upload.MetaData
 	manifest["dex_ingest_datetime"] = timestamp
@@ -254,23 +260,15 @@ func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookRes
 			ContentSchemaName:    reports.StageMetadataTransform,
 		},
 		Transforms: []reports.MetadataTransformContent{
-			{Action: "update",
-				Field: "ID",
-				Value: tuid}, {
-				Action: "append",
-				Field:  "dex_ingest_datetime",
-				Value:  timestamp,
-			}, {
-				Action: "append",
-				Field:  "upload_id",
-				Value:  tuid,
-			}},
+			{Action: "update", Field: "ID", Value: tuid},
+			{Action: "append", Field: "dex_ingest_datetime", Value: timestamp},
+			{Action: "append", Field: "upload_id", Value: tuid},
+		},
 	}).Build()
 
-	slog.Info("REPORT metadata-transform", "report", report, "uploadId", report.UploadID)
+	logger.Info("REPORT metadata-transform", "report", report)
 	reports.Publish(event.Context, report)
 
-	slog.Info("metadata-transform complete", "uploadId", report.UploadID)
-
+	logger.Info("metadata-transform complete")
 	return resp, nil
 }
