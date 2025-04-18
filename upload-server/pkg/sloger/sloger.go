@@ -26,7 +26,7 @@ func With(args ...any) *slog.Logger {
 
 func SetUploadId(ctx context.Context, uploadId string) context.Context {
 	logger := GetLogger(ctx)
-	logger = logger.With("uploadId", uploadId)
+	logger = slog.New(logger.Handler()).With("uploadId", uploadId)
 	return context.WithValue(ctx, loggerKey, logger)
 }
 
