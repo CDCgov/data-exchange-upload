@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -106,7 +105,7 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 func (v *SenderManifestVerification) Verify(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
 	tuid := event.Upload.ID
-	ctx := event.Context
+	logger := sloger.GetLogger(event.Context)
 
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
@@ -115,8 +114,8 @@ func (v *SenderManifestVerification) Verify(event *handler.HookEvent, resp hooks
 		return resp, errors.New("no Upload ID defined")
 	}
 
-	slog.InfoContext(ctx, "starting metadata-verify")
-	slog.InfoContext(ctx, "checking the sender manifest", "manifest", manifest)
+	logger.Info("starting metadata-verify")
+	logger.Info("checking the sender manifest", "manifest", manifest)
 
 	rb := reports.NewBuilderWithManifest[reports.MetaDataVerifyContent](
 		"1.0.0",
@@ -135,13 +134,13 @@ func (v *SenderManifestVerification) Verify(event *handler.HookEvent, resp hooks
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
-		slog.InfoContext(ctx, "REPORT metadata-verify", "report", report)
+		logger.Info("REPORT metadata-verify", "report", report)
 		reports.Publish(event.Context, report)
-		slog.InfoContext(ctx, "metadata-verify complete")
+		logger.Info("metadata-verify complete")
 	}()
 
 	if err := v.verify(event.Context, manifest); err != nil {
-		slog.ErrorContext(ctx, "validation errors and warnings", "errors", err)
+		logger.Info("validation errors and warnings", "errors", err)
 
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
