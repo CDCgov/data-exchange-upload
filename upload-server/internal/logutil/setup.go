@@ -19,7 +19,6 @@ func SetupLogger(event *handler.HookEvent, uploadId string) *slog.Logger {
 func WithUploadIdLogger(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	event.Context = sloger.SetUploadId(event.Context, event.Upload.ID)
 	logger := sloger.GetLogger(event.Context)
-	sloger.SetDefaultLogger(logger)
 	logger.Info("Logger setup with upload ID")
 	return resp, nil
 }
