@@ -27,6 +27,7 @@ func With(args ...any) *slog.Logger {
 func SetUploadId(ctx context.Context, uploadId string) context.Context {
 	// Create a new logger to reset the fields to ensure only one upload ID is logged
 	logger := slog.New(slog.Default().Handler())
+	logger = slog.New(logger.Handler())
 	logger.Info("New logger created")
 	logger = logger.With("uploadId", uploadId)
 	logger.Info("Logger with upload ID set")
