@@ -5,9 +5,9 @@ import (
 	"log/slog"
 )
 
-type contextKey string
+type ContextKey string
 
-const loggerKey contextKey = "logger"
+var LoggerKey ContextKey = "logger"
 
 var (
 	DefaultLogger = slog.Default()
@@ -26,11 +26,11 @@ func With(args ...any) *slog.Logger {
 
 func SetUploadId(ctx context.Context, uploadId string) context.Context {
 	logger := slog.With("uploadId", uploadId)
-	return context.WithValue(ctx, loggerKey, logger)
+	return context.WithValue(ctx, LoggerKey, logger)
 }
 
 func GetLogger(ctx context.Context) *slog.Logger {
-	logger, ok := ctx.Value(loggerKey).(*slog.Logger)
+	logger, ok := ctx.Value(LoggerKey).(*slog.Logger)
 	if !ok {
 		// Fallback to the default logger if no logger is found in the context
 		return slog.Default()

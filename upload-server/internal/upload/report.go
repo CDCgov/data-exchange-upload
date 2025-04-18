@@ -1,24 +1,24 @@
 package upload
 
 import (
-	"log/slog"
 	"time"
 
 	metadataPkg "github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func ReportUploadStatus(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	// Get values from event
 	uploadId := event.Upload.ID
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
-	ctx := event.Context
+	logger := sloger.GetLogger(event.Context)
 
-	slog.InfoContext(ctx, "starting upload-status report")
+	logger.Info("starting upload-status report")
 
 	report := reports.NewBuilderWithManifest[reports.UploadStatusContent](
 		"1.0.0",
@@ -36,22 +36,22 @@ func ReportUploadStatus(event handler.HookEvent, resp hooks.HookResponse) (hooks
 		Size:     uploadSize,
 	}).Build()
 
-	slog.InfoContext(ctx, "REPORT upload-status", "report", report)
+	logger.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
 
-	slog.InfoContext(ctx, "upload-status report complete")
+	logger.Info("upload-status report complete")
 
 	return resp, nil
 }
 
-func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func ReportUploadStarted(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	uploadId := event.Upload.ID
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
-	ctx := event.Context
+	logger := sloger.GetLogger(event.Context)
 
-	slog.InfoContext(ctx, "starting upload-started report")
+	logger.Info("starting upload-started report")
 
 	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
@@ -66,7 +66,7 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		Status: reports.StatusSuccess,
 	}).Build()
 
-	slog.InfoContext(ctx, "REPORT upload-started", "report", report)
+	logger.Info("REPORT upload-started", "report", report)
 	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
@@ -85,22 +85,22 @@ func ReportUploadStarted(event handler.HookEvent, resp hooks.HookResponse) (hook
 		Size:     uploadSize,
 	}).Build()
 
-	slog.InfoContext(ctx, "REPORT upload-status", "report", report)
+	logger.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
 
-	slog.InfoContext(ctx, "upload-started report complete")
+	logger.Info("upload-started report complete")
 
 	return resp, nil
 }
 
-func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func ReportUploadComplete(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	uploadId := event.Upload.ID
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
-	ctx := event.Context
+	logger := sloger.GetLogger(event.Context)
 
-	slog.InfoContext(ctx, "starting upload-completed report")
+	logger.Info("starting upload-completed report")
 
 	report := reports.NewBuilderWithManifest[reports.UploadLifecycleContent](
 		"1.0.0",
@@ -115,7 +115,7 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		Status: reports.StatusSuccess,
 	}).Build()
 
-	slog.InfoContext(ctx, "REPORT upload-completed", "report", report)
+	logger.Info("REPORT upload-completed", "report", report)
 	reports.Publish(event.Context, report)
 
 	report = reports.NewBuilderWithManifest[reports.UploadStatusContent](
@@ -134,9 +134,9 @@ func ReportUploadComplete(event handler.HookEvent, resp hooks.HookResponse) (hoo
 		Size:     uploadSize,
 	}).Build()
 
-	slog.InfoContext(ctx, "REPORT upload-status", "report", report)
+	logger.Info("REPORT upload-status", "report", report)
 	reports.Publish(event.Context, report)
 
-	slog.InfoContext(ctx, "upload-completed report complete")
+	logger.Info("upload-completed report complete")
 	return resp, nil
 }

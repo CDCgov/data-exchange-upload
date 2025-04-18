@@ -103,7 +103,7 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 	return errs
 }
 
-func (v *SenderManifestVerification) Verify(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (v *SenderManifestVerification) Verify(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
 	tuid := event.Upload.ID
 	ctx := event.Context
@@ -183,10 +183,10 @@ type AzureMetadataAppender struct {
 }
 
 type Appender interface {
-	Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error)
+	Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error)
 }
 
-func (fa *FileMetadataAppender) Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (fa *FileMetadataAppender) Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
@@ -210,7 +210,7 @@ func (fa *FileMetadataAppender) Append(event handler.HookEvent, resp hooks.HookR
 	return resp, nil
 }
 
-func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (aa *AzureMetadataAppender) Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := event.Upload.ID
 	if resp.ChangeFileInfo.ID != "" {
 		tuid = resp.ChangeFileInfo.ID
@@ -234,11 +234,11 @@ func (aa *AzureMetadataAppender) Append(event handler.HookEvent, resp hooks.Hook
 	return resp, nil
 }
 
-func WithPreCreateManifestTransforms(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func WithPreCreateManifestTransforms(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
 
-	logger := logutil.SetupLogger(&event, resp.ChangeFileInfo.ID)
+	logger := logutil.SetupLogger(event, resp.ChangeFileInfo.ID)
 
 	logger.Info("starting metadata-transform")
 

@@ -16,8 +16,12 @@ func SetupLogger(event *handler.HookEvent, uploadId string) *slog.Logger {
 	return logger
 }
 
-func WithUploadIdLogger(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	event.Context = sloger.SetUploadId(event.Context, event.Upload.ID)
+func WithUploadIdLogger(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	tuid := event.Upload.ID
+	if resp.ChangeFileInfo.ID != "" {
+		tuid = resp.ChangeFileInfo.ID
+	}
+	event.Context = sloger.SetUploadId(event.Context, tuid)
 	logger := sloger.GetLogger(event.Context)
 	logger.Info("Logger setup with upload ID")
 	return resp, nil
