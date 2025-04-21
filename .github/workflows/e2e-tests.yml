@@ -123,10 +123,10 @@ jobs:
             echo "commit_msg=add Playwright report for branch ${{ inputs.BRANCH_NAME }}, run-id ${{ inputs.RUN_ID }}" >> "$GITHUB_OUTPUT"
           fi
 
-  # publish:
-  #   needs: [generate-report]
-  #   uses: ./.github/workflows/push-to-gh-pages.yml
-  #   with:
-  #     ARTIFACT_ID: ${{ needs.generate-report.outputs.artifact_id }}
-  #     DEPLOY_TO: ${{ needs.generate-report.outputs.deploy_to }}
-  #     COMMIT_MSG: ${{ needs.generate-report.outputs.commit_msg }}
+  publish:
+    needs: [generate-report]
+    uses: ./.github/workflows/push-to-gh-pages.yml
+    with:
+      ARTIFACT_ID: ${{ needs.generate-report.outputs.artifact_id }}
+      DEPLOY_TO: ${{ needs.generate-report.outputs.deploy_to }}
+      COMMIT_MSG: ${{ needs.generate-report.outputs.commit_msg }}
