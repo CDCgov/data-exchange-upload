@@ -24,6 +24,7 @@ services:
       - TUS_AZURE_CONTAINER_NAME=test
       - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/azurite_destinations.yml
       - AZURITE_KEY=${AZURITE_STORAGE_KEY}
+      - CSRF_TRUSTED_ORIGINS=upload-server-azurite:8081,localhost:8081
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-azurite-network
