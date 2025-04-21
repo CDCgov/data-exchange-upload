@@ -19,7 +19,7 @@ services:
       - OAUTH_REQUIRED_SCOPES=test:scope1 test:scope2
       - OAUTH_SESSION_KEY=1234
       - OAUTH_SESSION_SECURE=false
-      - CSRF_TRUSTED_ORIGINS=upload-server:8081,localhost:8081
+      - CSRF_TRUSTED_ORIGINS=upload-server-fs:8081,localhost:8081
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-fs-network
