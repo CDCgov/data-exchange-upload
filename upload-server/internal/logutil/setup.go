@@ -1,35 +1,19 @@
 package logutil
 
 import (
-	"context"
-	"log/slog"
-
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func SetupLogger(event *handler.HookEvent, uploadId string) *slog.Logger {
-	event.Context = sloger.SetUploadId(event.Context, uploadId)
-	logger := sloger.GetLogger(event.Context)
-	logger.Info("Logger setup with upload ID")
-	return logger
-}
-
 func WithUploadIdLogger(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	tuid := event.Upload.ID
-	if resp.ChangeFileInfo.ID != "" {
-		tuid = resp.ChangeFileInfo.ID
+	tuid, err := metadata.GetUploadId(*event, resp)
+	if err != nil {
+		return resp, err
 	}
-	event.Context = sloger.SetUploadId(event.Context, tuid)
-	logger := sloger.GetLogger(event.Context)
+	ctx, logger := sloger.SetInContext(event.Context, "uploadId", tuid)
+	event.Context = ctx
 	logger.Info("Logger setup with upload ID")
 	return resp, nil
-}
-
-func SetupLoggerWithContext(ctx context.Context, uploadId string) (context.Context, *slog.Logger) {
-	ctx = sloger.SetUploadId(ctx, uploadId)
-	logger := sloger.GetLogger(ctx)
-	logger.Info("Logger setup with upload ID")
-	return ctx, logger
 }

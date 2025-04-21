@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/container"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/logutil"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/metadata"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
@@ -81,7 +81,7 @@ type SenderManifestVerification struct {
 }
 
 func (v *SenderManifestVerification) verify(ctx context.Context, manifest handler.MetaData) error {
-	logger := sloger.GetLogger(ctx)
+	logger := sloger.FromContext(ctx)
 
 	path, err := NewFromManifest(manifest) //GetConfigIdentifierByVersion(manifest)
 	if err != nil {
@@ -104,16 +104,12 @@ func (v *SenderManifestVerification) verify(ctx context.Context, manifest handle
 
 func (v *SenderManifestVerification) Verify(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	manifest := event.Upload.MetaData
-	tuid := event.Upload.ID
-	logger := sloger.GetLogger(event.Context)
-
-	if resp.ChangeFileInfo.ID != "" {
-		tuid = resp.ChangeFileInfo.ID
-	}
-	if tuid == "" {
-		return resp, errors.New("no Upload ID defined")
+	tuid, err := GetUploadId(*event, resp)
+	if err != nil {
+		return resp, err
 	}
 
+	logger := sloger.FromContext(event.Context)
 	logger.Info("starting metadata-verify")
 	logger.Info("checking the sender manifest", "manifest", manifest)
 
@@ -186,15 +182,11 @@ type Appender interface {
 }
 
 func (fa *FileMetadataAppender) Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	tuid := event.Upload.ID
-	if resp.ChangeFileInfo.ID != "" {
-		tuid = resp.ChangeFileInfo.ID
-	}
-	if tuid == "" {
-		return resp, errors.New(ErrNoUploadId)
-	}
-
 	manifest := event.Upload.MetaData
+	tuid, err := GetUploadId(*event, resp)
+	if err != nil {
+		return resp, err
+	}
 
 	if resp.ChangeFileInfo.MetaData != nil {
 		manifest = resp.ChangeFileInfo.MetaData
@@ -205,17 +197,16 @@ func (fa *FileMetadataAppender) Append(event *handler.HookEvent, resp hooks.Hook
 		return resp, err
 	}
 	err = os.WriteFile(filepath.Join(fa.Path, tuid+".meta"), m, 0666)
-
+	if err != nil {
+		return resp, err
+	}
 	return resp, nil
 }
 
 func (aa *AzureMetadataAppender) Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	tuid := event.Upload.ID
-	if resp.ChangeFileInfo.ID != "" {
-		tuid = resp.ChangeFileInfo.ID
-	}
-	if tuid == "" {
-		return resp, errors.New("no Upload ID defined")
+	tuid, err := GetUploadId(*event, resp)
+	if err != nil {
+		return resp, err
 	}
 
 	manifest := event.Upload.MetaData
@@ -226,19 +217,27 @@ func (aa *AzureMetadataAppender) Append(event *handler.HookEvent, resp hooks.Hoo
 
 	// Get blob client.
 	blobClient := aa.ContainerClient.NewBlobClient(aa.TusPrefix + "/" + tuid)
-	_, err := blobClient.SetMetadata(event.Context, storeaz.PointerizeMetadata(manifest), nil)
+	_, err = blobClient.SetMetadata(event.Context, storeaz.PointerizeMetadata(manifest), nil)
 	if err != nil {
 		return resp, err
 	}
 	return resp, nil
 }
 
-func WithPreCreateManifestTransforms(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func WithUploadId(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	tuid := Uid()
 	resp.ChangeFileInfo.ID = tuid
+	slog.Info("set tus upload ID", "upload ID", tuid)
+	return resp, nil
+}
 
-	logger := logutil.SetupLogger(event, resp.ChangeFileInfo.ID)
+func WithPreCreateManifestTransforms(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	tuid, err := GetUploadId(*event, resp)
+	if err != nil {
+		return resp, err
+	}
 
+	logger := sloger.FromContext(event.Context)
 	logger.Info("starting metadata-transform")
 
 	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
@@ -271,4 +270,16 @@ func WithPreCreateManifestTransforms(event *handler.HookEvent, resp hooks.HookRe
 
 	logger.Info("metadata-transform complete")
 	return resp, nil
+}
+
+func GetUploadId(event handler.HookEvent, resp hooks.HookResponse) (string, error) {
+	tuid := event.Upload.ID
+	if resp.ChangeFileInfo.ID != "" {
+		tuid = resp.ChangeFileInfo.ID
+	}
+	if tuid == "" {
+		return tuid, errors.New(ErrNoUploadId)
+	}
+
+	return tuid, nil
 }

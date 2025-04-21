@@ -14,7 +14,7 @@ type Publishers[T Identifiable] []Publisher[T]
 
 func (p Publishers[T]) Publish(ctx context.Context, e T) error {
 	var errs error
-	logger := sloger.GetLogger(ctx)
+	logger := sloger.FromContext(ctx)
 	for _, publisher := range p {
 		for range MaxRetries {
 			if err := publisher.Publish(ctx, e); err != nil {

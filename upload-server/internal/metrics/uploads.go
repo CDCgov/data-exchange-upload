@@ -1,7 +1,6 @@
 package metrics
 
 import (
-	"errors"
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
@@ -39,15 +38,7 @@ func ActiveUploadDecHook(event *handler.HookEvent, resp hooks.HookResponse) (hoo
 }
 
 func UploadSpeedsHook(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	tuid := event.Upload.ID
-	if resp.ChangeFileInfo.ID != "" {
-		tuid = resp.ChangeFileInfo.ID
-	}
-	if tuid == "" {
-		return resp, errors.New("no Upload ID defined")
-	}
-
-	logger := sloger.GetLogger(event.Context)
+	logger := sloger.FromContext(event.Context)
 
 	size := event.Upload.Size
 

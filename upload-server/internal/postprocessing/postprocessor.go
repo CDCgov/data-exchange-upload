@@ -7,9 +7,9 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/logutil"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -22,7 +22,8 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	if e == nil || e.UploadId == "" {
 		return fmt.Errorf("malformed file ready event %+v", e)
 	}
-	ctx, logger := logutil.SetupLoggerWithContext(ctx, e.UploadId)
+	// ctx, logger := logutil.SetupLoggerWithContext(ctx, e.UploadId)
+	ctx, logger := sloger.SetInContext(ctx, e.UploadId)
 
 	logger.Info("starting file copy")
 	metrics.EventsCounter.With(prometheus.Labels{metrics.Labels.EventType: e.Type(), metrics.Labels.EventOp: "subscribe"}).Inc()

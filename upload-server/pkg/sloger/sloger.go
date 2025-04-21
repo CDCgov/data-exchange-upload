@@ -24,16 +24,16 @@ func With(args ...any) *slog.Logger {
 	return DefaultLogger.With(args...)
 }
 
-func SetUploadId(ctx context.Context, uploadId string) context.Context {
-	logger := slog.With("uploadId", uploadId)
-	return context.WithValue(ctx, LoggerKey, logger)
+func SetInContext(ctx context.Context, args ...any) (context.Context, *slog.Logger) {
+	l := With(args...)
+	return context.WithValue(ctx, LoggerKey, l), l
 }
 
-func GetLogger(ctx context.Context) *slog.Logger {
+func FromContext(ctx context.Context) *slog.Logger {
 	logger, ok := ctx.Value(LoggerKey).(*slog.Logger)
 	if !ok {
 		// Fallback to the default logger if no logger is found in the context
-		return slog.Default()
+		return DefaultLogger
 	}
 	return logger
 }

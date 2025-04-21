@@ -44,10 +44,10 @@ func GetHookHandler(appConfig appconfig.AppConfig) (RegisterableHookHandler, err
 func PrebuiltHooks(validator metadata.SenderManifestVerification, appender metadata.Appender) (RegisterableHookHandler, error) {
 	handler := &prebuilthooks.PrebuiltHook{}
 
-	handler.Register(tusHooks.HookPreCreate, metadata.WithPreCreateManifestTransforms, logutil.WithUploadIdLogger, validator.Verify)
+	handler.Register(tusHooks.HookPreCreate, metadata.WithUploadId, logutil.WithUploadIdLogger, metadata.WithPreCreateManifestTransforms, validator.Verify)
 	handler.Register(tusHooks.HookPostCreate, logutil.WithUploadIdLogger, upload.ReportUploadStarted)
 	handler.Register(tusHooks.HookPostReceive, logutil.WithUploadIdLogger, upload.ReportUploadStatus)
-	handler.Register(tusHooks.HookPreFinish, appender.Append)
+	handler.Register(tusHooks.HookPreFinish, logutil.WithUploadIdLogger, appender.Append)
 	// note that tus sends this to a potentially blocking channel.
 	// however it immediately pulls from that channel in to a goroutine..so we're good
 

@@ -16,7 +16,7 @@ func ReportUploadStatus(event *handler.HookEvent, resp hooks.HookResponse) (hook
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
 	uploadMetadata := event.Upload.MetaData
-	logger := sloger.GetLogger(event.Context)
+	logger := sloger.FromContext(event.Context)
 
 	logger.Info("starting upload-status report")
 
@@ -49,7 +49,7 @@ func ReportUploadStarted(event *handler.HookEvent, resp hooks.HookResponse) (hoo
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
-	logger := sloger.GetLogger(event.Context)
+	logger := sloger.FromContext(event.Context)
 
 	logger.Info("starting upload-started report")
 
@@ -98,7 +98,7 @@ func ReportUploadComplete(event *handler.HookEvent, resp hooks.HookResponse) (ho
 	manifest := event.Upload.MetaData
 	uploadOffset := event.Upload.Offset
 	uploadSize := event.Upload.Size
-	logger := sloger.GetLogger(event.Context)
+	logger := sloger.FromContext(event.Context)
 
 	logger.Info("starting upload-completed report")
 
