@@ -168,6 +168,8 @@ func (v *SenderManifestVerification) Verify(event *handler.HookEvent, resp hooks
 	return resp, nil
 }
 
+type NoopAppender struct{}
+
 type FileMetadataAppender struct {
 	Path string
 }
@@ -179,6 +181,10 @@ type AzureMetadataAppender struct {
 
 type Appender interface {
 	Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error)
+}
+
+func (na *NoopAppender) Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	return resp, nil
 }
 
 func (fa *FileMetadataAppender) Append(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {

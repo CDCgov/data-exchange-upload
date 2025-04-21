@@ -38,6 +38,10 @@ func GetHookHandler(appConfig appconfig.AppConfig) (RegisterableHookHandler, err
 		}
 	}
 
+	if appConfig.S3Connection != nil {
+		metadataAppender = &metadata.NoopAppender{}
+	}
+
 	return PrebuiltHooks(manifestValidator, metadataAppender)
 }
 
