@@ -22,8 +22,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	if e == nil || e.UploadId == "" {
 		return fmt.Errorf("malformed file ready event %+v", e)
 	}
-	// ctx, logger := logutil.SetupLoggerWithContext(ctx, e.UploadId)
-	ctx, logger := sloger.SetInContext(ctx, e.UploadId)
+	ctx, logger := sloger.SetInContext(ctx, "uploadId", e.UploadId)
 
 	logger.Info("starting file copy")
 	metrics.EventsCounter.With(prometheus.Labels{metrics.Labels.EventType: e.Type(), metrics.Labels.EventOp: "subscribe"}).Inc()
