@@ -3,12 +3,14 @@ package postprocessing
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type PostProcessor struct {
@@ -17,8 +19,13 @@ type PostProcessor struct {
 }
 
 func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
+	if e == nil || e.UploadId == "" {
+		return fmt.Errorf("malformed file ready event %+v", e)
+	}
+	ctx, logger := sloger.SetInContext(ctx, "uploadId", e.UploadId)
 
-	slog.Info("starting file copy", "uploadId", e.UploadId)
+	logger.Info("starting file copy")
+	metrics.EventsCounter.With(prometheus.Labels{metrics.Labels.EventType: e.Type(), metrics.Labels.EventOp: "subscribe"}).Inc()
 
 	rb := reports.NewBuilder[reports.FileCopyContent](
 		"1.0.0",
@@ -36,10 +43,10 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
-		slog.Info("REPORT blob-file-copy", "report", report, "uploadId", e.UploadId)
+		logger.Info("REPORT blob-file-copy", "report", report)
 		reports.Publish(ctx, report)
 
-		slog.Info("file-copy report complete", "uploadId", e.UploadId)
+		logger.Info("file-copy report complete")
 	}()
 
 	src, ok := delivery.GetSource("upload")
@@ -60,21 +67,27 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
+
+	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Inc()
+	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": "started"}).Inc()
 	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
+	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Dec()
 
 	if err != nil {
-		slog.Error("failed to deliver file", "target", uri, "error", err)
+		logger.Error("failed to deliver file", "target", uri, "error", err)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
 			Message: err.Error(),
 		})
+		metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": "failed"}).Inc()
 		return err
 	}
-	slog.Info("file delivered", "event", e, "uploadId", e.UploadId) // Is this necessary?
+	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": "completed"}).Inc()
+	logger.Info("file delivered", "event", e) // Is this necessary?
 
 	m, err := src.GetMetadata(ctx, e.UploadId)
 	if err != nil {
-		slog.Warn("failed to get metadata for report", "event", e)
+		logger.Warn("failed to get metadata for report", "event", e)
 	}
 	rb.SetManifest(m)
 

@@ -6,4 +6,5 @@ import (
 
 type Subscribable[T Identifiable] interface {
 	Listen(context.Context, func(context.Context, T) error) error
+	URL() string
 }
