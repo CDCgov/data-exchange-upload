@@ -39,6 +39,7 @@ func GetHookHandler(appConfig appconfig.AppConfig) (RegisterableHookHandler, err
 	}
 
 	if appConfig.S3Connection != nil {
+		// Tus S3 store automatically appends metadata to the S3 object
 		metadataAppender = &metadata.NoopAppender{}
 	}
 
