@@ -42,6 +42,14 @@ func (r *Report) RetryCount() int {
 	return r.Event.RetryCount
 }
 
+func (r *Report) Identifier() string {
+	return r.UploadID
+}
+
+func (r *Report) GetUploadID() string {
+	return r.UploadID
+}
+
 func (r *Report) IncrementRetryCount() {
 	r.Event.RetryCount++
 }
@@ -83,10 +91,6 @@ type ReportIssue struct {
 
 func (r *ReportIssue) String() string {
 	return fmt.Sprintf("%s: %s", r.Level, r.Message)
-}
-
-func (r *Report) Identifier() string {
-	return r.UploadID
 }
 
 type ReportContent struct {

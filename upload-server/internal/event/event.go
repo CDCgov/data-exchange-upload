@@ -16,6 +16,7 @@ type Retryable interface {
 type Identifiable interface {
 	Retryable
 	Identifier() string
+	GetUploadID() string
 	Type() string
 	SetIdentifier(id string)
 	SetType(t string)
@@ -57,6 +58,10 @@ func (fr *FileReady) SetType(t string) {
 }
 
 func (fr *FileReady) Identifier() string {
+	return fr.UploadId + fr.DestinationTarget
+}
+
+func (fr *FileReady) GetUploadID() string {
 	return fr.UploadId
 }
 
