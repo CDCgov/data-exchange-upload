@@ -159,7 +159,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "avg by(target) (dex_server_active_deliveries{job=\"upload\"})",
+          "expr": "sum by(target) (dex_server_active_deliveries{job=\"upload\"})",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
