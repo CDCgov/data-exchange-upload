@@ -2,7 +2,6 @@ package postprocessing
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -73,7 +72,6 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": metrics.DeliveryResultStarted}).Inc()
 	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
 	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Dec()
-	err = errors.New("simulate delivery failure")
 	if err != nil {
 		logger.Error("failed to deliver file", "target", uri, "error", err)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
