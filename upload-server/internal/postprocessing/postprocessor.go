@@ -69,20 +69,19 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	}
 
 	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Inc()
-	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": "started"}).Inc()
+	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": metrics.DeliveryResultStarted}).Inc()
 	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
 	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Dec()
-
 	if err != nil {
 		logger.Error("failed to deliver file", "target", uri, "error", err)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
 			Message: err.Error(),
 		})
-		metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": "failed"}).Inc()
+		metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": metrics.DeliveryResultFailed}).Inc()
 		return err
 	}
-	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": "completed"}).Inc()
+	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": metrics.DeliveryResultCompleted}).Inc()
 	logger.Info("file delivered", "event", e) // Is this necessary?
 
 	m, err := src.GetMetadata(ctx, e.UploadId)

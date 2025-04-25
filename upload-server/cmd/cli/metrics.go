@@ -23,6 +23,4 @@ func setupMetrics(m ...prometheus.Collector) {
 		metrics.DeliveryTotals,
 	)
 	metrics.RegisterMetrics(m...)
-
-	// metrics.DefaultPoller.Start(ctx, pollInterval)
 } // setupMetrics
