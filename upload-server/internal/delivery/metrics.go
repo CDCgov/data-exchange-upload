@@ -36,7 +36,7 @@ func ObserveSpeed(next func(context.Context, *event.FileReady) error) func(conte
 		} else {
 			dur := time.Since(start)
 			if dur > 0 {
-				speed := size / dur.Seconds()
+				speed := float64(size) / dur.Seconds()
 				SpeedHistogram.Observe(speed)
 			}
 		}

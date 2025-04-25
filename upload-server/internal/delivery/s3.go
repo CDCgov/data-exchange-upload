@@ -2,7 +2,6 @@ package delivery
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -64,8 +63,16 @@ func (ss *S3Source) GetMetadata(ctx context.Context, id string) (map[string]stri
 	return output.Metadata, nil
 }
 
-func (ss *S3Source) GetSize(ctx context.Context, id string) (float64, error) {
-	return 0, errors.New("not implemented")
+func (ss *S3Source) GetSize(ctx context.Context, id string) (int64, error) {
+	srcFilename := ss.Prefix + "/" + id
+	output, err := ss.FromClient.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(ss.BucketName),
+		Key:    aws.String(srcFilename),
+	})
+	if err != nil {
+		return 0, fmt.Errorf("unable to retrieve object size: %w", err)
+	}
+	return *output.ContentLength, nil
 }
 
 func (ss *S3Source) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
