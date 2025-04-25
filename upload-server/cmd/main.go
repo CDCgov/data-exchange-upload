@@ -104,9 +104,12 @@ func main() {
 		}
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := subscriber.Listen(ctx, cli.TracingProcessor(
-				delivery.ObserveSpeed(
-					postprocessing.ProcessFileReadyEvent),
+			if err := subscriber.Listen(ctx, event.UploadIDLoggerProcessor(
+				cli.TracingProcessor(
+					delivery.ObserveSpeed(
+						postprocessing.ProcessFileReadyEvent,
+					),
+				),
 			),
 			); err != nil {
 				cancelFunc()

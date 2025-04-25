@@ -1,5 +1,11 @@
 package event
 
+import (
+	"context"
+
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
+)
+
 const FileReadyEventType = "FileReady"
 
 var FileReadyPublisher Publishers[*FileReady]
@@ -74,5 +80,12 @@ func NewFileReadyEvent(uploadId string, metadata map[string]string, path, target
 		UploadId:          uploadId,
 		Metadata:          metadata,
 		DestinationTarget: target,
+	}
+}
+
+func UploadIDLoggerProcessor[T Identifiable](next func(context.Context, T) error) func(context.Context, T) error {
+	return func(ctx context.Context, e T) error {
+		c, _ := sloger.SetInContext(ctx, "uploadId", e.GetUploadID())
+		return next(c, e)
 	}
 }
