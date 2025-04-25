@@ -7,10 +7,8 @@ import (
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
-	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type PostProcessor struct {
@@ -77,7 +75,6 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
-	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": metrics.DeliveryResultCompleted}).Inc()
 	logger.Info("file delivered", "event", e) // Is this necessary?
 
 	m, err := src.GetMetadata(ctx, e.UploadId)

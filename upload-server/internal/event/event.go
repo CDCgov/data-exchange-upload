@@ -96,6 +96,8 @@ func MetricsProcessor[T Identifiable](next func(context.Context, T) error) func(
 				metrics.ActiveDeliveries.With(prometheus.Labels{"target": fr.DestinationTarget}).Dec()
 				if err != nil {
 					metrics.DeliveryTotals.With(prometheus.Labels{"target": fr.DestinationTarget, "result": metrics.DeliveryResultFailed}).Inc()
+				} else {
+					metrics.DeliveryTotals.With(prometheus.Labels{"target": fr.DestinationTarget, "result": metrics.DeliveryResultCompleted}).Inc()
 				}
 			}()
 			metrics.ActiveDeliveries.With(prometheus.Labels{"target": fr.DestinationTarget}).Inc()
