@@ -9,11 +9,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-var SpeedHistogram = prometheus.NewHistogram(prometheus.HistogramOpts{
+var SpeedHistograms = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 	Name:    "dex_server_delivery_speed_bytes_per_second",
 	Help:    "File delivery speed distribution",
 	Buckets: prometheus.ExponentialBuckets(10, 2.5, 20),
-})
+}, []string{"target"})
 
 func ObserveSpeed(next func(context.Context, *event.FileReady) error) func(context.Context, *event.FileReady) error {
 	return func(ctx context.Context, e *event.FileReady) error {
@@ -37,7 +37,7 @@ func ObserveSpeed(next func(context.Context, *event.FileReady) error) func(conte
 			dur := time.Since(start)
 			if dur > 0 {
 				speed := float64(size) / dur.Seconds()
-				SpeedHistogram.Observe(speed)
+				SpeedHistograms.With(prometheus.Labels{"target": e.DestinationTarget}).Observe(speed)
 			}
 		}
 

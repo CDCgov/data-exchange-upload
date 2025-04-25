@@ -23,7 +23,7 @@ func setupMetrics(m ...prometheus.Collector) {
 		// Maybe these delivery metrics can be grouped in some way
 		metrics.ActiveDeliveries,
 		metrics.DeliveryTotals,
-		delivery.SpeedHistogram,
+		delivery.SpeedHistograms,
 	)
 	metrics.RegisterMetrics(m...)
 } // setupMetrics

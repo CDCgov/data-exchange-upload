@@ -696,7 +696,7 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": false
+          "showLegend": true
         },
         "tooltip": {
           "hideZeros": false,
@@ -711,12 +711,16 @@
             "type": "prometheus",
             "uid": "prometheus-datasource"
           },
-          "editorMode": "code",
-          "expr": "histogram_quantile(0.5, sum by(le) (rate(dex_server_delivery_speed_bytes_per_second_bucket[5m])))",
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "histogram_quantile(0.5, sum by(le, target) (rate(dex_server_delivery_speed_bytes_per_second_bucket[5m])))",
+          "fullMetaSearch": false,
+          "includeNullMetadata": true,
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
-          "refId": "A"
+          "refId": "A",
+          "useBackend": false
         }
       ],
       "title": "Median Delivery Speed",
