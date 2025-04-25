@@ -159,7 +159,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "avg by(target) (dex_server_active_deliveries{job=\"upload\"})",
+          "expr": "sum by(target) (dex_server_active_deliveries{job=\"upload\"})",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
@@ -181,7 +181,10 @@
           "color": {
             "mode": "thresholds"
           },
+          "fieldMinMax": false,
           "mappings": [],
+          "max": 100000,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -190,11 +193,15 @@
               },
               {
                 "color": "#EAB839",
-                "value": 500
+                "value": 50000
               },
               {
                 "color": "red",
-                "value": 750
+                "value": 75000
+              },
+              {
+                "color": "dark-red",
+                "value": 100000
               }
             ]
           }
@@ -219,7 +226,7 @@
           "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
+        "showThresholdLabels": true,
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
