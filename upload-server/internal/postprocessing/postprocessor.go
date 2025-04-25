@@ -26,7 +26,6 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	}
 
 	logger.Info("starting file copy")
-	metrics.EventsCounter.With(prometheus.Labels{metrics.Labels.EventType: e.Type(), metrics.Labels.EventOp: "subscribe"}).Inc()
 
 	rb := reports.NewBuilder[reports.FileCopyContent](
 		"1.0.0",
@@ -69,17 +68,13 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		return err
 	}
 
-	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Inc()
-	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": metrics.DeliveryResultStarted}).Inc()
 	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
-	metrics.ActiveDeliveries.With(prometheus.Labels{"target": e.DestinationTarget}).Dec()
 	if err != nil {
 		logger.Error("failed to deliver file", "target", uri, "error", err)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
 			Message: err.Error(),
 		})
-		metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": metrics.DeliveryResultFailed}).Inc()
 		return err
 	}
 	metrics.DeliveryTotals.With(prometheus.Labels{"target": e.DestinationTarget, "result": metrics.DeliveryResultCompleted}).Inc()

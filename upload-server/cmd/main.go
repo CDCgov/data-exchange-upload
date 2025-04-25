@@ -105,9 +105,11 @@ func main() {
 		go func() {
 			defer mainWaitGroup.Done()
 			if err := subscriber.Listen(ctx, event.UploadIDLoggerProcessor(
-				cli.TracingProcessor(
-					delivery.ObserveSpeed(
-						postprocessing.ProcessFileReadyEvent,
+				event.MetricsProcessor(
+					cli.TracingProcessor(
+						delivery.ObserveSpeed(
+							postprocessing.ProcessFileReadyEvent,
+						),
 					),
 				),
 			),
