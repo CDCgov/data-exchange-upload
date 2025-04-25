@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -17,7 +18,8 @@ var SpeedHistograms = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 
 func ObserveSpeed(next func(context.Context, *event.FileReady) error) func(context.Context, *event.FileReady) error {
 	return func(ctx context.Context, e *event.FileReady) error {
-		// TODO middleware func for upload id logger
+		logger := sloger.FromContext(ctx)
+
 		src, ok := GetSource(UploadSrc)
 		if !ok {
 			return fmt.Errorf("failed to get source for file delivery %+v", e)
@@ -32,7 +34,7 @@ func ObserveSpeed(next func(context.Context, *event.FileReady) error) func(conte
 
 		size, err := src.GetSize(ctx, e.UploadId)
 		if err != nil {
-			// TODO log warn that couldn't get size and skipping speed measurement
+			logger.Warn("skipping delivery speed measurement due to error getting file size", "error", err)
 		} else {
 			dur := time.Since(start)
 			if dur > 0 {
