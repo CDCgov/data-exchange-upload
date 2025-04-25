@@ -93,6 +93,10 @@ func (fd *FileSource) GetMetadata(_ context.Context, tuid string) (map[string]st
 	return m, nil
 }
 
+func (fd *FileSource) GetSize(_ context.Context, tuid string) (float64, error) {
+	return 0, errors.New("not implemented")
+}
+
 func (fd *FileSource) Health(_ context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "File Source"
 	info, err := fs.Stat(fd.FS, ".")

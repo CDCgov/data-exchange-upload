@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/url"
 	"time"
@@ -39,6 +40,10 @@ func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string
 		return nil, err
 	}
 	return storeaz.DepointerizeMetadata(resp.Metadata), nil
+}
+
+func (ad *AzureSource) GetSize(ctx context.Context, tuid string) (float64, error) {
+	return 0, errors.New("not implemented")
 }
 
 func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp) {

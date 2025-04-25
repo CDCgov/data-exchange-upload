@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -103,7 +104,11 @@ func main() {
 		}
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := subscriber.Listen(ctx, cli.TracingProcessor(postprocessing.ProcessFileReadyEvent)); err != nil {
+			if err := subscriber.Listen(ctx, cli.TracingProcessor(
+				delivery.ObserveSpeed(
+					postprocessing.ProcessFileReadyEvent),
+			),
+			); err != nil {
 				cancelFunc()
 				slog.Error("Listener failed", "error", err)
 			}

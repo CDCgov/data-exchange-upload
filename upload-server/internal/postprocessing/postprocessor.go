@@ -49,7 +49,7 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		logger.Info("file-copy report complete")
 	}()
 
-	src, ok := delivery.GetSource("upload")
+	src, ok := delivery.GetSource(delivery.UploadSrc)
 	if !ok {
 		err := fmt.Errorf("failed to get source for file delivery %+v", e)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{

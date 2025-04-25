@@ -56,6 +56,7 @@ func GetSource(name string) (Source, bool) {
 type Source interface {
 	Reader(context.Context, string) (io.Reader, error)
 	GetMetadata(context.Context, string) (map[string]string, error)
+	GetSize(context.Context, string) (float64, error)
 }
 
 type Destination interface {
