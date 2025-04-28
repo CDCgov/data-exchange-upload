@@ -528,7 +528,7 @@
             "mode": "thresholds"
           },
           "custom": {
-            "align": "auto",
+            "align": "left",
             "cellOptions": {
               "type": "auto"
             },
@@ -549,7 +549,19 @@
           },
           "unit": "dateTimeFromNow"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Target"
+            },
+            "properties": [
+              {
+                "id": "unit"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 7,
@@ -580,6 +592,7 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "delivery_completed_timestamp_milliseconds",
+          "format": "time_series",
           "instant": true,
           "legendFormat": "{{target}}",
           "range": false,
@@ -591,7 +604,9 @@
         {
           "id": "labelsToFields",
           "options": {
-            "valueLabel": "__name__"
+            "keepLabels": [
+              "target"
+            ]
           }
         },
         {
