@@ -41,6 +41,19 @@ func (ad *AzureSource) GetMetadata(ctx context.Context, tuid string) (map[string
 	return storeaz.DepointerizeMetadata(resp.Metadata), nil
 }
 
+func (ad *AzureSource) GetSize(ctx context.Context, tuid string) (int64, error) {
+	// Get blob src blob client.
+	srcBlobClient := ad.FromContainerClient.NewBlobClient(ad.Prefix + "/" + tuid)
+	resp, err := srcBlobClient.GetProperties(ctx, nil)
+	if err != nil {
+		if bloberror.HasCode(err, bloberror.BlobNotFound) {
+			return 0, ErrSrcFileNotExist
+		}
+		return 0, err
+	}
+	return *resp.ContentLength, nil
+}
+
 func (ad *AzureSource) Health(ctx context.Context) (rsp models.ServiceHealthResp) {
 	rsp.Service = "Azure source"
 	rsp.Status = models.STATUS_UP
