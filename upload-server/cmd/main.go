@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
@@ -53,6 +54,12 @@ func init() {
 func main() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	var mainWaitGroup sync.WaitGroup
+
+	tpShutdown, err := cli.InitTracerProvider(ctx)
+	if err != nil {
+		slog.Error("error starting app, error starting tracing", "error", err)
+		os.Exit(appMainExitCode)
+	}
 
 	appConfig, err := appconfig.ParseConfig(ctx)
 	if err != nil {
@@ -97,7 +104,16 @@ func main() {
 		}
 		go func() {
 			defer mainWaitGroup.Done()
-			if err := subscriber.Listen(ctx, postprocessing.ProcessFileReadyEvent); err != nil {
+			if err := subscriber.Listen(ctx, event.UploadIDLoggerProcessor(
+				event.MetricsProcessor(
+					cli.TracingProcessor(
+						delivery.ObserveSpeed(
+							postprocessing.ProcessFileReadyEvent,
+						),
+					),
+				),
+			),
+			); err != nil {
 				cancelFunc()
 				slog.Error("Listener failed", "error", err)
 			}
@@ -135,7 +151,11 @@ func main() {
 
 		Addr: ":" + appConfig.ServerPort,
 
-		Handler: metrics.TrackHTTP(handler),
+		Handler: middleware.AddUploadIDContext(
+			middleware.TracingMiddleware(
+				metrics.TrackHTTP(handler),
+			),
+		),
 		// etc...
 
 	} // .httpServer
@@ -156,7 +176,7 @@ func main() {
 		mainWaitGroup.Add(1)
 		go func() {
 			defer mainWaitGroup.Done()
-			err := ui.Start(appConfig.UIPort, appConfig.CsrfToken, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, authMiddleware)
+			err := ui.Start(appConfig.UIPort, *appConfig.CSRF, appConfig.ExternalServerFileEndpointUrl, appConfig.InternalServerInfoEndpointUrl, appConfig.InternalServerFileEndpointUrl, authMiddleware)
 			if err != nil && !errors.Is(err, http.ErrServerClosed) {
 				slog.Error("failed to start ui", "error", err)
 				os.Exit(appMainExitCode)
@@ -183,6 +203,7 @@ func main() {
 	defer httpShutdownCancelFunc()
 	httpServer.Shutdown(httpShutdownCtx)
 	ui.Close(httpShutdownCtx)
+	tpShutdown(httpShutdownCtx)
 
 	mainWaitGroup.Wait()
 

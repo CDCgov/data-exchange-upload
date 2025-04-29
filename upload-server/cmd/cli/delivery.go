@@ -44,7 +44,8 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		}
 		// init delivery metrics
 		metrics.ActiveDeliveries.With(prometheus.Labels{"target": t.Name}).Set(0)
-		metrics.DeliveryTotals.With(prometheus.Labels{"target": t.Name, "result": "failure"}).Add(0)
+		metrics.DeliveryTotals.With(prometheus.Labels{"target": t.Name, "result": metrics.DeliveryResultFailed}).Add(0)
+		delivery.SpeedHistograms.With(prometheus.Labels{"target": t.Name}).Observe(0)
 	}
 	slog.Info("registering destinations", "targets", delivery.Targets)
 

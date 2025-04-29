@@ -325,6 +325,17 @@ func TestRouteFileNotFound(t *testing.T) {
 	}
 }
 
+func TestMetricsEndpointSuccess(t *testing.T) {
+	client := ts.Client()
+	resp, err := client.Get(ts.URL + "/metrics")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Error("expected 200 but got", resp.StatusCode)
+	}
+}
+
 // UI Tests
 func TestLandingPage(t *testing.T) {
 	client := testUIServer.Client()

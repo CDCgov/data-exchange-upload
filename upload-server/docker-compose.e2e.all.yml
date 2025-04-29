@@ -28,6 +28,7 @@ services:
       - UPLOAD_CONFIG_PATH=/upload-configs
       - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/mix_destinations.yml
       - AZURITE_KEY=${AZURITE_STORAGE_KEY}
+      - CSRF_TRUSTED_ORIGINS=upload-server-all:8081,localhost:8081
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-all-network

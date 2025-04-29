@@ -4,6 +4,7 @@ package cli
 // note: tusd.Handler exposes metrics by cli flag and defaults true
 
 import (
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -19,10 +20,10 @@ func setupMetrics(m ...prometheus.Collector) {
 		metrics.UploadSpeeds,
 		metrics.EventsCounter,
 		metrics.CurrentMessages,
+		// Maybe these delivery metrics can be grouped in some way
 		metrics.ActiveDeliveries,
 		metrics.DeliveryTotals,
+		delivery.SpeedHistograms,
 	)
 	metrics.RegisterMetrics(m...)
-
-	// metrics.DefaultPoller.Start(ctx, pollInterval)
 } // setupMetrics
