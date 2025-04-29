@@ -11,3 +11,12 @@ groups:
           (
             upload_manifest_count_timestamp_milliseconds offset 1m
           )
+      - record: delivery_completed_timestamp_milliseconds
+        expr: |
+          (
+            (timestamp(sum by(target) (increase(dex_server_deliveries_total{result="completed"}[1m])) > 0)) * 1000
+          )
+          or
+          (
+            delivery_completed_timestamp_milliseconds offset 1m
+          )
