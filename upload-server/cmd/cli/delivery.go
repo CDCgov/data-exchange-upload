@@ -10,8 +10,10 @@ import (
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/health"
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metrics"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/storeaz"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/stores3"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Eventually, this can take a more generic list of deliverer configuration object
@@ -40,6 +42,10 @@ func RegisterAllSourcesAndDestinations(ctx context.Context, appConfig appconfig.
 		if err := health.Register(t.Destination); err != nil {
 			slog.Error("failed to register destination", "destination", t)
 		}
+		// init delivery metrics
+		metrics.ActiveDeliveries.With(prometheus.Labels{"target": t.Name}).Set(0)
+		metrics.DeliveryTotals.With(prometheus.Labels{"target": t.Name, "result": metrics.DeliveryResultFailed}).Add(0)
+		delivery.SpeedHistograms.With(prometheus.Labels{"target": t.Name}).Observe(0)
 	}
 	slog.Info("registering destinations", "targets", delivery.Targets)
 

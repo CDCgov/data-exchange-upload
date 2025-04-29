@@ -14,6 +14,7 @@ services:
       - UI_SERVER_INTERNAL_HOST=upload-server-fs:8080
       - UPLOAD_CONFIG_PATH=/upload-configs
       - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/file_destinations.yml
+      - CSRF_TRUSTED_ORIGINS=upload-server-fs:8081,localhost:8081
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-fs-network

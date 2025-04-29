@@ -12,7 +12,7 @@ import (
 var FileReadyChan chan *FileReady
 
 func InitFileReadyChannel() {
-	FileReadyChan = make(chan *FileReady)
+	FileReadyChan = make(chan *FileReady, 100)
 }
 
 func CloseFileReadyChannel() {
@@ -61,6 +61,14 @@ func (ms *MemorySubscriber[T]) Health(_ context.Context) (rsp models.ServiceHeal
 	rsp.Status = models.STATUS_UP
 	rsp.HealthIssue = models.HEALTH_ISSUE_NONE
 	return rsp
+}
+
+func (ms *MemorySubscriber[T]) Length(_ context.Context) (float64, error) {
+	return float64(len(ms.Chan)), nil
+}
+
+func (ms *MemorySubscriber[T]) URL() string {
+	return "memory channel"
 }
 
 type MemoryPublisher[T Identifiable] struct {

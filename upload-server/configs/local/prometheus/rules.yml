@@ -1,0 +1,22 @@
+groups:
+  - name: MyRules
+    interval: 1m
+    rules:
+      - record: upload_manifest_count_timestamp_milliseconds
+        expr: |
+          (
+            (timestamp(sum by(data_stream_id, data_stream_route, sender_id) (increase(upload_manifest_count[1m])) > 0)) * 1000
+          )
+          or
+          (
+            upload_manifest_count_timestamp_milliseconds offset 1m
+          )
+      - record: delivery_completed_timestamp_milliseconds
+        expr: |
+          (
+            (timestamp(sum by(target) (increase(dex_server_deliveries_total{result="completed"}[1m])) > 0)) * 1000
+          )
+          or
+          (
+            delivery_completed_timestamp_milliseconds offset 1m
+          )

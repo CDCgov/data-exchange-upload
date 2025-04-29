@@ -65,7 +65,8 @@ type AppConfig struct {
 	UIServerInternalProtocol string `env:"UI_SERVER_INTERNAL_PROTOCOL, default=http"`
 	UIServerExternalHost     string `env:"UI_SERVER_EXTERNAL_HOST, default=localhost:8080"`
 	UIServerInternalHost     string `env:"UI_SERVER_INTERNAL_HOST, default=localhost:8080"`
-	CsrfToken                string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
+	// CsrfToken                string `env:"CSRF_TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
+	CSRF *CSRFConfig `env:", prefix=CSRF_"`
 	// WARNING: the default CsrfToken value is for local development use only, it needs to be replaced by a secret 32 byte string before being used in production
 
 	// TUS Upload file lock
@@ -112,6 +113,7 @@ type AppConfig struct {
 
 type MetricsConfig struct {
 	LabelsFromManifest []string `env:"LABELS_FROM_MANIFEST, default=data_stream_id,data_stream_route,sender_id"`
+	PollIntervalMillis int      `env:"POLL_INTERVAL_MILLIS, default=3000"`
 }
 
 func (conf *AppConfig) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -196,6 +198,11 @@ type OauthConfig struct {
 	SessionKey       string `env:"SESSION_KEY"`
 	SessionSecure    bool   `env:"SESSION_SECURE, default=true"`
 	SessionDomain    string `env:"SESSION_DOMAIN"`
+}
+
+type CSRFConfig struct {
+	Token          string `env:"TOKEN, default=1qQBJumxRABFBLvaz5PSXBcXLE84viE42x4Aev359DvLSvzjbXSme3whhFkESatW"`
+	TrustedOrigins string `env:"TRUSTED_ORIGINS, default=localhost:8081"`
 }
 
 func (azc *AzureStorageConfig) Check() error {

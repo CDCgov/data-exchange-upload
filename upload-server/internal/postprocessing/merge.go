@@ -2,7 +2,6 @@ package postprocessing
 
 import (
 	"context"
-	"log/slog"
 
 	"fmt"
 
@@ -12,8 +11,8 @@ import (
 	"github.com/tus/tusd/v2/pkg/hooks"
 )
 
-func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
-	return func(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func RouteAndDeliverHook() func(*handler.HookEvent, hooks.HookResponse) (hooks.HookResponse, error) {
+	return func(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 		ctx := context.TODO()
 		id := event.Upload.ID
 		meta := event.Upload.MetaData
@@ -35,7 +34,6 @@ func RouteAndDeliverHook() func(handler.HookEvent, hooks.HookResponse) (hooks.Ho
 			if err := evt.FileReadyPublisher.Publish(ctx, e); err != nil {
 				return resp, err
 			}
-			slog.Info("published event", "event", e, "uploadId", id)
 		}
 		return resp, nil
 	}

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/internal/appconfig"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/metadata/validation"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/middleware"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/ui/components"
@@ -127,11 +128,12 @@ type UploadTemplateData struct {
 
 var StaticHandler = http.FileServer(http.FS(content))
 
-func NewServer(port string, csrfToken string, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) *http.Server {
+func NewServer(port string, csrfConfig appconfig.CSRFConfig, externalUploadUrl string, externalInfoUrl string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) *http.Server {
 	router := GetRouter(externalUploadUrl, externalInfoUrl, internalUploadUrl, authMiddleware)
 	secureRouter := csrf.Protect(
-		[]byte(csrfToken),
+		[]byte(csrfConfig.Token),
 		csrf.Secure(false), // TODO: make dynamic when supporting TLS
+		csrf.TrustedOrigins(strings.Split(csrfConfig.TrustedOrigins, ",")),
 	)(router)
 
 	addr := fmt.Sprintf(":%s", port)
@@ -388,8 +390,8 @@ func GetRouter(externalUploadUrl string, internalInfoUrl string, internalUploadU
 
 var DefaultServer *http.Server
 
-func Start(uiPort string, csrfToken string, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) error {
-	DefaultServer = NewServer(uiPort, csrfToken, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
+func Start(uiPort string, csrfConfig appconfig.CSRFConfig, externalUploadURL string, internalInfoURL string, internalUploadUrl string, authMiddleware *middleware.AuthMiddleware) error {
+	DefaultServer = NewServer(uiPort, csrfConfig, externalUploadURL, internalInfoURL, internalUploadUrl, authMiddleware)
 
 	return DefaultServer.ListenAndServe()
 }

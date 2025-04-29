@@ -27,6 +27,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=minioadmin
       - DEX_MANIFEST_CONFIG_FOLDER_NAME=upload-configs
       - DEX_DELIVERY_CONFIG_FILE=/code/configs/testing/e2e/minio_destinations.yml
+      - CSRF_TRUSTED_ORIGINS=upload-server-minio:8081,localhost:8081
     command: /bin/sh -c "./run-server.sh"
     networks:
       - e2e-minio-network

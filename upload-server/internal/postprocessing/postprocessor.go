@@ -3,12 +3,12 @@ package postprocessing
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/delivery"
 	"github.com/cdcgov/data-exchange-upload/upload-server/internal/event"
 	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/reports"
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 )
 
 type PostProcessor struct {
@@ -17,8 +17,13 @@ type PostProcessor struct {
 }
 
 func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
+	logger := sloger.FromContext(ctx)
 
-	slog.Info("starting file copy", "uploadId", e.UploadId)
+	if e == nil || e.UploadId == "" {
+		return fmt.Errorf("malformed file ready event %+v", e)
+	}
+
+	logger.Info("starting file copy")
 
 	rb := reports.NewBuilder[reports.FileCopyContent](
 		"1.0.0",
@@ -36,13 +41,13 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 	defer func() {
 		rb.SetEndTime(time.Now().UTC())
 		report := rb.Build()
-		slog.Info("REPORT blob-file-copy", "report", report, "uploadId", e.UploadId)
+		logger.Info("REPORT blob-file-copy", "report", report)
 		reports.Publish(ctx, report)
 
-		slog.Info("file-copy report complete", "uploadId", e.UploadId)
+		logger.Info("file-copy report complete")
 	}()
 
-	src, ok := delivery.GetSource("upload")
+	src, ok := delivery.GetSource(delivery.UploadSrc)
 	if !ok {
 		err := fmt.Errorf("failed to get source for file delivery %+v", e)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
@@ -60,21 +65,21 @@ func ProcessFileReadyEvent(ctx context.Context, e *event.FileReady) error {
 		})
 		return err
 	}
-	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
 
+	uri, err := delivery.Deliver(ctx, e.UploadId, e.Path, src, d)
 	if err != nil {
-		slog.Error("failed to deliver file", "target", uri, "error", err)
+		logger.Error("failed to deliver file", "target", uri, "error", err)
 		rb.SetStatus(reports.StatusFailed).AppendIssue(reports.ReportIssue{
 			Level:   reports.IssueLevelError,
 			Message: err.Error(),
 		})
 		return err
 	}
-	slog.Info("file delivered", "event", e, "uploadId", e.UploadId) // Is this necessary?
+	logger.Info("file delivered", "event", e) // Is this necessary?
 
 	m, err := src.GetMetadata(ctx, e.UploadId)
 	if err != nil {
-		slog.Warn("failed to get metadata for report", "event", e)
+		logger.Warn("failed to get metadata for report", "event", e)
 	}
 	rb.SetManifest(m)
 

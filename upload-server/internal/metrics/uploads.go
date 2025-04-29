@@ -1,10 +1,9 @@
 package metrics
 
 import (
-	"errors"
-	"log/slog"
 	"time"
 
+	"github.com/cdcgov/data-exchange-upload/upload-server/pkg/sloger"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tus/tusd/v2/pkg/handler"
 	"github.com/tus/tusd/v2/pkg/hooks"
@@ -18,55 +17,48 @@ var ActiveUploads = prometheus.NewGauge(prometheus.GaugeOpts{
 	Help: "Current number of active uploads",
 }) // .metricsOpenConnections
 
-var UploadSpeedsMegabytes = prometheus.NewHistogram(prometheus.HistogramOpts{
-	Name:    "dex_server_upload_speed_mb_per_second",
-	Help:    "File upload speed distribution in megabytes per seconds",
-	Buckets: prometheus.LinearBuckets(0, 5, 20),
+var UploadSpeeds = prometheus.NewHistogram(prometheus.HistogramOpts{
+	Name:    "dex_server_upload_speed_bytes_per_second",
+	Help:    "File upload speed distribution",
+	Buckets: prometheus.ExponentialBuckets(10, 2.5, 20),
 })
 
 var DefaultMetrics = []prometheus.Collector{
 	ActiveUploads,
-	UploadSpeedsMegabytes,
+	UploadSpeeds,
 }
 
-func ActiveUploadIncHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func ActiveUploadIncHook(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	ActiveUploads.Inc()
 	return resp, nil
 }
-func ActiveUploadDecHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func ActiveUploadDecHook(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	ActiveUploads.Dec()
 	return resp, nil
 }
 
-func UploadSpeedsHook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
-	tuid := event.Upload.ID
-	if resp.ChangeFileInfo.ID != "" {
-		tuid = resp.ChangeFileInfo.ID
-	}
-	if tuid == "" {
-		return resp, errors.New("no Upload ID defined")
-	}
+func UploadSpeedsHook(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+	logger := sloger.FromContext(event.Context)
 
 	size := event.Upload.Size
 
 	manifest := event.Upload.MetaData
 	start, ok := manifest["dex_ingest_datetime"]
 	if !ok {
-		slog.Warn("unable to observe upload duration; no start time found in manifest", "uploadId", tuid)
+		logger.Warn("unable to observe upload duration; no start time found in manifest")
 		return resp, nil
 	}
 
 	startTime, err := time.Parse(time.RFC3339Nano, start)
 	if err != nil {
-		slog.Warn("unable to observe upload duration; unable to parse timestamp", "timestamp", start, "uploadId", tuid)
+		logger.Warn("unable to observe upload duration; unable to parse timestamp", "timestamp", start)
 		return resp, nil
 	}
 
 	duration := time.Since(startTime).Seconds()
 	if duration > 0 {
 		speed := float64(size) / duration
-		speedMB := speed / MB
-		UploadSpeedsMegabytes.Observe(speedMB)
+		UploadSpeeds.Observe(speed)
 	}
 
 	return resp, nil
@@ -104,7 +96,7 @@ type ManifestMetrics struct {
 	Counter *prometheus.CounterVec
 }
 
-func (mm *ManifestMetrics) Hook(event handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
+func (mm *ManifestMetrics) Hook(event *handler.HookEvent, resp hooks.HookResponse) (hooks.HookResponse, error) {
 	vals := []string{}
 	for _, key := range mm.Keys {
 		val, ok := event.Upload.MetaData[key]
