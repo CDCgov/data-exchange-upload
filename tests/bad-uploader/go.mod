@@ -1,6 +1,7 @@
 module github.com/cdcgov/bad-uploader
 
 go 1.22.1
+toolchain go1.24.1
 
 replace github.com/eventials/go-tus => github.com/whytheplatypus/go-tus v0.0.0-20240709121510-b5e0bef51f72
 
@@ -13,7 +14,7 @@ require (
 require (
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c // indirect
+	golang.org/x/net v0.38.0 // indirect
 	google.golang.org/appengine v1.5.0 // indirect
 	nhooyr.io/websocket v1.8.11 // indirect
 )
