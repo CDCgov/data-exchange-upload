@@ -1,0 +1,106 @@
+{
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": {
+            "type": "grafana",
+            "uid": "-- Grafana --"
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": 3,
+    "links": [],
+    "panels": [
+      {
+        "datasource": {
+          "type": "tempo",
+          "uid": "tempo"
+        },
+        "fieldConfig": {
+          "defaults": {},
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 17,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "spanFilters": {
+            "criticalPathOnly": false,
+            "matchesOnly": false,
+            "serviceNameOperator": "=",
+            "spanNameOperator": "=",
+            "tags": [
+              {
+                "id": "148f30b5-afd",
+                "operator": "="
+              }
+            ]
+          }
+        },
+        "pluginVersion": "11.6.0",
+        "targets": [
+          {
+            "datasource": {
+              "type": "tempo",
+              "uid": "tempo"
+            },
+            "limit": 20,
+            "metricsQueryType": "range",
+            "query": "${traceId}",
+            "queryType": "traceql",
+            "refId": "A",
+            "tableType": "traces"
+          }
+        ],
+        "title": "Upload Traces",
+        "type": "traces"
+      }
+    ],
+    "preload": false,
+    "schemaVersion": 41,
+    "tags": [],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "text": "",
+            "value": ""
+          },
+          "label": "Trace ID",
+          "name": "traceId",
+          "options": [
+            {
+              "selected": true,
+              "text": "",
+              "value": ""
+            }
+          ],
+          "query": "",
+          "type": "textbox"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "PHDO Tracing",
+    "uid": "aekh5jjt3xhxcc",
+    "version": 3
+  }
