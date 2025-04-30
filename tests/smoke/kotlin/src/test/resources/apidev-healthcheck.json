@@ -22,11 +22,6 @@
             "health_issue": ""
         },
         {
-            "service": "Azure deliver target ncird",
-            "status": "UP",
-            "health_issue": ""
-        },
-        {
             "service": "S3 source phdo-upload-server-dev",
             "status": "UP",
             "health_issue": ""

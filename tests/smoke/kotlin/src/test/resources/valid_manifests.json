@@ -22,106 +22,6 @@
   },
   {
     "manifest": {
-      "data_stream_id": "covid-all-monthly-vaccination",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "XXA",
-      "data_producer_id": "XXA",
-      "sender_id": "IZGW",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_submissionperiod": "smoke submission period",
-      "meta_ext_sourceversion": "V2022-12-31",
-      "meta_username": "test-username"
-    },
-    "delivery_targets": [
-      {
-        "name": "ncird",
-        "path_template": {
-          "LOCAL": "/upload/ncird/{uid}",
-          "DEV": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "STAGE": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}"
-        }
-      }
-    ]
-  },
-  {
-    "manifest": {
-      "data_stream_id": "influenza-vaccination",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "XXA",
-      "data_producer_id": "XXA",
-      "sender_id": "IZGW",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_submissionperiod": "smoke submission period",
-      "meta_ext_sourceversion": "V2022-12-31",
-      "meta_username": "test-username"
-    },
-    "delivery_targets": [
-      {
-        "name": "ncird",
-        "path_template": {
-          "LOCAL": "/upload/ncird/{uid}",
-          "DEV": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "STAGE": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}"
-        }
-      }
-    ]
-  },
-  {
-    "manifest": {
-      "data_stream_id": "routine-immunization",
-      "data_stream_route": "other",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "XXA",
-      "data_producer_id": "XXA",
-      "sender_id": "IZGW",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_submissionperiod": "smoke submission period",
-      "meta_ext_sourceversion": "V2022-12-31",
-      "meta_username": "test-username"
-    },
-    "delivery_targets": [
-      {
-        "name": "ncird",
-        "path_template": {
-          "LOCAL": "/dex-test/routine-immunization-zip/{year}/{month}/{day}/{filename}",
-          "DEV": "/dex/routine-immunization-zip/{year}/{month}/{day}/{filename}",
-          "TEST": "/dex-test/routine-immunization-zip/{year}/{month}/{day}/{filename}",
-          "STAGE": "/dex/routine-immunization-zip/{year}/{month}/{day}/{filename}"
-        }
-      }
-    ]
-  },
-  {
-    "manifest": {
-      "data_stream_id": "rsv-prevention",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "XXA",
-      "data_producer_id": "XXA",
-      "sender_id": "IZGW",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_submissionperiod": "smoke submission period",
-      "meta_ext_sourceversion": "V2022-12-31",
-      "meta_username": "test-username"
-    },
-    "delivery_targets": [
-      {
-        "name": "ncird",
-        "path_template": {
-          "LOCAL": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "DEV": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "TEST": "/dex-test/{dataStream}-{route}/{year}/{month}/{day}/{filename}",
-          "STAGE": "/dex/{dataStream}-{route}/{year}/{month}/{day}/{filename}"
-        }
-      }
-    ]
-  },
-  {
-    "manifest": {
       "data_stream_id": "pulsenet",
       "data_stream_route": "localsequencefile",
       "received_filename": "dex-smoke-test",
@@ -137,32 +37,6 @@
           "DEV": "/upload/{dataStream}-{route}/{filename}",
           "TEST": "/upload/{dataStream}-{route}/{filename}",
           "STAGE": "/upload/{dataStream}-{route}/{filename}"
-        }
-      }
-    ]
-  },
-  {
-    "manifest": {
-      "data_stream_id": "generic-immunization",
-      "data_stream_route": "csv",
-      "sender_id": "IZGW",
-      "data_producer_id": "XXA",
-      "jurisdiction": "XXA",
-      "received_filename": "dex-smoke-test",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_file_timestamp": "test-file-timestamp",
-      "meta_username": "test-user",
-      "meta_ext_sourceversion": "V2024-09-04",
-      "meta_ext_submissionperiod": "test-submissionperiod"
-    },
-    "delivery_targets": [
-      {
-        "name": "ncird",
-        "path_template": {
-          "LOCAL": "/{dataStream}-other/{year}/{month}/{day}/{filename}",
-          "DEV": "/{dataStream}-other/{year}/{month}/{day}/{filename}",
-          "TEST": "/{dataStream}-other/{year}/{month}/{day}/{filename}",
-          "STAGE": "/{dataStream}-other/{year}/{month}/{day}/{filename}"
         }
       }
     ]

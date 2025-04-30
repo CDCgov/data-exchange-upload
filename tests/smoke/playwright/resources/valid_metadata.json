@@ -12,66 +12,6 @@
   },
   {
     "manifest": {
-      "data_stream_id": "covid-all-monthly-vaccination",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "XXA",
-      "data_producer_id": "XXA",
-      "sender_id": "IZGW",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_submissionperiod": "smoke submission period",
-      "meta_ext_sourceversion": "V2022-12-31",
-      "meta_username": "test-username"
-    },
-    "delivery_targets": ["ncird"]
-  },
-  {
-    "manifest": {
-      "data_stream_id": "influenza-vaccination",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "XXA",
-      "data_producer_id": "XXA",
-      "sender_id": "IZGW",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_submissionperiod": "smoke submission period",
-      "meta_ext_sourceversion": "V2022-12-31",
-      "meta_username": "test-username"
-    },
-    "delivery_targets": ["ncird"]
-  },
-  {
-    "manifest": {
-      "data_stream_id": "routine-immunization",
-      "data_stream_route": "other",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "XXA",
-      "data_producer_id": "XXA",
-      "sender_id": "IZGW",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_submissionperiod": "smoke submission period",
-      "meta_ext_sourceversion": "V2022-12-31",
-      "meta_username": "test-username"
-    },
-    "delivery_targets": ["ncird"]
-  },
-  {
-    "manifest": {
-      "data_stream_id": "rsv-prevention",
-      "data_stream_route": "csv",
-      "received_filename": "dex-smoke-test",
-      "jurisdiction": "XXA",
-      "data_producer_id": "XXA",
-      "sender_id": "IZGW",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_submissionperiod": "smoke submission period",
-      "meta_ext_sourceversion": "V2022-12-31",
-      "meta_username": "test-username"
-    },
-    "delivery_targets": ["ncird"]
-  },
-  {
-    "manifest": {
       "data_stream_id": "pulsenet",
       "data_stream_route": "localsequencefile",
       "received_filename": "dex-smoke-test",
@@ -80,21 +20,5 @@
       "jurisdiction": "test-jurisdiction"
     },
     "delivery_targets": ["edav"]
-  },
-  {
-    "manifest": {
-      "data_stream_id": "generic-immunization",
-      "data_stream_route": "csv",
-      "sender_id": "IZGW",
-      "data_producer_id": "XXA",
-      "jurisdiction": "XXA",
-      "received_filename": "dex-smoke-test",
-      "meta_ext_objectkey": "test-obj-key",
-      "meta_ext_file_timestamp": "test-file-timestamp",
-      "meta_username": "test-user",
-      "meta_ext_sourceversion": "V2024-09-04",
-      "meta_ext_submissionperiod": "test-submissionperiod"
-    },
-    "delivery_targets": ["ncird"]
   }
 ]

@@ -47,12 +47,10 @@ var (
 const TestFolderUploadsTus = "uploads"
 const TestEDAVFolder = "uploads/edav"
 const TestEventsFolder = "uploads/events"
-const TestNcirdFolder = "uploads/ncird"
 const TestReportsFolder = "uploads/reports"
 
 var AllTargets = map[string]string{
 	"edav":  TestEDAVFolder,
-	"ncird": TestNcirdFolder,
 }
 
 func TestTus(t *testing.T) {
