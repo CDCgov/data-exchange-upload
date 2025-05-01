@@ -52,11 +52,6 @@
             "health_issue": ""
         },
         {
-            "service": "Azure deliver target ncird",
-            "status": "UP",
-            "health_issue": ""
-        },
-        {
             "service": "Azure source",
             "status": "UP",
             "health_issue": ""
