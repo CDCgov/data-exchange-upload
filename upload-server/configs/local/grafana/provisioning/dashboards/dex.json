@@ -40,12 +40,15 @@
         "type": "prometheus",
         "uid": "prometheus-datasource"
       },
+      "description": "Gauge to show the number of files that have been started over a time window of 1 hour.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
           "mappings": [],
+          "max": 100,
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -53,8 +56,16 @@
                 "color": "green"
               },
               {
+                "color": "#EAB839",
+                "value": 50
+              },
+              {
                 "color": "red",
                 "value": 80
+              },
+              {
+                "color": "dark-red",
+                "value": 100
               }
             ]
           }
@@ -67,7 +78,7 @@
         "x": 0,
         "y": 1
       },
-      "id": 3,
+      "id": 20,
       "options": {
         "minVizHeight": 75,
         "minVizWidth": 75,
@@ -79,18 +90,23 @@
           "fields": "",
           "values": false
         },
-        "showThresholdLabels": false,
+        "showThresholdLabels": true,
         "showThresholdMarkers": true,
         "sizing": "auto"
       },
       "pluginVersion": "11.6.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-datasource"
+          },
           "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "sum by(job) (dex_server_active_uploads{job=\"upload\"})",
+          "editorMode": "code",
+          "expr": "round(sum(increase(tusd_uploads_created[1h])) - sum(increase(tusd_uploads_finished[1h])))",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
+          "instant": false,
           "legendFormat": "__auto",
           "range": true,
           "refId": "A",
