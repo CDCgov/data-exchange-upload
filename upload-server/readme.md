@@ -702,3 +702,12 @@ When using VS Code, we recommend using the [Go extension](https://marketplace.vi
     ]
 }
 ```
+
+## Future Enhancements
+### Proper OIDC user authentication for the UI
+The current login process for the UI is for the user to input their SAMS JWT that they aquired offline.  Crucually, this created an attack vector where an attacker can log into the UI
+of they aquire a leaked JWT.  This is a low risk at the moment because the UI is not exposed publicly, but would otherwise be a serious vulnerability.  It is also a non-ideal user experience as the user should not have to leave their browser session in order to log into the UI.
+
+To enhance this and cover this potential attack vector, the upload service UI should have a proper "Login with SAMS" button on the login page.  Clicking this shall redirect a user to the SAMS login page where they can authenticate and grant SAMS access to the Upload API on their behalf.  This will subsequently redirect the user back to the UI landing page and take care of the credential/JWT exchange under the hood.
+
+It's recommented to implement this enhancement in a way that other identity providers could be easly configured.  Ideally, the Upload API should accept a set of one or more provider information use it to dynamically generate the login buttons on the login page.
