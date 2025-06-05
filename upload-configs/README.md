@@ -1,12 +1,12 @@
 # Upload Configuration
 
 ## Overview
-In order to establish observability and accommodate program-specific requirements, the PHDO upload service utilizes configuration files that define expected metadata values that accompany uploads and determine file delivery logistics. <br/>
+In order to establish observability and accommodate program-specific requirements, the upload service utilizes configuration files that define expected metadata values that accompany uploads and determine file delivery logistics.
 
-Each data stream and file type "route" has a configuration file defined. Fields and values defined in these files are utilized by the PHDO upload service to validate metadata for accuracy and to deliver files to targets in a manner expected by receiving CDC programs.
+Each data stream and file type `route` has a configuration file defined. Fields and values defined in these files are utilized by the upload service to validate metadata for accuracy and to deliver files to targets in a manner expected by receiving CDC programs.
 
 ## Configuration File Format
-Data stream metadata configurations are saved in a JSON file format and reside in cloud storage for utilization by upload services.
+Data stream metadata configurations are saved in a JSON format and reside in configured storage for utilization by upload services.
 
 ### Configuration Objects
 | Field | Type | Description | 

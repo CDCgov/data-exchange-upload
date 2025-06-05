@@ -1,9 +1,9 @@
 # Upload API End to End Tests with TestNG
-This is a Kotlin/Gradle project that uses the TestNG framework to automate end to end testing for the Upload API. These tests upload actual files and verify the functionality for metadata verification, file copy, Processing Status API integration and healthcheck testing. They are intended to be run after a release to the `DEV`, `TEST` or `STAGE` environments or for frequent checking of functionality against any environment, including local environments.
+This is a Kotlin/Gradle project that uses the TestNG framework to automate end-to-end testing for the Upload API. These tests upload actual files and verify the functionality for metadata verification, file copy, Processing Status API integration, and healthcheck testing. They are intended to be run after a release to the `DEV`, `TEST`, or `STAGE` environments or for frequent checking of functionality against any environment, including locally.
 
 ## Local Setup
 
-The following tools need to be installed on your machine:
+The following tools must be installed:
 
 - [Java JDK 17](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html)
 - [Gradle](https://gradle.org/install/)
@@ -16,7 +16,7 @@ The following tools need to be installed on your machine:
 Next, run `gradle build` to install dependencies for this project. This also installs the TestNG dependency and other related dependencies for the project.  
 
 > [!NOTE]
-> You may need to turn off Zscalar in order for this operation to be successful.
+> If using a CDC laptop, Zscaler may need to be turned off in order for this operation to be successful.
 
 ### Environment Setup
 
@@ -24,20 +24,20 @@ Copy `local.properites-example` to `local.properties` for the basic required env
 
 The following are the currently configured environment variables that can be set for the tests to run.
 
-| Environment Variable | Required? | Description                                      |
+| Environment Variable | Required  | Description                                      |
 | ---------------------| --------- | -------------------------------------------------|
 | environment          | Yes       | Environment to target (`LOCAL`, `DEV`, `TEST`, `STAGE`)
 | upload.url           | Yes       | URL of the upload API
 | ps.api.url           | Yes       | URL for Processing Status API  
 | sams.username        | No        | SAMS username for authentication (if needed)
 | sams.password        | No        | SAMS password for authentication (if needed)
-| healthcheck.case     | Yes       | The healthcheck json to match to for the current environment - should be in `src/test/resources`
+| healthcheck.case     | Yes       | The healthcheck json to match to for the current environment - should be in `../src/test/resources`
 
-The EnvConfig class (`src/test/kotlin/util/EnvConfig.kt`) reads configuration values from a local.properties file. This setup allows us to manage environment-specific settings, like URLs and credentials.
+The EnvConfig class (`../src/test/kotlin/util/EnvConfig.kt`) reads configuration values from a local.properties file. This facilitates management of environment-specific settings, like URLs and credentials.
 
 ### Running tests
 
-This project contains a set of test suites that define the tests to be run for different functional areas.  Tests are located in `/src/test/kotlin`.  The test files are:
+This project contains a set of test suites that define the tests to be run for different functional areas. Tests are located in `../src/test/kotlin`. The test files are:
 | Test File      | Purpose        |
 |----------------|----------------|
 | `FileCopy.kt ` | Testing that the upload api can accept files for different manifest configurations and can upload and transfer files as expected.
@@ -49,13 +49,13 @@ They are run by executing the `gradle test` with the option of using some comman
 
 #### Optional Parameters
 
-- `manifestFilter` - This argument allows you to select a subset of use cases you want to run the tests against. It is a comma-separated list of values for each key that you want to run. Available manifests are added to a file which is under resources folder in json format. By default, the tests will run for all use cases.
+- `manifestFilter` - This argument allows selection of a subset of use cases to run the tests against. It is a comma-separated list of values for each key that to run. Available manifests are added to a file which is under the resources folder in json format. By default, the tests will run for all use cases.
 
 #### Examples:
 The following are some examples of test run commands.
 
 > [!TIP]
-> The `--tests` parameter lets you select only a specific test file to run or a specific test within a file.
+> The `--tests` parameter allows selection of only a specific test file to run or a specific test within a file.
 
 > [!TIP]
 > The `--rerun` command may be needed in order to force tests to rerun, otherwise tests may be skipped if there are no changes.
@@ -95,11 +95,11 @@ gradle test -PmanifestFilter='jurisdiction=AKA,CA;data_stream_route=csv,other&se
 
 ## Data Providers for TestNG
 
-This project includes a `DataProvider` utility class that supplies test data to TestNG tests.  The test data being used in tests are essentially test cases that define how a single test can be repeated and validated for different cases defined within the json being used as a source for the DataProvider.
+This project includes a `DataProvider` utility class that supplies test data to TestNG tests. The test data being used in tests are essentially test cases that define how a single test can be repeated and validated for different cases defined within the json being used as a source for the DataProvider.
 
 ### Data Provider Definitions
 
-The `dataProvider` decorator before a test defines what data provider should be used to pass in data into the test.  These are the currently defined Data Providers in `/src/test/kotlin/util/DataProvider.kt`
+The `dataProvider` decorator before a test defines what data provider should be used to pass in data into the test. These are the currently defined Data Providers in `/src/test/kotlin/util/DataProvider.kt`
 
 | Data Provider Name                      | Associated json file                      | Description                 |
 |-----------------------------------------|-------------------------------------------|-----------------------------|
