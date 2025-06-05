@@ -2,7 +2,6 @@
 
 This Go script connects to an Azure Storage Account, lists blobs within a specified container, and deletes them.
 
-
 ## Prerequisites
 
 - Azure Storage Account credentials:
@@ -10,7 +9,6 @@ This Go script connects to an Azure Storage Account, lists blobs within a specif
   - `ACCOUNT_KEY`: The access key for the Storage Account (set as an environment variable)
   - `DATA_STREAM`: The data stream name
   - `ROUTE`: The route name
-
 
 ## How To run
 

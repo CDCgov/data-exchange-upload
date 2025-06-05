@@ -6,7 +6,7 @@ This Go application fetches data from the [Processing Status GraphQL API](https:
 
 ### Environment Variables
 
-The application uses the following environment variables that can be set in a .env file:
+The application uses the following environment variables that can be set in a `.env` file:
 
 ```
 PS_API_ENDPOINT=<your_ps_api_url>
@@ -14,7 +14,7 @@ S3_BUCKET_NAME=<your_s3_bucket_name>
 S3_ENDPOINT=<your_s3_endpoint>
 ```
 
-If you are running this locally, you will need to export these env vars to the shell that you are going to run the app in.
+If running locally, export these env vars to the shell within which the app will be ran.
 
 #### For Linux/MAC:
 
@@ -45,15 +45,14 @@ The application accepts the following command-line variables:
 ## Generating GraphQL Types
 
 This application is using the package [genqlient](https://github.com/Khan/genqlient) to manage type safe graphql implementation.
+
 Before running the application, generate the GraphQL types by executing the following command:
 
 ```
 go run github.com/Khan/genqlient ./psApi/genqlient.yaml
 ```
 
-For the above command to work, and up to date graphql schema must be kept in the `psApi` directory in the file `schema.graphql`.
-All graphql querries that this application needs are located in `upload-reports/psApi/genqlient.graphql`. The above command
-will generate all needed types based off of the querries file and the schema.
+For the above command to work, a current graphql schema must be kept in the `psApi` directory in the file `schema.graphql`. All GraphQL queries that this application needs are located in `upload-reports/psApi/genqlient.graphql`. The above command will generate all needed types based on the queries file and the schema.
 
 ## Running the Application
 
@@ -73,7 +72,6 @@ go test ./...
 
 ## GitHub Actions
 
-This application is used by two GitHub Actions located in [data-exchange-upload-devops](https://github.com/cdcent/data-exchange-upload-devops/tree/main/.github/workflows).
-The action `upload-report-custom.yml` generates a report for a custom range of datastreams, routes, and timeframes.
-The action `upload-report-daily.yml` generates a daily report (24 hours time frame) for a standard set of datastreams.
-But reports use the same template `upload-report-template.yml`.
+This application is used by two GitHub Actions located in [data-exchange-upload-devops](https://github.com/cdcent/data-exchange-upload-devops/tree/main/.github/workflows). Reports use the same template `upload-report-template.yml`.
+- Action `upload-report-custom.yml` generates a report for a custom range of datastreams, routes, and timeframes.
+- Action `upload-report-daily.yml` generates a daily report (24 hours time frame) for a standard set of datastreams.

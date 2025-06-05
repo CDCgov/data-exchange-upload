@@ -72,9 +72,9 @@ This repository is using the TUS resumable upload protocol: [https://tus.io/](ht
 
 Example clients, for back-end or browser (front-end), to upload files: [https://github.com/CDCgov/data-exchange-api-examples](https://github.com/CDCgov/data-exchange-api-examples)
 
-## Future Improvements
+## Future Enhancements
 
-- Upload routing configuration defined within the upload server; removes JSON configuration file dependency
+Refer to the [Upload Server README](https://github.com/CDCgov/data-exchange-upload/blob/main/upload-server/readme.md) for a list of future improvements.
 
 ## Public Domain Standard Notice
 
@@ -108,4 +108,4 @@ This repository is not a source of government records, but is a copy to increase
 
 ## Additional Standard Notices
 
-Please refer to [CDC's Template Repository](https://github.com/CDCgov/template)for more information about [contributing to this repository](https://github.com/CDCgov/template/blob/master/CONTRIBUTING.md), [public domain notices and disclaimers](https://github.com/CDCgov/template/blob/master/DISCLAIMER.md), and [code of conduct](https://github.com/CDCgov/template/blob/master/code-of-conduct.md).
+Please refer to [CDC's Template Repository](https://github.com/CDCgov/template) for more information about [contributing to this repository](https://github.com/CDCgov/template/blob/master/CONTRIBUTING.md), [public domain notices and disclaimers](https://github.com/CDCgov/template/blob/master/DISCLAIMER.md), and [code of conduct](https://github.com/CDCgov/template/blob/master/code-of-conduct.md).
