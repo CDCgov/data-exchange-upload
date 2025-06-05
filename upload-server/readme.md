@@ -1,7 +1,5 @@
 # DEX TUSD Go Server
 
-A resumable file upload server for OCIO Data Exchange (DEX)
-
 ## Overview
 
 The DEX Upload API is an open-source tool that allows users to upload and manage data sets for public health initiatives. It is designed for ease of use and customization while also ensuring compliance with federal standards.
@@ -27,8 +25,6 @@ Repo is structured (as feasible) based on the [golang-standards/project-layout](
 - Based on the [tus](https://tus.io/) open protocol for resumable file uploads
 - Based on the [tusd](https://github.com/tus/tusd) official reference implementation
 
----
-
 ## Getting Started
 
 ### 1. Install Required Tools
@@ -37,7 +33,7 @@ Install [Go](https://go.dev/doc/) and/or a container tool (e.g., [Docker](https:
 
 ### 2. Clone the Repo
 
-Clone the repo and change into the `upload-server/` inside the repo
+Clone the repo and navigate to the `upload-server/` directory:
 
 ```shell
 git clone git@github.com:CDCgov/data-exchange-upload.git 
@@ -49,20 +45,17 @@ cd data-exchange-upload/upload-server
 
 Running the server with the default configurations will use the local file system for the storage backend and the delivery targets. It will start the Upload API server at [http://localhost:8080](http://localhost:8080) and a Tus client at [http://localhost:8081/](http://localhost:8081/), which will allow you to upload files to the Upload API server.
 
-These files will be uploaded by default to the `upload-server/uploads/tus-prefix/` directory. The base `uploads/` directory name and location can be changed using the `LOCAL_FOLDER_UPLOAD_TUS` environment variable. The `tus-prefix/` name can be changed using the `TUS_UPLOAD_PREFIX` environment variable.
+Files will be uploaded by default to the `upload-server/uploads/tus-prefix/` directory. The base `uploads/` directory name and location can be changed using the `LOCAL_FOLDER_UPLOAD_TUS` environment variable. The `tus-prefix/` name can be changed using the `TUS_UPLOAD_PREFIX` environment variable.
 
-Information about file uploads and delivery are stored as reports and events in the `upload-server/uploads/reports/` and `upload-server/uploads/events` respectively. If delivery targets are specified in the sender manifest config file, they will be sent to the corresponding directory in `upload-server/uploads/`.
+Information about file uploads and delivery are stored as reports and events in `upload-server/uploads/reports/` and `upload-server/uploads/events` directory paths, respectively. If delivery targets are specified in the sender manifest config file, they will be sent to the corresponding directory in `upload-server/uploads/`.
 
-Default folder structure
+*Default folder structure*
 
 ```folder
 |-- upload-server
     |-- uploads
         |-- edav // edav delivery destination
-        |-- ehdi // ehdi delivery destination
-        |-- eicr // eicr delivery destination
         |-- events // file upload and delivery events
-        |-- ncird // ncird delivery destination
         |-- reports // file upload and delivery reports
         |-- routing // routing delivery destination
         |-- tus-prefix // file upload destination
@@ -74,7 +67,7 @@ All of the following commands should be run from the `upload-server/` directory.
 
 ##### Application Configuration
 
-`-appconf` passes in an environment variable file to use for configuration
+The command `-appconf` passes in an environment variable file to use for configuration.
 
 The following forms are permitted:
 
@@ -89,13 +82,13 @@ The following forms are permitted:
 
 ##### Running from the Code
 
-Run the code
+Run the code:
 
 ```shell
 go run ./cmd/main.go
 ```
 
-Run the code with the flag
+Run the code with the flag:
 
 ```shell
 go run ./cmd/main.go -appconf=.env 
@@ -103,19 +96,19 @@ go run ./cmd/main.go -appconf=.env
 
 ##### Running from the Binary
 
-Build the binary
+Build the binary:
 
 ```shell
 go build -o ./dextusd ./cmd/main.go
 ```
 
-Run the binary
+Run the binary:
 
 ```shell
 ./dextusd
 ```
 
-Run the binary with the flag
+Run the binary with the flag:
 
 ```shell
 ./dextusd -appconf=.env
@@ -125,33 +118,33 @@ Run the binary with the flag
 
 ##### Running Using the Dockerfile
 
-Build the image
+Build the image:
 
 ```shell
 docker build -t dextusdimage .
 ```
 
-Run the container
+Run the container:
 
 ```shell
 docker run -d -p 8080:8080 -p 8081:8081 --name dextusd dextusdimage
 ```
 
-> Note: `-p 8080:8080 -p 8081:8081` must be included so that you can access the endpoints
+> Note: Include `-p 8080:8080 -p 8081:8081` to ensure access to the endpoints.
 
-Run the container with the flag, passing in the .env in the same directory
+Run the container with the flag, passing in the .env in the same directory:
 
 ```shell
 docker run -d -p 8080:8080 -p 8081:8081 -v .:/conf --name dextusd dextusdimage -appconf=/conf/.env
 ```
 
-> Note: `-v .:/conf` mounts a volume from your current directory to a directory in the container, which can be anything except `/app` because that is used for the binary. The location of the `-appconf` flag needs to point to this mounted volume. ([see Mount Volume](https://docs.docker.com/reference/cli/docker/container/run/#volume))
+> Note: `-v .:/conf` mounts a volume from the current directory to a directory in the container, which can be anything except `/app` because that is used for the binary. The location of the `-appconf` flag needs to point to this mounted volume. ([see Mount Volume](https://docs.docker.com/reference/cli/docker/container/run/#volume))
 
 ##### Running Using Docker Compose
 
 This is the easiest way to start the service locally, because in addition to starting the service it also starts the Redis cache, Prometheus, and Grafana. If there is an `.env` file in the same directory as the docker-compose.yml file, it will automatically use those values when building and starting the containers and it will use the `-appconf` flag to pass the file into the service.
 
-Start the containers using
+Start the containers using:
 
 ```shell
 docker-compose up -d
@@ -159,23 +152,25 @@ docker-compose up -d
 
 ## Configurations
 
-Configuration of the `upload-server` is managed through environment variables. These environment variables can be set directly in the terminal
+Configuration of the `upload-server` is managed through environment variables. 
 
-(Mac or Linux)
+These environment variables can be set directly in the terminal:
+
+*(Mac or Linux)*
 
 ```shell
 export SERVER_PORT=8082
 go run ./cmd/main.go
 ```
 
-(Windows)
+*(Windows)*
 
 ```shell
 set SERVER_PORT=8082
 go run ./cmd/main.go
 ```
 
-or you can create a file and set them in it
+or set within a newly created file:
 
 *upload-server/env-file*:
 
@@ -183,23 +178,23 @@ or you can create a file and set them in it
 SERVER_PORT=8082
 ```
 
-then pass the file in using the [`-appconf` flag](#flags)
+then pass in the file using the [`-appconf` flag](#flags):
 
 ```shell
 go run ./cmd/main.go -appconf env-file
 ```
 
-or load it into the session using the `source` command
+or load it into the session using the `source` command:
 
 ```shell
 source env-file
 go run ./cmd/main.go
 ```
 
-If you name this file `.env` you can get the benefits of the [dotenv file format](https://www.dotenv.org/docs/security/env). For instance, it will automatically be recognized and loaded by tools like `docker-compose`. The `.env.example` file in the `upload-server/` directory contains all of the available environment variables for configuring the system. Add any environment variables you would like to set to your `.env` file.
+If this file is named `.env` the benefits of the [dotenv file format](https://www.dotenv.org/docs/security/env) can be leveraged. For instance, it will automatically be recognized and loaded by tools like `docker-compose`. The `.env.example` file in the `upload-server/` directory contains all of the available environment variables for configuring the system. Additional custom environment variables can also be included in the `.env` file, as needed.
 
 >[!WARNING]
-> Never check your `.env` file into source control. It should only be on your local computer or on the server you are using it on.
+> Never check a personal `.env` file into source control. It should only reside locally or on the server it is used on.
 
 ### Configuration Documentation
 
@@ -244,11 +239,13 @@ CSRF_TOKEN=
 ```
 
 > [!WARNING]
-> The default `CSRF_TOKEN` is for development purposes only. You should replace this with a new string, you can generate a 32 byte string [here](https://generate-random.org/encryption-key-generator?count=1&bytes=32&cipher=aes-256-cbc&string=&password=)
+> The default `CSRF_TOKEN` is for development purposes only and should be replaced with a new string; generate a 32 byte string [here](https://generate-random.org/encryption-key-generator?count=1&bytes=32&cipher=aes-256-cbc&string=&password=)
 
 ### Configuring Distributed File Locking with Redis
 
-When you want to scale this service horizontally, you'll need to use a distributed file locking mechanism to prevent upload corruption. You can read more about the limitations of Tus's support for concurrent requests [here](https://tus.github.io/tusd/advanced-topics/locks/). This service comes with a Redis implementation of a distributed file lock out of the box. All you need is a Redis instance that is accessible from the servers you will deploy this service to. This is provided for you in the [docker-compose set up](#running-using-docker-compose). After the Redis instances is set up, set the following environment variable to enable the use of your Redis instance:
+To scale this service horizontally, utilization of a distributed file locking mechanism to prevent upload corruption is needed. More information about the limitations of Tus' support for concurrent requests [here](https://tus.github.io/tusd/advanced-topics/locks/). This service comes with a Redis implementation of a distributed file lock. All that is needed is a Redis instance that is accessible from the servers to which this service will be deployed. This is provided for you in the [docker-compose set up](#running-using-docker-compose).
+
+After the Redis instances are set up, set the following environment variable to enable use:
 
 *upload-server/.env*:
 
@@ -261,7 +258,9 @@ REDIS_CONNECTION_STRING=
 
 ### Configuring OAuth Token Verification Middleware
 
-The Upload API has OAuth token verification middleware for the `/files/` and `/info` endpoints. You can read more about it [here](internal/README.md). OAuth is disabled by default. If you would like to enable it, you need to set the following environment variables with your OAuth settings:
+The Upload API has OAuth token verification middleware for the `/files/` and `/info` endpoints. You can read more about it [here](internal/readme.md). OAuth is disabled by default. 
+
+To enable it, set the following environment variables with your OAuth settings:
 
 *upload-server/.env*:
 
@@ -278,11 +277,11 @@ OAUTH_INTROSPECTION_URL=
 
 ### Configuring the storage backend
 
-This service currently supports local file system, Azure, and AWS as storage backends. You can only use one storage backend at a time. If the Azure configurations are set, it will be the storage backend regardless. If the Azure configurations are not set and the S3 configurations are set, S3 will be the storage backend. If neither Azure or S3 configurations are set, local storage will be the storage backend.
+This service currently supports local file system, Azure, and AWS as storage backends. Only one storage backend can be used at a time. If the Azure configurations are set, it will be the storage backend regardless. If the Azure configurations are not set and the S3 configurations are set, S3 will be the storage backend. If neither Azure or S3 configurations are set, local storage will be the storage backend.
 
 #### Local file system
 
-By default, this service uses the file system of the host machine it is running on as a storage backend. Therefore, no environment variables are necessary to set. You can change the directory the service will use as the base of the uploads
+By default, this service uses the file system of the host machine it is running on as a storage backend. Therefore, no environment variables are necessary to set. The directory the service will use as the base of the uploads can be changed, if needed.
 
 *upload-server/.env*:
 
@@ -304,7 +303,9 @@ UPLOAD_CONFIG_PATH=
 
 #### Azure Storage Account
 
-To upload to an Azure Storage Account, you'll need to collect the name, access key, and endpoint URI of the account. You also need to create a [Blob container](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer) within the account. You must set the following environment variables to use Azure.
+To upload to an Azure storage account, collect the name, access key, and endpoint URI and create a [Blob container](https://learn.microsoft.com/en-us/azure/storage/blobs/quickstart-storage-explorer) within the storage account. 
+
+Set the following environment variables to use Azure.
 
 *upload-server/.env*:
 
@@ -321,7 +322,9 @@ TUS_AZURE_CONTAINER_NAME=
 
 ##### Azure local development
 
-For local development, you can use [Azurite](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=visual-studio,blob-storage#install-azurite) to emulate Azure Storage. There is a Docker Compose file included here, `docker-compose.azurite.yml` that creates and starts an Azurite container. You only need to set the `AZURE_STORAGE_KEY`. You can get [the default Azurite key here](https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account). To start the service with an Azure storage backend, run
+For local development, [Azurite](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=visual-studio,blob-storage#install-azurite) can be used to emulate Azure Storage. There is a Docker Compose file included here, `docker-compose.azurite.yml` that creates and starts an Azurite container. Set the `AZURE_STORAGE_KEY` and get the [default Azurite key here](https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account). 
+
+To start the service with an Azure storage backend, run:
 
 ```shell
 podman-compose -f docker-compose.yml -f docker-compose.azurite.yml up -d
@@ -344,7 +347,9 @@ AZURE_CLIENT_SECRET=
 
 ##### Optional Azure blob for sender manifest config files
 
-If you would like to store the sender manifest config files on Azure, create a blob container for them using the same credentials as the upload blob container. Copy the `../upload-configs/v1` and `../upload-configs/v2` directories to the blob. Set `DEX_MANIFEST_CONFIG_CONTAINER_NAME` to the new blob container name
+To store the sender manifest config files on Azure, create a blob container for them using the same credentials as the upload blob container. Copy the `../upload-configs` directory to the blob. 
+
+Set `DEX_MANIFEST_CONFIG_CONTAINER_NAME` to the new blob container name.
 
 *upload-server/.env*:
 
@@ -357,7 +362,7 @@ If `DEX_MANIFEST_CONFIG_CONTAINER_NAME` is not set, the sender manifest config f
 
 #### S3
 
-To use an AWS S3 bucket as the storage backend, you'll need to [create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) to upload to within S3 and give a user or service read and write access to it. Then set the bucket name and endpoint URI of the S3 instance.
+To use an AWS S3 bucket as the storage backend, [create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) to upload to within S3 and give a user or service read and write access to it. Then set the bucket name and endpoint URI of the S3 instance.
 
 *upload-server/.env*:
 
@@ -370,7 +375,9 @@ S3_BUCKET_NAME=
 
 ##### AWS local development
 
-For local development, you can use [Minio](https://min.io/docs/minio/container/index.html) to emulate the AWS S3 API. There is a Docker Compose file included here, `docker-compose.minio.yml` that creates and starts a Minio container. To start the service with an AWS S3 storage backend, run
+For local development, [Minio](https://min.io/docs/minio/container/index.html) can be used to emulate the AWS S3 API. There is a Docker Compose file included here, `docker-compose.minio.yml` that creates and starts a Minio container. 
+
+To start the service with an AWS S3 storage backend, run:
 
 ```shell
 podman-compose -f docker-compose.yml -f docker-compose.minio.yml up -d
@@ -420,11 +427,13 @@ region = <REGION>
 region = <REGION>
 ```
 
-> Note: If you use a credential profile that is not [default], you need to explicitly set the `AWS_PROFILE` environment variable to the profile you want to use, before starting the service.
+> Note: If a credential profile is used that is not [default], the `AWS_PROFILE` environment variable must be explicitly set to the desired profile to use, before starting the service.
 
 ##### Optional AWS S3 bucket for sender manifest config files
 
-If you would like to store the sender manifest config files in an AWS S3 bucket, set the `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` environment variable to the directory in the bucket to use. Optionally, you can also create a new bucket for the configs and set `DEX_MANIFEST_CONFIG_BUCKET_NAME` environment variable to that new bucket name. The new bucket must use the same credentials as the upload bucket. Copy the`../upload-configs/v1` and `../upload-configs/v2` directories to the new config folder in the bucket
+If the sender manifest config files are to be stored in an AWS S3 bucket, set the `DEX_S3_MANIFEST_CONFIG_FOLDER_NAME` environment variable to the directory in the bucket to use. Optionally, a new bucket can be created for the configs, setting `DEX_MANIFEST_CONFIG_BUCKET_NAME` environment variable to that new bucket name. The new bucket must use the same credentials as the upload bucket. 
+
+Copy the `../upload-configs` directory to the new config folder in the bucket
 
 *upload-server/.env*:
 
@@ -443,7 +452,7 @@ By default, the reports of upload and delivery activity are written to the `./up
 
 #### Local file system reports directory
 
-To change the location of the report files
+To change the location of the report files:
 
 *upload-server/.env*:
 
@@ -454,7 +463,9 @@ LOCAL_REPORTS_FOLDER=
 
 #### Azure report service bus
 
-Create an Azure service bus [queue](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-portal) or [topic](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal) for publishing the report messages. Set the following environment variables with the details from the new service bus
+Create an Azure service bus [queue](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-portal) or [topic](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal) for publishing the report messages. 
+
+Set the following environment variables with the details from the new service bus:
 
 *upload-server/.env*:
 
@@ -473,7 +484,7 @@ By default, the event messages about upload and delivery activity are written to
 
 #### Local file system events directory
 
-To change the location of the event files
+To change the location of the event files:
 
 *upload-server/.env*:
 
@@ -486,7 +497,9 @@ LOCAL_EVENTS_FOLDER=
 
 ##### Event publisher
 
-Create an Azure service bus [topic](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal) for publishing event messages. Set the following environment variables with the details from the new service bus topic
+Create an Azure service bus [topic](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal) for publishing event messages. 
+
+Set the following environment variables with the details from the new service bus topic:
 
 *upload-server/.env*:
 
@@ -499,7 +512,9 @@ PUBLISHER_TOPIC=
 
 ##### Subscriber
 
-Create a [subscription](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal#create-subscriptions-to-the-topic) for the desired Azure service bus topic. Set the environment variables with the details from the new subscription
+Create a [subscription](https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-quickstart-topics-subscriptions-portal#create-subscriptions-to-the-topic) for the desired Azure service bus topic. 
+
+Set the environment variables with the details from the new subscription:
 
 *upload-server/.env*:
 
@@ -514,12 +529,11 @@ SUBSCRIBER_SUBSCRIPTION=
 
 ### Configuring upload routing and delivery targets
 
-This service is capable of copying files that are uploaded to other storage locations, even ones that are outside the on-prem or cloud environment your service is deployed to. This is useful when you want your files to land in particular storage locations based on their metadata. Setting this up begins with the creation of a
-YML file that defines delivery groups, and one or more delivery targets. These targets currently support Azure Blob, S3, and local file system.
+This service is capable of copying files that are uploaded to other storage locations, even those outside the on-prem or cloud environment to which the service is deployed. This is useful when file delivery locations are configurable based on provided metadata. Setting this up begins with the creation of a YML file that defines delivery groups, and one or more delivery targets. These targets currently support Azure Blob, S3, and local file system.
 
-By default, this service will use the YML file located at `configs/local/delivery.yml`, but you can create your own and point to it via the `DEX_DELIVERY_CONFIG_FILE` environment variable.
+By default, this service will use the YML file located at `configs/local/delivery.yml`, but a custom delivery file can be created and configured via the `DEX_DELIVERY_CONFIG_FILE` environment variable.
 
-Start by defining programs, which act as delivery groups
+Start by defining programs, which act as delivery groups.
 
 *configs/local/delivery.yml*:
 
@@ -531,7 +545,7 @@ programs:
     data_stream_route: testroute2
 ```
 
-Next, define at least one delivery target for each group.  Each of these target endpoints can be configured independently to point to a local file system directory, an Azure Blob container, or an AWS S3 bucket. Specify the type of connection you want by setting the `type` field to either `az-blob`, `s3`, or `file`.
+Next, define at least one delivery target for each group. Each of these target endpoints can be configured independently to point to a local file system directory, an Azure Blob container, or an AWS S3 bucket. Specify the type of connection by setting the `type` field to either `az-blob`, `s3`, or `file`.
 
 #### Azure blob target
 
@@ -563,11 +577,13 @@ programs:
         client_secret: $AZURE_CLIENT_SECRET
 ```
 
-*Note that you can substiture environment variables using the `$` notation. This is so you can keep secrets like service principle credentials or SAS tokens out of this configuration file.*
+*Note that environment variables can be substituted using the `$` notation. This facilitates keeping secrets like service principle credentials or SAS tokens out of this configuration file.*
 
 #### AWS S3 bucket target
 
-Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) or get the values from an existing S3 bucket. Then, set the access credentials and endpoint for the bucket in the following way:
+Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) or get the values from an existing S3 bucket. 
+
+Then, set the access credentials and endpoint for the bucket in the following way:
 
 *configs/local/delivery.yml*:
 
@@ -597,7 +613,7 @@ programs:
 
 #### Local file system target
 
-To use a local file system target, you simply need to set a directory path. *Note that the service will create the path if it does not exist*
+To use a local file system target, simply set a directory path. *Note that the service will create the path if it does not exist*
 
 *configs/local/delivery.yml*:
 
@@ -623,7 +639,9 @@ Upload server is capable of being run locally with the [Processing Status API](h
 
 #### Build Processing Status Report Sink
 
-PStatus report sink needs to be built so your container system gets an image with the changes. To do this run the following from the `pstatus-report-sink-ktor directory`.
+PStatus report sink needs to be built so your container system gets an image with the changes. 
+
+To do this run the following from the `pstatus-report-sink-ktor directory`:
 
 For building the client for Podman:
 ```
@@ -637,10 +655,10 @@ For building the client for Docker:
 
 This will create a local container that can be used by the following steps.
 
-From the `upload-server` directory in the Upload Server repository run the following command to built a system using both Upload and PS API.
+From the `upload-server` directory in the Upload Server repository run the following command to build a system using both the Upload and Processing Status services.
 
 > [!NOTE]
-> In order to avoid port colissions, set the environment variable `SINK_PORT` to a value other than `8080`.  Suggested port: `8082`
+> In order to avoid port collisions, set the environment variable `SINK_PORT` to a value other than `8080`.  Suggested port: `8082`
 
 ```
 podman-compose -f docker-compose.yml -f docker-compose.localstack.yml -f ../../data-exchange-processing-status/docker-compose.yml -f compose.pstatus.yml up -d
@@ -651,7 +669,6 @@ This will set up the system so that:
 - Upload UI is available locally on port `8081`
 - PS API GraphQL endpoint is available locally on `8090`
 
-
 ## Testing
 
 ### Unit Tests
@@ -659,13 +676,13 @@ This will set up the system so that:
 > [!TIP]
 > Before running unit tests, make sure to clean the file system with the `clean.sh` script. This removes any temporary upload and report files that the tests generated.
 
-Run the unit tests
+Run the unit tests:
 
 ```go
 go test ./...
 ```
 
-Run the unit tests with code coverage
+Run the unit tests with code coverage:
 
 ```go
 go test -coverprofile=c.out ./...
@@ -674,7 +691,7 @@ go tool cover -html=c.out
 
 ### Integration Tests (with minio and azurite)
 
-Set the environment variable `AZURE_STORAGE_KEY` in your `.env` file or locally in your terminal. You can get [the default key here](https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account).
+Set the environment variable `AZURE_STORAGE_KEY` in the `.env` file or locally in the terminal. Get the [default key here](https://github.com/Azure/Azurite?tab=readme-ov-file#default-storage-account).
 
 ```shell
 podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-compose.minio.yml -f docker-compose.testing.yml up --exit-code-from upload-server
@@ -682,7 +699,7 @@ podman-compose -f docker-compose.yml -f docker-compose.azurite.yml -f docker-com
 
 ## VS Code
 
-When using VS Code, we recommend using the [Go extension](https://marketplace.visualstudio.com/items?itemName=golang.Go) made by the Go Team at Google
+When using VS Code, it is recommended to use the [Go extension](https://marketplace.visualstudio.com/items?itemName=golang.Go) made by the Go Team at Google.
 
 *.vscode/launch.json*:
 

@@ -61,6 +61,7 @@ func GetRouter(uploadUrl string, infoUrl string) http.Handler {
 ```
 
 ## User Session Cookies
+
 This program uses the gorilla/sessions package to instantiate and manage user sessions. Sessions are stored in browser cookies. These sessions hold access tokens as well as redirect URLs for end users, and are used to protect certain pages of the front end user interface that should only be accessed by an authenticated user. In addition, it is used to set Authorization headers in requests to the upload server. 
 
 *The following UX and security features are also implemented:*

@@ -62,7 +62,7 @@ Go script that connects to Azure storage, lists blobs within a specific containe
 ### upload-server
 
 Upload server functionality leveraging Tus v2 capabilities written in Golang. Capabilities include resumable file uploads, metadata verification, event routing, observability endpoints, file delivery, distributed file locking, OAuth token verification, user interface, unit testing, and integration testing.
-- [Upload Server README](https://github.com/CDCgov/data-exchange-upload/blob/main/upload-server/README.md)
+- [Upload Server README](https://github.com/CDCgov/data-exchange-upload/blob/main/upload-server/readme.md)
 
 ## TUS Protocol
 
@@ -74,7 +74,7 @@ Example clients, for back-end or browser (front-end), to upload files: [https://
 
 ## Future Enhancements
 
-Refer to the [Upload Server README](https://github.com/CDCgov/data-exchange-upload/blob/main/upload-server/README.md) for a list of future improvements.
+Refer to the [Upload Server README](https://github.com/CDCgov/data-exchange-upload/blob/main/upload-server/readme.md) for a list of future improvements.
 
 ## Public Domain Standard Notice
 
