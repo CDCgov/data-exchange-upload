@@ -261,7 +261,7 @@ REDIS_CONNECTION_STRING=
 
 ### Configuring OAuth Token Verification Middleware
 
-The Upload API has OAuth token verification middleware for the `/files/` and `/info` endpoints. You can read more about it [here](internal/readme.md). OAuth is disabled by default. If you would like to enable it, you need to set the following environment variables with your OAuth settings:
+The Upload API has OAuth token verification middleware for the `/files/` and `/info` endpoints. You can read more about it [here](internal/README.md). OAuth is disabled by default. If you would like to enable it, you need to set the following environment variables with your OAuth settings:
 
 *upload-server/.env*:
 
@@ -293,7 +293,7 @@ LOCAL_FOLDER_UPLOADS_TUS=
 
 ##### Sender manifest config location
 
-By default, the service uses the sender manifest config files located in `../upload-configs`. These files within this directory are split into the sub directories `v1` and `v2` depending on their version. The service will default to the v2 files if there are two versions of the same sender manifest config. You can change the base of the configs directory
+By default, the service uses the sender manifest config files located in `../upload-configs`.
 
 *upload-server/.env*:
 
@@ -514,8 +514,8 @@ SUBSCRIBER_SUBSCRIPTION=
 
 ### Configuring upload routing and delivery targets
 
-This service is capable of copying files that are uploaded to other storage locations, even ones that are outside the on-prem or cloud environment your service is deployed to.  This is useful when you want your files to land in particular storage locations based on their metadata.  Setting this up begins with the creation of a
-YML file that defines delivery groups, and one or more delivery targets.  These targets currently support Azure Blob, S3, and local file system.
+This service is capable of copying files that are uploaded to other storage locations, even ones that are outside the on-prem or cloud environment your service is deployed to. This is useful when you want your files to land in particular storage locations based on their metadata. Setting this up begins with the creation of a
+YML file that defines delivery groups, and one or more delivery targets. These targets currently support Azure Blob, S3, and local file system.
 
 By default, this service will use the YML file located at `configs/local/delivery.yml`, but you can create your own and point to it via the `DEX_DELIVERY_CONFIG_FILE` environment variable.
 
@@ -563,11 +563,11 @@ programs:
         client_secret: $AZURE_CLIENT_SECRET
 ```
 
-*Note that you can substiture environment variables using the `$` notation.  This is so you can keep secrets like service principle credentials or SAS tokens out of this configuration file.*
+*Note that you can substiture environment variables using the `$` notation. This is so you can keep secrets like service principle credentials or SAS tokens out of this configuration file.*
 
 #### AWS S3 bucket target
 
-Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) or get the values from an existing S3 bucket.  Then, set the access credentials and endpoint for the bucket in the following way:
+Create an AWS [S3 bucket](https://docs.aws.amazon.com/AmazonS3/latest/userguide/create-bucket-overview.html) or get the values from an existing S3 bucket. Then, set the access credentials and endpoint for the bucket in the following way:
 
 *configs/local/delivery.yml*:
 
@@ -597,7 +597,7 @@ programs:
 
 #### Local file system target
 
-To use a local file system target, you simply need to set a directory path.  *Note that the service will create the path if it does not exist*
+To use a local file system target, you simply need to set a directory path. *Note that the service will create the path if it does not exist*
 
 *configs/local/delivery.yml*:
 
@@ -619,7 +619,7 @@ programs:
 
 ### Configuring Processing Status API Integration
 
-Upload server is capable of being run locally with the [Processing Status API](https://github.com/CDCgov/data-exchange-processing-status) to integrate features from that service into the Upload end to end flow.  Setting this up allows for the capability of integrataing reporting structures into the bigger Upload workflow.  The Processing Status API repository will need to be cloned locally to access its features for integration. This setup currently assumes that the repositories live adjacent to each other on the local filesystem.
+Upload server is capable of being run locally with the [Processing Status API](https://github.com/CDCgov/data-exchange-processing-status) to integrate features from that service into the Upload end to end flow. Setting this up allows for the capability of integrataing reporting structures into the bigger Upload workflow. The Processing Status API repository will need to be cloned locally to access its features for integration. This setup currently assumes that the repositories live adjacent to each other on the local filesystem.
 
 #### Build Processing Status Report Sink
 
@@ -705,21 +705,20 @@ When using VS Code, we recommend using the [Go extension](https://marketplace.vi
 
 ## Future Enhancements
 ### Proper OIDC user authentication for the UI
-The current login process for the UI is for the user to input their SAMS JWT that they aquired offline.  Crucially, this created an attack vector where an attacker can log into the UI
-if they aquire a leaked JWT.  This is a low risk at the moment because the UI is not exposed publicly, but would otherwise be a serious vulnerability.  It is also a non-ideal user experience as the user should not have to leave their browser session in order to log into the UI.
+The current login process for the UI is for the user to input their SAMS JWT that they aquired offline. Crucially, this created an attack vector where an attacker can log into the UI if they aquire a leaked JWT. This is a low risk at the moment because the UI is not exposed publicly, but would otherwise be a serious vulnerability.  It is also a non-ideal user experience as the user should not have to leave their browser session in order to log into the UI.
 
-To enhance this and cover this potential attack vector, the upload service UI should have a proper "Login with SAMS" button on the login page.  Clicking this shall redirect a user to the SAMS login page where they can authenticate and grant SAMS access to the Upload API on their behalf.  This will subsequently redirect the user back to the UI landing page and take care of the credential/JWT exchange under the hood.
+To enhance this and cover this potential attack vector, the upload service UI should have a proper "Login with SAMS" button on the login page. Clicking this shall redirect a user to the SAMS login page where they can authenticate and grant SAMS access to the Upload API on their behalf. This will subsequently redirect the user back to the UI landing page and take care of the credential/JWT exchange under the hood.
 
 It's recommended to implement this enhancement in a way that other identity providers could be easly configured.  Ideally, the Upload API should accept a set of one or more provider's information and use it to dynamically generate the login buttons on the login page.
 
 ### Enhanced error triaging with contextually aware logs
-Server logs can be enhanced to include the trace and span IDs for the Tempo trace and span that is capturing the log.  This will enable a capability in Grafana that links logs and traces together, and allows the user to easily navigate between a span and the logs produced within it.  This will significantly minimize error triage time.  If an error occurs during the critical path of an upload, the error log will be surfaced with the error span as opposed to hunting for the log from the error span's time range, or hunting for the span given the error log's timestamp.
+Server logs can be enhanced to include the trace and span IDs for the Tempo trace and span that is capturing the log. This will enable a capability in Grafana that links logs and traces together, and allows the user to easily navigate between a span and the logs produced within it. This will significantly minimize error triage time. If an error occurs during the critical path of an upload, the error log will be surfaced with the error span as opposed to hunting for the log from the error span's time range, or hunting for the span given the error log's timestamp.
 
-It appears that Tempo and Loki can be configured to create the log to trace linking without any code changes.  [https://grafana.com/docs/grafana/latest/datasources/tempo/#trace-to-logs](https://grafana.com/docs/grafana/latest/datasources/tempo/#trace-to-logs).  This would be an ideal approach if Loki and Tempo are part of your monitoring stack.  Otherwise, code changes will need to be made to compose the server's logger context with the current trace and span IDs.
+It appears that Tempo and Loki can be configured to create the log to trace linking without any code changes.  [https://grafana.com/docs/grafana/latest/datasources/tempo/#trace-to-logs](https://grafana.com/docs/grafana/latest/datasources/tempo/#trace-to-logs). This would be an ideal approach if Loki and Tempo are part of your monitoring stack. Otherwise, code changes will need to be made to compose the server's logger context with the current trace and span IDs.
 
 ### Upload delivery performance optimization
-File delivery is one of the biggest hits to latency that end users of the Upload API experience.  It can take 10s of seconds to transfer a file of only a few hundred megabytes.  This gets significantly worse for cross-cloud transfers that go through more network hops.  Evidence for this can be seen in traces emitted by the Upload API.
+File delivery is one of the biggest hits to latency that end users of the Upload API experience. It can take 10s of seconds to transfer a file of only a few hundred megabytes. This gets significantly worse for cross-cloud transfers that go through more network hops. Evidence for this can be seen in traces emitted by the Upload API.
 
-The Azure SDK that the Upload API uses to perform the copy of an upload object from an S3 bucket to an Azure Blob container has the capability of chunking the object and concurrently copying the chunks across without losing file integrity.  This takes advantage of the "staging" operation within Azure Blob that allows clients to quickly iterate over the chunks and mark, or stage, them for copy.  Finally, the client commits all of the staged chunks and the actual copying of the data is delegated to Azure itself.  Work for this has already been done in the following draft PR: [https://github.com/CDCgov/data-exchange-upload/pull/536](https://github.com/CDCgov/data-exchange-upload/pull/536).  
+The Azure SDK that the Upload API uses to perform the copy of an upload object from an S3 bucket to an Azure Blob container has the capability of chunking the object and concurrently copying the chunks across without losing file integrity. This takes advantage of the "staging" operation within Azure Blob that allows clients to quickly iterate over the chunks and mark, or stage, them for copy. Finally, the client commits all of the staged chunks and the actual copying of the data is delegated to Azure itself. Work for this has already been done in the following draft PR: [https://github.com/CDCgov/data-exchange-upload/pull/536](https://github.com/CDCgov/data-exchange-upload/pull/536).  
 
-Another approach may be to utilize the parallelization mechanisms within the Azure blob SDK for Golang itself.  It appears that the upload operations can take a concurrency parameter that tells the client how to parallelize the chunk uploading. [https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-upload-go](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-upload-go).
+Another approach may be to utilize the parallelization mechanisms within the Azure blob SDK for Golang itself. It appears that the upload operations can take a concurrency parameter that tells the client how to parallelize the chunk uploading. [https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-upload-go](https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blob-upload-go).
