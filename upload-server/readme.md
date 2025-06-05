@@ -243,7 +243,7 @@ CSRF_TOKEN=
 
 ### Configuring Distributed File Locking with Redis
 
-To scale this service horizontally, utilization of a distributed file locking mechanism to prevent upload corruption is needed. More information about the limitations of Tus' support for concurrent requests [here](https://tus.github.io/tusd/advanced-topics/locks/). This service comes with a Redis implementation of a distributed file lock. All that is needed is a Redis instance that is accessible from the servers to which this service will be deployed. This is provided for you in the [docker-compose set up](#running-using-docker-compose).
+To scale this service horizontally, utilization of a distributed file locking mechanism to prevent upload corruption is needed. More information about the limitations of Tus' support for concurrent requests [here](https://tus.github.io/tusd/advanced-topics/locks/). This service comes with a Redis implementation of a distributed file lock. All that is needed is a Redis instance that is accessible from the servers to which this service will be deployed. This is provided in the [docker-compose set up](#running-using-docker-compose).
 
 After the Redis instances are set up, set the following environment variable to enable use:
 
