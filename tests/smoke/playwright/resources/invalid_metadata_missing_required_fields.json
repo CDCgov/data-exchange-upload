@@ -10,17 +10,5 @@
     },
     "expectedStatusCode": 400,
     "expectedErrorMessages": ["field sender_id was missing"]
-  },
-  {
-    "name": "should error because of missing sender_id for pulsenet_localsequencefile",
-    "metadata": {
-      "data_stream_id": "pulsenet",
-      "data_stream_route": "localsequencefile",
-      "received_filename": "dex-smoke-test",
-      "data_producer_id": "test-producer-id",
-      "jurisdiction": "test-jurisdiction"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": ["field sender_id was missing"]
   }
 ]

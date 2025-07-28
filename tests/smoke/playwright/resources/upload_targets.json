@@ -2,9 +2,5 @@
   {
     "dataStream": "dextesting",
     "route": "testevent1"
-  },
-  {
-    "dataStream": "pulsenet",
-    "route": "localsequencefile"
   }
 ]

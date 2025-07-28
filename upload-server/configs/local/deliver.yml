@@ -7,11 +7,6 @@ targets:
     path: ./uploads/edav
 
 routing_groups:
-  - data_stream_id: pulsenet
-    data_stream_route: localsequencefile
-    delivery_targets:
-      - name: edav
-        path_template: '{{.DataStreamID}}/{{.DataStreamRoute}}/{{.Filename}}'
   - data_stream_id: dextesting
     data_stream_route: testevent1
     delivery_targets:
