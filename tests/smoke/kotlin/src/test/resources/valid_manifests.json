@@ -19,26 +19,5 @@
         }
       }
     ]
-  },
-  {
-    "manifest": {
-      "data_stream_id": "pulsenet",
-      "data_stream_route": "localsequencefile",
-      "received_filename": "dex-smoke-test",
-      "sender_id": "PulseNet-App",
-      "data_producer_id": "test-producer-id",
-      "jurisdiction": "test-jurisdiction"
-    },
-    "delivery_targets": [
-      {
-        "name": "edav",
-        "path_template": {
-          "LOCAL": "/upload/{dataStream}-{route}/{filename}",
-          "DEV": "/upload/{dataStream}-{route}/{filename}",
-          "TEST": "/upload/{dataStream}-{route}/{filename}",
-          "STAGE": "/upload/{dataStream}-{route}/{filename}"
-        }
-      }
-    ]
   }
 ]

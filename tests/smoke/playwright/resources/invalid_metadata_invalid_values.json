@@ -29,19 +29,5 @@
       "open dextesting_testevent100.json: no such file or directory",
       "manifest validation config file not found"
     ]
-  },
-  {
-    "name": "should error because of invalid sender_id for pulsenet_localsequencefile",
-    "metadata": {
-      "version": "2.0",
-      "data_stream_id": "pulsenet",
-      "data_stream_route": "localsequencefile",
-      "received_filename": "dex-smoke-test",
-      "sender_id": "blah",
-      "data_producer_id": "test-producer-id",
-      "jurisdiction": "test-jurisdiction"
-    },
-    "expectedStatusCode": 400,
-    "expectedErrorMessages": ["sender_id had disallowed value blah"]
   }
 ]
